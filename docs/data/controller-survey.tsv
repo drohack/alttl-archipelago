@@ -1,381 +1,381 @@
-levelIndex	levelId	solutionCount	controller	controllerType	setCount	solutionIds	note
-0	01__Chapter_HomeSweetHome	0					|no-controllers
-21	02__Chapter_LostRecipe	0					|no-controllers
-38	03__Chapter_NittyGritty	0					|no-controllers
-55	04__Chapter_InnerNature	0					|no-controllers
-71	05__Chapter_NearEarthOrganizer	0					|no-controllers
-14	Angled Image Frame	1	Angled	Rotateables	0		
-40	Batteries	1	Sort Batteries	Draggables	0		
-56	Broken Vase	1	Objects	Pannables	0		
-56	Broken Vase	1	Draggables	Draggables	0		
-46	Buttons	2	SortingItems Draggables	SortingItems_Draggables	0		
-7	Books	2	Shuffle	Shuffleables	0		
-18	Books 2	2	Shuffle	Shuffleables	0		
-13	Books 3	2	Design (Shuffle)	Shuffleables	0		
-13	Books 3	2	Height (Draggables)	Draggables	0		
-25	Bowls	2	Pattern	Draggables	0		
-25	Bowls	2	Crack	Draggables	0		
-25	Bowls	2	Pannables (Action Only)	Pannables	0		
-53	Boxes (Stacked)	2	Stacked Boxes	StackableGrid	0		
-28	Breadtags	1	Interlocking	Draggables	0		
-28	Breadtags	1	Crumbs	Removables	0		
-12	Calendar	1	Repeating Sequence	Stickables	0		
-78	Candles	2	CandlesObjectController	CandlesObjectController	0		
-34	Cat Food Cans	1	Matching Stacks	StackablesY	0		
-1	Cat Frame	1	Straighten	Rotateables	0		
-2	Cat Toys	1	Tidy Up	Draggables	0		
-74	Chess Shadows	1	Shuffleables Pieces	ShuffleablesRelative	0		
-74	Chess Shadows	1	Shuffleables Shadows	ShuffleablesRelative	0		
-39	Cleaning Supplies	1	Supplies Order	Shuffleables	0		
-39	Cleaning Supplies	1	Sponge	Draggables	0		
-73	Clock	1	Match Shadows	Rotateables	0		
-68	Clover	1	Symmetrical Placeables	SymmetricalPlaceables	0		
-41	Coins 1 (Shape)	3	Ordered	DraggablesOrdered	2	Ordered_0|Ordered_1	
-41	Coins 1 (Shape)	3	Stacked	StackablesZ	0		
-51	Coins 2 (Dirtyness)	3	Dirtyables	Dirtyables	0		
-3	Colored Pencils	1	Gradient	Draggables	0		
-76	Desktop Computer	1	Computer Desktop	Draggables	0		
-76	Desktop Computer	1	Pannables	Pannables	0		
-76	Desktop Computer	1	Shuffleables - Notes	Shuffleables	0		
-76	Desktop Computer	1	Rotateables - Clock hands	Rotateables	0		
-76	Desktop Computer	1	Containables - Paintbrushes	Containables	0		
-76	Desktop Computer	1	Containables - Keys	Containables	0		
-76	Desktop Computer	1	Computer Errors	ComputerErrorsController	0		
-76	Desktop Computer	1	Hourglass	HourglassController	0		
-31	Drink Glasses	1	Backface Aligned	Pannables	0		
-27	Eggs	1	Eggs Pattern	DraggablesOrdered	1	Eggs Pattern_0	
-72	Frame Maze	1	Frames	Frame_Rotateables	0		
-36	Fridge Inside	1	Draggables	Draggables	0		
-36	Fridge Inside	1	Stackables Yogurt / Jam Controller	StackablesY	0		
-36	Fridge Inside	1	Stackables Tupperware Controller 	StackablesY	0		
-29	Fruit Stickers	2	Objects	Pannables	0		
-29	Fruit Stickers	2	Remove Stickers	Pluckables	0		
-29	Fruit Stickers	2	Match Stickers	Stickables	0		
-35	Front of Fridge 1 (Postcards)	1	Match Edges	Draggables	0		
-37	Front of Fridge 2 (Polaroids)	1	Fit Rect	Draggables	0		
-67	Gems (Jigsaw)	1	GemsDrawer	Draggables	0		
-61	Gems (Simple)	3	Ordered	Shuffleables	0		
-23	Jars	3	Order	Shuffleables	0		
-44	Junk Drawer	1	Organizer	Draggables	0		
-47	Keys	3	Ordered	DraggablesOrdered	0		
-80	Lamp	1	Switches Toggleables	Toggleables	0		
-80	Lamp	1	Light Rotatable	Rotateables	0		
-59	Leaves	3	LeavesShuffleables	Shuffleables	0		
-43	Light Bulbs	1	BulbsBox	Draggables	0		
-77	Matchboxes	1	MatchboxesObjectController	MatchboxesObjectController	0		
-49	MedicineCabinet	1	Cupboard	Cupboard	0		
-49	MedicineCabinet	1	Jar Lid Draggable	Draggables	0		
-49	MedicineCabinet	1	Swabs Containables	Containables	0		
-49	MedicineCabinet	1	Oral Containables	Containables	0		
-49	MedicineCabinet	1	Trinkets Draggables	Draggables	0		
-49	MedicineCabinet	1	Green Bottles Draggables	DraggablesOrdered	0		
-49	MedicineCabinet	1	Blue Bottles Draggables	DraggablesOrdered	0		
-49	MedicineCabinet	1	Cup Draggables	Draggables	0		
-49	MedicineCabinet	1	Brush Draggables	Draggables	0		
-49	MedicineCabinet	1	Contact Lenses Draggables	Draggables	0		
-49	MedicineCabinet	1	Creams Draggables Stacked	DraggablesStacked	0		
-49	MedicineCabinet	1	Tube Draggables	Draggables	0		
-49	MedicineCabinet	1	Pump Bottle Draggables	Draggables	0		
-49	MedicineCabinet	1	Pick Draggables	Draggables	0		
-69	Microscope	1	Build Snowflakes	ScrollFieldGroupsController	0		
-79	Mirror	1	Books + Box StackablesY 	StackablesY	0		
-79	Mirror	1	CandleStateController	CandlesObjectController	0		
-79	Mirror	1	ContainablesController	Containables	0		
-79	Mirror	1	JugPositionController	Draggables	0		
-79	Mirror	1	DishPositionController	Draggables	0		
-79	Mirror	1	BottlePositionController	Draggables	0		
-79	Mirror	1	CandlePositionController	Draggables	0		
-79	Mirror	1	LemonWedgePositionController	Draggables	0		
-5	Multiple Frames	1	Straighten	Rotateables	0		
-8	NES Games	1	Stack Aligned	StackablesY	0		
-45	PaintCans	2	Match (Draggables)	Draggables	0		
-45	PaintCans	2	Pannables (Action Only)	Pannables	0		
-48	PartsOrganizer	1	Organizer	Draggables	0		
-30	Pasta	1	Ordered	Shuffleables	0		
-57	PawPrints	1	Clearables 01	Clearables	0		
-57	PawPrints	1	Clearables 02	Clearables	0		
-57	PawPrints	1	Clearables 03	Clearables	0		
-57	PawPrints	1	Free Leaves	Removables	0		
-57	PawPrints	1	Coffee Spill	Clearables	0		
-16	Pencils 3	3	Ordered	DraggablesOrdered	0		
-32	Place Setting	1	Placemat	Draggables	0		
-32	Place Setting	1	Utensils	Draggables	0		
-60	Plant Pots	1	Interlocking	Draggables	0		
-33	Plate	1	Placement	Draggables	0		
-4	Post-It Notes Scribble #1 (Simple Line)	1	Arranged	Draggables	0		
-10	Post-It Notes Scribble #2 (3x3 Grid)	1	Arranged	Draggables	0		
-15	Post-It Notes Scribble #3 (5x3 Grid)	1	Arranged	Draggables	0		
-81	Radial Dance Party	1	Radial Pencils 0	RadialDance	0		
-81	Radial Dance Party	1	Radial Cat Toys 1	RadialDance	0		
-81	Radial Dance Party	1	Radial Cat Toys 1	Draggables	0		
-81	Radial Dance Party	1	Radial Sticky Notes 2	RadialDance	0		
-81	Radial Dance Party	1	Radial Cat Food Cans 3	RadialDance	0		
-81	Radial Dance Party	1	Radial Food 4	RadialDance	0		
-81	Radial Dance Party	1	Radial Soup Cans 5	RadialDance	0		
-81	Radial Dance Party	1	Manager	Pannables	0		
-81	Radial Dance Party	1	Radial Nuts & Bolts 6	RadialDance	0		
-81	Radial Dance Party	1	Radial Nuts & Bolts 6	Draggables	0		
-81	Radial Dance Party	1	Radial Tools 7	RadialDance	0		
-81	Radial Dance Party	1	Radial Ladybugs 8	RadialDance	0		
-81	Radial Dance Party	1	Radial Chess 9	RadialDance	0		
-20	Record Player	1	Record Player	RecordPlayer	0		
-20	Record Player	1	Needle & Knobs	Rotateables	0		
-20	Record Player	1	Needle & Knobs	GenericLevelObjects	0		
-64	Rock Collection	1	Match-Lines	GridPuzzle	0		
-66	Rock Gradient	2	Gradient	GridPuzzle	0		
-65	Seed Pods	1	Symmetrical Placeables	SymmetricalPlaceables	0		
-19	Sharp Pencils	2	Pencil Order	DraggablesOrdered	0		
-19	Sharp Pencils	2	Shavings Removed	Removables	0		
-62	Shells	1	Symmetrical Placeables	SymmetricalPlaceables	0		
-22	Soup Cans	2	Match Label (Draggables)	Draggables	2	Match Label (Draggables)_0|Match Label (Draggables)_1	
-22	Soup Cans	2	Pannables (Action Only)	Pannables	0		
-26	Spice Jars	2	SpiceJarShuffleables	Shuffleables	0		
-26	Spice Jars	2	SpiceJarShuffleables_BottomShelf	Shuffleables	0		
-70	SpiderWeb	1	Web Symmetry	Draggables	0		
-24	Spoons	2	Stacked	StackablesZ	0		
-24	Spoons	2	Size (Elastic)	DraggablesOrdered	0		
-6	Stacked Papers	1	Stack Papers	StackablesZ	0		
-9	Stamps	1	Stamps Pattern	Draggables	1	Stamps Pattern_0	
-52	Storage Boxes	2	SortingItems Draggables	SortingItems_Draggables	0		
-11	Tacks	1	Colour & Count Sort	Draggables	0		
-75	Telescope	1	Constellations	TelescopeDraggables	0		
-58	Trim Plant	1	Pluckables	Pluckables	0		
-63	Trim Plant (Vines)	1	Pluckables	Pluckables	0		
-82	TupperwareNesting	1	Stack 1	StackablesZ	0		
-82	TupperwareNesting	1	Stack 2	StackablesZ	0		
-82	TupperwareNesting	1	Tray	Draggables	1	Tray_0	
-82	TupperwareNesting	1	Stack 3	StackablesZ	0		
-82	TupperwareNesting	1	Layout (Grid)	GridPuzzle	0		
-82	TupperwareNesting	1	Draggables (Large Square)	Draggables	0		
-82	TupperwareNesting	1	Food	Draggables	1	Food_0	
-82	TupperwareNesting	1	Lids	TupperwareLids	0		
-82	TupperwareNesting	1	Nested Tupperware	TupperwareNesting	0		
-83	TupperwareTower	1	Foundation	StackableGrid	0		
-83	TupperwareTower	1	Tower	TupperwareTower	0		
-83	TupperwareTower	1	Falling Blocks	StackableGrid	0		
-42	UtensilsDrawer	1	Utensils Drawer	Draggables	0		
-54	Wilting Flowers	1	Upright	AnimScrubbables	0		
-54	Wilting Flowers	1	Cleanable	CleanablesController	0		
-50	Workbench	1	ToolsController	HangingToolsController	0		
-50	Workbench	1	DraggablesForTargets	Draggables	0		
-17	Wrong Aspect Papers	1	Fit Rect	Draggables	0		
-84	Credits	0					|no-controllers
-1000	Procedural Grid Puzzle	1	Grid Puzzle	GridPuzzle	0		
-999	Pencils (Randomized)	2	Ordered	DraggablesOrdered	0		
-998	Post-It Notes (Randomized)	1	Draggable	Draggables	1	Draggable_0	
-997	Stamps (Randomized)	1	Stamps Pattern	Draggables	1	Stamps Pattern_0	
-996	Batteries (Randomized)	1	Controller	Draggables	1	Controller_0	
-995	Books (Randomized)	2	Shuffle	Shuffleables	0		
-995	Books (Randomized)	2	Draggables	Draggables	0		
-1001	GoodTidings_Cookies	3	RowColSets	GridPuzzle	0		
-1002	GoodTidings_Popcorn	1	TopRow	ShuffleablesRepeatingPattern	0		
-1002	GoodTidings_Popcorn	1	MidRow	ShuffleablesRepeatingPattern	0		
-1002	GoodTidings_Popcorn	1	BotRow	ShuffleablesRepeatingPattern	0		
-1003	GoodTidings_Wreath	1	Symmetrical Placeables	SymmetricalPlaceables	0		
-1004	GoodTidings_Presents (Stacked)	1	Stacked Boxes	StackableGrid	0		
-1005	GoodTidings_Cookies (Jigsaw)	1	Match Candy Cane	DraggablesJigsaw	0		
-1005	GoodTidings_Cookies (Jigsaw)	1	Match Reindeer	DraggablesJigsaw	0		
-1005	GoodTidings_Cookies (Jigsaw)	1	Match Gingerbread Man	DraggablesJigsaw	0		
-1005	GoodTidings_Cookies (Jigsaw)	1	Match Snowflake	DraggablesJigsaw	0		
-1005	GoodTidings_Cookies (Jigsaw)	1	Match Tree	DraggablesJigsaw	0		
-1006	GoodTidings_Ornament Box	1	BulbsBox	Draggables	0		
-107	SomethingEggstra PaintedEggs	2	RowColSets	GridPuzzle	2	RowColSets_0|RowColSets_1	
-108	SomethingEggstra Egg Cups	3	Shuffleables Cups	ShuffleablesRelative	0		
-108	SomethingEggstra Egg Cups	3	Shuffleables Eggs	ShuffleablesRelative	0		
-109	SomethingEggstra Fridge	1	StandardObjects	Draggables	0		
-109	SomethingEggstra Fridge	1	Stackables (Tupperware)	StackablesY	0		
-109	SomethingEggstra Fridge	1	EggsContainable	Containables	0		
-110	SomethingEggstra Broken Eggs	1	Egg #1 Shards	Pannables	0		
-110	SomethingEggstra Broken Eggs	1	Egg #2 Shards	Pannables	0		
-110	SomethingEggstra Broken Eggs	1	Egg #3 Shards	Pannables	0		
-110	SomethingEggstra Broken Eggs	1	Egg #1 (Center) Draggables	Draggables	0		
-110	SomethingEggstra Broken Eggs	1	Egg #2 (Left) Draggables	Draggables	0		
-110	SomethingEggstra Broken Eggs	1	Egg #3 (Right) Draggables	Draggables	0		
-1010	TrickOrTidy_Bats	1	Interlocking	Draggables	0		
-1011	TrickOrTidy_Bones	1	Match Bones	DraggablesJigsaw	0		
-1012	TrickOrTidy_Candy	2	Grouped	Groupables	0		
-1013	TrickOrTidy_ChocolateBars	4	Design (Shuffle)	Shuffleables	0		
-1013	TrickOrTidy_ChocolateBars	4	Height (Draggables)	Draggables	0		
-1014	TrickOrTidy_JackOLanterns	4	Ordered	Shuffleables	0		
-1015	MerryMess_CandyCanes	1	Match Candy Cane (1)	DraggablesJigsaw	0		
-1015	MerryMess_CandyCanes	1	Match Candy Cane (2)	DraggablesJigsaw	0		
-1015	MerryMess_CandyCanes	1	Match Candy Cane (3)	DraggablesJigsaw	0		
-1015	MerryMess_CandyCanes	1	Match Candy Cane (4)	DraggablesJigsaw	0		
-1015	MerryMess_CandyCanes	1	Match Candy Cane (5)	DraggablesJigsaw	0		
-1015	MerryMess_CandyCanes	1	Ordered	DraggablesOrdered	0		
-1016	MerryMess_Crackers	1	Build Train	Draggables	0		
-1016	MerryMess_Crackers	1	CrackerShuffleables	CrackersShuffleables	0		
-1017	MerryMess_SnowGlobes	3	Match Pan (Draggables)	Draggables	0		
-1017	MerryMess_SnowGlobes	3	Pannables (Action Only)	Pannables	0		
-1018	MerryMess_Presents	1	Presents Aligned	Pannables	0		
-1019	MerryMess_NutCrackers	5	Shuffle	Shuffleables	0		
-1100	DLC1 Clock Cupboard	1	Cupboard	Cupboard	0		
-1100	DLC1 Clock Cupboard	1	Items Placements Draggables	Draggables	0		
-1100	DLC1 Clock Cupboard	1	Cupboard Doors	AnimScrubbables	0		
-1101	DLC1 Craft Supplies	1	Drawers	DrawerController	0		
-1101	DLC1 Craft Supplies	1	Misc Draggables	Draggables	1	Misc Draggables_0	
-1101	DLC1 Craft Supplies	1	Paints DraggablesOrdered	DraggablesOrdered	0		
-1101	DLC1 Craft Supplies	1	Brushes DraggablesOrdered	DraggablesOrdered	0		
-1101	DLC1 Craft Supplies	1	Highlighters DraggablesOrdered	DraggablesOrdered	0		
-1102	DLC1 Fountain Pens	4	Draggables Ordered	DraggablesOrdered	0		
-1102	DLC1 Fountain Pens	4	Containables	Containables	0		
-1103	DLC1 Pressed Flowers	1	Flower Shapes	Draggables	0		
-1104	DLC1 Bathroom Cupboard	1	Cupboard	Cupboard	0		
-1104	DLC1 Bathroom Cupboard	1	Items Draggables	Draggables	0		
-1104	DLC1 Bathroom Cupboard	1	Glove Hanging Controller	HangingToolsController	0		
-1104	DLC1 Bathroom Cupboard	1	Broom/Dustpan Containables	Containables	0		
-1105	DLC1 Cat Moment (Sink Interlude)	0	Controller	CatInterludeController	0		
-1106	DLC1 Lunch Tray	1	Trays	DrawerController	0		
-1106	DLC1 Lunch Tray	1	TrayOrganizer	Draggables	0		
-1106	DLC1 Lunch Tray	1	BroccoliOrganizer	Draggables	0		
-1106	DLC1 Lunch Tray	1	CeleryController	Draggables	0		
-1106	DLC1 Lunch Tray	1	CrackerController	Draggables	0		
-1106	DLC1 Lunch Tray	1	Sandwich Controller	Draggables	0		
-1106	DLC1 Lunch Tray	1	PeasController	Draggables	0		
-1107	DLC1 Kitchen Hanging Tools 1	1	Knives Draggables	Draggables	0		
-1107	DLC1 Kitchen Hanging Tools 1	1	HangingObjectsController	HangingToolsController	0		
-1107	DLC1 Kitchen Hanging Tools 1	1	GuidingTargets	Draggables	0		
-1108	DLC1 Kitchen Utensils Drawers	1	Drawers	DrawerController	0		
-1108	DLC1 Kitchen Utensils Drawers	1	Top Drawer	Draggables	0		
-1108	DLC1 Kitchen Utensils Drawers	1	Bottom Drawer	Draggables	0		
-1109	DLC1 Tea Cabinet	1	Cupboard	Cupboard	0		
-1109	DLC1 Tea Cabinet	1	Items Placements Draggables	Draggables	0		
-1109	DLC1 Tea Cabinet	1	Teapot Stack	DraggablesStacked	0		
-1109	DLC1 Tea Cabinet	1	Teacup Stack	DraggablesStacked	0		
-1109	DLC1 Tea Cabinet	1	Jam Jars Stack	DraggablesStacked	0		
-1109	DLC1 Tea Cabinet	1	Cupcake Containables	Containables	0		
-1109	DLC1 Tea Cabinet	1	Spoon Containables	Containables	0		
-1109	DLC1 Tea Cabinet	1	Cupboard Doors	AnimScrubbables	0		
-1110	DLC1 Kitchen Hanging Tools 2	1	HangingObjectsController	HangingToolsController	0		
-1110	DLC1 Kitchen Hanging Tools 2	1	DraggablesForConsoleController	Draggables	0		
-1111	DLC1 Pantry	1	Cupboard	Cupboard	0		
-1111	DLC1 Pantry	1	Items Placements Draggables	Draggables	0		
-1111	DLC1 Pantry	1	Mixer Containables	Containables	0		
-1111	DLC1 Pantry	1	Mixing Bowl Containables	Containables	0		
-1111	DLC1 Pantry	1	Potato Crate Containables	Containables	0		
-1111	DLC1 Pantry	1	Apple Basket Containables	Containables	0		
-1111	DLC1 Pantry	1	Can Stacks	DraggablesStacked	1	Can Stacks_0	
-1112	DLC1 Cat Moment (Cupboard)	0	Controller	CatInterludeController	0		
-1113	DLC1 Junk Drawer 2	1	Draggables	Draggables	0		
-1113	DLC1 Junk Drawer 2	1	Shuffleables	Shuffleables	0		
-1114	DLC1 Filing Cabinet	3	FolderShuffleables	Shuffleables	0		
-1115	DLC1 Fossils	1	Drawers	DrawerController	0		
-1115	DLC1 Fossils	1	Fern Fossil Jigsaw	DraggablesJigsaw	0		
-1115	DLC1 Fossils	1	Snake Fossil Jigsaw	DraggablesJigsaw	0		
-1115	DLC1 Fossils	1	Dragonfly Fossil Jigsaw	DraggablesJigsaw	0		
-1115	DLC1 Fossils	1	Fish Fossil Jigsaw	DraggablesJigsaw	0		
-1115	DLC1 Fossils	1	Leaf Fossil Jigsaw	DraggablesJigsaw	0		
-1115	DLC1 Fossils	1	Shell Fossil Jigsaw	DraggablesJigsaw	0		
-1116	DLC1 Media Cabinet	1	Cupboard	Cupboard	0		
-1116	DLC1 Media Cabinet	1	Joysticks + Gameboy Draggables	Draggables	0		
-1116	DLC1 Media Cabinet	1	DVD DraggablesOrdered	DraggablesOrdered	0		
-1116	DLC1 Media Cabinet	1	Rubix Stack	DraggablesStacked	0		
-1116	DLC1 Media Cabinet	1	NES Stack	DraggablesStacked	0		
-1117	DLC1 Game Pieces	1	Drawers	DrawerController	0		
-1117	DLC1 Game Pieces	1	Center Tiles Draggables	Draggables	0		
-1117	DLC1 Game Pieces	1	Top Drawer Draggables	Draggables	0		
-1117	DLC1 Game Pieces	1	Bottom Drawer Draggables	Draggables	0		
-1117	DLC1 Game Pieces	1	Left Drawer Draggables	Draggables	0		
-1117	DLC1 Game Pieces	1	Right Drawer Draggables	Draggables	0		
-1117	DLC1 Game Pieces	1	Heart Containables	Containables	0		
-1118	DLC1 Tackle Box	1	Supplies Draggables	Draggables	0		
-1118	DLC1 Tackle Box	1	Bugs DraggableOrdered	DraggablesOrdered	0		
-1118	DLC1 Tackle Box	1	Weight Draggables	Draggables	1	Weight Draggables_0	
-1119	DLC1 Cat Moment (Glass Bowl Interlude)	0	Controller	CatInterludeController	0		
-1120	DLC1 Coin Box	3	Match-Lines	GridPuzzle	0		
-1121	DLC1 Sewing Box	1	Drawers	DrawerController	0		
-1121	DLC1 Sewing Box	1	Scissors Draggables	Draggables	0		
-1121	DLC1 Sewing Box	1	Large Spools Draggables	Draggables	0		
-1121	DLC1 Sewing Box	1	Small Spools Draggables	Draggables	0		
-1121	DLC1 Sewing Box	1	Supplies Draggables	Draggables	0		
-1121	DLC1 Sewing Box	1	Top Drawer Draggables	Draggables	0		
-1121	DLC1 Sewing Box	1	Zipper DraggablesOrdered	DraggablesOrdered	0		
-1121	DLC1 Sewing Box	1	Safety Pin DraggablesOrdered	DraggablesOrdered	0		
-1121	DLC1 Sewing Box	1	Curved Needles Containables	Containables	0		
-1121	DLC1 Sewing Box	1	Buttons Sortable	SortingItems_Draggables	0		
-1122	DLC1 Jewelry Box	1	Drawers	DrawerController	0		
-1122	DLC1 Jewelry Box	1	Watches Draggables	Draggables	0		
-1122	DLC1 Jewelry Box	1	Rings Draggables	DraggablesOrdered	0		
-1122	DLC1 Jewelry Box	1	Radiolaria Draggables	Draggables	0		
-1122	DLC1 Jewelry Box	1	Brooches Draggables	Draggables	0		
-1122	DLC1 Jewelry Box	1	Gold Bars Draggables	Draggables	0		
-1122	DLC1 Jewelry Box	1	Cameos Draggables	Draggables	0		
-1122	DLC1 Jewelry Box	1	Locket Containables	Containables	0		
-1123	DLC1 Cat Moment (Drawer Interlude)	0	Controller	CatInterludeController	0		
-1124	DLC1 Daggers	1	Drawers	DrawerExpandableController	0		
-1124	DLC1 Daggers	1	Draggables	Draggables	1	Draggables_0	
-1124	DLC1 Daggers	1	Drawers Draggables	Draggables	0		
-1125	DLC1 Trophy Cabinet	1	Cupboard	Cupboard	0		
-1125	DLC1 Trophy Cabinet	1	Items Placements Draggables	Draggables	0		
-1125	DLC1 Trophy Cabinet	1	Cupboard Doors	AnimScrubbables	0		
-1126	DLC1 Nesting Boxes	1	Boxes	DrawerController	0		
-1126	DLC1 Nesting Boxes	1	BoxOrganizer	Draggables	1	BoxOrganizer_0	
-1126	DLC1 Nesting Boxes	1	CatOrganizer	Draggables	1	CatOrganizer_0	
-1127	DLC1 Nested Drawers	1	Drawers	DrawerController	0		
-1127	DLC1 Nested Drawers	1	Draggables	Draggables	0		
-1128	DLC1 Boss	1	KeysDraggables	Draggables	0		
-1128	DLC1 Boss	1	Dining Room Draggables	Draggables	1	Dining Room Draggables_0	
-1128	DLC1 Boss	1	Parking Lot Draggables	Draggables	1	Parking Lot Draggables_0	
-1128	DLC1 Boss	1	Landscape Draggables	Draggables	0		
-1128	DLC1 Boss	1	DrawerController	DrawerController	0		
-1129	DLC1 Credits	0					|no-controllers
-1200	DLC2 Canapes	3					result-threw:Il2CppException
-1201	DLC2 Forks	5					result-threw:Il2CppException
-1202	DLC2 Mugs	4					result-threw:Il2CppException
-1203	DLC2 Corn	4					result-threw:Il2CppException
-1204	DLC2 Pressed Leaves	3					result-threw:Il2CppException
-1205	DLC2 Broken Vases	1					result-threw:Il2CppException
-1206	DLC2 Nanopets	5					result-threw:Il2CppException
-1207	DLC2 ObsoleteTech	1					result-threw:Il2CppException
-1208	DLC2 Balls	3					result-threw:Il2CppException
-1209	DLC2 Water Glasses	4					result-threw:Il2CppException
-1210	DLC2 Pizza	4					result-threw:Il2CppException
-1211	DLC2 Leftovers	5					result-threw:Il2CppException
-1212	DLC2 Windows	1					result-threw:Il2CppException
-1213	DLC2 Cacti	5					result-threw:Il2CppException
-1214	DLC2 Origami	1					result-threw:Il2CppException
-1215	DLC2 Moths	4					result-threw:Il2CppException
-1216	DLC2 Math Set	2					result-threw:Il2CppException
-1217	DLC2 Ink Bottles	2					result-threw:Il2CppException
-1218	DLC2 Material Drawers	1					result-threw:Il2CppException
-1219	DLC2 Curtains	1					result-threw:Il2CppException
-1220	DLC2 Books Stacked	5					result-threw:Il2CppException
-1221	DLC2 Sticky Drawer	1					result-threw:Il2CppException
-1222	DLC2 Bells	3					result-threw:Il2CppException
-1223	DLC2 Figurines	3					result-threw:Il2CppException
-1224	DLC2 Bookshelf	3					result-threw:Il2CppException
-1225	DLC2 Cat Eyes	1					result-threw:Il2CppException
-1226	DLC2 Junk Drawer Transforming	2					result-threw:Il2CppException
-1227	DLC2 Music Box	1					result-threw:Il2CppException
-1228	DLC2 Combs	2					result-threw:Il2CppException
-1229	DLC2 First Aid Kit	1					result-threw:Il2CppException
-1230	DLC2 Robots	2					result-threw:Il2CppException
-1231	DLC2 Boss	3					result-threw:Il2CppException
-1232	DLC2 Star Finale	0					result-threw:Il2CppException
-1233	DLC2 Credits	0					result-threw:Il2CppException
-1235	DLC2 Bread Crusts	2					result-threw:Il2CppException
-1236	DLC2 Cupcakes	3					result-threw:Il2CppException
-1237	DLC2 Markers	3					result-threw:Il2CppException
-1238	DLC2 Whistles	5					result-threw:Il2CppException
-1239	DLC2 Ghost Cat	1					result-threw:Il2CppException
-1020	NeatStreak_Paper Plane Supplies	1	Draggables	Draggables	0		
-1020	NeatStreak_Paper Plane Supplies	1	Containables	Containables	0		
-1020	NeatStreak_Paper Plane Supplies	1	Drawer Controller	DrawerController	0		
-1020	NeatStreak_Paper Plane Supplies	1	ChalkPurple Jigsaw	DraggablesJigsaw	0		
-1020	NeatStreak_Paper Plane Supplies	1	ChalkBlue Jigsaw	DraggablesJigsaw	0		
-1020	NeatStreak_Paper Plane Supplies	1	ChalkGreen Jigsaw	DraggablesJigsaw	0		
-1020	NeatStreak_Paper Plane Supplies	1	ChalkMint Jigsaw	DraggablesJigsaw	0		
-1020	NeatStreak_Paper Plane Supplies	1	ChalkYellow Jigsaw	DraggablesJigsaw	0		
-1020	NeatStreak_Paper Plane Supplies	1	ChalkPink Jigsaw	DraggablesJigsaw	0		
-1020	NeatStreak_Paper Plane Supplies	1	ChalkRed Jigsaw	DraggablesJigsaw	0		
-1020	NeatStreak_Paper Plane Supplies	1	Chalk DraggablesOrdered	DraggablesOrdered	0		
-1021	NeatStreak_Tool Drawer	1	Draggables	Draggables	0		
-1021	NeatStreak_Tool Drawer	1	Containables	Containables	0		
-1021	NeatStreak_Tool Drawer	1	Drawer Controller	DrawerController	0		
-1022	NeatStreak_Bathroom Drawer	1	Draggables	Draggables	0		
-1022	NeatStreak_Bathroom Drawer	1	Bottle Containables	Containables	0		
-1022	NeatStreak_Bathroom Drawer	1	Drawer Controller	DrawerController	0		
-1022	NeatStreak_Bathroom Drawer	1	Indexable	Indexables	0		
-1007	SnackPack Sandwich	1	Stack Ingredients	StackablesZ	0		
-1008	SnackPack Pretzels	3	Ordered	Shuffleables	0		
-1009	SnackPack Cereal	1	Draggables Controller	Draggables	0		
+levelIndex	levelId	solutionCount	controller	controllerType	setCount	solutionIds	dependsOn	note
+0	01__Chapter_HomeSweetHome	0						|no-controllers
+21	02__Chapter_LostRecipe	0						|no-controllers
+38	03__Chapter_NittyGritty	0						|no-controllers
+55	04__Chapter_InnerNature	0						|no-controllers
+71	05__Chapter_NearEarthOrganizer	0						|no-controllers
+14	Angled Image Frame	1	Angled	Rotateables	0			
+40	Batteries	1	Sort Batteries	Draggables	0			
+56	Broken Vase	1	Objects	Pannables	0			
+56	Broken Vase	1	Draggables	Draggables	0			
+46	Buttons	2	SortingItems Draggables	SortingItems_Draggables	0			
+7	Books	2	Shuffle	Shuffleables	0			
+18	Books 2	2	Shuffle	Shuffleables	0			
+13	Books 3	2	Design (Shuffle)	Shuffleables	0			
+13	Books 3	2	Height (Draggables)	Draggables	0			
+25	Bowls	2	Pattern	Draggables	0			
+25	Bowls	2	Crack	Draggables	0			
+25	Bowls	2	Pannables (Action Only)	Pannables	0			
+53	Boxes (Stacked)	2	Stacked Boxes	StackableGrid	0			
+28	Breadtags	1	Interlocking	Draggables	0			
+28	Breadtags	1	Crumbs	Removables	0			
+12	Calendar	1	Repeating Sequence	Stickables	0			
+78	Candles	2	CandlesObjectController	CandlesObjectController	0			
+34	Cat Food Cans	1	Matching Stacks	StackablesY	0			
+1	Cat Frame	1	Straighten	Rotateables	0			
+2	Cat Toys	1	Tidy Up	Draggables	0			
+74	Chess Shadows	1	Shuffleables Pieces	ShuffleablesRelative	0		Shuffleables Shadows	
+74	Chess Shadows	1	Shuffleables Shadows	ShuffleablesRelative	0		Shuffleables Pieces	
+39	Cleaning Supplies	1	Supplies Order	Shuffleables	0			
+39	Cleaning Supplies	1	Sponge	Draggables	0			
+73	Clock	1	Match Shadows	Rotateables	0			
+68	Clover	1	Symmetrical Placeables	SymmetricalPlaceables	0			
+41	Coins 1 (Shape)	3	Ordered	DraggablesOrdered	2	Ordered_0|Ordered_1		
+41	Coins 1 (Shape)	3	Stacked	StackablesZ	0			
+51	Coins 2 (Dirtyness)	3	Dirtyables	Dirtyables	0			
+3	Colored Pencils	1	Gradient	Draggables	0			
+76	Desktop Computer	1	Computer Desktop	Draggables	0			
+76	Desktop Computer	1	Pannables	Pannables	0			
+76	Desktop Computer	1	Shuffleables - Notes	Shuffleables	0			
+76	Desktop Computer	1	Rotateables - Clock hands	Rotateables	0			
+76	Desktop Computer	1	Containables - Paintbrushes	Containables	0			
+76	Desktop Computer	1	Containables - Keys	Containables	0			
+76	Desktop Computer	1	Computer Errors	ComputerErrorsController	0		Computer Desktop	
+76	Desktop Computer	1	Hourglass	HourglassController	0			
+31	Drink Glasses	1	Backface Aligned	Pannables	0			
+27	Eggs	1	Eggs Pattern	DraggablesOrdered	1	Eggs Pattern_0		
+72	Frame Maze	1	Frames	Frame_Rotateables	0			
+36	Fridge Inside	1	Draggables	Draggables	0			
+36	Fridge Inside	1	Stackables Yogurt / Jam Controller	StackablesY	0			
+36	Fridge Inside	1	Stackables Tupperware Controller 	StackablesY	0			
+29	Fruit Stickers	2	Objects	Pannables	0			
+29	Fruit Stickers	2	Remove Stickers	Pluckables	0			
+29	Fruit Stickers	2	Match Stickers	Stickables	0			
+35	Front of Fridge 1 (Postcards)	1	Match Edges	Draggables	0			
+37	Front of Fridge 2 (Polaroids)	1	Fit Rect	Draggables	0			
+67	Gems (Jigsaw)	1	GemsDrawer	Draggables	0			
+61	Gems (Simple)	3	Ordered	Shuffleables	0			
+23	Jars	3	Order	Shuffleables	0			
+44	Junk Drawer	1	Organizer	Draggables	0			
+47	Keys	3	Ordered	DraggablesOrdered	0			
+80	Lamp	1	Switches Toggleables	Toggleables	0			
+80	Lamp	1	Light Rotatable	Rotateables	0			
+59	Leaves	3	LeavesShuffleables	Shuffleables	0			
+43	Light Bulbs	1	BulbsBox	Draggables	0			
+77	Matchboxes	1	MatchboxesObjectController	MatchboxesObjectController	0			
+49	MedicineCabinet	1	Cupboard	Cupboard	0			
+49	MedicineCabinet	1	Jar Lid Draggable	Draggables	0			
+49	MedicineCabinet	1	Swabs Containables	Containables	0			
+49	MedicineCabinet	1	Oral Containables	Containables	0			
+49	MedicineCabinet	1	Trinkets Draggables	Draggables	0			
+49	MedicineCabinet	1	Green Bottles Draggables	DraggablesOrdered	0			
+49	MedicineCabinet	1	Blue Bottles Draggables	DraggablesOrdered	0			
+49	MedicineCabinet	1	Cup Draggables	Draggables	0			
+49	MedicineCabinet	1	Brush Draggables	Draggables	0			
+49	MedicineCabinet	1	Contact Lenses Draggables	Draggables	0			
+49	MedicineCabinet	1	Creams Draggables Stacked	DraggablesStacked	0			
+49	MedicineCabinet	1	Tube Draggables	Draggables	0			
+49	MedicineCabinet	1	Pump Bottle Draggables	Draggables	0			
+49	MedicineCabinet	1	Pick Draggables	Draggables	0			
+69	Microscope	1	Build Snowflakes	ScrollFieldGroupsController	0			
+79	Mirror	1	Books + Box StackablesY 	StackablesY	0			
+79	Mirror	1	CandleStateController	CandlesObjectController	0			
+79	Mirror	1	ContainablesController	Containables	0			
+79	Mirror	1	JugPositionController	Draggables	0			
+79	Mirror	1	DishPositionController	Draggables	0			
+79	Mirror	1	BottlePositionController	Draggables	0			
+79	Mirror	1	CandlePositionController	Draggables	0			
+79	Mirror	1	LemonWedgePositionController	Draggables	0			
+5	Multiple Frames	1	Straighten	Rotateables	0			
+8	NES Games	1	Stack Aligned	StackablesY	0			
+45	PaintCans	2	Match (Draggables)	Draggables	0			
+45	PaintCans	2	Pannables (Action Only)	Pannables	0			
+48	PartsOrganizer	1	Organizer	Draggables	0			
+30	Pasta	1	Ordered	Shuffleables	0			
+57	PawPrints	1	Clearables 01	Clearables	0			
+57	PawPrints	1	Clearables 02	Clearables	0			
+57	PawPrints	1	Clearables 03	Clearables	0			
+57	PawPrints	1	Free Leaves	Removables	0			
+57	PawPrints	1	Coffee Spill	Clearables	0			
+16	Pencils 3	3	Ordered	DraggablesOrdered	0			
+32	Place Setting	1	Placemat	Draggables	0			
+32	Place Setting	1	Utensils	Draggables	0			
+60	Plant Pots	1	Interlocking	Draggables	0			
+33	Plate	1	Placement	Draggables	0			
+4	Post-It Notes Scribble #1 (Simple Line)	1	Arranged	Draggables	0			
+10	Post-It Notes Scribble #2 (3x3 Grid)	1	Arranged	Draggables	0			
+15	Post-It Notes Scribble #3 (5x3 Grid)	1	Arranged	Draggables	0			
+81	Radial Dance Party	1	Radial Pencils 0	RadialDance	0			
+81	Radial Dance Party	1	Radial Cat Toys 1	RadialDance	0			
+81	Radial Dance Party	1	Radial Cat Toys 1	Draggables	0			
+81	Radial Dance Party	1	Radial Sticky Notes 2	RadialDance	0			
+81	Radial Dance Party	1	Radial Cat Food Cans 3	RadialDance	0			
+81	Radial Dance Party	1	Radial Food 4	RadialDance	0			
+81	Radial Dance Party	1	Radial Soup Cans 5	RadialDance	0			
+81	Radial Dance Party	1	Manager	Pannables	0			
+81	Radial Dance Party	1	Radial Nuts & Bolts 6	RadialDance	0			
+81	Radial Dance Party	1	Radial Nuts & Bolts 6	Draggables	0			
+81	Radial Dance Party	1	Radial Tools 7	RadialDance	0			
+81	Radial Dance Party	1	Radial Ladybugs 8	RadialDance	0			
+81	Radial Dance Party	1	Radial Chess 9	RadialDance	0			
+20	Record Player	1	Record Player	RecordPlayer	0			
+20	Record Player	1	Needle & Knobs	Rotateables	0			
+20	Record Player	1	Needle & Knobs	GenericLevelObjects	0			
+64	Rock Collection	1	Match-Lines	GridPuzzle	0			
+66	Rock Gradient	2	Gradient	GridPuzzle	0			
+65	Seed Pods	1	Symmetrical Placeables	SymmetricalPlaceables	0			
+19	Sharp Pencils	2	Pencil Order	DraggablesOrdered	0			
+19	Sharp Pencils	2	Shavings Removed	Removables	0			
+62	Shells	1	Symmetrical Placeables	SymmetricalPlaceables	0			
+22	Soup Cans	2	Match Label (Draggables)	Draggables	2	Match Label (Draggables)_0|Match Label (Draggables)_1		
+22	Soup Cans	2	Pannables (Action Only)	Pannables	0			
+26	Spice Jars	2	SpiceJarShuffleables	Shuffleables	0		SpiceJarShuffleables_BottomShelf	
+26	Spice Jars	2	SpiceJarShuffleables_BottomShelf	Shuffleables	0		SpiceJarShuffleables	
+70	SpiderWeb	1	Web Symmetry	Draggables	0			
+24	Spoons	2	Stacked	StackablesZ	0			
+24	Spoons	2	Size (Elastic)	DraggablesOrdered	0			
+6	Stacked Papers	1	Stack Papers	StackablesZ	0			
+9	Stamps	1	Stamps Pattern	Draggables	1	Stamps Pattern_0		
+52	Storage Boxes	2	SortingItems Draggables	SortingItems_Draggables	0			
+11	Tacks	1	Colour & Count Sort	Draggables	0			
+75	Telescope	1	Constellations	TelescopeDraggables	0			
+58	Trim Plant	1	Pluckables	Pluckables	0			
+63	Trim Plant (Vines)	1	Pluckables	Pluckables	0			
+82	TupperwareNesting	1	Stack 1	StackablesZ	0			
+82	TupperwareNesting	1	Stack 2	StackablesZ	0			
+82	TupperwareNesting	1	Tray	Draggables	1	Tray_0		
+82	TupperwareNesting	1	Stack 3	StackablesZ	0			
+82	TupperwareNesting	1	Layout (Grid)	GridPuzzle	0		Draggables (Large Square)	
+82	TupperwareNesting	1	Draggables (Large Square)	Draggables	0		Layout (Grid)	
+82	TupperwareNesting	1	Food	Draggables	1	Food_0		
+82	TupperwareNesting	1	Lids	TupperwareLids	0			
+82	TupperwareNesting	1	Nested Tupperware	TupperwareNesting	0			
+83	TupperwareTower	1	Foundation	StackableGrid	0			
+83	TupperwareTower	1	Tower	TupperwareTower	0			
+83	TupperwareTower	1	Falling Blocks	StackableGrid	0			
+42	UtensilsDrawer	1	Utensils Drawer	Draggables	0			
+54	Wilting Flowers	1	Upright	AnimScrubbables	0			
+54	Wilting Flowers	1	Cleanable	CleanablesController	0			
+50	Workbench	1	ToolsController	HangingToolsController	0			
+50	Workbench	1	DraggablesForTargets	Draggables	0			
+17	Wrong Aspect Papers	1	Fit Rect	Draggables	0			
+84	Credits	0						|no-controllers
+1000	Procedural Grid Puzzle	1	Grid Puzzle	GridPuzzle	0			
+999	Pencils (Randomized)	2	Ordered	DraggablesOrdered	0			
+998	Post-It Notes (Randomized)	1	Draggable	Draggables	1	Draggable_0		
+997	Stamps (Randomized)	1	Stamps Pattern	Draggables	1	Stamps Pattern_0		
+996	Batteries (Randomized)	1	Controller	Draggables	1	Controller_0		
+995	Books (Randomized)	2	Shuffle	Shuffleables	0			
+995	Books (Randomized)	2	Draggables	Draggables	0			
+1001	GoodTidings_Cookies	3	RowColSets	GridPuzzle	0			
+1002	GoodTidings_Popcorn	1	TopRow	ShuffleablesRepeatingPattern	0			
+1002	GoodTidings_Popcorn	1	MidRow	ShuffleablesRepeatingPattern	0			
+1002	GoodTidings_Popcorn	1	BotRow	ShuffleablesRepeatingPattern	0			
+1003	GoodTidings_Wreath	1	Symmetrical Placeables	SymmetricalPlaceables	0			
+1004	GoodTidings_Presents (Stacked)	1	Stacked Boxes	StackableGrid	0			
+1005	GoodTidings_Cookies (Jigsaw)	1	Match Candy Cane	DraggablesJigsaw	0			
+1005	GoodTidings_Cookies (Jigsaw)	1	Match Reindeer	DraggablesJigsaw	0			
+1005	GoodTidings_Cookies (Jigsaw)	1	Match Gingerbread Man	DraggablesJigsaw	0			
+1005	GoodTidings_Cookies (Jigsaw)	1	Match Snowflake	DraggablesJigsaw	0			
+1005	GoodTidings_Cookies (Jigsaw)	1	Match Tree	DraggablesJigsaw	0			
+1006	GoodTidings_Ornament Box	1	BulbsBox	Draggables	0			
+107	SomethingEggstra PaintedEggs	2	RowColSets	GridPuzzle	2	RowColSets_0|RowColSets_1		
+108	SomethingEggstra Egg Cups	3	Shuffleables Cups	ShuffleablesRelative	0		Shuffleables Eggs	
+108	SomethingEggstra Egg Cups	3	Shuffleables Eggs	ShuffleablesRelative	0		Shuffleables Cups	
+109	SomethingEggstra Fridge	1	StandardObjects	Draggables	0			
+109	SomethingEggstra Fridge	1	Stackables (Tupperware)	StackablesY	0			
+109	SomethingEggstra Fridge	1	EggsContainable	Containables	0			
+110	SomethingEggstra Broken Eggs	1	Egg #1 Shards	Pannables	0			
+110	SomethingEggstra Broken Eggs	1	Egg #2 Shards	Pannables	0			
+110	SomethingEggstra Broken Eggs	1	Egg #3 Shards	Pannables	0			
+110	SomethingEggstra Broken Eggs	1	Egg #1 (Center) Draggables	Draggables	0			
+110	SomethingEggstra Broken Eggs	1	Egg #2 (Left) Draggables	Draggables	0			
+110	SomethingEggstra Broken Eggs	1	Egg #3 (Right) Draggables	Draggables	0			
+1010	TrickOrTidy_Bats	1	Interlocking	Draggables	0			
+1011	TrickOrTidy_Bones	1	Match Bones	DraggablesJigsaw	0			
+1012	TrickOrTidy_Candy	2	Grouped	Groupables	0			
+1013	TrickOrTidy_ChocolateBars	4	Design (Shuffle)	Shuffleables	0			
+1013	TrickOrTidy_ChocolateBars	4	Height (Draggables)	Draggables	0			
+1014	TrickOrTidy_JackOLanterns	4	Ordered	Shuffleables	0			
+1015	MerryMess_CandyCanes	1	Match Candy Cane (1)	DraggablesJigsaw	0			
+1015	MerryMess_CandyCanes	1	Match Candy Cane (2)	DraggablesJigsaw	0			
+1015	MerryMess_CandyCanes	1	Match Candy Cane (3)	DraggablesJigsaw	0			
+1015	MerryMess_CandyCanes	1	Match Candy Cane (4)	DraggablesJigsaw	0			
+1015	MerryMess_CandyCanes	1	Match Candy Cane (5)	DraggablesJigsaw	0			
+1015	MerryMess_CandyCanes	1	Ordered	DraggablesOrdered	0			
+1016	MerryMess_Crackers	1	Build Train	Draggables	0			
+1016	MerryMess_Crackers	1	CrackerShuffleables	CrackersShuffleables	0			
+1017	MerryMess_SnowGlobes	3	Match Pan (Draggables)	Draggables	0			
+1017	MerryMess_SnowGlobes	3	Pannables (Action Only)	Pannables	0			
+1018	MerryMess_Presents	1	Presents Aligned	Pannables	0			
+1019	MerryMess_NutCrackers	5	Shuffle	Shuffleables	0			
+1100	DLC1 Clock Cupboard	1	Cupboard	Cupboard	0			
+1100	DLC1 Clock Cupboard	1	Items Placements Draggables	Draggables	0			
+1100	DLC1 Clock Cupboard	1	Cupboard Doors	AnimScrubbables	0			
+1101	DLC1 Craft Supplies	1	Drawers	DrawerController	0			
+1101	DLC1 Craft Supplies	1	Misc Draggables	Draggables	1	Misc Draggables_0		
+1101	DLC1 Craft Supplies	1	Paints DraggablesOrdered	DraggablesOrdered	0			
+1101	DLC1 Craft Supplies	1	Brushes DraggablesOrdered	DraggablesOrdered	0			
+1101	DLC1 Craft Supplies	1	Highlighters DraggablesOrdered	DraggablesOrdered	0			
+1102	DLC1 Fountain Pens	4	Draggables Ordered	DraggablesOrdered	0			
+1102	DLC1 Fountain Pens	4	Containables	Containables	0			
+1103	DLC1 Pressed Flowers	1	Flower Shapes	Draggables	0			
+1104	DLC1 Bathroom Cupboard	1	Cupboard	Cupboard	0			
+1104	DLC1 Bathroom Cupboard	1	Items Draggables	Draggables	0			
+1104	DLC1 Bathroom Cupboard	1	Glove Hanging Controller	HangingToolsController	0			
+1104	DLC1 Bathroom Cupboard	1	Broom/Dustpan Containables	Containables	0			
+1105	DLC1 Cat Moment (Sink Interlude)	0	Controller	CatInterludeController	0			
+1106	DLC1 Lunch Tray	1	Trays	DrawerController	0			
+1106	DLC1 Lunch Tray	1	TrayOrganizer	Draggables	0			
+1106	DLC1 Lunch Tray	1	BroccoliOrganizer	Draggables	0			
+1106	DLC1 Lunch Tray	1	CeleryController	Draggables	0			
+1106	DLC1 Lunch Tray	1	CrackerController	Draggables	0			
+1106	DLC1 Lunch Tray	1	Sandwich Controller	Draggables	0			
+1106	DLC1 Lunch Tray	1	PeasController	Draggables	0			
+1107	DLC1 Kitchen Hanging Tools 1	1	Knives Draggables	Draggables	0			
+1107	DLC1 Kitchen Hanging Tools 1	1	HangingObjectsController	HangingToolsController	0			
+1107	DLC1 Kitchen Hanging Tools 1	1	GuidingTargets	Draggables	0			
+1108	DLC1 Kitchen Utensils Drawers	1	Drawers	DrawerController	0			
+1108	DLC1 Kitchen Utensils Drawers	1	Top Drawer	Draggables	0			
+1108	DLC1 Kitchen Utensils Drawers	1	Bottom Drawer	Draggables	0			
+1109	DLC1 Tea Cabinet	1	Cupboard	Cupboard	0			
+1109	DLC1 Tea Cabinet	1	Items Placements Draggables	Draggables	0			
+1109	DLC1 Tea Cabinet	1	Teapot Stack	DraggablesStacked	0			
+1109	DLC1 Tea Cabinet	1	Teacup Stack	DraggablesStacked	0			
+1109	DLC1 Tea Cabinet	1	Jam Jars Stack	DraggablesStacked	0			
+1109	DLC1 Tea Cabinet	1	Cupcake Containables	Containables	0			
+1109	DLC1 Tea Cabinet	1	Spoon Containables	Containables	0			
+1109	DLC1 Tea Cabinet	1	Cupboard Doors	AnimScrubbables	0			
+1110	DLC1 Kitchen Hanging Tools 2	1	HangingObjectsController	HangingToolsController	0			
+1110	DLC1 Kitchen Hanging Tools 2	1	DraggablesForConsoleController	Draggables	0			
+1111	DLC1 Pantry	1	Cupboard	Cupboard	0			
+1111	DLC1 Pantry	1	Items Placements Draggables	Draggables	0			
+1111	DLC1 Pantry	1	Mixer Containables	Containables	0			
+1111	DLC1 Pantry	1	Mixing Bowl Containables	Containables	0			
+1111	DLC1 Pantry	1	Potato Crate Containables	Containables	0			
+1111	DLC1 Pantry	1	Apple Basket Containables	Containables	0			
+1111	DLC1 Pantry	1	Can Stacks	DraggablesStacked	1	Can Stacks_0		
+1112	DLC1 Cat Moment (Cupboard)	0	Controller	CatInterludeController	0			
+1113	DLC1 Junk Drawer 2	1	Draggables	Draggables	0			
+1113	DLC1 Junk Drawer 2	1	Shuffleables	Shuffleables	0			
+1114	DLC1 Filing Cabinet	3	FolderShuffleables	Shuffleables	0			
+1115	DLC1 Fossils	1	Drawers	DrawerController	0			
+1115	DLC1 Fossils	1	Fern Fossil Jigsaw	DraggablesJigsaw	0			
+1115	DLC1 Fossils	1	Snake Fossil Jigsaw	DraggablesJigsaw	0			
+1115	DLC1 Fossils	1	Dragonfly Fossil Jigsaw	DraggablesJigsaw	0			
+1115	DLC1 Fossils	1	Fish Fossil Jigsaw	DraggablesJigsaw	0			
+1115	DLC1 Fossils	1	Leaf Fossil Jigsaw	DraggablesJigsaw	0			
+1115	DLC1 Fossils	1	Shell Fossil Jigsaw	DraggablesJigsaw	0			
+1116	DLC1 Media Cabinet	1	Cupboard	Cupboard	0			
+1116	DLC1 Media Cabinet	1	Joysticks + Gameboy Draggables	Draggables	0			
+1116	DLC1 Media Cabinet	1	DVD DraggablesOrdered	DraggablesOrdered	0			
+1116	DLC1 Media Cabinet	1	Rubix Stack	DraggablesStacked	0			
+1116	DLC1 Media Cabinet	1	NES Stack	DraggablesStacked	0			
+1117	DLC1 Game Pieces	1	Drawers	DrawerController	0			
+1117	DLC1 Game Pieces	1	Center Tiles Draggables	Draggables	0			
+1117	DLC1 Game Pieces	1	Top Drawer Draggables	Draggables	0			
+1117	DLC1 Game Pieces	1	Bottom Drawer Draggables	Draggables	0			
+1117	DLC1 Game Pieces	1	Left Drawer Draggables	Draggables	0			
+1117	DLC1 Game Pieces	1	Right Drawer Draggables	Draggables	0			
+1117	DLC1 Game Pieces	1	Heart Containables	Containables	0			
+1118	DLC1 Tackle Box	1	Supplies Draggables	Draggables	0			
+1118	DLC1 Tackle Box	1	Bugs DraggableOrdered	DraggablesOrdered	0			
+1118	DLC1 Tackle Box	1	Weight Draggables	Draggables	1	Weight Draggables_0		
+1119	DLC1 Cat Moment (Glass Bowl Interlude)	0	Controller	CatInterludeController	0			
+1120	DLC1 Coin Box	3	Match-Lines	GridPuzzle	0			
+1121	DLC1 Sewing Box	1	Drawers	DrawerController	0			
+1121	DLC1 Sewing Box	1	Scissors Draggables	Draggables	0			
+1121	DLC1 Sewing Box	1	Large Spools Draggables	Draggables	0			
+1121	DLC1 Sewing Box	1	Small Spools Draggables	Draggables	0			
+1121	DLC1 Sewing Box	1	Supplies Draggables	Draggables	0			
+1121	DLC1 Sewing Box	1	Top Drawer Draggables	Draggables	0			
+1121	DLC1 Sewing Box	1	Zipper DraggablesOrdered	DraggablesOrdered	0			
+1121	DLC1 Sewing Box	1	Safety Pin DraggablesOrdered	DraggablesOrdered	0			
+1121	DLC1 Sewing Box	1	Curved Needles Containables	Containables	0			
+1121	DLC1 Sewing Box	1	Buttons Sortable	SortingItems_Draggables	0			
+1122	DLC1 Jewelry Box	1	Drawers	DrawerController	0			
+1122	DLC1 Jewelry Box	1	Watches Draggables	Draggables	0			
+1122	DLC1 Jewelry Box	1	Rings Draggables	DraggablesOrdered	0			
+1122	DLC1 Jewelry Box	1	Radiolaria Draggables	Draggables	0			
+1122	DLC1 Jewelry Box	1	Brooches Draggables	Draggables	0			
+1122	DLC1 Jewelry Box	1	Gold Bars Draggables	Draggables	0			
+1122	DLC1 Jewelry Box	1	Cameos Draggables	Draggables	0			
+1122	DLC1 Jewelry Box	1	Locket Containables	Containables	0			
+1123	DLC1 Cat Moment (Drawer Interlude)	0	Controller	CatInterludeController	0			
+1124	DLC1 Daggers	1	Drawers	DrawerExpandableController	0			
+1124	DLC1 Daggers	1	Draggables	Draggables	1	Draggables_0		
+1124	DLC1 Daggers	1	Drawers Draggables	Draggables	0			
+1125	DLC1 Trophy Cabinet	1	Cupboard	Cupboard	0			
+1125	DLC1 Trophy Cabinet	1	Items Placements Draggables	Draggables	0			
+1125	DLC1 Trophy Cabinet	1	Cupboard Doors	AnimScrubbables	0			
+1126	DLC1 Nesting Boxes	1	Boxes	DrawerController	0			
+1126	DLC1 Nesting Boxes	1	BoxOrganizer	Draggables	1	BoxOrganizer_0		
+1126	DLC1 Nesting Boxes	1	CatOrganizer	Draggables	1	CatOrganizer_0		
+1127	DLC1 Nested Drawers	1	Drawers	DrawerController	0			
+1127	DLC1 Nested Drawers	1	Draggables	Draggables	0			
+1128	DLC1 Boss	1	KeysDraggables	Draggables	0			
+1128	DLC1 Boss	1	Dining Room Draggables	Draggables	1	Dining Room Draggables_0		
+1128	DLC1 Boss	1	Parking Lot Draggables	Draggables	1	Parking Lot Draggables_0		
+1128	DLC1 Boss	1	Landscape Draggables	Draggables	0			
+1128	DLC1 Boss	1	DrawerController	DrawerController	0			
+1129	DLC1 Credits	0						|no-controllers
+1200	DLC2 Canapes	3						result-threw:Il2CppException
+1201	DLC2 Forks	5						result-threw:Il2CppException
+1202	DLC2 Mugs	4						result-threw:Il2CppException
+1203	DLC2 Corn	4						result-threw:Il2CppException
+1204	DLC2 Pressed Leaves	3						result-threw:Il2CppException
+1205	DLC2 Broken Vases	1						result-threw:Il2CppException
+1206	DLC2 Nanopets	5						result-threw:Il2CppException
+1207	DLC2 ObsoleteTech	1						result-threw:Il2CppException
+1208	DLC2 Balls	3						result-threw:Il2CppException
+1209	DLC2 Water Glasses	4						result-threw:Il2CppException
+1210	DLC2 Pizza	4						result-threw:Il2CppException
+1211	DLC2 Leftovers	5						result-threw:Il2CppException
+1212	DLC2 Windows	1						result-threw:Il2CppException
+1213	DLC2 Cacti	5						result-threw:Il2CppException
+1214	DLC2 Origami	1						result-threw:Il2CppException
+1215	DLC2 Moths	4						result-threw:Il2CppException
+1216	DLC2 Math Set	2						result-threw:Il2CppException
+1217	DLC2 Ink Bottles	2						result-threw:Il2CppException
+1218	DLC2 Material Drawers	1						result-threw:Il2CppException
+1219	DLC2 Curtains	1						result-threw:Il2CppException
+1220	DLC2 Books Stacked	5						result-threw:Il2CppException
+1221	DLC2 Sticky Drawer	1						result-threw:Il2CppException
+1222	DLC2 Bells	3						result-threw:Il2CppException
+1223	DLC2 Figurines	3						result-threw:Il2CppException
+1224	DLC2 Bookshelf	3						result-threw:Il2CppException
+1225	DLC2 Cat Eyes	1						result-threw:Il2CppException
+1226	DLC2 Junk Drawer Transforming	2						result-threw:Il2CppException
+1227	DLC2 Music Box	1						result-threw:Il2CppException
+1228	DLC2 Combs	2						result-threw:Il2CppException
+1229	DLC2 First Aid Kit	1						result-threw:Il2CppException
+1230	DLC2 Robots	2						result-threw:Il2CppException
+1231	DLC2 Boss	3						result-threw:Il2CppException
+1232	DLC2 Star Finale	0						result-threw:Il2CppException
+1233	DLC2 Credits	0						result-threw:Il2CppException
+1235	DLC2 Bread Crusts	2						result-threw:Il2CppException
+1236	DLC2 Cupcakes	3						result-threw:Il2CppException
+1237	DLC2 Markers	3						result-threw:Il2CppException
+1238	DLC2 Whistles	5						result-threw:Il2CppException
+1239	DLC2 Ghost Cat	1						result-threw:Il2CppException
+1020	NeatStreak_Paper Plane Supplies	1	Draggables	Draggables	0			
+1020	NeatStreak_Paper Plane Supplies	1	Containables	Containables	0			
+1020	NeatStreak_Paper Plane Supplies	1	Drawer Controller	DrawerController	0			
+1020	NeatStreak_Paper Plane Supplies	1	ChalkPurple Jigsaw	DraggablesJigsaw	0			
+1020	NeatStreak_Paper Plane Supplies	1	ChalkBlue Jigsaw	DraggablesJigsaw	0			
+1020	NeatStreak_Paper Plane Supplies	1	ChalkGreen Jigsaw	DraggablesJigsaw	0			
+1020	NeatStreak_Paper Plane Supplies	1	ChalkMint Jigsaw	DraggablesJigsaw	0			
+1020	NeatStreak_Paper Plane Supplies	1	ChalkYellow Jigsaw	DraggablesJigsaw	0			
+1020	NeatStreak_Paper Plane Supplies	1	ChalkPink Jigsaw	DraggablesJigsaw	0			
+1020	NeatStreak_Paper Plane Supplies	1	ChalkRed Jigsaw	DraggablesJigsaw	0			
+1020	NeatStreak_Paper Plane Supplies	1	Chalk DraggablesOrdered	DraggablesOrdered	0			
+1021	NeatStreak_Tool Drawer	1	Draggables	Draggables	0			
+1021	NeatStreak_Tool Drawer	1	Containables	Containables	0			
+1021	NeatStreak_Tool Drawer	1	Drawer Controller	DrawerController	0			
+1022	NeatStreak_Bathroom Drawer	1	Draggables	Draggables	0			
+1022	NeatStreak_Bathroom Drawer	1	Bottle Containables	Containables	0			
+1022	NeatStreak_Bathroom Drawer	1	Drawer Controller	DrawerController	0			
+1022	NeatStreak_Bathroom Drawer	1	Indexable	Indexables	0			
+1007	SnackPack Sandwich	1	Stack Ingredients	StackablesZ	0			
+1008	SnackPack Pretzels	3	Ordered	Shuffleables	0			
+1009	SnackPack Cereal	1	Draggables Controller	Draggables	0			

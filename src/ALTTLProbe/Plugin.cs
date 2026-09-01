@@ -79,12 +79,29 @@ public class ProbePlugin : BasePlugin
 
     internal static new ManualLogSource Log = null!;
 
+    /// <summary>
+    /// Which Windows virtual desktop to move the game's windows to at startup,
+    /// 1-based in Task View order. 0 leaves them wherever Windows put them,
+    /// which is whichever desktop happened to be active at launch.
+    /// </summary>
+    internal static int TargetDesktop;
+
     public override void Load()
     {
         Log = base.Log;
+
+        TargetDesktop = Config.Bind(
+            "Window",
+            "TargetVirtualDesktop",
+            0,
+            "Move the game window and the BepInEx console to this Windows virtual "
+            + "desktop at startup, 1-based in Task View order. 0 leaves them alone. "
+            + "Windows otherwise puts a new window on whichever desktop was active "
+            + "when it was created, which for a scripted launch is arbitrary.").Value;
         ClassInjector.RegisterTypeInIl2Cpp<ProbeBehaviour>();
         var harmony = new Harmony(Guid);
         harmony.PatchAll(typeof(LevelSelectOverride));
+        harmony.PatchAll(typeof(CardLock));
         foreach (var m in harmony.GetPatchedMethods())
         {
             Log.LogInfo($"patched {m.DeclaringType?.Name}.{m.Name}");
@@ -108,6 +125,7 @@ public class ProbeBehaviour : MonoBehaviour
 
     private int _frames;
     private bool _dumped;
+    private bool _desktopMoved;
     private bool _listenersAttached;
     private float _nextCommandPoll;
 
@@ -130,6 +148,15 @@ public class ProbeBehaviour : MonoBehaviour
     private void Update()
     {
         _frames++;
+
+        // Both the Unity window and the BepInEx console exist by now. Done
+        // from here rather than Load() because at load time the window may
+        // not have been created yet.
+        if (!_desktopMoved && _frames > 60)
+        {
+            _desktopMoved = true;
+            VirtualDesktop.MoveGameTo(ProbePlugin.TargetDesktop, m => ProbePlugin.Log.LogInfo(m));
+        }
 
         var gm = GameManager.Instance;
         if (gm == null) return;
@@ -329,7 +356,8 @@ public class ProbeBehaviour : MonoBehaviour
         _surveyLevel = null;
         _surveyOut.Clear();
         _surveyOut.AppendLine(
-            "levelIndex\tlevelId\tsolutionCount\tcontroller\tcontrollerType\tsetCount\tsolutionIds\tnote");
+            "levelIndex\tlevelId\tsolutionCount\tcontroller\tcontrollerType"
+            + "\tsetCount\tsolutionIds\tdependsOn\tnote");
         _surveying = true;
         ProbePlugin.Log.LogInfo($"-- solution survey: {_surveyQueue.Count} levels --");
     }
@@ -416,7 +444,7 @@ public class ProbeBehaviour : MonoBehaviour
         var solCount = Str(() => li.SolutionCount.ToString());
         if (level == null)
         {
-            _surveyOut.AppendLine($"{idx}\t{id}\t{solCount}\t\t\t\t\t{note}");
+            _surveyOut.AppendLine($"{idx}\t{id}\t{solCount}\t\t\t\t\t\t{note}");
             return;
         }
 
@@ -451,8 +479,27 @@ public class ProbeBehaviour : MonoBehaviour
                     if (s > 0) ids.Append('|');
                     ids.Append(name).Append('_').Append(s);
                 }
+
+                // Phase 0 S4. A controller that depends on another cannot be
+                // solved until that one is, so an ability lock on the
+                // dependency transitively blocks this controller too - which
+                // widens its access rule in the apworld.
+                var deps = new StringBuilder();
+                try
+                {
+                    var dl = oc.dependencies;
+                    for (int dnum = 0; dnum < (dl == null ? 0 : dl.Count); dnum++)
+                    {
+                        var dep = dl![dnum];
+                        if (dep == null) continue;
+                        if (deps.Length > 0) deps.Append('|');
+                        deps.Append(Str(() => dep.gameObject.name));
+                    }
+                }
+                catch (Exception e) { deps.Append("<err:").Append(e.GetType().Name).Append('>'); }
+
                 _surveyOut.AppendLine(
-                    $"{idx}\t{id}\t{solCount}\t{name}\t{type}\t{sets}\t{ids}\t{note}");
+                    $"{idx}\t{id}\t{solCount}\t{name}\t{type}\t{sets}\t{ids}\t{deps}\t{note}");
                 rows++;
             }
         }
@@ -463,7 +510,7 @@ public class ProbeBehaviour : MonoBehaviour
 
         if (rows == 0)
         {
-            _surveyOut.AppendLine($"{idx}\t{id}\t{solCount}\t\t\t\t\t{note}|no-controllers");
+            _surveyOut.AppendLine($"{idx}\t{id}\t{solCount}\t\t\t\t\t\t{note}|no-controllers");
         }
     }
 
@@ -486,6 +533,13 @@ public class ProbeBehaviour : MonoBehaviour
     {
         try
         {
+            // Phase 0 S1/S2: the per-controller and per-solution signals the
+            // whole location model depends on. These go to their own log.
+            Watch<GameEventManager.GameEvent_ObjectControllerSolved>("ObjectControllerSolved");
+            Watch<GameEventManager.GameEvent_SolutionChanged>("SolutionChanged");
+            Watch<GameEventManager.GameEvent_LevelComplete>("LevelComplete");
+            Watch<GameEventManager.GameEvent_ObjectPlaced>("ObjectPlaced");
+
             Listen<GameEventManager.GameEvent_LevelSelected>("LevelSelected");
             Listen<GameEventManager.GameEvent_LevelComplete>("LevelComplete");
             Listen<GameEventManager.GameEvent_LevelCompleteEarly>("LevelCompleteEarly");
@@ -513,6 +567,15 @@ public class ProbeBehaviour : MonoBehaviour
     // listener that is not rooted on the managed side stops firing as soon as
     // the GC runs. Keeping them here is what makes the subscription stick.
     private static readonly List<Il2CppSystem.Action<GameEventManager.GameEventData>> KeepAlive = new();
+
+    /// <summary>Phase 0 transcript listener - writes to alttl-watch.log.</summary>
+    private static void Watch<T>(string label) where T : GameEventManager.GameEvent
+    {
+        Il2CppSystem.Action<GameEventManager.GameEventData> action =
+            (Action<GameEventManager.GameEventData>)(data => Phase0.LogWatch(label, data));
+        KeepAlive.Add(action);
+        GameEventManager.AddEventListener<T>(action);
+    }
 
     private static void Listen<T>(string label) where T : GameEventManager.GameEvent
     {
@@ -620,6 +683,26 @@ public class ProbeBehaviour : MonoBehaviour
             else if (cmd.StartsWith("solve:", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("solve", () => MarkSolved(cmd.Substring(6)));
+            }
+            else if (cmd.StartsWith("inert:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("inert", () => Phase0.Inert(cmd.Substring(6)));
+            }
+            else if (cmd.StartsWith("lockcard:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("lockcard", () => Phase0.LockCard(cmd.Substring(9)));
+            }
+            else if (cmd.StartsWith("clickcard:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("clickcard", () => Phase0.ClickCard(cmd.Substring(10)));
+            }
+            else if (cmd.Equals("tint", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("tint", () => Phase0.TintCards(false));
+            }
+            else if (cmd.Equals("tint:refresh", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("tint", () => Phase0.TintCards(true));
             }
             else if (cmd.Equals("resetlevels", StringComparison.OrdinalIgnoreCase))
             {

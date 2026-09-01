@@ -81,6 +81,10 @@ Drive it by writing a command into `<game>/BepInEx/alttl-probe-commands.txt`:
 | `resetlevels` | Reset level completion data to a fresh save |
 | `reorder:<i1,i2,...>` or `reorder:off` | Replace the level-select track with an arbitrary level list |
 | `shot:<abs path>` | Screenshot |
+| `inert:list` / `inert:<controller>` / `inert:off` | Dim and disable one controller's objects on the active level |
+| `lockcard:<index>` / `lockcard:off` | Refuse launches of a level |
+| `clickcard:<index>` | Invoke `LevelIcon.DoStartLevel` the way a real click does |
+| `tint` / `tint:refresh` | Recolour every level-select card border, optionally forcing a repaint |
 
 Gameplay events land in `BepInEx/alttl-events.log`.
 
@@ -89,6 +93,7 @@ Curated copies of the probe output are in [docs/data/](docs/data/).
 ## Repository layout
 
 - `src/ALTTLProbe/` - the research probe
+- `docs/verification-log.md` - results of the Phase 0 verification gate
 - `docs/research-findings.md` - the modding surface: what was proven, and how
 - `docs/content-report.md` - the content: base game, daily, archive, DLC
 - `docs/data/` - the level table and controller survey the probe produced
