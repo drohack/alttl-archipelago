@@ -1,0 +1,303 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Text;
+using UnityEngine;
+
+namespace ALTTLDevTools;
+
+/// <summary>
+/// Generates the shared level data table that both the apworld and the mod
+/// consume, so the two cannot disagree about how many checks a level has.
+///
+/// It is a RUNTIME sweep, not a prefab walk, and that distinction is load
+/// bearing: MedicineCabinet exposes 14 ObjectControllers when you walk the
+/// loaded prefab but registers only 13 in Level.objectControllers once the
+/// level is running, and only the registered set raises
+/// GameEvent_ObjectControllerSolved. A location built from the prefab set
+/// would include one that can never be checked.
+///
+/// Output: BepInEx/alttl-levels.json, copied into apworld/alttl/data/.
+/// </summary>
+internal sealed class DataTable
+{
+    // A fixed seed so re-running the sweep produces a comparable table. The
+    // generators' controller sets are stable across seeds (verified over 8
+    // seeds each) with one exception, noted per level below.
+    private const int SweepSeed = 20260901;
+
+    private bool _running;
+    private int _pos;
+    private int _wait;
+    private Il2CppSystem.Threading.Tasks.Task? _task;
+    private List<int> _queue = new();
+    private readonly StringBuilder _out = new();
+    private bool _first = true;
+    private int _lastCount = -1;
+    private int _stable;
+
+    /// <summary>Frames the controller count must hold steady before reading.</summary>
+    private const int StableFrames = 45;
+
+    private static int ControllerCount()
+    {
+        try
+        {
+            var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+            var level = li == null ? null : li.Level;
+            var list = level == null ? null : level.objectControllers;
+            return list == null ? 0 : list.Count;
+        }
+        catch { return -1; }
+    }
+
+    internal bool Running => _running;
+
+    private static string GameDir => Path.GetDirectoryName(Application.dataPath)!;
+    private static string OutFile => Path.Combine(GameDir, "BepInEx", "alttl-levels.json");
+
+    internal void Start()
+    {
+        var lm = GameManager.Instance.levelManager;
+        var all = lm.AllLevelInterfaces(false);
+        _queue = new List<int>();
+
+        for (int i = 0; i < (all == null ? 0 : all.Length); i++)
+        {
+            var li = all![i];
+            if (li == null) continue;
+            int idx;
+            int solutions;
+            bool credits;
+            try { idx = li.LevelIndex; solutions = li.SolutionCount; credits = li.IsCredits; }
+            catch { continue; }
+
+            // Base game only for v1. DLC levels are defined in the build even
+            // when not installed, and loading an uninstalled one throws.
+            if (idx >= 1100) continue;
+            // Chapter markers and credits carry no checks.
+            if (solutions <= 0 || credits) continue;
+            _queue.Add(idx);
+        }
+
+        _out.Clear();
+        _out.AppendLine("{");
+        _out.AppendLine("  \"generatedBy\": \"ALTTLDevTools levelsweep\",");
+        _out.AppendLine($"  \"gameVersion\": {Json(Application.version)},");
+        _out.AppendLine($"  \"sweepSeed\": {SweepSeed},");
+        _out.AppendLine("  \"levels\": [");
+        _first = true;
+        _pos = 0;
+        _task = null;
+        _running = true;
+        DevToolsPlugin.Log.LogInfo($"-- level data sweep: {_queue.Count} levels --");
+    }
+
+    internal void Tick()
+    {
+        if (!_running) return;
+
+        if (_pos >= _queue.Count)
+        {
+            _out.AppendLine();
+            _out.AppendLine("  ]");
+            _out.AppendLine("}");
+            File.WriteAllText(OutFile, _out.ToString());
+            _running = false;
+            DevToolsPlugin.Log.LogInfo($"levelsweep complete: {OutFile}");
+            return;
+        }
+
+        var lm = GameManager.Instance.levelManager;
+        var index = _queue[_pos];
+
+        if (_task == null)
+        {
+            _wait = 0;
+            _lastCount = -1;
+            _stable = 0;
+            // doTransitionIn MUST be true. Radial Dance Party and
+            // TupperwareNesting build their controllers during the intro
+            // animation (RadialCatIntro, TupperwareTower_Intro), so skipping
+            // the transition left them reporting 0 and 2 controllers instead
+            // of 13 and 9. Slower, but the alternative is silently missing
+            // locations.
+            _task = lm.SetActiveLevel(index, true, true, SweepSeed);
+            // Every level, not every tenth: when this hung, the last line
+            // named a level 10 before the real culprit.
+            DevToolsPlugin.Log.LogInfo($"[{_pos + 1}/{_queue.Count}] loading level {index}");
+            return;
+        }
+
+        _wait++;
+        bool done;
+        try { done = _task.IsCompleted; } catch { done = true; }
+        if (!done && _wait < 600) return;
+
+        // Controllers register themselves in their own Start, and the
+        // animation-heavy levels register late: at a flat 20-frame settle
+        // Radial Dance Party recorded 0 of its 13 controllers and
+        // TupperwareNesting 2 of its 9, because their rings and stacks are
+        // still tweening in. So wait for the count to STOP CHANGING rather
+        // than guessing a delay.
+        int count = ControllerCount();
+        // Never record an empty level early: zero is "stable" too, and that is
+        // exactly how the two intro-driven levels slipped through.
+        if (count <= 0 && _wait < 900) return;
+        if (count != _lastCount)
+        {
+            _lastCount = count;
+            _stable = 0;
+            return;
+        }
+        _stable++;
+        if (_stable < StableFrames && _wait < 900) return;
+
+        Record(index);
+        Teardown();
+        _task = null;
+        _pos++;
+    }
+
+    /// <summary>
+    /// Destroy the level we just read before loading the next one.
+    ///
+    /// Not optional. Loading level after level on forceReload alone leaves the
+    /// previous one alive, and DraggablesOrdered.SetupElasticTargets then does
+    /// a Dictionary.Add keyed by GameObject name against a dictionary that
+    /// already has the entry:
+    ///
+    ///   ArgumentException: An item with the same key has already been added.
+    ///   Key: Targets (UnityEngine.GameObject)
+    ///
+    /// which wedges the sweep and leaves the game spinning at 100% CPU inside
+    /// LeanTween. The prefab survey got away without this only because it
+    /// released every level explicitly.
+    /// </summary>
+    private void Teardown()
+    {
+        try
+        {
+            var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+            if (li != null) li.ReleaseAssetsAndDestroyLevel();
+        }
+        catch (Exception e)
+        {
+            DevToolsPlugin.Log.LogWarning($"levelsweep: teardown threw: {e.Message}");
+        }
+    }
+
+    private void Record(int index)
+    {
+        var lm = GameManager.Instance.levelManager;
+        var li = lm.ActiveLevelInterface;
+        var level = li == null ? null : li.Level;
+
+        var row = new StringBuilder();
+        row.Append("    {");
+        row.Append($"\"levelIndex\": {index}");
+        row.Append($", \"levelId\": {Json(Str(() => li == null ? "?" : li.LevelId))}");
+        row.Append($", \"source\": {Json(SourceOf(index))}");
+        row.Append($", \"solutionCount\": {Str(() => li == null ? "0" : li.SolutionCount.ToString())}");
+        row.Append($", \"isRandomizable\": {Bool(() => li != null && li.IsRandomizable)}");
+        row.Append($", \"isArchived\": {Bool(() => li != null && li.IsArchived)}");
+        row.Append($", \"isDailyTidy\": {Bool(() => li != null && li.IsDailyTidy)}");
+        row.Append(", \"controllers\": [");
+
+        int n = 0;
+        try
+        {
+            var list = level!.objectControllers;
+            for (int i = 0; i < (list == null ? 0 : list.Count); i++)
+            {
+                var oc = list![i];
+                if (oc == null) continue;
+                if (n > 0) row.Append(", ");
+                row.Append('{');
+                row.Append($"\"name\": {Json(Str(() => oc.gameObject.name))}");
+                row.Append($", \"type\": {Json(Str(() => oc.GetIl2CppType().Name))}");
+                row.Append($", \"objects\": {Str(() => oc.ManagedObjects == null ? "0" : oc.ManagedObjects.Count.ToString())}");
+                row.Append(", \"dependsOn\": [");
+                try
+                {
+                    var deps = oc.dependencies;
+                    int d = 0;
+                    for (int k = 0; k < (deps == null ? 0 : deps.Count); k++)
+                    {
+                        var dep = deps![k];
+                        if (dep == null) continue;
+                        if (d > 0) row.Append(", ");
+                        row.Append(Json(Str(() => dep.gameObject.name)));
+                        d++;
+                    }
+                }
+                catch { /* leave the list empty */ }
+                row.Append(']');
+                row.Append('}');
+                n++;
+            }
+        }
+        catch (Exception e)
+        {
+            DevToolsPlugin.Log.LogWarning($"levelsweep: controllers for {index} threw: {e.Message}");
+        }
+
+        row.Append("]}");
+
+        if (!_first) _out.AppendLine(",");
+        _out.Append(row);
+        _first = false;
+    }
+
+    /// <summary>
+    /// Which pool a level is drawn from. Indices are the game's own: the base
+    /// campaign is below 100, the daily-exclusive generators are 995-1000, and
+    /// the seasonal event packs are flagged IsArchived.
+    /// </summary>
+    private static string SourceOf(int index)
+    {
+        if (index >= 995 && index <= 1000) return "generator";
+        var li = GameManager.Instance.levelManager.GetLevelInterface(index);
+        try
+        {
+            if (li != null && li.IsArchived) return "archive";
+            // A campaign level that carries a randomizer is a generator too -
+            // the daily reuses it with a fresh seed.
+            if (li != null && li.IsRandomizable) return "generator";
+        }
+        catch { }
+        return index < 100 ? "base" : "other";
+    }
+
+    private static string Json(string s)
+    {
+        var sb = new StringBuilder("\"");
+        foreach (var c in s ?? "")
+        {
+            switch (c)
+            {
+                case '"': sb.Append("\\\""); break;
+                case '\\': sb.Append("\\\\"); break;
+                case '\n': sb.Append("\\n"); break;
+                case '\r': sb.Append("\\r"); break;
+                case '\t': sb.Append("\\t"); break;
+                default:
+                    if (c < ' ') sb.Append("\\u").Append(((int)c).ToString("x4"));
+                    else sb.Append(c);
+                    break;
+            }
+        }
+        return sb.Append('"').ToString();
+    }
+
+    private static string Bool(Func<bool> f)
+    {
+        try { return f() ? "true" : "false"; } catch { return "false"; }
+    }
+
+    private static string Str(Func<string> f)
+    {
+        try { return f() ?? ""; } catch (Exception e) { return "<err:" + e.GetType().Name + ">"; }
+    }
+}

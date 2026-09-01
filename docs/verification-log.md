@@ -140,3 +140,67 @@ This **confirms rather than threatens** the design: locations already use
 internal string is never needed. `NumSolutionsFound` is the reliable counter
 and the game dedupes into `solutions[]` itself. Do not build anything on the
 id string.
+
+---
+
+## 2026-09-01, later - Phase 1 findings
+
+Generating the shared level table needed a runtime sweep over all 111 levels,
+which loads levels back to back far harder than a player ever would. Two
+fragilities surfaced that the mod will also have to respect, because it
+switches levels constantly too.
+
+### Loading levels without tearing down the previous one corrupts state
+
+Relying on `SetActiveLevel(..., forceReload: true)` alone leaves the old level
+alive. `DraggablesOrdered.SetupElasticTargets` then does a `Dictionary.Add`
+keyed by GameObject name against a dictionary that already holds the key:
+
+```
+ArgumentException: An item with the same key has already been added.
+Key: Targets (UnityEngine.GameObject)
+  at DraggablesOrdered.SetupElasticTargets
+```
+
+Twenty of them, after which the game sat at 100% CPU inside `LeanTween` with
+the sweep wedged - responsive, not frozen, and producing nothing.
+
+**Always call `LevelInterface.ReleaseAssetsAndDestroyLevel()` before loading
+the next level.** The earlier prefab survey only escaped this because it
+released every level explicitly.
+
+### Two levels are bespoke and register almost no controllers
+
+**Radial Dance Party registers 0 controllers, and TupperwareNesting 2 of the
+9 its prefab shows.**
+
+I guessed twice and was wrong twice, so the record is worth keeping. First
+guess: the controllers register during the intro animation, which
+`doTransitionIn: false` skips. Second guess: the sweep read them too early.
+Neither held - enabling transitions changed nothing, and waiting for the
+controller count to "stop changing" settles instantly when the count is stably
+**zero**, so that fix looked plausible while fixing nothing.
+
+What settled it was testing through the ordinary gameplay path instead:
+`boot:81` and `boot:82`, which set `Gameplay_GameState` and run the full
+transition exactly as a player does, produce the same 0 and 2. These levels
+are bespoke `Level` subclasses (`RadialDanceParty`, `TupperwareNestingLevel`)
+whose puzzle pieces are simply not registered `ObjectController`s.
+
+**The consequence is benign and self-correcting.** They contribute their
+solution checks and few or no controller checks, and since nothing on them is
+ability-gated they stay fully playable. `LevelTableTests` names Radial Dance
+Party as a known exception so that a *new* zero-controller level still fails.
+
+Two real improvements came out of the wrong guesses and were kept: the sweep
+now refuses to settle on a zero controller count until a hard timeout, and it
+logs every level rather than every tenth - when it first hung, the last log
+line named a level ten before the culprit.
+
+### The runtime set is much smaller than the prefab set
+
+201 registered controllers across 111 levels, against 334 found by walking the
+prefabs. Most of the difference is legitimate - unregistered components,
+camera-pan helpers, duplicates on one GameObject - but it is a reminder that
+`docs/data/controller-survey.tsv` is reference data and
+`apworld/alttl/data/levels.json` is the source of truth.

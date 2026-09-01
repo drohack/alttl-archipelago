@@ -6,7 +6,7 @@ using System.Text;
 using HarmonyLib;
 using UnityEngine;
 
-namespace ALTTLProbe;
+namespace ALTTLDevTools;
 
 /// <summary>
 /// The Phase 0 verification gate. Four questions the randomizer design rests
@@ -67,11 +67,11 @@ internal static class Phase0
                 sb.Append(" SolutionId=").Append(Quote(data.SolutionId));
 
             File.AppendAllText(WatchLog, sb.ToString() + Environment.NewLine);
-            ProbePlugin.Log.LogInfo(sb.ToString());
+            DevToolsPlugin.Log.LogInfo(sb.ToString());
         }
         catch (Exception e)
         {
-            ProbePlugin.Log.LogWarning($"watch log failed for {label}: {e.Message}");
+            DevToolsPlugin.Log.LogWarning($"watch log failed for {label}: {e.Message}");
         }
     }
 
@@ -90,19 +90,19 @@ internal static class Phase0
     {
         var active = GameManager.Instance.levelManager.ActiveLevelInterface;
         var level = active == null ? null : active.Level;
-        if (level == null) { ProbePlugin.Log.LogWarning("inert: no active level"); return; }
+        if (level == null) { DevToolsPlugin.Log.LogWarning("inert: no active level"); return; }
 
         var controllers = level.objectControllers;
         var count = controllers == null ? 0 : controllers.Count;
 
         if (arg.Equals("list", StringComparison.OrdinalIgnoreCase))
         {
-            ProbePlugin.Log.LogInfo($"inert: {count} controllers on {Safe(() => level.LevelId)}");
+            DevToolsPlugin.Log.LogInfo($"inert: {count} controllers on {Safe(() => level.LevelId)}");
             for (int i = 0; i < count; i++)
             {
                 var c = controllers![i];
                 if (c == null) continue;
-                ProbePlugin.Log.LogInfo(
+                DevToolsPlugin.Log.LogInfo(
                     "   " + Quote(Safe(() => c.gameObject.name))
                     + " [" + Safe(() => c.GetIl2CppType().Name) + "]"
                     + " objects=" + Safe(() => c.ManagedObjects == null
@@ -138,12 +138,12 @@ internal static class Phase0
                 }
                 catch (Exception e)
                 {
-                    ProbePlugin.Log.LogWarning($"inert: object {k} threw: {e.Message}");
+                    DevToolsPlugin.Log.LogWarning($"inert: object {k} threw: {e.Message}");
                 }
             }
         }
 
-        ProbePlugin.Log.LogInfo(
+        DevToolsPlugin.Log.LogInfo(
             $"inert: {(restore ? "restored" : "disabled")} {touchedControllers} controller(s),"
             + $" {touchedObjects} object(s)");
     }
@@ -168,7 +168,7 @@ internal static class Phase0
     internal static void TintCards(bool refreshAfter)
     {
         var track = UnityEngine.Object.FindObjectOfType<LevelsTrack>();
-        if (track == null) { ProbePlugin.Log.LogWarning("tint: open menu:levels first"); return; }
+        if (track == null) { DevToolsPlugin.Log.LogWarning("tint: open menu:levels first"); return; }
 
         var items = track.trackItems;
         int tinted = 0;
@@ -186,14 +186,14 @@ internal static class Phase0
             };
             tinted++;
         }
-        ProbePlugin.Log.LogInfo($"tint: recoloured {tinted} borders");
+        DevToolsPlugin.Log.LogInfo($"tint: recoloured {tinted} borders");
 
         if (!refreshAfter) return;
         for (int i = 0; i < (items == null ? 0 : items.Count); i++)
         {
             if (items![i] != null) items[i].RefreshIconAppearance();
         }
-        ProbePlugin.Log.LogInfo("tint: forced RefreshIconAppearance on every icon -"
+        DevToolsPlugin.Log.LogInfo("tint: forced RefreshIconAppearance on every icon -"
             + " compare the screenshots to see whether the tint survived");
     }
 
@@ -205,16 +205,16 @@ internal static class Phase0
         if (arg.Equals("off", StringComparison.OrdinalIgnoreCase))
         {
             CardLock.Blocked.Clear();
-            ProbePlugin.Log.LogInfo("lockcard: cleared");
+            DevToolsPlugin.Log.LogInfo("lockcard: cleared");
             return;
         }
         if (!int.TryParse(arg, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
         {
-            ProbePlugin.Log.LogWarning($"lockcard: not a level index: {arg}");
+            DevToolsPlugin.Log.LogWarning($"lockcard: not a level index: {arg}");
             return;
         }
         CardLock.Blocked.Add(n);
-        ProbePlugin.Log.LogInfo(
+        DevToolsPlugin.Log.LogInfo(
             $"lockcard: level {n} blocked ({CardLock.Blocked.Count} total,"
             + $" refusals so far {CardLock.Refusals})");
     }
@@ -228,11 +228,11 @@ internal static class Phase0
     {
         if (!int.TryParse(arg, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
         {
-            ProbePlugin.Log.LogWarning($"clickcard: not a level index: {arg}");
+            DevToolsPlugin.Log.LogWarning($"clickcard: not a level index: {arg}");
             return;
         }
         var track = UnityEngine.Object.FindObjectOfType<LevelsTrack>();
-        if (track == null) { ProbePlugin.Log.LogWarning("clickcard: open menu:levels first"); return; }
+        if (track == null) { DevToolsPlugin.Log.LogWarning("clickcard: open menu:levels first"); return; }
 
         var items = track.trackItems;
         for (int i = 0; i < (items == null ? 0 : items.Count); i++)
@@ -241,13 +241,13 @@ internal static class Phase0
             if (icon == null || icon.level == null) continue;
             if (icon.level.LevelIndex != n) continue;
             var before = CardLock.Refusals;
-            ProbePlugin.Log.LogInfo($"clickcard: invoking DoStartLevel on {icon.level.LevelId}");
+            DevToolsPlugin.Log.LogInfo($"clickcard: invoking DoStartLevel on {icon.level.LevelId}");
             icon.DoStartLevel();
-            ProbePlugin.Log.LogInfo(
+            DevToolsPlugin.Log.LogInfo(
                 $"clickcard: returned; refusals {before} -> {CardLock.Refusals}");
             return;
         }
-        ProbePlugin.Log.LogWarning($"clickcard: no icon on the track for level {n}");
+        DevToolsPlugin.Log.LogWarning($"clickcard: no icon on the track for level {n}");
     }
 
     private static string Quote(string s) => "\"" + s + "\"";
@@ -285,7 +285,7 @@ internal static class CardLock
             if (level == null) return true;
             if (!Blocked.Contains(level.LevelIndex)) return true;
             Refusals++;
-            ProbePlugin.Log.LogInfo(
+            DevToolsPlugin.Log.LogInfo(
                 $"lockcard: refused launch of {level.LevelId} (refusals={Refusals})");
             return false;
         }

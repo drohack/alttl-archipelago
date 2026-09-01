@@ -18,8 +18,8 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <AssemblyName>ALTTLProbe</AssemblyName>
-    <RootNamespace>ALTTLProbe</RootNamespace>
+    <AssemblyName>ALTTLDevTools</AssemblyName>
+    <RootNamespace>ALTTLDevTools</RootNamespace>
     <Version>0.1.0</Version>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -81,10 +81,10 @@
 
   <Target Name="DeployToGame" AfterTargets="Build" Condition="'$(SkipDeploy)' != 'true'">
     <ItemGroup>
-      <DeployFiles Include="$(TargetDir)ALTTLProbe.dll" />
+      <DeployFiles Include="$(TargetDir)ALTTLDevTools.dll" />
     </ItemGroup>
-    <Copy SourceFiles="@(DeployFiles)" DestinationFolder="$(GameDir)\BepInEx\plugins\ALTTLProbe" />
-    <Message Importance="high" Text="Deployed ALTTLProbe to $(GameDir)\BepInEx\plugins\ALTTLProbe" />
+    <Copy SourceFiles="@(DeployFiles)" DestinationFolder="$(GameDir)\BepInEx\plugins\ALTTLDevTools" />
+    <Message Importance="high" Text="Deployed ALTTLDevTools to $(GameDir)\BepInEx\plugins\ALTTLDevTools" />
   </Target>
 
 </Project>

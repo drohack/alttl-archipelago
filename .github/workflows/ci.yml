@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  core:
+    # The point of this job is the ABSENCE of a game install. Core is pure C#
+    # with no Unity, BepInEx or Archipelago references, and building it alone
+    # on a runner that has none of those is what enforces that. If someone adds
+    # a game reference to Core, this job is what fails.
+    #
+    # The BepInEx plugin deliberately is NOT built here: it references interop
+    # assemblies derived from the game, which a public runner cannot have and
+    # which must never be committed.
+    name: Core (no game installed)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build Core standalone
+        run: dotnet build src/ALTTLArchipelago.Core -c Release
+      - name: Core unit tests
+        run: dotnet test src/ALTTLArchipelago.Core.Tests -c Release --nologo
+
+  ascii:
+    # Non-ASCII characters break quietly on Windows: Python encodes redirected
+    # stdout as cp1252, so a single em dash in a progress line kills a script.
+    # Cheaper to forbid them than to debug them.
+    name: ASCII only
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for non-ASCII
+        run: |
+          python3 - <<'PY'
+          import glob, sys
+          patterns = ["**/*.md", "**/*.cs", "**/*.py", "**/*.csproj", "**/*.yml", "**/*.json"]
+          skip = ("/bin/", "/obj/", "/Archipelago/", "/docs/data/")
+          bad = 0
+          for pat in patterns:
+              for f in glob.glob(pat, recursive=True):
+                  if any(s in "/" + f.replace("\\", "/") for s in skip):
+                      continue
+                  with open(f, encoding="utf-8", errors="replace") as fh:
+                      for n, line in enumerate(fh, 1):
+                          for ch in line:
+                              if ord(ch) > 126 and ch != "\n":
+                                  print(f"{f}:{n}: U+{ord(ch):04X} {ch!r}")
+                                  bad += 1
+          if bad:
+              print(f"\n{bad} non-ASCII character(s). See the Characters rule in CLAUDE.md.")
+              sys.exit(1)
+          print("clean")
+          PY

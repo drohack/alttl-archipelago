@@ -92,7 +92,14 @@ Curated copies of the probe output are in [docs/data/](docs/data/).
 
 ## Repository layout
 
-- `src/ALTTLProbe/` - the research probe
+- `src/ALTTLArchipelago/` - the BepInEx mod (ships in releases)
+- `src/ALTTLArchipelago.Core/` - the mod's rules and state as pure C# with no
+  Unity dependency, so all of it is unit-testable. It has zero references by
+  design and CI builds it standalone to keep it that way
+- `src/ALTTLArchipelago.Core.Tests/` - those tests
+- `src/ALTTLDevTools/` - the research and survey plugin. Deliberately not part
+  of the randomizer, installed separately, never shipped
+- `apworld/alttl/` - the Archipelago world (Python)
 - `docs/verification-log.md` - results of the Phase 0 verification gate
 - `docs/research-findings.md` - the modding surface: what was proven, and how
 - `docs/content-report.md` - the content: base game, daily, archive, DLC

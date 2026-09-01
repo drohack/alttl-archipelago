@@ -10,7 +10,7 @@ using HarmonyLib;
 using Il2CppInterop.Runtime.Injection;
 using UnityEngine;
 
-namespace ALTTLProbe;
+namespace ALTTLDevTools;
 
 /// <summary>
 /// Replaces the campaign level-select contents with an arbitrary level list.
@@ -41,7 +41,7 @@ public static class LevelSelectOverride
             if (li != null) replacement.Add(li);
         }
         __instance.Levels = replacement;
-        ProbePlugin.Log.LogInfo($"SetLevels override: {replacement.Count} levels");
+        DevToolsPlugin.Log.LogInfo($"SetLevels override: {replacement.Count} levels");
     }
 
     [HarmonyPostfix]
@@ -61,7 +61,7 @@ public static class LevelSelectOverride
         var sections = new Il2CppSystem.Collections.Generic.List<LevelSelect.Section>();
         sections.Add(section);
         __instance.Sections = sections;
-        ProbePlugin.Log.LogInfo($"SetupSections override: 1 section \"{SectionTitle}\"");
+        DevToolsPlugin.Log.LogInfo($"SetupSections override: 1 section \"{SectionTitle}\"");
     }
 }
 
@@ -72,10 +72,10 @@ public static class LevelSelectOverride
 ///
 /// Nothing here modifies the game. It reads and it writes files.
 /// </summary>
-[BepInPlugin(Guid, "ALTTL Probe", "0.1.0")]
-public class ProbePlugin : BasePlugin
+[BepInPlugin(Guid, "ALTTL Dev Tools", "0.1.0")]
+public class DevToolsPlugin : BasePlugin
 {
-    public const string Guid = "droha.alttl.probe";
+    public const string Guid = "droha.alttl.devtools";
 
     internal static new ManualLogSource Log = null!;
 
@@ -85,6 +85,12 @@ public class ProbePlugin : BasePlugin
     /// which is whichever desktop happened to be active at launch.
     /// </summary>
     internal static int TargetDesktop;
+
+    /// <summary>
+    /// Write a per-event transcript to alttl-watch.log. Off by default because
+    /// ObjectPlaced fires hundreds of times per level load.
+    /// </summary>
+    internal static bool WatchEvents;
 
     public override void Load()
     {
@@ -98,7 +104,15 @@ public class ProbePlugin : BasePlugin
             + "desktop at startup, 1-based in Task View order. 0 leaves them alone. "
             + "Windows otherwise puts a new window on whichever desktop was active "
             + "when it was created, which for a scripted launch is arbitrary.").Value;
-        ClassInjector.RegisterTypeInIl2Cpp<ProbeBehaviour>();
+
+        WatchEvents = Config.Bind(
+            "Debug",
+            "WatchEvents",
+            false,
+            "Write every gameplay event to BepInEx/alttl-watch.log. Useful for "
+            + "diagnosing what the game signals and when, but ObjectPlaced alone "
+            + "fires hundreds of times per level load, so leave it off for sweeps.").Value;
+        ClassInjector.RegisterTypeInIl2Cpp<DevToolsBehaviour>();
         var harmony = new Harmony(Guid);
         harmony.PatchAll(typeof(LevelSelectOverride));
         harmony.PatchAll(typeof(CardLock));
@@ -107,25 +121,26 @@ public class ProbePlugin : BasePlugin
             Log.LogInfo($"patched {m.DeclaringType?.Name}.{m.Name}");
         }
 
-        var go = new GameObject("ALTTLProbe");
+        var go = new GameObject("ALTTLDevTools");
         go.hideFlags = HideFlags.HideAndDontSave;
         UnityEngine.Object.DontDestroyOnLoad(go);
-        go.AddComponent<ProbeBehaviour>();
+        go.AddComponent<DevToolsBehaviour>();
 
-        Log.LogInfo("ALTTL probe loaded");
+        Log.LogInfo("ALTTL dev tools loaded");
     }
 }
 
-public class ProbeBehaviour : MonoBehaviour
+public class DevToolsBehaviour : MonoBehaviour
 {
     // Required for a MonoBehaviour injected into the IL2CPP domain.
-    public ProbeBehaviour(IntPtr ptr) : base(ptr) { }
+    public DevToolsBehaviour(IntPtr ptr) : base(ptr) { }
 
     private const int SettleFrames = 240;
 
     private int _frames;
     private bool _dumped;
     private bool _desktopMoved;
+    private readonly DataTable _dataTable = new();
     private bool _listenersAttached;
     private float _nextCommandPoll;
 
@@ -140,7 +155,7 @@ public class ProbeBehaviour : MonoBehaviour
     private readonly StringBuilder _surveyOut = new();
 
     private static string GameDir => Path.GetDirectoryName(Application.dataPath)!;
-    private static string CommandFile => Path.Combine(GameDir, "BepInEx", "alttl-probe-commands.txt");
+    private static string CommandFile => Path.Combine(GameDir, "BepInEx", "alttl-devtools-commands.txt");
     private static string DumpFile => Path.Combine(GameDir, "BepInEx", "alttl-dump.json");
     private static string EventLog => Path.Combine(GameDir, "BepInEx", "alttl-events.log");
     private static string SolutionFile => Path.Combine(GameDir, "BepInEx", "alttl-solutions.tsv");
@@ -155,7 +170,7 @@ public class ProbeBehaviour : MonoBehaviour
         if (!_desktopMoved && _frames > 60)
         {
             _desktopMoved = true;
-            VirtualDesktop.MoveGameTo(ProbePlugin.TargetDesktop, m => ProbePlugin.Log.LogInfo(m));
+            VirtualDesktop.MoveGameTo(DevToolsPlugin.TargetDesktop, m => DevToolsPlugin.Log.LogInfo(m));
         }
 
         var gm = GameManager.Instance;
@@ -175,6 +190,12 @@ public class ProbeBehaviour : MonoBehaviour
         if (_surveying)
         {
             SafeRun("survey step", SurveyStep);
+            return;
+        }
+
+        if (_dataTable.Running)
+        {
+            SafeRun("levelsweep step", _dataTable.Tick);
             return;
         }
 
@@ -240,7 +261,7 @@ public class ProbeBehaviour : MonoBehaviour
         _sweepPos = 0;
         _sweepTask = null;
         _sweeping = true;
-        ProbePlugin.Log.LogInfo($"-- generator sweep: {_sweepJobs.Count} regenerations --");
+        DevToolsPlugin.Log.LogInfo($"-- generator sweep: {_sweepJobs.Count} regenerations --");
     }
 
     private void GenSweepStep()
@@ -249,7 +270,7 @@ public class ProbeBehaviour : MonoBehaviour
         {
             File.WriteAllText(SweepFile, _sweepOut.ToString());
             _sweeping = false;
-            ProbePlugin.Log.LogInfo($"gensweep complete: {SweepFile}");
+            DevToolsPlugin.Log.LogInfo($"gensweep complete: {SweepFile}");
             return;
         }
 
@@ -262,7 +283,7 @@ public class ProbeBehaviour : MonoBehaviour
             _sweepTask = lm.SetActiveLevel(index, false, true, seed);
             if ((_sweepPos % 6) == 0)
             {
-                ProbePlugin.Log.LogInfo(
+                DevToolsPlugin.Log.LogInfo(
                     $"[{_sweepPos + 1}/{_sweepJobs.Count}] regenerating level {index} seed {seed}");
             }
             return;
@@ -359,7 +380,7 @@ public class ProbeBehaviour : MonoBehaviour
             "levelIndex\tlevelId\tsolutionCount\tcontroller\tcontrollerType"
             + "\tsetCount\tsolutionIds\tdependsOn\tnote");
         _surveying = true;
-        ProbePlugin.Log.LogInfo($"-- solution survey: {_surveyQueue.Count} levels --");
+        DevToolsPlugin.Log.LogInfo($"-- solution survey: {_surveyQueue.Count} levels --");
     }
 
     private void SurveyStep()
@@ -368,7 +389,7 @@ public class ProbeBehaviour : MonoBehaviour
         {
             File.WriteAllText(SolutionFile, _surveyOut.ToString());
             _surveying = false;
-            ProbePlugin.Log.LogInfo($"survey complete: {SolutionFile}");
+            DevToolsPlugin.Log.LogInfo($"survey complete: {SolutionFile}");
             return;
         }
 
@@ -384,7 +405,7 @@ public class ProbeBehaviour : MonoBehaviour
                 _surveyLevel = li;
                 _surveyTask = li.LoadLevel(false);
                 _surveyWaitFrames = 0;
-                ProbePlugin.Log.LogInfo(
+                DevToolsPlugin.Log.LogInfo(
                     $"[{_surveyIndex + 1}/{total} {id}] step 1/2: loading level prefab");
             }
             catch (Exception e)
@@ -424,7 +445,7 @@ public class ProbeBehaviour : MonoBehaviour
             note = "result-threw:" + e.GetType().Name;
         }
 
-        ProbePlugin.Log.LogInfo(
+        DevToolsPlugin.Log.LogInfo(
             $"[{_surveyIndex + 1}/{total} {id}] step 2/2: reading controllers ({note})");
         Record(idx, id, li, level, note);
         Advance();
@@ -433,7 +454,7 @@ public class ProbeBehaviour : MonoBehaviour
     private void Advance()
     {
         try { _surveyLevel?.ReleaseAssetsAndDestroyLevel(); }
-        catch (Exception e) { ProbePlugin.Log.LogWarning($"release failed: {e.Message}"); }
+        catch (Exception e) { DevToolsPlugin.Log.LogWarning($"release failed: {e.Message}"); }
         _surveyLevel = null;
         _surveyTask = null;
         _surveyIndex++;
@@ -533,12 +554,17 @@ public class ProbeBehaviour : MonoBehaviour
     {
         try
         {
-            // Phase 0 S1/S2: the per-controller and per-solution signals the
-            // whole location model depends on. These go to their own log.
-            Watch<GameEventManager.GameEvent_ObjectControllerSolved>("ObjectControllerSolved");
-            Watch<GameEventManager.GameEvent_SolutionChanged>("SolutionChanged");
-            Watch<GameEventManager.GameEvent_LevelComplete>("LevelComplete");
-            Watch<GameEventManager.GameEvent_ObjectPlaced>("ObjectPlaced");
+            // The per-controller and per-solution transcript. Off by default:
+            // ObjectPlaced alone fires hundreds of times per level load, and
+            // writing every one to disk slowed a full level sweep to a crawl.
+            // Turn WatchEvents on in the config when diagnosing.
+            if (DevToolsPlugin.WatchEvents)
+            {
+                Watch<GameEventManager.GameEvent_ObjectControllerSolved>("ObjectControllerSolved");
+                Watch<GameEventManager.GameEvent_SolutionChanged>("SolutionChanged");
+                Watch<GameEventManager.GameEvent_LevelComplete>("LevelComplete");
+                Watch<GameEventManager.GameEvent_ObjectPlaced>("ObjectPlaced");
+            }
 
             Listen<GameEventManager.GameEvent_LevelSelected>("LevelSelected");
             Listen<GameEventManager.GameEvent_LevelComplete>("LevelComplete");
@@ -550,7 +576,7 @@ public class ProbeBehaviour : MonoBehaviour
             Listen<GameEventManager.GameEvent_CampaignFinished>("CampaignFinished");
             Listen<GameEventManager.GameEvent_DLCFinished>("DLCFinished");
             _listenersAttached = true;
-            ProbePlugin.Log.LogInfo("event listeners attached");
+            DevToolsPlugin.Log.LogInfo("event listeners attached");
         }
         catch (Exception e)
         {
@@ -558,7 +584,7 @@ public class ProbeBehaviour : MonoBehaviour
             if (_frames > SettleFrames)
             {
                 _listenersAttached = true;
-                ProbePlugin.Log.LogWarning($"could not attach listeners: {e.Message}");
+                DevToolsPlugin.Log.LogWarning($"could not attach listeners: {e.Message}");
             }
         }
     }
@@ -606,11 +632,11 @@ public class ProbeBehaviour : MonoBehaviour
                 line.Append("  solutionId=").Append(data.SolutionId);
             }
             File.AppendAllText(EventLog, line.ToString() + Environment.NewLine);
-            ProbePlugin.Log.LogInfo(line.ToString());
+            DevToolsPlugin.Log.LogInfo(line.ToString());
         }
         catch (Exception e)
         {
-            ProbePlugin.Log.LogWarning($"event log failed for {label}: {e.Message}");
+            DevToolsPlugin.Log.LogWarning($"event log failed for {label}: {e.Message}");
         }
     }
 
@@ -624,7 +650,7 @@ public class ProbeBehaviour : MonoBehaviour
             var cmd = File.ReadAllText(CommandFile).Trim();
             if (cmd.Length == 0) return;
             File.WriteAllText(CommandFile, string.Empty);
-            ProbePlugin.Log.LogInfo($"command: {cmd}");
+            DevToolsPlugin.Log.LogInfo($"command: {cmd}");
 
             if (cmd.Equals("dump", StringComparison.OrdinalIgnoreCase))
             {
@@ -643,7 +669,7 @@ public class ProbeBehaviour : MonoBehaviour
                 SafeRun("complete", () =>
                 {
                     var li = GameManager.Instance.levelManager.ActiveLevelInterface;
-                    ProbePlugin.Log.LogInfo($"complete: CompleteLevel() on {li.LevelId}");
+                    DevToolsPlugin.Log.LogInfo($"complete: CompleteLevel() on {li.LevelId}");
                     li.CompleteLevel();
                 });
             }
@@ -661,7 +687,7 @@ public class ProbeBehaviour : MonoBehaviour
                 {
                     var path = cmd.Substring(5);
                     ScreenCapture.CaptureScreenshot(path);
-                    ProbePlugin.Log.LogInfo($"screenshot requested: {path}");
+                    DevToolsPlugin.Log.LogInfo($"screenshot requested: {path}");
                 });
             }
             else if (cmd.Equals("unlocks", StringComparison.OrdinalIgnoreCase))
@@ -696,6 +722,10 @@ public class ProbeBehaviour : MonoBehaviour
             {
                 SafeRun("clickcard", () => Phase0.ClickCard(cmd.Substring(10)));
             }
+            else if (cmd.Equals("levelsweep", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("levelsweep", _dataTable.Start);
+            }
             else if (cmd.Equals("tint", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("tint", () => Phase0.TintCards(false));
@@ -711,17 +741,17 @@ public class ProbeBehaviour : MonoBehaviour
                     SaveSystem.data.ResetLevelData();
                     SaveSystem.data.AddFirstLevelToCompletionData();
                     SaveSystem.SaveGame();
-                    ProbePlugin.Log.LogInfo("level completion data reset to a fresh save");
+                    DevToolsPlugin.Log.LogInfo("level completion data reset to a fresh save");
                 });
             }
             else
             {
-                ProbePlugin.Log.LogWarning($"unknown command: {cmd}");
+                DevToolsPlugin.Log.LogWarning($"unknown command: {cmd}");
             }
         }
         catch (Exception e)
         {
-            ProbePlugin.Log.LogWarning($"command poll failed: {e.Message}");
+            DevToolsPlugin.Log.LogWarning($"command poll failed: {e.Message}");
         }
     }
 
@@ -746,10 +776,10 @@ public class ProbeBehaviour : MonoBehaviour
                 gm.SetGameState<DailyTidy_GameState>(null, false);
                 break;
             default:
-                ProbePlugin.Log.LogWarning($"unknown menu: {arg}");
+                DevToolsPlugin.Log.LogWarning($"unknown menu: {arg}");
                 return;
         }
-        ProbePlugin.Log.LogInfo($"menu: {arg}");
+        DevToolsPlugin.Log.LogInfo($"menu: {arg}");
     }
 
     /// <summary>
@@ -765,7 +795,7 @@ public class ProbeBehaviour : MonoBehaviour
         var li = GameManager.Instance.levelManager.GetLevelInterface(index);
         SaveSystem.data.SaveLevelData(li, solutionId, true);
         SaveSystem.SaveGame();
-        ProbePlugin.Log.LogInfo(
+        DevToolsPlugin.Log.LogInfo(
             $"solve: {li.LevelId} solutionId={solutionId} -> found={li.NumSolutionsFound} solved={li.Solved}");
     }
 
@@ -847,7 +877,7 @@ public class ProbeBehaviour : MonoBehaviour
             try { if (li.LevelIndex < 100) campaign.Add(li); } catch { }
         }
         var info = new SaveData.LevelsCompletionInfo(campaign);
-        ProbePlugin.Log.LogInfo(
+        DevToolsPlugin.Log.LogInfo(
             "campaign: levels=" + Str(() => info.LevelsCount.ToString())
             + " unlocked=" + Str(() => info.UnlockedCount.ToString())
             + " fullyUnlocked=" + Str(() => info.IsFullyUnlocked.ToString())
@@ -864,7 +894,7 @@ public class ProbeBehaviour : MonoBehaviour
             + " | nextLevelIndex=" + Str(() => lm.GetNextLevelIndex().ToString())
             + " gameCompleteCheck=" + Str(() => lm.GameCompleteCheck().ToString()));
 
-        ProbePlugin.Log.LogInfo("unlocks written to alttl-unlocks.tsv / alttl-chapters.txt");
+        DevToolsPlugin.Log.LogInfo("unlocks written to alttl-unlocks.tsv / alttl-chapters.txt");
     }
 
     /// <summary>
@@ -878,7 +908,7 @@ public class ProbeBehaviour : MonoBehaviour
         if (csv.Equals("off", StringComparison.OrdinalIgnoreCase))
         {
             LevelSelectOverride.Order = null;
-            ProbePlugin.Log.LogInfo("reorder: override cleared");
+            DevToolsPlugin.Log.LogInfo("reorder: override cleared");
             return;
         }
 
@@ -889,7 +919,7 @@ public class ProbeBehaviour : MonoBehaviour
                 order.Add(n);
         }
         LevelSelectOverride.Order = order;
-        ProbePlugin.Log.LogInfo($"reorder: {order.Count} levels queued");
+        DevToolsPlugin.Log.LogInfo($"reorder: {order.Count} levels queued");
 
         // The menu object is built once and reused, so reopening it does not
         // re-run Setup. Drive the two rebuild steps directly - the patches
@@ -897,7 +927,7 @@ public class ProbeBehaviour : MonoBehaviour
         var menu = UnityEngine.Object.FindObjectOfType<LevelSelect>();
         if (menu == null)
         {
-            ProbePlugin.Log.LogInfo("reorder: no live LevelSelect, will apply when one is built");
+            DevToolsPlugin.Log.LogInfo("reorder: no live LevelSelect, will apply when one is built");
             return;
         }
         menu.SetLevels();
@@ -917,17 +947,17 @@ public class ProbeBehaviour : MonoBehaviour
         var menu = UnityEngine.Object.FindObjectOfType<LevelSelect>();
         if (menu == null)
         {
-            ProbePlugin.Log.LogWarning("sections: no LevelSelect in the scene - open menu:levels first");
+            DevToolsPlugin.Log.LogWarning("sections: no LevelSelect in the scene - open menu:levels first");
             return;
         }
         var sections = menu.Sections;
-        ProbePlugin.Log.LogInfo($"LevelSelect: {Str(() => sections == null ? "0" : sections.Count.ToString())} sections,"
+        DevToolsPlugin.Log.LogInfo($"LevelSelect: {Str(() => sections == null ? "0" : sections.Count.ToString())} sections,"
             + $" activeSection={Str(() => menu.ActiveSection == null ? "-" : menu.ActiveSection.SectionTitle)},"
             + $" levels in track={Str(() => menu.Levels == null ? "0" : menu.Levels.Count.ToString())}");
         for (int i = 0; i < (sections == null ? 0 : sections.Count); i++)
         {
             var s = sections![i];
-            ProbePlugin.Log.LogInfo(
+            DevToolsPlugin.Log.LogInfo(
                 $"  section {Str(() => s.SectionIndex.ToString())} \"{Str(() => s.SectionTitle)}\""
                 + $" trackStart={Str(() => s.TrackStartIndex.ToString())}"
                 + $" levels={Str(() => s.SectionLevels == null ? "0" : s.SectionLevels.Count.ToString())}"
@@ -937,7 +967,7 @@ public class ProbeBehaviour : MonoBehaviour
         var track = UnityEngine.Object.FindObjectOfType<LevelsTrack>();
         if (track != null)
         {
-            ProbePlugin.Log.LogInfo(
+            DevToolsPlugin.Log.LogInfo(
                 $"LevelsTrack: items={Str(() => track.trackItems == null ? "0" : track.trackItems.Count.ToString())}"
                 + $" levelCount={Str(() => track.LevelCount.ToString())}"
                 + $" unlockAll={Str(() => track.UnlockAllLevels.ToString())}"
@@ -947,7 +977,7 @@ public class ProbeBehaviour : MonoBehaviour
             {
                 var it = items![i];
                 if (it == null) continue;
-                ProbePlugin.Log.LogInfo(
+                DevToolsPlugin.Log.LogInfo(
                     $"  track[{i}] {Str(() => it.level == null ? "-" : it.level.LevelId)}"
                     + $" unlocked={Str(() => it.isUnlocked.ToString())}"
                     + $" unlockable={Str(() => it.isUnlockable.ToString())}");
@@ -960,7 +990,7 @@ public class ProbeBehaviour : MonoBehaviour
         var gm = GameManager.Instance;
         var lm = gm.levelManager;
         var li = lm.ActiveLevelInterface;
-        ProbePlugin.Log.LogInfo(
+        DevToolsPlugin.Log.LogInfo(
             "state: gameState=" + Str(() => gm.GameState == null ? "null" : gm.GameState.GetIl2CppType().Name)
             + " activeLevel=" + Str(() => li == null ? "none" : li.LevelId)
             + " index=" + Str(() => li == null ? "-" : li.LevelIndex.ToString())
@@ -983,7 +1013,7 @@ public class ProbeBehaviour : MonoBehaviour
         var seed = parts.Length > 1 ? int.Parse(parts[1], CultureInfo.InvariantCulture) : -1;
 
         var gm = GameManager.Instance;
-        ProbePlugin.Log.LogInfo($"boot: StartLevel(index={index}, seed={seed})");
+        DevToolsPlugin.Log.LogInfo($"boot: StartLevel(index={index}, seed={seed})");
         gm.SetGameState<Gameplay_GameState>(null, false);
         gm.levelManager.StartLevel(index, true, true, seed);
     }
@@ -996,7 +1026,7 @@ public class ProbeBehaviour : MonoBehaviour
         }
         catch (Exception e)
         {
-            ProbePlugin.Log.LogError($"{what} failed: {e}");
+            DevToolsPlugin.Log.LogError($"{what} failed: {e}");
         }
     }
 
@@ -1019,7 +1049,7 @@ public class ProbeBehaviour : MonoBehaviour
         j.Close();
 
         File.WriteAllText(DumpFile, j.ToString());
-        ProbePlugin.Log.LogInfo($"dump written to {DumpFile} ({j.ToString().Length} bytes)");
+        DevToolsPlugin.Log.LogInfo($"dump written to {DumpFile} ({j.ToString().Length} bytes)");
     }
 
     private static void DumpLevels(Json j, GameManager gm)
@@ -1030,7 +1060,7 @@ public class ProbeBehaviour : MonoBehaviour
         {
             var all = gm.levelManager.AllLevelInterfaces(false);
             var count = all == null ? 0 : all.Length;
-            ProbePlugin.Log.LogInfo($"AllLevelInterfaces: {count}");
+            DevToolsPlugin.Log.LogInfo($"AllLevelInterfaces: {count}");
             for (int i = 0; i < count; i++)
             {
                 var li = all![i];
@@ -1064,7 +1094,7 @@ public class ProbeBehaviour : MonoBehaviour
         }
         catch (Exception e)
         {
-            ProbePlugin.Log.LogError($"DumpLevels: {e}");
+            DevToolsPlugin.Log.LogError($"DumpLevels: {e}");
         }
         j.CloseArray();
     }
@@ -1091,7 +1121,7 @@ public class ProbeBehaviour : MonoBehaviour
             j.OpenArray();
             var levels = dt.GetDailyTidyLevels(true);
             var n = levels == null ? 0 : levels.Length;
-            ProbePlugin.Log.LogInfo($"daily tidy levels (incl. holidays): {n}");
+            DevToolsPlugin.Log.LogInfo($"daily tidy levels (incl. holidays): {n}");
             for (int i = 0; i < n; i++)
             {
                 var li = levels![i];
@@ -1110,7 +1140,7 @@ public class ProbeBehaviour : MonoBehaviour
         }
         catch (Exception e)
         {
-            ProbePlugin.Log.LogError($"DumpDailyTidy: {e}");
+            DevToolsPlugin.Log.LogError($"DumpDailyTidy: {e}");
         }
         j.Close();
     }
@@ -1127,7 +1157,7 @@ public class ProbeBehaviour : MonoBehaviour
             j.OpenArray();
             var groups = am.ArchiveGroups;
             var gcount = groups == null ? 0 : groups.Count;
-            ProbePlugin.Log.LogInfo($"archive groups: {gcount}");
+            DevToolsPlugin.Log.LogInfo($"archive groups: {gcount}");
             for (int i = 0; i < gcount; i++)
             {
                 var g = groups![i];
@@ -1165,7 +1195,7 @@ public class ProbeBehaviour : MonoBehaviour
                     var keys = new List<string>();
                     var ke = dict.Keys.GetEnumerator();
                     while (ke.MoveNext()) keys.Add(ke.Current);
-                    ProbePlugin.Log.LogInfo($"archive solution dict entries: {keys.Count}");
+                    DevToolsPlugin.Log.LogInfo($"archive solution dict entries: {keys.Count}");
                     foreach (var key in keys)
                     {
                         var arr = dict[key];
@@ -1181,13 +1211,13 @@ public class ProbeBehaviour : MonoBehaviour
             }
             catch (Exception e)
             {
-                ProbePlugin.Log.LogWarning($"solution dict: {e.Message}");
+                DevToolsPlugin.Log.LogWarning($"solution dict: {e.Message}");
             }
             j.Close();
         }
         catch (Exception e)
         {
-            ProbePlugin.Log.LogError($"DumpArchive: {e}");
+            DevToolsPlugin.Log.LogError($"DumpArchive: {e}");
         }
         j.Close();
     }
@@ -1216,7 +1246,7 @@ public class ProbeBehaviour : MonoBehaviour
         }
         catch (Exception e)
         {
-            ProbePlugin.Log.LogError($"DumpDlc: {e}");
+            DevToolsPlugin.Log.LogError($"DumpDlc: {e}");
         }
         j.CloseArray();
     }

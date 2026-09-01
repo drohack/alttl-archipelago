@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace ALTTLProbe;
+namespace ALTTLDevTools;
 
 /// <summary>
 /// Moves the game's windows to a chosen Windows virtual desktop at startup.

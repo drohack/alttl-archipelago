@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The rules and state of the randomizer as pure C#.
+
+       THIS PROJECT MUST HAVE NO <Reference> AND NO <PackageReference>.
+
+       That is the entire enforcement of the Unity boundary, and CI protects it
+       by building this project alone on a runner with no game installed. If a
+       Unity, BepInEx or Archipelago.MultiClient.Net reference appears here,
+       that job fails - which is the point. Everything decidable without the
+       game lives here so it can be unit-tested without launching anything. -->
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>ALTTLArchipelago.Core</AssemblyName>
+    <RootNamespace>ALTTLArchipelago.Core</RootNamespace>
+    <Version>0.1.0</Version>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+</Project>
