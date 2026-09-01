@@ -1,0 +1,8 @@
+<Project>
+  <!-- Copy to GameDir.props and point at your A Little To The Left install
+       (the folder containing "A Little To The Left.exe"), with BepInEx
+       installed and launched once so BepInEx\interop exists. -->
+  <PropertyGroup>
+    <GameDir>C:\Path\To\A Little To The Left</GameDir>
+  </PropertyGroup>
+</Project>

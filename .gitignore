@@ -1,0 +1,32 @@
+# Build output
+bin/
+obj/
+
+# Per-machine build configuration
+/src/GameDir.props
+
+# Probe output landing in the repo root (the curated copies live in docs/data/)
+/alttl-dump.json
+/alttl-solutions.tsv
+/alttl-events.log
+
+# Upstream Archipelago clone (reference + local test host) - not ours
+/Archipelago/
+
+# Release artifacts
+/dist/
+
+# Editors / OS
+*.user
+*.suo
+.vs/
+Thumbs.db
+.DS_Store
+
+# Python bytecode
+__pycache__/
+
+# Stray artifacts
+*.bak
+*.png
+*.log

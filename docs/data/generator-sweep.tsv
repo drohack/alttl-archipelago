@@ -1,0 +1,129 @@
+levelIndex	levelId	seed	declaredSolutions	levelNumSolutions	objectCount	controllerCount	controllers	randomizer	chosenSolutions
+46	Buttons	1000	2	2	25	1	SortingItems_Draggables	SortingItems_LevelRandomizer	-
+46	Buttons	8919	2	2	25	1	SortingItems_Draggables	SortingItems_LevelRandomizer	-
+46	Buttons	16838	2	2	25	1	SortingItems_Draggables	SortingItems_LevelRandomizer	-
+46	Buttons	24757	2	2	25	1	SortingItems_Draggables	SortingItems_LevelRandomizer	-
+46	Buttons	32676	2	2	25	1	SortingItems_Draggables	SortingItems_LevelRandomizer	-
+46	Buttons	40595	2	2	25	1	SortingItems_Draggables	SortingItems_LevelRandomizer	-
+46	Buttons	48514	2	2	25	1	SortingItems_Draggables	SortingItems_LevelRandomizer	-
+46	Buttons	56433	2	2	25	1	SortingItems_Draggables	SortingItems_LevelRandomizer	-
+28	Breadtags	1000	1	1	18	2	Draggables|Removables	BreadTags_LevelRandomizer	-
+28	?	8919	?	?	?	0		-	-
+28	Breadtags	16838	1	1	14	2	Draggables|Removables	BreadTags_LevelRandomizer	-
+28	Breadtags	24757	1	1	16	2	Draggables|Removables	BreadTags_LevelRandomizer	-
+28	Breadtags	32676	1	1	14	2	Draggables|Removables	BreadTags_LevelRandomizer	-
+28	Breadtags	40595	1	1	14	2	Draggables|Removables	BreadTags_LevelRandomizer	-
+28	Breadtags	48514	1	1	16	2	Draggables|Removables	BreadTags_LevelRandomizer	-
+28	Breadtags	56433	1	1	18	2	Draggables|Removables	BreadTags_LevelRandomizer	-
+12	Calendar	1000	1	1	11	1	Stickables	Calendar_LevelRandomizer	-
+12	Calendar	8919	1	1	15	1	Stickables	Calendar_LevelRandomizer	-
+12	Calendar	16838	1	1	12	1	Stickables	Calendar_LevelRandomizer	-
+12	Calendar	24757	1	1	18	1	Stickables	Calendar_LevelRandomizer	-
+12	Calendar	32676	1	1	14	1	Stickables	Calendar_LevelRandomizer	-
+12	Calendar	40595	1	1	23	1	Stickables	Calendar_LevelRandomizer	-
+12	Calendar	48514	1	1	24	1	Stickables	Calendar_LevelRandomizer	-
+12	Calendar	56433	1	1	18	1	Stickables	Calendar_LevelRandomizer	-
+73	Clock	1000	1	1	2	1	Rotateables	Clock_LevelRandomizer	-
+73	Clock	8919	1	1	2	1	Rotateables	Clock_LevelRandomizer	-
+73	Clock	16838	1	1	2	1	Rotateables	Clock_LevelRandomizer	-
+73	Clock	24757	1	1	2	1	Rotateables	Clock_LevelRandomizer	-
+73	Clock	32676	1	1	2	1	Rotateables	Clock_LevelRandomizer	-
+73	Clock	40595	1	1	2	1	Rotateables	Clock_LevelRandomizer	-
+73	Clock	48514	1	1	2	1	Rotateables	Clock_LevelRandomizer	-
+73	Clock	56433	1	1	2	1	Rotateables	Clock_LevelRandomizer	-
+69	Microscope	1000	1	1	3	1	ScrollFieldGroupsController	Microscope_LevelRandomizer	-
+69	Microscope	8919	1	1	3	1	ScrollFieldGroupsController	Microscope_LevelRandomizer	-
+69	Microscope	16838	1	1	3	1	ScrollFieldGroupsController	Microscope_LevelRandomizer	-
+69	Microscope	24757	1	1	3	1	ScrollFieldGroupsController	Microscope_LevelRandomizer	-
+69	Microscope	32676	1	1	3	1	ScrollFieldGroupsController	Microscope_LevelRandomizer	-
+69	Microscope	40595	1	1	3	1	ScrollFieldGroupsController	Microscope_LevelRandomizer	-
+69	Microscope	48514	1	1	3	1	ScrollFieldGroupsController	Microscope_LevelRandomizer	-
+69	Microscope	56433	1	1	3	1	ScrollFieldGroupsController	Microscope_LevelRandomizer	-
+62	Shells	1000	1	1	16	1	SymmetricalPlaceables	Shells_LevelRandomizer	-
+62	Shells	8919	1	1	27	1	SymmetricalPlaceables	Shells_LevelRandomizer	-
+62	Shells	16838	1	1	27	1	SymmetricalPlaceables	Shells_LevelRandomizer	-
+62	Shells	24757	1	1	23	1	SymmetricalPlaceables	Shells_LevelRandomizer	-
+62	Shells	32676	1	1	35	1	SymmetricalPlaceables	Shells_LevelRandomizer	-
+62	Shells	40595	1	1	16	1	SymmetricalPlaceables	Shells_LevelRandomizer	-
+62	Shells	48514	1	1	17	1	SymmetricalPlaceables	Shells_LevelRandomizer	-
+62	Shells	56433	1	1	16	1	SymmetricalPlaceables	Shells_LevelRandomizer	-
+26	Spice Jars	1000	2	2	16	2	Shuffleables|Shuffleables	SpiceJars_LevelRandomizer	-
+26	Spice Jars	8919	2	2	12	2	Shuffleables|Shuffleables	SpiceJars_LevelRandomizer	-
+26	Spice Jars	16838	2	2	16	2	Shuffleables|Shuffleables	SpiceJars_LevelRandomizer	-
+26	Spice Jars	24757	2	2	14	2	Shuffleables|Shuffleables	SpiceJars_LevelRandomizer	-
+26	Spice Jars	32676	2	2	16	2	Shuffleables|Shuffleables	SpiceJars_LevelRandomizer	-
+26	Spice Jars	40595	2	2	12	2	Shuffleables|Shuffleables	SpiceJars_LevelRandomizer	-
+26	Spice Jars	48514	2	2	12	2	Shuffleables|Shuffleables	SpiceJars_LevelRandomizer	-
+26	Spice Jars	56433	2	2	10	2	Shuffleables|Shuffleables	SpiceJars_LevelRandomizer	-
+70	SpiderWeb	1000	1	1	7	1	Draggables	SpiderWeb_LevelRandomizer	-
+70	SpiderWeb	8919	1	1	5	1	Draggables	SpiderWeb_LevelRandomizer	-
+70	SpiderWeb	16838	1	1	5	1	Draggables	SpiderWeb_LevelRandomizer	-
+70	SpiderWeb	24757	1	1	6	1	Draggables	SpiderWeb_LevelRandomizer	-
+70	SpiderWeb	32676	1	1	5	1	Draggables	SpiderWeb_LevelRandomizer	-
+70	SpiderWeb	40595	1	1	5	1	Draggables	SpiderWeb_LevelRandomizer	-
+70	SpiderWeb	48514	1	1	6	1	Draggables	SpiderWeb_LevelRandomizer	-
+70	SpiderWeb	56433	1	1	7	1	Draggables	SpiderWeb_LevelRandomizer	-
+75	Telescope	1000	1	1	6	1	TelescopeDraggables	Telescope_LevelRandomizer	-
+75	Telescope	8919	1	1	6	1	TelescopeDraggables	Telescope_LevelRandomizer	-
+75	Telescope	16838	1	1	4	1	TelescopeDraggables	Telescope_LevelRandomizer	-
+75	Telescope	24757	1	1	3	1	TelescopeDraggables	Telescope_LevelRandomizer	-
+75	Telescope	32676	1	1	4	1	TelescopeDraggables	Telescope_LevelRandomizer	-
+75	Telescope	40595	1	1	4	1	TelescopeDraggables	Telescope_LevelRandomizer	-
+75	Telescope	48514	1	1	6	1	TelescopeDraggables	Telescope_LevelRandomizer	-
+75	Telescope	56433	1	1	7	1	TelescopeDraggables	Telescope_LevelRandomizer	-
+58	Trim Plant	1000	1	1	19	1	Pluckables	Plant_LevelRandomizer	-
+58	Trim Plant	8919	1	1	23	1	Pluckables	Plant_LevelRandomizer	-
+58	Trim Plant	16838	1	1	26	1	Pluckables	Plant_LevelRandomizer	-
+58	Trim Plant	24757	1	1	24	1	Pluckables	Plant_LevelRandomizer	-
+58	Trim Plant	32676	1	1	18	1	Pluckables	Plant_LevelRandomizer	-
+58	Trim Plant	40595	1	1	22	1	Pluckables	Plant_LevelRandomizer	-
+58	Trim Plant	48514	1	1	23	1	Pluckables	Plant_LevelRandomizer	-
+58	Trim Plant	56433	1	1	22	1	Pluckables	Plant_LevelRandomizer	-
+1000	Procedural Grid Puzzle	1000	1	1	10	1	GridPuzzle	GridPuzzle_LevelRandomizer	-
+1000	Procedural Grid Puzzle	8919	1	1	9	1	GridPuzzle	GridPuzzle_LevelRandomizer	-
+1000	Procedural Grid Puzzle	16838	1	1	10	1	GridPuzzle	GridPuzzle_LevelRandomizer	-
+1000	Procedural Grid Puzzle	24757	1	1	10	1	GridPuzzle	GridPuzzle_LevelRandomizer	-
+1000	Procedural Grid Puzzle	32676	1	1	10	1	GridPuzzle	GridPuzzle_LevelRandomizer	-
+1000	Procedural Grid Puzzle	40595	1	1	10	1	GridPuzzle	GridPuzzle_LevelRandomizer	-
+1000	Procedural Grid Puzzle	48514	1	1	9	1	GridPuzzle	GridPuzzle_LevelRandomizer	-
+1000	Procedural Grid Puzzle	56433	1	1	10	1	GridPuzzle	GridPuzzle_LevelRandomizer	-
+999	Pencils (Randomized)	1000	2	2	7	1	DraggablesOrdered	Pencils_LevelRandomizer	LEAD_SIZE+ERASER_SIZE
+999	Pencils (Randomized)	8919	2	2	7	1	DraggablesOrdered	Pencils_LevelRandomizer	LENGTH+LEAD_HARDNESS
+999	Pencils (Randomized)	16838	2	2	7	1	DraggablesOrdered	Pencils_LevelRandomizer	LENGTH+LEAD_HARDNESS
+999	Pencils (Randomized)	24757	2	2	7	1	DraggablesOrdered	Pencils_LevelRandomizer	LEAD_SIZE+BODY_COLOUR
+999	Pencils (Randomized)	32676	2	2	7	1	DraggablesOrdered	Pencils_LevelRandomizer	ERASER_SIZE+LEAD_HARDNESS
+999	Pencils (Randomized)	40595	2	2	7	1	DraggablesOrdered	Pencils_LevelRandomizer	LEAD_SIZE+BODY_COLOUR
+999	Pencils (Randomized)	48514	2	2	7	1	DraggablesOrdered	Pencils_LevelRandomizer	LENGTH+LEAD_HARDNESS
+999	Pencils (Randomized)	56433	2	2	7	1	DraggablesOrdered	Pencils_LevelRandomizer	ERASER_SIZE+BODY_COLOUR
+998	Post-It Notes (Randomized)	1000	1	1	15	1	Draggables	PostItNote_LevelRandomizer	-
+998	Post-It Notes (Randomized)	8919	1	1	15	1	Draggables	PostItNote_LevelRandomizer	-
+998	Post-It Notes (Randomized)	16838	1	1	15	1	Draggables	PostItNote_LevelRandomizer	-
+998	Post-It Notes (Randomized)	24757	1	1	15	1	Draggables	PostItNote_LevelRandomizer	-
+998	Post-It Notes (Randomized)	32676	1	1	15	1	Draggables	PostItNote_LevelRandomizer	-
+998	Post-It Notes (Randomized)	40595	1	1	15	1	Draggables	PostItNote_LevelRandomizer	-
+998	Post-It Notes (Randomized)	48514	1	1	15	1	Draggables	PostItNote_LevelRandomizer	-
+998	Post-It Notes (Randomized)	56433	1	1	15	1	Draggables	PostItNote_LevelRandomizer	-
+997	Stamps (Randomized)	1000	1	1	8	1	Draggables	Stamps_LevelRandomizer	-
+997	Stamps (Randomized)	8919	1	1	9	1	Draggables	Stamps_LevelRandomizer	-
+997	Stamps (Randomized)	16838	1	1	8	1	Draggables	Stamps_LevelRandomizer	-
+997	Stamps (Randomized)	24757	1	1	9	1	Draggables	Stamps_LevelRandomizer	-
+997	Stamps (Randomized)	32676	1	1	10	1	Draggables	Stamps_LevelRandomizer	-
+997	Stamps (Randomized)	40595	1	1	9	1	Draggables	Stamps_LevelRandomizer	-
+997	Stamps (Randomized)	48514	1	1	9	1	Draggables	Stamps_LevelRandomizer	-
+997	Stamps (Randomized)	56433	1	1	9	1	Draggables	Stamps_LevelRandomizer	-
+996	Batteries (Randomized)	1000	1	1	19	1	Draggables	Batteries_LevelRandomizer	-
+996	Batteries (Randomized)	8919	1	1	21	1	Draggables	Batteries_LevelRandomizer	-
+996	Batteries (Randomized)	16838	1	1	22	1	Draggables	Batteries_LevelRandomizer	-
+996	Batteries (Randomized)	24757	1	1	14	1	Draggables	Batteries_LevelRandomizer	-
+996	Batteries (Randomized)	32676	1	1	15	1	Draggables	Batteries_LevelRandomizer	-
+996	Batteries (Randomized)	40595	1	1	15	1	Draggables	Batteries_LevelRandomizer	-
+996	Batteries (Randomized)	48514	1	1	14	1	Draggables	Batteries_LevelRandomizer	-
+996	Batteries (Randomized)	56433	1	1	22	1	Draggables	Batteries_LevelRandomizer	-
+995	Books (Randomized)	1000	2	2	11	2	Shuffleables|Draggables	Books_LevelRandomizer	IMAGE+HEIGHT_SYMMETRIC
+995	Books (Randomized)	8919	2	2	11	2	Shuffleables|Draggables	Books_LevelRandomizer	WIDTH_SYMMETRIC+HEIGHT
+995	Books (Randomized)	16838	2	2	10	1	Shuffleables	Books_LevelRandomizer	SYMBOL+HEIGHT
+995	Books (Randomized)	24757	2	2	11	2	Shuffleables|Draggables	Books_LevelRandomizer	HEIGHT_SYMMETRIC+IMAGE
+995	Books (Randomized)	32676	2	2	11	2	Shuffleables|Draggables	Books_LevelRandomizer	IMAGE+HEIGHT_SYMMETRIC
+995	Books (Randomized)	40595	2	2	12	1	Shuffleables	Books_LevelRandomizer	SYMBOL+HEIGHT
+995	Books (Randomized)	48514	2	2	11	2	Shuffleables|Draggables	Books_LevelRandomizer	HEIGHT_SYMMETRIC+IMAGE
+995	Books (Randomized)	56433	2	2	7	2	Shuffleables|Draggables	Books_LevelRandomizer	HEIGHT_SYMMETRIC+SYMBOL
