@@ -33,10 +33,15 @@ class PuzzleCount(Range):
 
 
 class PackSize(Range):
-    """How many puzzles each Puzzle Pack unlocks.
+    """How many puzzles the first Puzzle Packs unlock.
 
     Vanilla hands you one level at a time. Four means you always have several
     things to work on, so a single hard puzzle never stops the run.
+
+    Packs widen as the run goes on, so this is where you start rather than the
+    rate for the whole game - the opening is deliberately slow, and the last
+    packs hand you a good deal more than this. Whatever you pick, the run opens
+    with at least four puzzles so it cannot start locked.
     """
     display_name = "Puzzles Per Pack"
     range_start = 1
@@ -134,16 +139,16 @@ class GuaranteedOpenSlots(Range):
     """How many of the opening puzzles must be solvable straight away.
 
     Insurance against an opening where everything needs a mechanic you do not
-    have yet. Clamped to the pack size.
+    have yet. Raise it to be handed a wider choice on the first screen.
 
-    The default is 2 rather than 1 because the pack gate and the ability gate
-    stack: with only one solvable opening puzzle the generator has almost
-    nowhere to place its first items.
+    Four are always solvable whatever you set here - below that there is too
+    little to do for a seed to be built at all - so this only has an effect
+    above four.
     """
     display_name = "Guaranteed Open Puzzles"
     range_start = 0
     range_end = 10
-    default = 2
+    default = 4
 
 
 class LevelsToBeat(Range):

@@ -58,3 +58,52 @@ jobs:
               sys.exit(1)
           print("clean")
           PY
+
+  apworld:
+    # Pinned to the DECLARED MINIMUM Archipelago version, not main. If we test
+    # against main and a player runs the minimum we claim to support, the
+    # breakage is theirs to find. cw4 learned this the expensive way.
+    name: apworld (minimum AP version)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Read the minimum supported Archipelago version
+        id: ap
+        run: |
+          python3 -c "import json;print('ref=' + json.load(open('apworld/alttl/archipelago.json'))['minimum_ap_version'])" >> "$GITHUB_OUTPUT"
+      - name: Check out Archipelago at that version
+        uses: actions/checkout@v4
+        with:
+          repository: ArchipelagoMW/Archipelago
+          ref: ${{ steps.ap.outputs.ref }}
+          path: ap
+      - name: Install Archipelago's requirements
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ap/requirements.txt
+      - name: Install the world
+        run: cp -r apworld/alttl ap/worlds/alttl
+      - name: Unit tests
+        working-directory: ap
+        run: python -m unittest discover -s worlds/alttl/test -t .
+      - name: Fill stress sweep
+        working-directory: ap
+        # Wider than the local default. A fill failure is probabilistic, and a
+        # green suite on five seeds is exactly how the 2026-09-02 breakage
+        # stayed hidden.
+        env:
+          ALTTL_STRESS_SEEDS: '50'
+        run: python -m unittest worlds.alttl.test.test_fill_stress
+      - name: Generate a real seed
+        working-directory: ap
+        # The one path the unit tests do not cover: yaml parsing, output
+        # writing and the playthrough calculation.
+        run: |
+          mkdir -p players out
+          python -c "from Options import generate_yaml_templates; generate_yaml_templates('players', False)"
+          find players -maxdepth 1 -name '*.yaml' ! -name 'A Little to the Left.yaml' -delete
+          python Generate.py --player_files_path players --outputpath out --seed 20260902
+          test -n "$(ls out/*.zip)"

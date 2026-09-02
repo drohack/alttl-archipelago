@@ -32,7 +32,19 @@ roughly 32 of 79 slots being four puzzle types.
 
 from typing import Dict, List, NamedTuple, Set
 
-from . import data
+from . import data, items
+
+
+#: Solvable puzzles the opening must contain, whatever guaranteed_open_slots
+#: says. This is a floor rather than a preference, which is why a player cannot
+#: set it lower: below it there is not enough reachable at the start for the
+#: generator to place anything, and the seed fails to build rather than merely
+#: opening awkwardly. Measured 2026-09-02 over 28 configurations x 15 seeds -
+#: a floor of 1 failed 8 seeds, 2 failed 2, and 4 failed none.
+#:
+#: guaranteed_open_slots still does its job above this line: it is what a player
+#: raises to be handed a wider opening than generation strictly needs.
+MIN_SOLVABLE_OPENING = 4
 
 
 class Slot(NamedTuple):
@@ -133,7 +145,7 @@ def open_the_start(random, plan: List[Slot], pack_size: int, wanted: int,
                    held: Set[str]) -> List[Slot]:
     """Make sure the run opens with something the player can actually do.
 
-    The opening pack costs no items, but its puzzles can still be locked behind
+    The opening costs no items, but its puzzles can still be locked behind
     abilities. With ability locks on and few starting abilities, an unlucky
     draw gives a player a first screen where nothing is solvable - which
     Archipelago's own test_empty_state_can_reach_something rightly rejects.
@@ -141,6 +153,16 @@ def open_the_start(random, plan: List[Slot], pack_size: int, wanted: int,
     Reorders rather than redraws: a solvable slot from later in the run is
     swapped forward, so the run's contents are untouched and only the order
     changes.
+
+    THIS TOUCHES THE OPENING AND NOTHING ELSE, on purpose. An earlier version
+    also forced a solvable puzzle into each of the first six packs, to keep the
+    fill from stalling. That was scripting the run's shape to compensate for a
+    logic bug - part locations were being given their whole level's abilities
+    instead of their own - and it cost the variety a randomizer exists for.
+    With the requirement fixed at source in rules.py the staircase measured as
+    unnecessary: every option configuration fills without it. Pacing is meant
+    to come from abilities arriving, not from a scripted opening, so if the
+    fill ever stalls again the bug is in the logic and not here.
     """
     if not plan:
         return plan
@@ -171,23 +193,10 @@ def open_the_start(random, plan: List[Slot], pack_size: int, wanted: int,
             plan[target], plan[source] = plan[source], plan[target]
             have.append(target)
 
-    # The opening pack, to the player's requested depth.
-    first = min(pack_size, len(plan))
-    claim(0, first, min(max(wanted, 1), first))
-
-    # Then one solvable slot in each of the next few packs. Without this the
-    # generator deadlocks: packs open slots but only ABILITIES open locations,
-    # so a pack placed into the opening buys no new room and the reachable set
-    # stops growing. Measured - fill placed 27 of 57 progression items and then
-    # raised FillError. A solvable slot per early pack turns that into a
-    # staircase the fill can climb.
-    STAIRCASE_PACKS = 6
-    for step in range(1, STAIRCASE_PACKS):
-        start = step * pack_size
-        end = min(start + pack_size, len(plan))
-        if start >= len(plan):
-            break
-        claim(start, end, 1)
+    # The free opening, which is at least MIN_OPENING puzzles however small the
+    # pack size - the same window items.pack_boundaries treats as free.
+    first = min(max(pack_size, items.MIN_OPENING), len(plan))
+    claim(0, first, min(max(wanted, MIN_SOLVABLE_OPENING), first))
 
     # If nothing anywhere is solvable we return what we have. That can only
     # happen when every drawn level needs an ability and the player asked for

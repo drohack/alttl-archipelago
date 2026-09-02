@@ -71,7 +71,7 @@ def decide(world) -> None:
     world.starting_abilities = world.random.sample(world.live_abilities, count) \
         if count else []
 
-    # The opening pack is free, but its puzzles can still be ability-locked.
+    # The opening is free, but its puzzles can still be ability-locked.
     # Reorder so at least guaranteed_open_slots of them are solvable now.
     held = set(world.starting_abilities)
     world.plan = slots.open_the_start(
@@ -83,35 +83,40 @@ def decide(world) -> None:
     # when the player asked for zero starting abilities and every drawn level
     # needs one.
     if ability_locks and world.plan:
-        window = min(pack_size, len(world.plan))
+        window = min(max(pack_size, items.MIN_OPENING), len(world.plan))
         if not any(world.plan[i].level.abilities <= held for i in range(window)):
             needed = min(world.plan[:window], key=lambda s: len(s.level.abilities))
+            granted = False
             for ability in sorted(needed.level.abilities):
                 if ability not in world.starting_abilities:
                     world.starting_abilities.append(ability)
                     held.add(ability)
+                    granted = True
+
+            # Reorder AGAIN with the wider ability set. The grant can make
+            # levels elsewhere in the run solvable too, and without a second
+            # pass they stay stranded behind packs while the opening keeps the
+            # single puzzle that forced the grant. Caught by the stress sweep:
+            # 8-puzzle runs held two solvable levels and opened with one.
+            if granted:
+                world.plan = slots.open_the_start(
+                    world.random, world.plan, pack_size,
+                    o.guaranteed_open_slots.value, held)
 
     world.requirements = rules.requirements(world.plan, pack_size, ability_locks)
 
-    # Force a couple of unlocking abilities early.
+    # Nothing forces abilities early any more, and that is deliberate.
     #
-    # Without this the fill stalls. The pack gate and the ability gate stack,
-    # so the opening pack is 26 locations of which only 2 need nothing, and
-    # there is nowhere to put the 30 progression items. Measured, not guessed:
-    # fill placed 30 and then raised FillError with 30 left.
+    # An earlier version reserved early locations for two ability items to break
+    # a fill deadlock. It became the leading CAUSE of fill failures instead: the
+    # opening holds only a handful of locations, so reserving them left nowhere
+    # for the pack items that actually open the run, and generation warned
+    # "Ran out of early locations for early items" on the way to a FillError.
+    # Measured 2026-09-02 - removing it took "no archive" from 2/4 seeds to 4/4
+    # and "one pack only" from 1/4 to 4/4.
     #
-    # Picks the abilities that open the most of the early track, so the first
-    # placement cascades instead of trickling.
-    if ability_locks and world.live_abilities:
-        early_window = pack_size * 3
-        opens: Dict[str, int] = {}
-        for index, slot in enumerate(world.plan[:early_window]):
-            for ability in slot.level.abilities:
-                if ability not in world.starting_abilities:
-                    opens[ability] = opens.get(ability, 0) + 1
-        ranked = sorted(opens, key=lambda a: (-opens[a], a))
-        for ability in ranked[:2]:
-            world.multiworld.early_items[world.player][ability] = 1
+    # The deadlock it was papering over was the over-approximated part
+    # requirements in rules.py, now fixed at the source.
 
     world.location_names_in_use = []
     world.event_names_in_use = []

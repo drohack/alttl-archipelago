@@ -56,10 +56,35 @@ class TestTables(unittest.TestCase):
             self.assertIsNotNone(data.pack_of(level), level.level_id)
 
     def test_pack_count_always_covers_the_run(self):
+        """Holding every pack must open every puzzle, exactly - one short
+        strands the end of the track, one long mints an item that opens
+        nothing."""
         for puzzle_count in (8, 20, 40, 79):
             for pack_size in (1, 3, 4, 7, 10):
-                packs = items.pack_count(puzzle_count, pack_size)
-                self.assertGreaterEqual(pack_size + packs * pack_size, puzzle_count)
+                bounds = items.pack_boundaries(puzzle_count, pack_size)
+                self.assertEqual(puzzle_count, bounds[-1],
+                                 (puzzle_count, pack_size))
+                self.assertEqual(len(bounds) - 1,
+                                 items.pack_count(puzzle_count, pack_size))
+
+    def test_packs_open_puzzles_in_strictly_growing_blocks(self):
+        """The pacing contract: never narrower than the player asked for, and
+        widening as the run goes on."""
+        for puzzle_count in (20, 79):
+            for pack_size in (1, 3, 4, 10):
+                bounds = items.pack_boundaries(puzzle_count, pack_size)
+                steps = [b - a for a, b in zip(bounds, bounds[1:])]
+                # The final step is a remainder and may be short.
+                for step in steps[:-1]:
+                    self.assertGreaterEqual(step, pack_size)
+                self.assertEqual(sorted(steps[:-1]), steps[:-1])
+
+    def test_the_opening_is_never_a_single_puzzle(self):
+        """A run that starts on one puzzle can be locked out by one unlucky
+        ability draw, whatever guaranteed_open_slots says."""
+        for pack_size in (1, 2, 4, 10):
+            bounds = items.pack_boundaries(79, pack_size)
+            self.assertGreaterEqual(bounds[0], min(items.MIN_OPENING, 79))
 
     def test_single_group_levels_get_no_part_locations(self):
         """On a single-group level the group check and the first solution check

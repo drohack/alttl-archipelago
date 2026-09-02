@@ -20,10 +20,22 @@ namespace ALTTLArchipelago.Core.Tests;
 /// </summary>
 public class NamesExportTests
 {
+    /// <summary>
+    /// One controller group as the apworld sees it. The abilities travel WITH
+    /// the display name rather than in a parallel map, so the two cannot drift
+    /// apart - a part whose name is exported without its requirement is exactly
+    /// the bug this file exists to prevent.
+    /// </summary>
+    private sealed class PartEntry
+    {
+        public string display { get; set; } = "";
+        public List<string> abilities { get; set; } = new();
+    }
+
     private sealed class LevelNames
     {
         public string display { get; set; } = "";
-        public Dictionary<string, string> parts { get; set; } = new();
+        public Dictionary<string, PartEntry> parts { get; set; } = new();
     }
 
     private static string RepoDataDir()
@@ -49,7 +61,13 @@ public class NamesExportTests
             var entry = new LevelNames { display = DisplayNames.For(level.LevelId) };
             foreach (var g in ControllerGroups.For(level))
             {
-                entry.parts[g.Name] = g.DisplayName;
+                entry.parts[g.Name] = new PartEntry
+                {
+                    display = g.DisplayName,
+                    // Sorted so the export is stable across runs; already the
+                    // transitive closure over one-way dependencies.
+                    abilities = g.Abilities.OrderBy(a => a, StringComparer.Ordinal).ToList(),
+                };
             }
             byLevel[level.LevelId] = entry;
         }

@@ -18,15 +18,16 @@ from worlds.generic.Rules import set_rule
 from . import data, items, locations, slots
 
 
-def packs_needed(slot_index: int, pack_size: int) -> int:
+def packs_needed(slot_index: int, boundaries: List[int]) -> int:
     """How many Progressive Puzzle Packs open the slot at this position.
 
-    One pack's worth is free at the start, so the first `pack_size` slots need
-    nothing.
+    `boundaries` comes from items.pack_boundaries - the opening is free, and
+    packs widen as the run goes on, so this is a lookup rather than a division.
     """
-    if slot_index < pack_size:
-        return 0
-    return -(-(slot_index + 1 - pack_size) // pack_size)      # ceil
+    for held, opens_up_to in enumerate(boundaries):
+        if slot_index < opens_up_to:
+            return held
+    return len(boundaries) - 1
 
 
 def requirements(plan: List[slots.Slot], pack_size: int,
@@ -37,9 +38,10 @@ def requirements(plan: List[slots.Slot], pack_size: int,
     pack count, because that is a real gate.
     """
     out: Dict[str, dict] = {}
+    boundaries = items.pack_boundaries(len(plan), pack_size)
     for index, slot in enumerate(plan):
         level = slot.level
-        packs = packs_needed(index, pack_size)
+        packs = packs_needed(index, boundaries)
 
         # A solution is an arrangement of the WHOLE level, so it needs every
         # ability the level uses. A controller group needs only its own.
@@ -51,13 +53,19 @@ def requirements(plan: List[slots.Slot], pack_size: int,
 
         if level.has_parts:
             for part in level.parts:
+                # A controller group's OWN requirement, from Core, not the
+                # level's. The difference is large and it is not cosmetic: over
+                # 106 part locations the level-wide set demands up to four
+                # abilities where no group anywhere needs more than one, and 32
+                # groups need none at all. Paper Plane Supplies asked for four
+                # abilities per part when its largest group needs one. That
+                # over-approximation was strangling the fill as well as lying
+                # to the tracker.
+                part_abilities = (sorted(level.part_abilities.get(part, ()))
+                                  if ability_locks else [])
                 out[locations.part_name(level, slot.instance, part)] = {
                     "packs": packs,
-                    # Per-group abilities are not yet modelled separately from
-                    # the level's set; until the mod reports which group needs
-                    # what, requiring the level's abilities is the safe
-                    # over-approximation. It can only make logic stricter.
-                    "abilities": level_abilities,
+                    "abilities": part_abilities,
                 }
 
         out[locations.beaten_name(level, slot.instance)] = {

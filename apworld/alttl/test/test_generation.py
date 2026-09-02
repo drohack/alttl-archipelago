@@ -1,9 +1,15 @@
-"""Generation and pool tests.
+"""Generation and pool tests, one seed each.
 
 The categories mirror cw4's, chosen because each one caught a real bug there:
-the pool must be zero-sum against the locations, every degenerate option
-combination must still fill, and anything the mod dispatches on by string must
-be pinned here.
+the pool must be zero-sum against the locations, and anything the mod
+dispatches on by string must be pinned here.
+
+WHAT THIS FILE DOES NOT PROVE: that a configuration fills. Constructing the
+class does run a fill, so a hard failure surfaces here - but on ONE seed, and
+on 2026-09-02 every class in this file was green while the fill was broken for
+nine configurations including the default. Seed-dependent behaviour belongs in
+test_fill_stress.py, which sweeps the option surface across many seeds. Assert
+seed-independent facts here, and put anything probabilistic there.
 """
 
 from . import bases
@@ -25,7 +31,9 @@ class TestDefaults(bases.ALTTLTestBase):
     def test_the_run_is_the_full_length(self):
         world = self.multiworld.worlds[self.player]
         self.assertEqual(79, len(world.plan))
-        self.assertEqual(19, world.pack_total)
+        # 14, not 79/4: packs widen as the run goes on, so the default run is
+        # covered by fewer of them. See items.pack_boundaries.
+        self.assertEqual(14, world.pack_total)
 
     def test_every_ability_in_the_pool_gates_something(self):
         world = self.multiworld.worlds[self.player]
@@ -107,7 +115,7 @@ class TestNoArchive(bases.ALTTLTestBase):
 
     options = {"archive_weight": 0, "archive_packs": []}
 
-    def test_it_still_fills(self):
+    def test_pool_is_zero_sum(self):
         self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
 
     def test_jigsaw_is_pruned_not_orphaned(self):
@@ -122,7 +130,7 @@ class TestGeneratorsOnly(bases.ALTTLTestBase):
 
     options = {"mechanic_coverage": 0, "archive_weight": 0, "archive_packs": []}
 
-    def test_it_still_fills(self):
+    def test_pool_is_zero_sum(self):
         self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
 
     def test_only_generators_remain(self):
@@ -141,7 +149,7 @@ class TestBothSourceWeightsZero(bases.ALTTLTestBase):
 
     options = {"generator_weight": 0, "archive_weight": 0}
 
-    def test_it_still_fills(self):
+    def test_pool_is_zero_sum(self):
         self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
 
 
@@ -153,7 +161,7 @@ class TestTinyRun(bases.ALTTLTestBase):
         self.assertEqual(8, len(world.plan))
         self.assertLessEqual(world.levels_to_beat, 8)
 
-    def test_it_still_fills(self):
+    def test_pool_is_zero_sum(self):
         self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
 
 
@@ -167,14 +175,14 @@ class TestNoAbilityLocks(bases.ALTTLTestBase):
         for ability in data.ABILITIES:
             self.assertNotIn(ability, names)
 
-    def test_it_still_fills(self):
+    def test_pool_is_zero_sum(self):
         self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
 
 
 class TestAllTraps(bases.ALTTLTestBase):
     options = {"cat_trap_chance": 100}
 
-    def test_it_still_fills(self):
+    def test_pool_is_zero_sum(self):
         self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
 
 
@@ -184,5 +192,5 @@ class TestMaximumCoverage(bases.ALTTLTestBase):
 
     options = {"mechanic_coverage": 6}
 
-    def test_it_still_fills(self):
+    def test_pool_is_zero_sum(self):
         self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
