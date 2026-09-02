@@ -1,0 +1,744 @@
+{
+  "_comment": "Generated from ALTTLArchipelago.Core by NamesExportTests. Do not hand edit. Regenerate with ALTTL_WRITE_GOLDEN=1 dotnet test. These strings are Archipelago location names: changing one breaks seeds already in flight.",
+  "maxGeneratorInstances": 8,
+  "credits": "Credits",
+  "levels": {
+    "Angled Image Frame": {
+      "display": "Angled Image Frame",
+      "parts": {
+        "Angled": "Angled"
+      }
+    },
+    "Batteries": {
+      "display": "Batteries",
+      "parts": {
+        "Sort Batteries": "Sort Batteries"
+      }
+    },
+    "Batteries (Randomized)": {
+      "display": "Batteries (Randomized)",
+      "parts": {
+        "Controller": "Controller"
+      }
+    },
+    "Books": {
+      "display": "Books",
+      "parts": {
+        "Shuffle": "Shuffle"
+      }
+    },
+    "Books (Randomized)": {
+      "display": "Books (Randomized)",
+      "parts": {
+        "Shuffle": "Shuffle"
+      }
+    },
+    "Books 2": {
+      "display": "Books 2",
+      "parts": {
+        "Shuffle": "Shuffle"
+      }
+    },
+    "Books 3": {
+      "display": "Books 3",
+      "parts": {
+        "Design (Shuffle)": "Design (Shuffle)",
+        "Height (Draggables)": "Height ()"
+      }
+    },
+    "Bowls": {
+      "display": "Bowls",
+      "parts": {
+        "Crack": "Crack",
+        "Pattern": "Pattern"
+      }
+    },
+    "Boxes (Stacked)": {
+      "display": "Boxes (Stacked)",
+      "parts": {
+        "Stacked Boxes": "Stacked Boxes"
+      }
+    },
+    "Breadtags": {
+      "display": "Breadtags",
+      "parts": {
+        "Crumbs": "Crumbs",
+        "Interlocking": "Interlocking"
+      }
+    },
+    "Broken Vase": {
+      "display": "Broken Vase",
+      "parts": {
+        "Draggables": "Draggables"
+      }
+    },
+    "Buttons": {
+      "display": "Buttons",
+      "parts": {
+        "SortingItems Draggables": "Sorting Items"
+      }
+    },
+    "Calendar": {
+      "display": "Calendar",
+      "parts": {
+        "Repeating Sequence": "Repeating Sequence"
+      }
+    },
+    "Candles": {
+      "display": "Candles",
+      "parts": {
+        "CandlesObjectController": "Candles Object"
+      }
+    },
+    "Cat Food Cans": {
+      "display": "Cat Food Cans",
+      "parts": {
+        "Matching Stacks": "Matching Stacks"
+      }
+    },
+    "Cat Frame": {
+      "display": "Cat Frame",
+      "parts": {
+        "Straighten": "Straighten"
+      }
+    },
+    "Cat Toys": {
+      "display": "Cat Toys",
+      "parts": {
+        "Tidy Up": "Tidy Up"
+      }
+    },
+    "Chess Shadows": {
+      "display": "Chess Shadows",
+      "parts": {
+        "Shuffleables Pieces": "Pieces"
+      }
+    },
+    "Cleaning Supplies": {
+      "display": "Cleaning Supplies",
+      "parts": {
+        "Sponge": "Sponge",
+        "Supplies Order": "Supplies Order"
+      }
+    },
+    "Clock": {
+      "display": "Clock",
+      "parts": {
+        "Match Shadows": "Match Shadows"
+      }
+    },
+    "Clover": {
+      "display": "Clover",
+      "parts": {
+        "Symmetrical Placeables": "Symmetrical"
+      }
+    },
+    "Coins 1 (Shape)": {
+      "display": "Coins 1 (Shape)",
+      "parts": {
+        "Ordered": "Ordered",
+        "Stacked": "Stacked"
+      }
+    },
+    "Coins 2 (Dirtyness)": {
+      "display": "Coins 2 (Dirtyness)",
+      "parts": {
+        "Dirtyables": "Dirtyables"
+      }
+    },
+    "Colored Pencils": {
+      "display": "Colored Pencils",
+      "parts": {
+        "Gradient": "Gradient"
+      }
+    },
+    "Desktop Computer": {
+      "display": "Desktop Computer",
+      "parts": {
+        "Computer Desktop": "Computer Desktop",
+        "Computer Errors": "Computer Errors",
+        "Containables - Keys": "Keys",
+        "Containables - Paintbrushes": "Paintbrushes",
+        "Rotateables - Clock hands": "Clock hands",
+        "Shuffleables - Notes": "Notes"
+      }
+    },
+    "Drink Glasses": {
+      "display": "Drink Glasses",
+      "parts": {}
+    },
+    "Eggs": {
+      "display": "Eggs",
+      "parts": {
+        "Eggs Pattern": "Eggs Pattern"
+      }
+    },
+    "Frame Maze": {
+      "display": "Frame Maze",
+      "parts": {
+        "Frames": "Frames"
+      }
+    },
+    "Fridge Inside": {
+      "display": "Fridge Inside",
+      "parts": {
+        "Draggables": "Draggables",
+        "Stackables Tupperware Controller ": "Tupperware",
+        "Stackables Yogurt / Jam Controller": "Yogurt / Jam"
+      }
+    },
+    "Front of Fridge 1 (Postcards)": {
+      "display": "Front of Fridge 1 (Postcards)",
+      "parts": {
+        "Match Edges": "Match Edges"
+      }
+    },
+    "Front of Fridge 2 (Polaroids)": {
+      "display": "Front of Fridge 2 (Polaroids)",
+      "parts": {
+        "Fit Rect": "Fit Rect"
+      }
+    },
+    "Fruit Stickers": {
+      "display": "Fruit Stickers",
+      "parts": {
+        "Match Stickers": "Match Stickers",
+        "Remove Stickers": "Remove Stickers"
+      }
+    },
+    "Gems (Jigsaw)": {
+      "display": "Gems (Jigsaw)",
+      "parts": {
+        "GemsDrawer": "Gems Drawer"
+      }
+    },
+    "Gems (Simple)": {
+      "display": "Gems (Simple)",
+      "parts": {
+        "Ordered": "Ordered"
+      }
+    },
+    "GoodTidings_Cookies": {
+      "display": "Cookies (Good Tidings)",
+      "parts": {
+        "RowColSets": "Row Col Sets"
+      }
+    },
+    "GoodTidings_Cookies (Jigsaw)": {
+      "display": "Cookies Jigsaw (Good Tidings)",
+      "parts": {
+        "Match Candy Cane": "Match Candy Cane",
+        "Match Gingerbread Man": "Match Gingerbread Man",
+        "Match Reindeer": "Match Reindeer",
+        "Match Snowflake": "Match Snowflake",
+        "Match Tree": "Match Tree"
+      }
+    },
+    "GoodTidings_Ornament Box": {
+      "display": "Ornament Box (Good Tidings)",
+      "parts": {
+        "BulbsBox": "Bulbs Box"
+      }
+    },
+    "GoodTidings_Popcorn": {
+      "display": "Popcorn (Good Tidings)",
+      "parts": {
+        "BotRow": "Bot Row",
+        "MidRow": "Mid Row",
+        "TopRow": "Top Row"
+      }
+    },
+    "GoodTidings_Presents (Stacked)": {
+      "display": "Presents Stacked (Good Tidings)",
+      "parts": {
+        "Stacked Boxes": "Stacked Boxes"
+      }
+    },
+    "GoodTidings_Wreath": {
+      "display": "Wreath (Good Tidings)",
+      "parts": {
+        "Symmetrical Placeables": "Symmetrical"
+      }
+    },
+    "Jars": {
+      "display": "Jars",
+      "parts": {
+        "Order": "Order"
+      }
+    },
+    "Junk Drawer": {
+      "display": "Junk Drawer",
+      "parts": {
+        "Organizer": "Organizer"
+      }
+    },
+    "Keys": {
+      "display": "Keys",
+      "parts": {
+        "Ordered": "Ordered"
+      }
+    },
+    "Lamp": {
+      "display": "Lamp",
+      "parts": {
+        "Light Rotatable": "Light Rotatable",
+        "Switches Toggleables": "Switches Toggleables"
+      }
+    },
+    "Leaves": {
+      "display": "Leaves",
+      "parts": {
+        "LeavesShuffleables": "Leaves"
+      }
+    },
+    "Light Bulbs": {
+      "display": "Light Bulbs",
+      "parts": {
+        "BulbsBox": "Bulbs Box"
+      }
+    },
+    "Matchboxes": {
+      "display": "Matchboxes",
+      "parts": {
+        "MatchboxesObjectController": "Matchboxes Object"
+      }
+    },
+    "MedicineCabinet": {
+      "display": "Medicine Cabinet",
+      "parts": {
+        "Blue Bottles Draggables": "Blue Bottles",
+        "Brush Draggables": "Brush",
+        "Contact Lenses Draggables": "Contact Lenses",
+        "Creams Draggables Stacked": "Creams Stacked",
+        "Cup Draggables": "Cup",
+        "Green Bottles Draggables": "Green Bottles",
+        "Jar Lid Draggable": "Jar Lid",
+        "Oral Containables": "Oral",
+        "Pick Draggables": "Pick",
+        "Pump Bottle Draggables": "Pump Bottle",
+        "Swabs Containables": "Swabs",
+        "Trinkets Draggables": "Trinkets",
+        "Tube Draggables": "Tube"
+      }
+    },
+    "MerryMess_CandyCanes": {
+      "display": "Candy Canes (Merry Mess)",
+      "parts": {
+        "Match Candy Cane (1)": "Match Candy Cane (1)",
+        "Match Candy Cane (2)": "Match Candy Cane (2)",
+        "Match Candy Cane (3)": "Match Candy Cane (3)",
+        "Match Candy Cane (4)": "Match Candy Cane (4)",
+        "Match Candy Cane (5)": "Match Candy Cane (5)",
+        "Ordered": "Ordered"
+      }
+    },
+    "MerryMess_Crackers": {
+      "display": "Crackers (Merry Mess)",
+      "parts": {
+        "Build Train": "Build Train",
+        "CrackerShuffleables": "Cracker"
+      }
+    },
+    "MerryMess_NutCrackers": {
+      "display": "Nut Crackers (Merry Mess)",
+      "parts": {
+        "Shuffle": "Shuffle"
+      }
+    },
+    "MerryMess_Presents": {
+      "display": "Presents (Merry Mess)",
+      "parts": {}
+    },
+    "MerryMess_SnowGlobes": {
+      "display": "Snow Globes (Merry Mess)",
+      "parts": {
+        "Match Pan (Draggables)": "Match Pan ()"
+      }
+    },
+    "Microscope": {
+      "display": "Microscope",
+      "parts": {
+        "Build Snowflakes": "Build Snowflakes"
+      }
+    },
+    "Mirror": {
+      "display": "Mirror",
+      "parts": {
+        "Books \u002B Box StackablesY ": "Books \u002B Box Stackables Y",
+        "BottlePositionController": "Bottle Position",
+        "CandlePositionController": "Candle Position",
+        "CandleStateController": "Candle State",
+        "ContainablesController": "Containables",
+        "DishPositionController": "Dish Position",
+        "JugPositionController": "Jug Position",
+        "LemonWedgePositionController": "Lemon Wedge Position"
+      }
+    },
+    "Multiple Frames": {
+      "display": "Multiple Frames",
+      "parts": {
+        "Straighten": "Straighten"
+      }
+    },
+    "NES Games": {
+      "display": "NES Games",
+      "parts": {
+        "Stack Aligned": "Stack Aligned"
+      }
+    },
+    "NeatStreak_Bathroom Drawer": {
+      "display": "Bathroom Drawer (Drawer Chores)",
+      "parts": {
+        "Bottle Containables": "Bottle",
+        "Draggables": "Draggables",
+        "Drawer Controller": "Drawer",
+        "Indexable": "Indexable"
+      }
+    },
+    "NeatStreak_Paper Plane Supplies": {
+      "display": "Paper Plane Supplies (Drawer Chores)",
+      "parts": {
+        "Chalk DraggablesOrdered": "Chalk",
+        "ChalkBlue Jigsaw": "Chalk Blue",
+        "ChalkGreen Jigsaw": "Chalk Green",
+        "ChalkMint Jigsaw": "Chalk Mint",
+        "ChalkPink Jigsaw": "Chalk Pink",
+        "ChalkPurple Jigsaw": "Chalk Purple",
+        "ChalkRed Jigsaw": "Chalk Red",
+        "ChalkYellow Jigsaw": "Chalk Yellow",
+        "Containables": "Containables",
+        "Draggables": "Draggables",
+        "Drawer Controller": "Drawer"
+      }
+    },
+    "NeatStreak_Tool Drawer": {
+      "display": "Tool Drawer (Drawer Chores)",
+      "parts": {
+        "Containables": "Containables",
+        "Draggables": "Draggables",
+        "Drawer Controller": "Drawer"
+      }
+    },
+    "PaintCans": {
+      "display": "Paint Cans",
+      "parts": {
+        "Match (Draggables)": "Match ()"
+      }
+    },
+    "PartsOrganizer": {
+      "display": "Parts Organizer",
+      "parts": {
+        "Organizer": "Organizer"
+      }
+    },
+    "Pasta": {
+      "display": "Pasta",
+      "parts": {
+        "Ordered": "Ordered"
+      }
+    },
+    "PawPrints": {
+      "display": "Paw Prints",
+      "parts": {
+        "Clearables 01": "Clearables 01",
+        "Clearables 02": "Clearables 02",
+        "Clearables 03": "Clearables 03",
+        "Coffee Spill": "Coffee Spill",
+        "Free Leaves": "Free Leaves"
+      }
+    },
+    "Pencils (Randomized)": {
+      "display": "Pencils (Randomized)",
+      "parts": {
+        "Ordered": "Ordered"
+      }
+    },
+    "Pencils 3": {
+      "display": "Pencils 3",
+      "parts": {
+        "Ordered": "Ordered"
+      }
+    },
+    "Place Setting": {
+      "display": "Place Setting",
+      "parts": {
+        "Placemat": "Placemat",
+        "Utensils": "Utensils"
+      }
+    },
+    "Plant Pots": {
+      "display": "Plant Pots",
+      "parts": {
+        "Interlocking": "Interlocking"
+      }
+    },
+    "Plate": {
+      "display": "Plate",
+      "parts": {
+        "Placement": "Placement"
+      }
+    },
+    "Post-It Notes (Randomized)": {
+      "display": "Post-It Notes (Randomized)",
+      "parts": {
+        "Draggable": "Draggable"
+      }
+    },
+    "Post-It Notes Scribble #1 (Simple Line)": {
+      "display": "Post-It Notes Scribble #1 (Simple Line)",
+      "parts": {
+        "Arranged": "Arranged"
+      }
+    },
+    "Post-It Notes Scribble #2 (3x3 Grid)": {
+      "display": "Post-It Notes Scribble #2 (3x3 Grid)",
+      "parts": {
+        "Arranged": "Arranged"
+      }
+    },
+    "Post-It Notes Scribble #3 (5x3 Grid)": {
+      "display": "Post-It Notes Scribble #3 (5x3 Grid)",
+      "parts": {
+        "Arranged": "Arranged"
+      }
+    },
+    "Procedural Grid Puzzle": {
+      "display": "Procedural Grid Puzzle",
+      "parts": {
+        "Grid Puzzle": "Grid Puzzle"
+      }
+    },
+    "Radial Dance Party": {
+      "display": "Radial Dance Party",
+      "parts": {}
+    },
+    "Record Player": {
+      "display": "Record Player",
+      "parts": {
+        "Needle \u0026 Knobs": "Needle \u0026 Knobs"
+      }
+    },
+    "Rock Collection": {
+      "display": "Rock Collection",
+      "parts": {
+        "Match-Lines": "Match-Lines"
+      }
+    },
+    "Rock Gradient": {
+      "display": "Rock Gradient",
+      "parts": {
+        "Gradient": "Gradient"
+      }
+    },
+    "Seed Pods": {
+      "display": "Seed Pods",
+      "parts": {
+        "Symmetrical Placeables": "Symmetrical"
+      }
+    },
+    "Sharp Pencils": {
+      "display": "Sharp Pencils",
+      "parts": {
+        "Pencil Order": "Pencil Order",
+        "Shavings Removed": "Shavings Removed"
+      }
+    },
+    "Shells": {
+      "display": "Shells",
+      "parts": {
+        "Symmetrical Placeables": "Symmetrical"
+      }
+    },
+    "SnackPack Cereal": {
+      "display": "Cereal (Snack Pack)",
+      "parts": {
+        "Draggables Controller": "Draggables Controller"
+      }
+    },
+    "SnackPack Pretzels": {
+      "display": "Pretzels (Snack Pack)",
+      "parts": {
+        "Ordered": "Ordered"
+      }
+    },
+    "SnackPack Sandwich": {
+      "display": "Sandwich (Snack Pack)",
+      "parts": {
+        "Stack Ingredients": "Stack Ingredients"
+      }
+    },
+    "SomethingEggstra Broken Eggs": {
+      "display": "Broken Eggs (Something Eggstra)",
+      "parts": {
+        "Egg #1 (Center) Draggables": "Egg #1 (Center)",
+        "Egg #2 (Left) Draggables": "Egg #2 (Left)",
+        "Egg #3 (Right) Draggables": "Egg #3 (Right)"
+      }
+    },
+    "SomethingEggstra Egg Cups": {
+      "display": "Egg Cups (Something Eggstra)",
+      "parts": {
+        "Shuffleables Cups": "Cups"
+      }
+    },
+    "SomethingEggstra Fridge": {
+      "display": "Fridge (Something Eggstra)",
+      "parts": {
+        "EggsContainable": "Eggs Containable",
+        "Stackables (Tupperware)": "(Tupperware)",
+        "StandardObjects": "Standard Objects"
+      }
+    },
+    "SomethingEggstra PaintedEggs": {
+      "display": "Painted Eggs (Something Eggstra)",
+      "parts": {
+        "RowColSets": "Row Col Sets"
+      }
+    },
+    "Soup Cans": {
+      "display": "Soup Cans",
+      "parts": {
+        "Match Label (Draggables)": "Match Label ()"
+      }
+    },
+    "Spice Jars": {
+      "display": "Spice Jars",
+      "parts": {
+        "SpiceJarShuffleables": "Spice Jar"
+      }
+    },
+    "SpiderWeb": {
+      "display": "Spider Web",
+      "parts": {
+        "Web Symmetry": "Web Symmetry"
+      }
+    },
+    "Spoons": {
+      "display": "Spoons",
+      "parts": {
+        "Size (Elastic)": "Size (Elastic)",
+        "Stacked": "Stacked"
+      }
+    },
+    "Stacked Papers": {
+      "display": "Stacked Papers",
+      "parts": {
+        "Stack Papers": "Stack Papers"
+      }
+    },
+    "Stamps": {
+      "display": "Stamps",
+      "parts": {
+        "Stamps Pattern": "Stamps Pattern"
+      }
+    },
+    "Stamps (Randomized)": {
+      "display": "Stamps (Randomized)",
+      "parts": {
+        "Stamps Pattern": "Stamps Pattern"
+      }
+    },
+    "Storage Boxes": {
+      "display": "Storage Boxes",
+      "parts": {
+        "SortingItems Draggables": "Sorting Items"
+      }
+    },
+    "Tacks": {
+      "display": "Tacks",
+      "parts": {
+        "Colour \u0026 Count Sort": "Colour \u0026 Count Sort"
+      }
+    },
+    "Telescope": {
+      "display": "Telescope",
+      "parts": {
+        "Constellations": "Constellations"
+      }
+    },
+    "TrickOrTidy_Bats": {
+      "display": "Bats (Trick or Tidy)",
+      "parts": {
+        "Interlocking": "Interlocking"
+      }
+    },
+    "TrickOrTidy_Bones": {
+      "display": "Bones (Trick or Tidy)",
+      "parts": {
+        "Match Bones": "Match Bones"
+      }
+    },
+    "TrickOrTidy_Candy": {
+      "display": "Candy (Trick or Tidy)",
+      "parts": {
+        "Grouped": "Grouped"
+      }
+    },
+    "TrickOrTidy_ChocolateBars": {
+      "display": "Chocolate Bars (Trick or Tidy)",
+      "parts": {
+        "Design (Shuffle)": "Design (Shuffle)",
+        "Height (Draggables)": "Height ()"
+      }
+    },
+    "TrickOrTidy_JackOLanterns": {
+      "display": "Jack O\u0027Lanterns (Trick or Tidy)",
+      "parts": {
+        "Ordered": "Ordered"
+      }
+    },
+    "Trim Plant": {
+      "display": "Trim Plant",
+      "parts": {
+        "Pluckables": "Pluckables"
+      }
+    },
+    "Trim Plant (Vines)": {
+      "display": "Trim Plant (Vines)",
+      "parts": {
+        "Pluckables": "Pluckables"
+      }
+    },
+    "TupperwareNesting": {
+      "display": "Tupperware Nesting",
+      "parts": {
+        "Lids": "Lids",
+        "Stack 1": "Stack 1"
+      }
+    },
+    "TupperwareTower": {
+      "display": "Tupperware Tower",
+      "parts": {
+        "Falling Blocks": "Falling Blocks",
+        "Foundation": "Foundation",
+        "Tower": "Tower"
+      }
+    },
+    "UtensilsDrawer": {
+      "display": "Utensils Drawer",
+      "parts": {
+        "Utensils Drawer": "Utensils Drawer"
+      }
+    },
+    "Wilting Flowers": {
+      "display": "Wilting Flowers",
+      "parts": {
+        "Cleanable": "Cleanable",
+        "Upright": "Upright"
+      }
+    },
+    "Workbench": {
+      "display": "Workbench",
+      "parts": {
+        "DraggablesForTargets": "Draggables For Targets",
+        "ToolsController": "Tools"
+      }
+    },
+    "Wrong Aspect Papers": {
+      "display": "Wrong Aspect Papers",
+      "parts": {
+        "Fit Rect": "Fit Rect"
+      }
+    }
+  }
+}
