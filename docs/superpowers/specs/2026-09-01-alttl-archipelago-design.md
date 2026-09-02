@@ -69,10 +69,58 @@ boundaries fixed means "chapter 2, third card" refers to the same position in
 every run, which matters for the in-game display and for anyone reading a
 tracker.
 
-Each of the 79 slots is assigned at generation time by the apworld, sampled
-with weights defaulting to **generator 60 / archive 30 / base 10**. A
-generator slot records the generator plus a specific seed derived from the AP
-seed. Archive and base slots draw without replacement.
+Each of the 79 slots is assigned at generation time by the apworld. The draw
+is **ability-driven**: every enabled ability gets an equal share of the run by
+default, and the source weights only decide *which* level serves an ability
+when there is a choice. A generator slot records the generator plus a seed
+derived from the AP seed; archive and base levels draw without replacement,
+generators repeat up to `MaxGeneratorInstances`.
+
+The loop: repeatedly take the ability furthest below its share that still has
+supply, pick a level providing it (weighted by source), and credit **every**
+ability that level covers - levels routinely serve several. An ability whose
+supply runs out is marked exhausted and stops being chosen; when everything is
+exhausted the remainder tops up from generators, which can always repeat. That
+is what makes "no fifth Jigsaw" a non-event rather than an error.
+
+Measured on the real table at 79 slots with equal weights and source
+preference 6/3/1:
+
+| Ability | share | drawn | max supply |
+|---|---:|---:|---:|
+| Swapping / Ordering / Gadgets / Grids / Rotating / Tidying / Sticking / Symmetry | 6.6 | 9-10 | 11-33 |
+| Containers | 6.6 | 8 | 8 |
+| Furniture | 6.6 | 4 | 4 |
+| Jigsaw | 6.6 | 4 | 4 |
+
+Counts overshoot the share because one level covers several abilities.
+
+**The cost, stated plainly: equal ability coverage forces more hand-made
+content.** Four abilities have no generator at all, so demanding a fair share
+of each pulls 20-28 base-game levels into a 79-slot run - roughly 30%, against
+the 10% a pure source-weighted draw would give. Variety of mechanic and
+freshness of content are in direct tension here and the weights are how a
+player picks a point between them.
+
+Degradation, all verified against the real table:
+
+| Config | Result |
+|---|---|
+| default | 79 slots, all 12 abilities present, none pruned |
+| generators only | 79 slots, 8 abilities, **Containers / Furniture / Jigsaw / Stacking pruned** |
+| no archive | 79 slots, 11 abilities, Jigsaw pruned |
+| 12-slot run | 12 slots, all 12 abilities still represented |
+
+**An ability is in the item pool if and only if some drawn level needs it.**
+That is a correctness requirement, not a tidiness one: a Jigsaw level with no
+Jigsaw item would be unsolvable.
+
+It also means an ability weight of **0 deprioritises rather than excludes**. A
+level drawn for Containers may carry Jigsaw along with it - NeatStreak_Paper
+Plane Supplies covers three gap abilities at once - and when that happens the
+Jigsaw item must exist. Excluding an ability outright would mean excluding
+every level touching it, which for Containers would delete MedicineCabinet,
+Desktop Computer and Mirror; not worth the option.
 
 **Location names are content-based, not positional** - "Cookies Jigsaw (Good
 Tidings) - Match Reindeer", "Books (Randomized) #2 - Solution 2".
@@ -302,8 +350,28 @@ A Little to the Left:
   # --- what goes in the run ---
   puzzle_count: 79              # slots on the track (excludes chapter markers + credits)
   pack_size: 4                  # slots per Progressive Puzzle Pack
-  mechanic_coverage: 2          # min levels guaranteed per generator-less ability
-                                # (Stacking, Containers, Furniture, Jigsaw)
+
+  # Relative share of the run each ability gets. All equal by default. A
+  # weight of 0 deprioritises rather than excludes: a level drawn for another
+  # ability may still carry this one, and if it does the item must exist.
+  ability_weights:
+    # generator-backed - effectively unlimited supply, new seed each time
+    swapping: 10
+    ordering: 10
+    gadgets: 10
+    rotating: 10
+    grids: 10
+    tidying: 10
+    sticking: 10
+    symmetry: 10
+    # hand-made only - no generator can produce these, supply is finite
+    stacking: 10      # supply 12
+    containers: 10    # supply 8
+    furniture: 10     # supply 4
+    jigsaw: 10        # supply 4
+    # DLC abilities are added here when DLC support lands, defaulting to 10
+    # like the rest; they are absent rather than zero so an old yaml still
+    # validates.
 
   source_weights:               # relative weight per slot; set any to 0 to exclude
     generator: 60

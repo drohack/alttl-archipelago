@@ -1,0 +1,76 @@
+{
+  "_comment": "Authored, not generated from the game. The ability grouping is a design decision; levels.json is the measured half. Both the Python apworld and the C# mod read this so the two cannot drift - AbilityCatalogTests asserts the C# copy matches.",
+  "baseline": [
+    "Draggables",
+    "GenericLevelObjects"
+  ],
+  "notPuzzles": [
+    "Pannables"
+  ],
+  "abilities": {
+    "Swapping": [
+      "CrackersShuffleables",
+      "Shuffleables",
+      "ShuffleablesRelative",
+      "ShuffleablesRepeatingPattern"
+    ],
+    "Stacking": [
+      "DraggablesStacked",
+      "StackablesY",
+      "StackablesZ",
+      "TupperwareTower"
+    ],
+    "Ordering": [
+      "DraggablesOrdered",
+      "Indexables"
+    ],
+    "Gadgets": [
+      "AnimScrubbables",
+      "CandlesObjectController",
+      "ComputerErrorsController",
+      "Groupables",
+      "HourglassController",
+      "MatchboxesObjectController",
+      "RecordPlayer",
+      "ScrollFieldGroupsController",
+      "TelescopeDraggables",
+      "Toggleables"
+    ],
+    "Rotating": [
+      "Frame_Rotateables",
+      "RadialDance",
+      "Rotateables"
+    ],
+    "Grids": [
+      "GridPuzzle",
+      "StackableGrid"
+    ],
+    "Tidying": [
+      "CleanablesController",
+      "Clearables",
+      "Dirtyables",
+      "Pluckables",
+      "Removables"
+    ],
+    "Containers": [
+      "Containables",
+      "TupperwareLids",
+      "TupperwareNesting"
+    ],
+    "Furniture": [
+      "Cupboard",
+      "DrawerController",
+      "HangingToolsController"
+    ],
+    "Sticking": [
+      "SortingItems_Draggables",
+      "Stickables"
+    ],
+    "Symmetry": [
+      "SymmetricalPlaceables"
+    ],
+    "Jigsaw": [
+      "DraggablesJigsaw"
+    ]
+  }
+}

@@ -29,6 +29,9 @@
     <None Include="..\..\apworld\alttl\data\levels.json"
           Link="levels.json"
           CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\apworld\alttl\data\abilities.json"
+          Link="abilities.json"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
