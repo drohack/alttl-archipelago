@@ -217,9 +217,28 @@ about 32%. Nearly a third of seeds would open with nothing to do. Therefore:
 Both are configurable, including to zero, but not both to zero, and
 `guaranteed_open_slots` is clamped to `pack_size`.
 
-**Ability coverage must be forced, and sometimes cannot be met.** Jigsaw
-exists only in archive levels (0/4/0) and Furniture is 0/3/2, so a
-generator-only run cannot cover them. Therefore:
+**Four abilities have no generator at all**, measured from the level table:
+
+| Ability | generators | archive | base |
+|---|---:|---:|---:|
+| Stacking | 0 | 2 | 10 |
+| Containers | 0 | 4 | 4 |
+| Furniture | 0 | 3 | 1 |
+| Jigsaw | 0 | 4 | 0 |
+
+At a 60% generator weight the draw can leave one token Jigsaw level or, with
+archive set to zero, none - at which point the ability is pruned and a whole
+family of puzzle vanishes. Jigsaw is the worst case: four levels, all archive.
+
+So the draw **reserves slots for gap mechanics before the weights get a say**,
+via `MechanicCoverage.Reserve`. It is cheap because these levels overlap
+heavily - NeatStreak_Paper Plane Supplies alone covers Containers, Furniture
+and Jigsaw - so guaranteeing three of each costs about 8 of 79 slots. The
+option is `mechanic_coverage` (default 2). An unmeetable demand returns what
+it can rather than failing generation, since Furniture only exists four times.
+
+**General ability coverage must also be forced, and sometimes cannot be met.**
+Therefore:
 
 1. Seed the draw with one level per ability where the enabled sources allow.
 2. Fill the remaining slots by weight.
@@ -283,6 +302,8 @@ A Little to the Left:
   # --- what goes in the run ---
   puzzle_count: 79              # slots on the track (excludes chapter markers + credits)
   pack_size: 4                  # slots per Progressive Puzzle Pack
+  mechanic_coverage: 2          # min levels guaranteed per generator-less ability
+                                # (Stacking, Containers, Furniture, Jigsaw)
 
   source_weights:               # relative weight per slot; set any to 0 to exclude
     generator: 60

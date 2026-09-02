@@ -87,7 +87,7 @@ public static class LocationNames
         var groups = ControllerGroups.For(level);
         if (groups.Count > 1)
         {
-            foreach (var g in groups) names.Add(Part(level.LevelId, instance, g.Name));
+            foreach (var g in groups) names.Add(Part(level.LevelId, instance, g.DisplayName));
         }
 
         return names;

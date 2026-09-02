@@ -10,11 +10,17 @@ public sealed class ControllerGroup
     public IReadOnlyList<string> Members { get; init; } = Array.Empty<string>();
 
     /// <summary>
-    /// The group's stable identity, used in location names. The alphabetically
-    /// first member rather than a join of all of them, so a location name does
-    /// not balloon and does not change if the game ever reorders controllers.
+    /// The group's stable identity - the alphabetically first member, so it
+    /// does not change if the game ever reorders controllers. This is what the
+    /// mod matches incoming solved events against.
     /// </summary>
     public string Name => Members.Count > 0 ? Members[0] : "";
+
+    /// <summary>
+    /// What a player is shown, in location names and hints: the same group
+    /// with its redundant component-type suffix stripped. See PartNames.
+    /// </summary>
+    public string DisplayName { get; init; } = "";
 
     /// <summary>
     /// Abilities needed to solve this group: its own members' abilities, plus
@@ -119,15 +125,19 @@ public static class ControllerGroups
             return need;
         }
 
+        var display = PartNames.ForLevel(level);
+
         return names
             .GroupBy(Find, StringComparer.Ordinal)
             .Select(g =>
             {
                 var members = g.OrderBy(n => n, StringComparer.Ordinal).ToList();
+                var lead = members[0];
                 return new ControllerGroup
                 {
                     Members = members,
                     Abilities = WithDependencies(members),
+                    DisplayName = display.TryGetValue(lead, out var d) ? d : lead,
                 };
             })
             .OrderBy(g => g.Name, StringComparer.Ordinal)
