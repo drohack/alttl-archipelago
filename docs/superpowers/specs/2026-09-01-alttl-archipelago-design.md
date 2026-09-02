@@ -69,70 +69,70 @@ boundaries fixed means "chapter 2, third card" refers to the same position in
 every run, which matters for the in-game display and for anyone reading a
 tracker.
 
-Each of the 79 slots is assigned at generation time by the apworld. There are
-two draw modes, chosen by the `slot_draw` option, and both have been measured
-against the real level table.
+Each of the 79 slots is assigned at generation time by the apworld, in two
+passes.
 
-### source_weighted (default)
+**Pass 1 - cover the mechanics.** Four abilities have no generator at all
+(Stacking, Containers, Furniture, Jigsaw), so hand-made levels are the only
+way to have them in the run. The draw picks levels covering each of those
+`mechanic_coverage` times (default 3), choosing greedily but breaking ties at
+random so it varies between seeds. It is cheap because these levels overlap:
+NeatStreak_Paper Plane Supplies alone covers Containers, Furniture and Jigsaw.
 
-Slots are drawn by source - **generator 60 / archive 30 / base 10** - after
-first reserving a few slots so no puzzle mechanic goes missing (see
-`mechanic_coverage` below). Generators repeat with a fresh seed each time, up
-to `MaxGeneratorInstances`; archive and base levels draw without replacement.
+**Pass 2 - fill the rest by source**, generator 70 / archive 30. Generators
+repeat with a fresh seed each time, preferring the least-used one so no single
+puzzle type dominates; archive draws without replacement.
 
-Measured at 79 slots, `mechanic_coverage: 2`:
+**Base-campaign levels are not a rollable source.** They enter *only* through
+pass 1, and only when they are the sole way to supply a mechanic. That is the
+whole point: a base level in the run is there because it brings something no
+generator can, never because a percentage said so.
 
-- **47 generator / 23 archive / 9 base**, 48 distinct levels
-- every ability present, none pruned
-- the four generator-less abilities land at Containers 6, Furniture 3,
-  Jigsaw 4, Stacking 5
+Measured over 10 seeds at 79 slots, `mechanic_coverage: 3`:
 
-The archive draw does most of the work here: at 30% it naturally pulls in
-gap-ability levels, so the reservation only firms up what was mostly happening
-anyway. Without it those four sit at 2-4 each, which is thin but not broken.
+| | |
+|---|---|
+| sources | **51 generator / 24 archive / 3 base** |
+| base levels serving no gap ability | **0** |
+| gap coverage (Containers/Furniture/Jigsaw/Stacking) | 5 / 3 / 4 / 4 |
+| most any one generator repeats | 4.0 (hard cap 8) |
+| distinct levels | 43 |
+| checks | ~181 |
 
-### ability_balanced
+`mechanic_coverage` is the variety lever. Raising it evens the mechanics out
+at the cost of more hand-made content: 4 gives coverage 5/4/4/5 and ~189
+checks for 4 base levels, but exhausts Furniture's entire supply of four, so
+every seed contains all of them. Lowering it to 2 gives 4/3/3/3 and 2 base.
 
-Every enabled ability gets an equal share of the run, and the source weights
-only decide *which* level serves an ability when there is a choice. The loop:
-take the ability furthest below its share that still has supply, pick a level
-providing it, and credit **every** ability that level covers - levels
-routinely serve several. An exhausted ability stops being chosen; when all are
-exhausted the remainder tops up from generators, which can always repeat. That
-is what makes "no fifth Jigsaw" a non-event rather than an error.
+### What was tried and rejected
 
-Measured at 79 slots with equal weights: every ability lands at 4-10 against a
-6.6 share, with Containers, Furniture and Jigsaw capped by their entire supply
-of 8, 4 and 4.
+An **equal share per ability** draw was measured and is strictly worse.
+Four abilities have exactly one generator each - Grids only has Procedural
+Grid Puzzle, Ordering only Pencils, Rotating only Clock, Symmetry only Shells
+- so demanding an equal share forces those four generators to repeat about
+eight times each, roughly 32 of 79 slots being four puzzle types. It also
+dragged 20-28 base levels in, of which 12-15 served no mechanic a generator
+could not. Both problems come from the same place: equal shares ignore how
+much variety a source can actually supply.
 
-**It costs freshness, which is why it is not the default.** Four abilities have
-no generator, so demanding a fair share of each pulls **20-28 base-game levels**
-into the run - about 30%, against 9 under source weighting. Variety of
-mechanic and freshness of content are in direct tension and this option is
-where a player picks a point between them. Two `options_presets` ship so the
-swap is one click on the webhost.
+A **flat 10% base weight** was the original design and was also wrong, for the
+reason above: of 9-12 base levels only 3 served a gap ability, and those 3
+were the same 3 every seed because the greedy reserve was deterministic.
 
-### Shared rules
+### Ability presence
 
 **An ability is in the item pool if and only if some drawn level needs it.**
 That is a correctness requirement, not tidiness: a Jigsaw level with no Jigsaw
 item would be unsolvable.
 
-It also means an ability weight of **0 deprioritises rather than excludes**. A
-level drawn for Containers may carry Jigsaw along - NeatStreak_Paper Plane
-Supplies covers three gap abilities at once - and when it does the Jigsaw item
-must exist. Excluding an ability outright would mean excluding every level
-touching it, which for Containers would delete MedicineCabinet, Desktop
-Computer and Mirror; not worth the option.
-
-Degradation, verified against the real table in both modes:
+Degradation, verified against the real table:
 
 | Config | Result |
 |---|---|
 | default | 79 slots, all 12 abilities, none pruned |
-| generators only | 79 slots, 8 abilities, **Containers / Furniture / Jigsaw / Stacking pruned** |
-| no archive | 79 slots, 11 abilities, Jigsaw pruned |
-| 12-slot run | 12 slots, all 12 abilities still represented |
+| generators only (`mechanic_coverage: 0`, archive 0) | 8 abilities; Containers / Furniture / Jigsaw / Stacking pruned |
+| no archive | 11 abilities; Jigsaw pruned, its four levels being archive-only |
+| 12-slot run | all 12 abilities still represented |
 
 **Unlocking:** one pack's worth of slots is open at start; the rest arrive as
 `Progressive Puzzle Pack` items, each opening the next `pack_size` slots in
@@ -349,38 +349,15 @@ A Little to the Left:
   puzzle_count: 79              # slots on the track (excludes chapter markers + credits)
   pack_size: 4                  # slots per Progressive Puzzle Pack
 
-  slot_draw: source_weighted    # or ability_balanced
-
-  source_weights:               # used by source_weighted; 0 excludes a source
-    generator: 60
+  source_weights:               # pass 2 only. Base is deliberately absent:
+    generator: 70               # it enters through mechanic coverage alone.
     archive: 30
-    base: 10
 
-  mechanic_coverage: 2          # used by source_weighted: min levels guaranteed
-                                # per generator-less ability (Stacking,
-                                # Containers, Furniture, Jigsaw)
-
-  # Used by ability_balanced. Relative share of the run each ability gets. A
-  # weight of 0 deprioritises rather than excludes: a level drawn for another
-  # ability may still carry this one, and if it does the item must exist.
-  ability_weights:
-    # generator-backed - effectively unlimited supply, new seed each time
-    swapping: 10
-    ordering: 10
-    gadgets: 10
-    rotating: 10
-    grids: 10
-    tidying: 10
-    sticking: 10
-    symmetry: 10
-    # hand-made only - no generator can produce these, supply is finite
-    stacking: 10      # supply 12
-    containers: 10    # supply 8
-    furniture: 10     # supply 4
-    jigsaw: 10        # supply 4
-    # DLC abilities are added here when DLC support lands, defaulting to 10
-    # like the rest; they are absent rather than zero so an old yaml still
-    # validates.
+  mechanic_coverage: 3          # levels guaranteed per generator-less ability
+                                # (Stacking, Containers, Furniture, Jigsaw).
+                                # The variety lever: higher evens the mechanics
+                                # out and pulls in more hand-made content.
+                                # 4 exhausts Furniture's entire supply of four.
 
   generator_instance_cap: 0     # 0 = use the hard cap; else a lower limit.
                                 # NEVER above 8: the static location table has
@@ -415,11 +392,12 @@ A Little to the Left:
 "Only generated levels" is `generator: 100, archive: 0, base: 0`; the
 ability-pruning rule handles the resulting Jigsaw and Furniture fallout.
 
-Two `options_presets` ship so swapping between the draw modes is one click on
-the webhost rather than hand-editing a weight table:
+Three `options_presets` ship so the variety/freshness trade is one click on
+the webhost rather than reasoning about the lever:
 
-- **Fresh Tidying** (default) - `slot_draw: source_weighted`, 60/30/10
-- **Every Mechanic** - `slot_draw: ability_balanced`, all ability weights equal
+- **Fresh Tidying** - `mechanic_coverage: 2`, the least hand-made content
+- **Balanced** (default) - `mechanic_coverage: 3`
+- **Every Mechanic** - `mechanic_coverage: 4`, evenest mechanics, 4 base levels
 
 Validation the world enforces:
 
