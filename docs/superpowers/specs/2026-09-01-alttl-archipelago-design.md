@@ -69,72 +69,70 @@ boundaries fixed means "chapter 2, third card" refers to the same position in
 every run, which matters for the in-game display and for anyone reading a
 tracker.
 
-Each of the 79 slots is assigned at generation time by the apworld. The draw
-is **ability-driven**: every enabled ability gets an equal share of the run by
-default, and the source weights only decide *which* level serves an ability
-when there is a choice. A generator slot records the generator plus a seed
-derived from the AP seed; archive and base levels draw without replacement,
-generators repeat up to `MaxGeneratorInstances`.
+Each of the 79 slots is assigned at generation time by the apworld. There are
+two draw modes, chosen by the `slot_draw` option, and both have been measured
+against the real level table.
 
-The loop: repeatedly take the ability furthest below its share that still has
-supply, pick a level providing it (weighted by source), and credit **every**
-ability that level covers - levels routinely serve several. An ability whose
-supply runs out is marked exhausted and stops being chosen; when everything is
+### source_weighted (default)
+
+Slots are drawn by source - **generator 60 / archive 30 / base 10** - after
+first reserving a few slots so no puzzle mechanic goes missing (see
+`mechanic_coverage` below). Generators repeat with a fresh seed each time, up
+to `MaxGeneratorInstances`; archive and base levels draw without replacement.
+
+Measured at 79 slots, `mechanic_coverage: 2`:
+
+- **47 generator / 23 archive / 9 base**, 48 distinct levels
+- every ability present, none pruned
+- the four generator-less abilities land at Containers 6, Furniture 3,
+  Jigsaw 4, Stacking 5
+
+The archive draw does most of the work here: at 30% it naturally pulls in
+gap-ability levels, so the reservation only firms up what was mostly happening
+anyway. Without it those four sit at 2-4 each, which is thin but not broken.
+
+### ability_balanced
+
+Every enabled ability gets an equal share of the run, and the source weights
+only decide *which* level serves an ability when there is a choice. The loop:
+take the ability furthest below its share that still has supply, pick a level
+providing it, and credit **every** ability that level covers - levels
+routinely serve several. An exhausted ability stops being chosen; when all are
 exhausted the remainder tops up from generators, which can always repeat. That
 is what makes "no fifth Jigsaw" a non-event rather than an error.
 
-Measured on the real table at 79 slots with equal weights and source
-preference 6/3/1:
+Measured at 79 slots with equal weights: every ability lands at 4-10 against a
+6.6 share, with Containers, Furniture and Jigsaw capped by their entire supply
+of 8, 4 and 4.
 
-| Ability | share | drawn | max supply |
-|---|---:|---:|---:|
-| Swapping / Ordering / Gadgets / Grids / Rotating / Tidying / Sticking / Symmetry | 6.6 | 9-10 | 11-33 |
-| Containers | 6.6 | 8 | 8 |
-| Furniture | 6.6 | 4 | 4 |
-| Jigsaw | 6.6 | 4 | 4 |
+**It costs freshness, which is why it is not the default.** Four abilities have
+no generator, so demanding a fair share of each pulls **20-28 base-game levels**
+into the run - about 30%, against 9 under source weighting. Variety of
+mechanic and freshness of content are in direct tension and this option is
+where a player picks a point between them. Two `options_presets` ship so the
+swap is one click on the webhost.
 
-Counts overshoot the share because one level covers several abilities.
+### Shared rules
 
-**The cost, stated plainly: equal ability coverage forces more hand-made
-content.** Four abilities have no generator at all, so demanding a fair share
-of each pulls 20-28 base-game levels into a 79-slot run - roughly 30%, against
-the 10% a pure source-weighted draw would give. Variety of mechanic and
-freshness of content are in direct tension here and the weights are how a
-player picks a point between them.
+**An ability is in the item pool if and only if some drawn level needs it.**
+That is a correctness requirement, not tidiness: a Jigsaw level with no Jigsaw
+item would be unsolvable.
 
-Degradation, all verified against the real table:
+It also means an ability weight of **0 deprioritises rather than excludes**. A
+level drawn for Containers may carry Jigsaw along - NeatStreak_Paper Plane
+Supplies covers three gap abilities at once - and when it does the Jigsaw item
+must exist. Excluding an ability outright would mean excluding every level
+touching it, which for Containers would delete MedicineCabinet, Desktop
+Computer and Mirror; not worth the option.
+
+Degradation, verified against the real table in both modes:
 
 | Config | Result |
 |---|---|
-| default | 79 slots, all 12 abilities present, none pruned |
+| default | 79 slots, all 12 abilities, none pruned |
 | generators only | 79 slots, 8 abilities, **Containers / Furniture / Jigsaw / Stacking pruned** |
 | no archive | 79 slots, 11 abilities, Jigsaw pruned |
 | 12-slot run | 12 slots, all 12 abilities still represented |
-
-**An ability is in the item pool if and only if some drawn level needs it.**
-That is a correctness requirement, not a tidiness one: a Jigsaw level with no
-Jigsaw item would be unsolvable.
-
-It also means an ability weight of **0 deprioritises rather than excludes**. A
-level drawn for Containers may carry Jigsaw along with it - NeatStreak_Paper
-Plane Supplies covers three gap abilities at once - and when that happens the
-Jigsaw item must exist. Excluding an ability outright would mean excluding
-every level touching it, which for Containers would delete MedicineCabinet,
-Desktop Computer and Mirror; not worth the option.
-
-**Location names are content-based, not positional** - "Cookies Jigsaw (Good
-Tidings) - Match Reindeer", "Books (Randomized) #2 - Solution 2".
-
-This is forced. Archipelago's `location_name_to_id` is a `ClassVar` folded
-into the datapackage checksum, so the name set must be identical for every
-seed of the game. Slot 7 holds a different puzzle in every seed, so anything
-of the form "Slot 07 - ..." cannot exist. The set of *levels* is fixed, so
-naming by content works; a generator occupying several slots is numbered
-(" #2", " #3"), which caps repeats at `MaxGeneratorInstances`.
-
-The game shows no level name anywhere, so the mod adds a label under each
-card. Verified working: labels render in the game's own font beneath every
-card in the level select.
 
 **Unlocking:** one pack's worth of slots is open at start; the rest arrive as
 `Progressive Puzzle Pack` items, each opening the next `pack_size` slots in
@@ -351,7 +349,18 @@ A Little to the Left:
   puzzle_count: 79              # slots on the track (excludes chapter markers + credits)
   pack_size: 4                  # slots per Progressive Puzzle Pack
 
-  # Relative share of the run each ability gets. All equal by default. A
+  slot_draw: source_weighted    # or ability_balanced
+
+  source_weights:               # used by source_weighted; 0 excludes a source
+    generator: 60
+    archive: 30
+    base: 10
+
+  mechanic_coverage: 2          # used by source_weighted: min levels guaranteed
+                                # per generator-less ability (Stacking,
+                                # Containers, Furniture, Jigsaw)
+
+  # Used by ability_balanced. Relative share of the run each ability gets. A
   # weight of 0 deprioritises rather than excludes: a level drawn for another
   # ability may still carry this one, and if it does the item must exist.
   ability_weights:
@@ -373,12 +382,10 @@ A Little to the Left:
     # like the rest; they are absent rather than zero so an old yaml still
     # validates.
 
-  source_weights:               # relative weight per slot; set any to 0 to exclude
-    generator: 60
-    archive: 30
-    base: 10
-
-  generator_instance_cap: 0     # 0 = uncapped; else max repeats of any one generator
+  generator_instance_cap: 0     # 0 = use the hard cap; else a lower limit.
+                                # NEVER above 8: the static location table has
+                                # to name every instance up front, so 8 is a
+                                # correctness bound, not a preference.
 
   archive_packs:                # which event packs may be drawn from
     good_tidings: true
@@ -408,9 +415,16 @@ A Little to the Left:
 "Only generated levels" is `generator: 100, archive: 0, base: 0`; the
 ability-pruning rule handles the resulting Jigsaw and Furniture fallout.
 
+Two `options_presets` ship so swapping between the draw modes is one click on
+the webhost rather than hand-editing a weight table:
+
+- **Fresh Tidying** (default) - `slot_draw: source_weighted`, 60/30/10
+- **Every Mechanic** - `slot_draw: ability_balanced`, all ability weights equal
+
 Validation the world enforces:
 
 - `levels_to_beat <= puzzle_count`
+- `generator_instance_cap <= 8`, clamped rather than rejected
 - at least one source weight non-zero
 - at least one archive pack enabled when archive weight is non-zero
 - enough distinct levels exist to fill `puzzle_count` under the weights and
