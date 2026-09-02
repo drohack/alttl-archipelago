@@ -23,7 +23,8 @@ the Archive and a light sprinkling of base-campaign levels.
 
 Two things are shuffled into the multiworld:
 
-- **Puzzle packs** open four slots at a time instead of vanilla's one.
+- **Puzzle packs** open four slots at a time instead of vanilla's one, widening
+  as the run goes on.
 - **Abilities** gate individual object controllers, so a level can be
   partially solvable - you clear the parts you have the verbs for and come
   back for the rest.
@@ -134,13 +135,24 @@ Degradation, verified against the real table:
 | no archive | 11 abilities; Jigsaw pruned, its four levels being archive-only |
 | 12-slot run | all 12 abilities still represented |
 
-**Unlocking:** one pack's worth of slots is open at start; the rest arrive as
-`Progressive Puzzle Pack` items, each opening the next `pack_size` slots in
-track order. The pack count is
-`ceil((puzzle_count - pack_size) / pack_size)`, and the final pack opens
-whatever remains rather than a full group. At the defaults that is 4 slots
-free and **19 packs** - 18 of four and one of three. The filmstrip fills left
-to right exactly like vanilla.
+**Unlocking:** an opening block of slots is free; the rest arrive as
+`Progressive Puzzle Pack` items opening the next block in track order. The
+filmstrip fills left to right exactly like vanilla.
+
+The blocks are not uniform, and both departures were forced by measurement
+(2026-09-02, see `items.pack_boundaries`):
+
+- **The opening is at least `MIN_OPENING` (4) slots**, however small
+  `pack_size` is. A run that starts on one puzzle can be locked out by a single
+  unlucky ability draw.
+- **Packs widen as the run goes on** - every third pack is one puzzle bigger.
+  This is the intended pacing, slow while the player holds few abilities and
+  quick once they hold many, and it bounds progression density: flat packs at
+  `pack_size 1` meant 75 progression items against about 110 locations, and
+  generation failed outright. A `MAX_PACKS` ceiling of 14 picks the gentlest
+  ramp that fits, so small pack sizes accelerate harder automatically.
+
+At the defaults that is 4 slots free and **14 packs**.
 
 **Goal:** complete the credits card.
 
@@ -226,7 +238,7 @@ controller is solved.
 
 | Item | Count | Kind |
 |---|---:|---|
-| Progressive Puzzle Pack | 19 | progression |
+| Progressive Puzzle Pack | 14 | progression |
 | Abilities | up to 12 | progression |
 | Skip | `skip_count`, default 5 | useful |
 | Cat trap | `cat_trap_chance` of filler | trap |
@@ -256,12 +268,20 @@ zero-ability, so the chance that none of the opening four slots is playable is
 about 32%. Nearly a third of seeds would open with nothing to do. Therefore:
 
 - `starting_abilities` (default 1) grants random abilities at game start.
-- `guaranteed_open_slots` (default 1) forces that many slots **in the opening
-  pack** to be playable with what the player starts holding - either a
-  zero-ability level, or one served by a granted starting ability.
+- `guaranteed_open_slots` (default 4) forces that many slots **in the opening**
+  to be playable with what the player starts holding - either a zero-ability
+  level, or one served by a granted starting ability.
 
-Both are configurable, including to zero, but not both to zero, and
-`guaranteed_open_slots` is clamped to `pack_size`.
+Four solvable opening puzzles (`slots.MIN_SOLVABLE_OPENING`) are enforced
+whatever the yaml says, so `guaranteed_open_slots` only has an effect above
+four. That is a generation requirement rather than a preference: measured over
+28 configurations x 15 seeds, a floor of 1 failed to generate on 8 seeds, 2 on
+2, and 4 on none. It is clamped to the size of the opening, and to how many
+solvable levels the draw actually contains - an 8-puzzle run may not own four.
+
+If the opening still ends up entirely locked, one ability is granted outright
+and the opening is reordered **again** with it, since the grant can make levels
+elsewhere in the run solvable too.
 
 **Four abilities have no generator at all**, measured from the level table:
 
@@ -311,16 +331,30 @@ timing artifact rather than a bad seed, but it is the right place for a guard.
 The pack lock keeps vanilla's language untouched: **silhouette** = slot not
 yet opened, **full-colour art** = opened.
 
-The ability marker rides on `LevelIcon.borderImage` (already a per-icon
-recolourable Image, used for chapter borders), following the Archipelago
-tracker convention:
+The ability marker rides on **a small Image we add to the icon ourselves**, in
+its top-right corner, following the Archipelago tracker convention.
 
-| Border | Meaning |
+Not `LevelIcon.borderImage`, which was the original plan and does not work:
+that Image lives inside `Default Level Icon`, one of two presentations the
+icon swaps between, and unlocking a card deactivates the whole subtree it is
+in. Recolouring the game's own Images was also measured to be destructive and
+non-restoring. See S5 in the verification log.
+
+| Marker | Meaning |
 |---|---|
-| red | opened, but no ability it needs is held - nothing to do yet |
-| yellow | partially doable, some controllers dimmed |
-| green | fully doable with what is held |
-| grey | every check on this card is collected |
+| green | everything still to do on this card is doable now |
+| green / red, split corner to corner | something is doable, something is still locked. The dividing line runs from the top-right corner to the bottom-left, green in the upper-left triangle |
+| red | everything still to do is locked |
+| star | all done - the game's own star sprite |
+
+**The states describe what is LEFT, not the card as a whole.** A card with
+three checks, two already collected and the third reachable, is green rather
+than split: the split means the remaining work is genuinely divided.
+Without that rule almost every partly-played card would sit on the mixed state
+and it would stop carrying information.
+
+**Cards carry no marker text.** A card shows its level name and its badge, and
+nothing else.
 
 The star row underneath keeps its vanilla meaning - one star per solution
 found - which on single-controller levels already is the check counter.
@@ -347,7 +381,7 @@ place before first construction, or `SetLevels()` / `SetupSections()` /
 A Little to the Left:
   # --- what goes in the run ---
   puzzle_count: 79              # slots on the track (excludes chapter markers + credits)
-  pack_size: 4                  # slots per Progressive Puzzle Pack
+  pack_size: 4                  # slots per pack at the start; packs widen later
 
   source_weights:               # pass 2 only. Base is deliberately absent:
     generator: 70               # it enters through mechanic coverage alone.
@@ -375,7 +409,7 @@ A Little to the Left:
   # --- abilities ---
   ability_locks: true           # false = start with all 12; packs are the only gate
   starting_abilities: 1
-  guaranteed_open_slots: 1      # opening-pack slots that must be playable at start
+  guaranteed_open_slots: 4      # opening slots that must be playable at start
 
   # --- goal ---
   levels_to_beat: 40            # levels beaten (>=1 solution) before credits unlocks
@@ -430,7 +464,7 @@ Verified in-game (see research-findings.md for method):
 | Dimmed, inert controllers | The entire partial-play mechanic rests on this. Nothing has been built or tested. **Highest risk item in the design.** |
 | `GameEvent_ObjectControllerSolved` actually fires | Controller checks depend on it. It exists in the event table with `ObjectController.IsSolved` / `SetSolved`, but has not been observed firing. |
 | A real solve reporting a real `SolutionId` | Solution checks depend on it. Forced completion bypasses the controllers and records nothing. Needs a human to solve one puzzle with the probe running. |
-| Recolouring `borderImage` survives `RefreshIconAppearance` | The tracker marker depends on it. |
+| A tracker marker that shows on an unlocked card | Settled: `borderImage` cannot carry it, an Image we add ourselves can. See S5. |
 | Holding a level locked against the player | Reading `IsUnlocked` works; forcing a lock has not been attempted. |
 
 The first three should be settled before implementation starts, because a

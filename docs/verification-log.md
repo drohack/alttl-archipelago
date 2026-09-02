@@ -5,8 +5,9 @@ what was asked, what happened, and what it changes.
 
 **Phase 0 verdict: all six checks pass.** The design stands as specified. Four
 findings adjust details, all recorded below: dependency components, the
-runtime-vs-prefab controller set, the invisible border on unlocked cards, and
-the opaque solution id.
+runtime-vs-prefab controller set, the tracker marker needing its own object
+rather than `borderImage` (S5, resolved 2026-09-02), and the opaque solution
+id.
 
 Game build 24060652, version 3.6.1. Probe commands used are in
 [the README](../README.md).
@@ -44,21 +45,113 @@ independent checks it cannot deliver.
 The one-way case (Desktop Computer) still needs the transitive closure for its
 ability requirement, as the plan says.
 
-### S5 - does a borderImage recolour survive RefreshIconAppearance? PASS, with a problem
+### S5 - can a tracker marker be shown on a card? PASS (resolved 2026-09-02)
 
 Tinted all 85 card borders red/yellow/green/grey, then called
 `RefreshIconAppearance()` on every icon. **The tint survived.**
 
-**But the border is invisible on unlocked cards.** A locked card is a
-silhouette on the background colour, so its border reads clearly. An unlocked
-card's full-colour artwork fills the frame and covers the border entirely -
-and unlocked cards are exactly the ones the marker is for, since locked ones
-cannot be entered anyway.
+**But the border is invisible on unlocked cards** - which are exactly the ones
+the marker is for, since locked ones cannot be entered anyway.
 
-So the tracker marker needs a different carrier on unlocked cards. Options not
-yet tested: tint the `background` RectTransform behind the card, add a small
-badge into the `stars` row, or draw an outline outside the art. Resolve before
-Phase 6.
+#### Resolved 2026-09-02: use a badge, and the original diagnosis was wrong
+
+**The border is not covered by the artwork. It is switched off.** `iconinfo`
+dumps the icon tree and shows LevelIcon carries two complete presentations,
+with unlocking swapping which is active:
+
+```
+Cat Frame Interface            [LevelIcon,Image,Button]      unlocked=True
+  Icon Container
+    Default Level Icon    active=False        <- borderImage lives in here
+      Background / Border / Icon
+    Unlocked Level Icon   active=True         <- and has NO Border child
+      Stars / Background / Icon
+```
+
+On a locked card (index 10) the two are exactly reversed: `Default Level Icon`
+active, `Unlocked Level Icon` inactive. So `borderImage` points into a subtree
+that is disabled on some cards. No repaint or ordering trick can rescue it; it
+is the wrong object.
+
+**Where the border DOES render it looks good** - a clean red frame around the
+card, better looking than the badge. The problem is that it renders on only
+*some* cards. A throwaway compare mode put a different carrier on each
+consecutive card in the same red, and two cards reporting the same presentation
+came out differently: one silhouette-style card showed a crisp red frame,
+another showed nothing at all. That mode has since been removed along with the
+rejected carriers; `marker:states` is what remains.
+
+**Neither available predicate explains which.** `LevelIcon.isUnlocked` reported
+false for cards plainly drawing in full colour. `SaveData.LevelHasCompletionData`
+reported true for cards drawing as silhouettes. Reading the active presentation
+subtree directly still left two cards labelled the same and rendering
+differently.
+
+That unexplained inconsistency is itself the argument. A tracker marker that
+appears on an unpredictable subset is worse than useless, and the badge - which
+we own outright - renders on every card in every state without needing to
+understand the game's presentation rules at all. If the border is ever wanted
+for looks, the remaining unknown is which icons have a null or inactive
+`borderImage` and why.
+
+Three carriers were built and compared in one session (`marker:` in
+DevTools/Markers.cs):
+
+| Carrier | Verdict |
+|---|---|
+| **badge** - our own 30x30 Image, top-right, last sibling | **Chosen.** Legible on every card in every state, artwork untouched, and it survived both `RefreshIconAppearance` and a full title-to-levels menu round-trip |
+| outline - a larger Image behind the card | Rejected by the user: it swamps the card instead of ringing it |
+| background - recolour the game's own background Image | Rejected by the user as confusing - it repaints the whole card, so the art that tells cards apart is lost. Also **destructive and does not heal**: neither `RefreshIconAppearance` nor leaving and re-entering the menu restores the original colour, because the level select is built once and cached |
+
+That last row is the durable lesson: **anything that recolours one of the
+game's own Images must cache and restore it by hand.** Our own child objects
+have no such problem, which is the real argument for the badge over any tint.
+
+#### The four states
+
+Decided by the user, and about what is LEFT to do on the card rather than about
+the card as a whole - a card with three checks, two collected and one
+reachable, is green rather than mixed:
+
+| Badge | Meaning |
+|---|---|
+| green | everything still to do here is doable now |
+| green upper-left / red lower-right, split corner to corner | something is doable, something is still locked |
+| red | everything still to do is locked |
+| star | all done |
+
+**No text on cards.** A card shows its level name and its badge, nothing else.
+An earlier diagnostic wrote the carrier and lock state under each card so a
+comparison screenshot could not be miscounted; that was for the comparison and
+is gone.
+
+#### Star art: three sprites, and two wrong ones
+
+Every card carries three star sprites, and picking the wrong one fails
+silently:
+
+```
+LTL-LevelSelect-Star-solved     the earned star   <- the one to use
+LTL-LevelSelect-Star-unsolved   an empty outline
+LTL-LevelSelect-Star-locked     a drab grey star
+```
+
+Both first attempts were wrong. Walking a fixed path reached `-locked` and drew
+a grey smudge; "any star that is not locked" reached `-unsolved` and drew a
+hollow outline. Note `"unsolved".Contains("solved")`, so the suffix has to be
+matched exactly.
+
+The sprite is a **white silhouette the game tints at runtime**, so drawing it
+untinted gives a white star that disappears against the pale cards. It is drawn
+gold. **The game's own earned-star tint has not been sampled**: that star is
+only drawn on a SOLVED level, and `solve:` writes a found-count without setting
+solved, so no live example was available. Sample it and replace the constant if
+a solved card ever comes to hand.
+
+Polish left for Phase 6: the badge does not rotate with the card, and locked
+cards are drawn at a slight angle, so it sits square against a tilted frame.
+The star also renders a little smaller than the solid squares because it
+preserves its aspect inside the same box.
 
 ### S6 - can a card be held locked? PASS
 

@@ -742,6 +742,32 @@ public class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("tint", () => Phase0.TintCards(true));
             }
+            else if (cmd.StartsWith("unlockto:", StringComparison.OrdinalIgnoreCase))
+            {
+                var arg = cmd.Substring("unlockto:".Length);
+                SafeRun("unlockto", () => UnlockTo(arg));
+            }
+            else if (cmd.StartsWith("marker:", StringComparison.OrdinalIgnoreCase))
+            {
+                var mode = cmd.Substring("marker:".Length);
+                SafeRun("marker", () => Markers.Apply(mode));
+            }
+            else if (cmd.StartsWith("iconinfo:", StringComparison.OrdinalIgnoreCase))
+            {
+                var arg = cmd.Substring("iconinfo:".Length);
+                SafeRun("iconinfo", () =>
+                {
+                    if (int.TryParse(arg, NumberStyles.Integer,
+                            CultureInfo.InvariantCulture, out var n))
+                    {
+                        Markers.IconInfo(n);
+                    }
+                    else
+                    {
+                        DevToolsPlugin.Log.LogWarning($"iconinfo: not an index: {arg}");
+                    }
+                });
+            }
             else if (cmd.Equals("resetlevels", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("resetlevels", () =>
@@ -795,6 +821,43 @@ public class DevToolsBehaviour : MonoBehaviour
     /// unlock rule can be observed rather than guessed. "solve:INDEX" or
     /// "solve:INDEX:solutionId".
     /// </summary>
+    /// <summary>
+    /// "unlockto:N" gives the first N levels a LevelCompletionData entry, which
+    /// IS the unlock condition, so the level select renders them in full colour.
+    /// Needed to compare tracker markers: a fresh save shows three unlocked
+    /// cards, and the markers only matter on unlocked ones.
+    /// </summary>
+    private static void UnlockTo(string arg)
+    {
+        if (!int.TryParse(arg, NumberStyles.Integer, CultureInfo.InvariantCulture,
+                out var count))
+        {
+            DevToolsPlugin.Log.LogWarning($"unlockto: not a number: {arg}");
+            return;
+        }
+
+        var manager = GameManager.Instance.levelManager;
+        int made = 0;
+        for (int i = 0; i < count; i++)
+        {
+            try
+            {
+                var li = manager.GetLevelInterface(i);
+                if (li == null || SaveSystem.data.LevelHasCompletionData(li)) continue;
+                SaveSystem.data.CreateLevelCompletionData(li, null);
+                made++;
+            }
+            catch (Exception e)
+            {
+                DevToolsPlugin.Log.LogWarning($"unlockto: index {i}: {e.Message}");
+            }
+        }
+        SaveSystem.SaveGame();
+        DevToolsPlugin.Log.LogInfo(
+            $"unlockto: created {made} completion entries up to index {count}."
+            + " Reopen the level select to see them.");
+    }
+
     private static void MarkSolved(string arg)
     {
         var parts = arg.Split(':');

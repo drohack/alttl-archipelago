@@ -55,17 +55,17 @@ supply of extra puzzles.
 
 ## The probe
 
-`src/ALTTLProbe/` is a BepInEx plugin. It reads and writes files; it does not
-change the game.
+`src/ALTTLDevTools/` is a BepInEx plugin. It reads and writes files; it does
+not change the game. It is never shipped with the randomizer.
 
 Build (game must be closed):
 
 ```
 cp src/GameDir.props.example src/GameDir.props   # point it at your install
-dotnet build src/ALTTLProbe
+dotnet build src/ALTTLDevTools
 ```
 
-Drive it by writing a command into `<game>/BepInEx/alttl-probe-commands.txt`:
+Drive it by writing a command into `<game>/BepInEx/alttl-devtools-commands.txt`:
 
 | Command | Effect |
 |---|---|
@@ -85,6 +85,9 @@ Drive it by writing a command into `<game>/BepInEx/alttl-probe-commands.txt`:
 | `lockcard:<index>` / `lockcard:off` | Refuse launches of a level |
 | `clickcard:<index>` | Invoke `LevelIcon.DoStartLevel` the way a real click does |
 | `tint` / `tint:refresh` | Recolour every level-select card border, optionally forcing a repaint |
+| `iconinfo:<index>` | Dump one level-select icon's child tree, with components, sizes and sibling order |
+| `marker:states` / `marker:refresh` / `marker:off` | Cycle the four tracker-badge states across the cards: green, green/red split corner to corner, red, star. See S5 in the verification log |
+| `unlockto:<n>` | Give the first n levels a completion entry, so the level select renders them unlocked |
 
 Gameplay events land in `BepInEx/alttl-events.log`.
 
