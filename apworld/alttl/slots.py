@@ -47,17 +47,11 @@ class Slot(NamedTuple):
 
 def _eligible(world_options) -> List[data.Level]:
     """Levels this yaml permits at all."""
-    enabled_packs = {
-        key for key in data.ARCHIVE_PACKS
-        if getattr(world_options, f"pack_{key}", None) is None
-        or bool(getattr(world_options, f"pack_{key}").value)
-    }
+    enabled = set(world_options.archive_packs.value)
     out = []
     for level in data.LEVELS:
-        if level.source == "archive":
-            pack = data.pack_of(level)
-            if pack is not None and pack not in enabled_packs:
-                continue
+        if level.source == "archive" and data.pack_of(level) not in enabled:
+            continue
         out.append(level)
     return out
 
@@ -133,6 +127,72 @@ def draw(random, slots: int, coverage: int, source_weights: Dict[str, int],
         seed = random.randrange(1, 2_000_000_000) if level.repeatable else -1
         result.append(Slot(level, seen[level.level_id], seed))
     return result
+
+
+def open_the_start(random, plan: List[Slot], pack_size: int, wanted: int,
+                   held: Set[str]) -> List[Slot]:
+    """Make sure the run opens with something the player can actually do.
+
+    The opening pack costs no items, but its puzzles can still be locked behind
+    abilities. With ability locks on and few starting abilities, an unlucky
+    draw gives a player a first screen where nothing is solvable - which
+    Archipelago's own test_empty_state_can_reach_something rightly rejects.
+
+    Reorders rather than redraws: a solvable slot from later in the run is
+    swapped forward, so the run's contents are untouched and only the order
+    changes.
+    """
+    if not plan:
+        return plan
+
+    def solvable(slot: Slot) -> bool:
+        return slot.level.abilities <= held
+
+    # Free slots anywhere later in the run, to swap forward.
+    spare = [i for i in range(len(plan)) if solvable(plan[i])]
+    random.shuffle(spare)
+
+    def claim(window_start: int, window_end: int, need: int) -> None:
+        """Ensure `need` slots in [start, end) are solvable with what is held."""
+        have = [i for i in range(window_start, window_end) if solvable(plan[i])]
+        for i in have:
+            if i in spare:
+                spare.remove(i)
+        blocked = [i for i in range(window_start, window_end) if i not in have]
+        for target in blocked:
+            if len(have) >= need:
+                return
+            # Only swap in something from OUTSIDE this window.
+            candidates = [i for i in spare if not (window_start <= i < window_end)]
+            if not candidates:
+                return
+            source = candidates[0]
+            spare.remove(source)
+            plan[target], plan[source] = plan[source], plan[target]
+            have.append(target)
+
+    # The opening pack, to the player's requested depth.
+    first = min(pack_size, len(plan))
+    claim(0, first, min(max(wanted, 1), first))
+
+    # Then one solvable slot in each of the next few packs. Without this the
+    # generator deadlocks: packs open slots but only ABILITIES open locations,
+    # so a pack placed into the opening buys no new room and the reachable set
+    # stops growing. Measured - fill placed 27 of 57 progression items and then
+    # raised FillError. A solvable slot per early pack turns that into a
+    # staircase the fill can climb.
+    STAIRCASE_PACKS = 6
+    for step in range(1, STAIRCASE_PACKS):
+        start = step * pack_size
+        end = min(start + pack_size, len(plan))
+        if start >= len(plan):
+            break
+        claim(start, end, 1)
+
+    # If nothing anywhere is solvable we return what we have. That can only
+    # happen when every drawn level needs an ability and the player asked for
+    # zero starting abilities; the caller grants one to break the tie.
+    return plan
 
 
 def abilities_in(plan: List[Slot]) -> Set[str]:
