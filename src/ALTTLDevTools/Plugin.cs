@@ -722,6 +722,14 @@ public class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("clickcard", () => Phase0.ClickCard(cmd.Substring(10)));
             }
+            else if (cmd.Equals("cardlabels", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("cardlabels", () => CardLabels.Apply(true));
+            }
+            else if (cmd.Equals("cardlabels:off", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("cardlabels", () => CardLabels.Apply(false));
+            }
             else if (cmd.Equals("levelsweep", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("levelsweep", _dataTable.Start);

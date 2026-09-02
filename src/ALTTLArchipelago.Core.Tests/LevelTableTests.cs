@@ -85,7 +85,7 @@ public class LevelTableTests
         // No controller groups means no controller locations, but the solution
         // location must still exist or the slot would be unreachable.
         Assert.Empty(ControllerGroups.For(radial));
-        Assert.Single(LocationNames.ForSlot(0, radial));
+        Assert.Single(LocationNames.ForInstance(radial, 1));   // its one solution
         // And nothing is gated, so it is always playable.
         Assert.Empty(ControllerGroups.AbilitiesForLevel(radial));
     }

@@ -10,104 +10,128 @@ public class LocationNamesTests
     private static LevelInfo Level(string id, int solutions, params ControllerInfo[] cs)
         => new() { LevelId = id, SolutionCount = solutions, Controllers = cs.ToList() };
 
+    private static LevelTable Table()
+        => LevelTable.FromJson(
+            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "levels.json")));
+
     [Fact]
-    public void SlotNumbersAreOneBasedAndPadded()
+    public void ANameSaysWhatTheCheckActuallyIs()
     {
-        Assert.Equal("Slot 01 - Books (Randomized) - Solution 1",
-            LocationNames.Solution(0, "Books (Randomized)", 1));
-        Assert.Equal("Slot 79 - Jars - Solution 3",
-            LocationNames.Solution(78, "Jars", 3));
+        // The point of content naming: a hint is meaningful on its own.
+        Assert.Equal("Cookies Jigsaw (Good Tidings) - Match Reindeer",
+            LocationNames.Part("GoodTidings_Cookies (Jigsaw)", 1, "Match Reindeer"));
+        Assert.Equal("Medicine Cabinet - Solution 1",
+            LocationNames.Solution("MedicineCabinet", 1, 1));
+    }
+
+    [Fact]
+    public void RepeatedGeneratorsAreNumberedAfterTheFirst()
+    {
+        Assert.Equal("Books (Randomized) - Solution 2",
+            LocationNames.Solution("Books (Randomized)", 1, 2));
+        Assert.Equal("Books (Randomized) #3 - Solution 2",
+            LocationNames.Solution("Books (Randomized)", 3, 2));
+    }
+
+    [Fact]
+    public void NoNameCarriesASlotOrChapter()
+    {
+        // Anything positional would differ between seeds and break the
+        // datapackage, since slot 7 holds a different puzzle every time.
+        foreach (var n in LocationNames.AllPossible(Table()))
+        {
+            Assert.DoesNotContain("Slot ", n, StringComparison.Ordinal);
+            Assert.DoesNotContain("Chapter ", n, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void TheStaticTableIsUniqueAndCoversTheCredits()
+    {
+        var all = LocationNames.AllPossible(Table());
+
+        Assert.Equal(all.Count, all.Distinct().Count());
+        Assert.Contains(LocationNames.Credits, all);
+    }
+
+    [Fact]
+    public void EveryLocationAnySeedCanProduceIsInTheStaticTable()
+    {
+        var table = Table();
+        var all = LocationNames.AllPossible(table).ToHashSet();
+
+        foreach (var level in table.Levels)
+        {
+            int instances = level.Source == "generator"
+                ? LocationNames.MaxGeneratorInstances : 1;
+            for (int i = 1; i <= instances; i++)
+            {
+                foreach (var n in LocationNames.ForInstance(level, i)) Assert.Contains(n, all);
+                Assert.Contains(LocationNames.Beaten(level.LevelId, i), all);
+            }
+        }
     }
 
     [Fact]
     public void ASingleGroupLevelGetsOnlySolutionLocations()
     {
-        // One controller, one solution: the controller check and the solution
-        // check would be the same event, so only the solution is minted.
         var level = Level("SpiderWeb", 1, C("Draggables", "Draggables"));
 
-        var names = LocationNames.ForSlot(0, level);
-
-        Assert.Equal(new[] { "Slot 01 - SpiderWeb - Solution 1" }, names);
+        Assert.Equal(new[] { "Spider Web - Solution 1" },
+            LocationNames.ForInstance(level, 1));
     }
 
     [Fact]
-    public void ASingleGroupLevelWithSeveralSolutionsGetsOnePerSolution()
-    {
-        var level = Level("Books (Randomized)", 2, C("Shuffleables", "Shuffleables"));
-
-        var names = LocationNames.ForSlot(4, level);
-
-        Assert.Equal(new[]
-        {
-            "Slot 05 - Books (Randomized) - Solution 1",
-            "Slot 05 - Books (Randomized) - Solution 2",
-        }, names);
-    }
-
-    [Fact]
-    public void AMultiGroupLevelGetsSolutionsAndControllers()
+    public void AMultiGroupLevelGetsSolutionsAndNamedParts()
     {
         var level = Level("Breadtags", 1,
             C("Interlocking", "Draggables"),
             C("Crumbs", "Removables"));
 
-        var names = LocationNames.ForSlot(0, level);
-
         Assert.Equal(new[]
         {
-            "Slot 01 - Breadtags - Solution 1",
-            "Slot 01 - Breadtags - Crumbs",
-            "Slot 01 - Breadtags - Interlocking",
-        }, names);
+            "Breadtags - Solution 1",
+            "Breadtags - Crumbs",
+            "Breadtags - Interlocking",
+        }, LocationNames.ForInstance(level, 1));
     }
 
     [Fact]
-    public void AMutualPairDoesNotProduceTwoControllerLocations()
+    public void AMutualPairDoesNotProduceTwoParts()
     {
         // Spice Jars is a generator whose two Shuffleables are mutually
-        // dependent. Collapsing them leaves ONE group, which means no
-        // controller locations at all - only its two solutions.
+        // dependent, so it collapses to one group and gets no Part locations.
         var level = Level("Spice Jars", 2,
             C("SpiceJarShuffleables", "Shuffleables", "SpiceJarShuffleables_BottomShelf"),
             C("SpiceJarShuffleables_BottomShelf", "Shuffleables", "SpiceJarShuffleables"));
 
-        var names = LocationNames.ForSlot(2, level);
-
         Assert.Equal(new[]
         {
-            "Slot 03 - Spice Jars - Solution 1",
-            "Slot 03 - Spice Jars - Solution 2",
-        }, names);
+            "Spice Jars - Solution 1",
+            "Spice Jars - Solution 2",
+        }, LocationNames.ForInstance(level, 1));
     }
 
     [Fact]
-    public void TheSameGeneratorInDifferentSlotsGetsDistinctNames()
+    public void TheTableIsBigEnoughToBeInterestingAndSmallEnoughToShip()
     {
-        var level = Level("Books (Randomized)", 2, C("Shuffleables", "Shuffleables"));
+        var count = LocationNames.AllPossible(Table()).Count;
 
-        var a = LocationNames.ForSlot(3, level);
-        var b = LocationNames.ForSlot(40, level);
-
-        Assert.Empty(a.Intersect(b));
+        // Sanity bounds rather than an exact pin: the exact number moves with
+        // MaxGeneratorInstances, which is a tuning decision.
+        Assert.InRange(count, 300, 1200);
     }
 
     [Fact]
-    public void BeatenEventIsNamedPerSlot()
+    public void ChapterBoundariesStillFollowVanillaForTheTrackLayout()
     {
-        Assert.Equal("Slot 07 - Jars - Beaten", LocationNames.Beaten(6, "Jars"));
-    }
-
-    [Fact]
-    public void EveryNameIsUniqueWithinASlot()
-    {
-        var level = Level("MedicineCabinet", 1,
-            C("Swabs Containables", "Containables"),
-            C("Green Bottles Draggables", "DraggablesOrdered"),
-            C("Cup Draggables", "Draggables"));
-
-        var names = LocationNames.ForSlot(0, level);
-
-        Assert.Equal(names.Count, names.Distinct().Count());
+        // Chapters no longer appear in location names, but they still lay the
+        // level-select track out and title its sections.
+        Assert.Equal(79, Chapters.TotalSlots);
+        Assert.Equal(1, Chapters.ChapterOf(19));
+        Assert.Equal(2, Chapters.ChapterOf(20));
+        Assert.Equal(5, Chapters.ChapterOf(78));
+        Assert.Equal(12, Chapters.PositionInChapter(78));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Chapters.ChapterOf(79));
     }
 }

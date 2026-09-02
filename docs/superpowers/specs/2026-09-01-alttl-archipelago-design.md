@@ -63,21 +63,30 @@ Generator behaviour, measured over 8 seeds each (128 regenerations):
 credits last. Chapter markers keep their vanilla names and, at the default
 `puzzle_count` of 79, their vanilla 20/16/16/15/12 sizes.
 
-At other `puzzle_count` values the five sections split the slots as evenly as
-possible in the same descending shape, largest first, with any remainder given
-to the earliest sections. Below 10 slots the sections are dropped entirely and
-the track runs as one unsectioned strip, because a section of one card is
-noise rather than punctuation.
+**The chapter sizes do not rescale.** A lower `puzzle_count` truncates the
+track, so a short run simply ends part-way through a chapter. Keeping the
+boundaries fixed means "chapter 2, third card" refers to the same position in
+every run, which matters for the in-game display and for anyone reading a
+tracker.
 
 Each of the 79 slots is assigned at generation time by the apworld, sampled
 with weights defaulting to **generator 60 / archive 30 / base 10**. A
 generator slot records the generator plus a specific seed derived from the AP
 seed. Archive and base slots draw without replacement.
 
-Because slot contents are baked into the AP seed, location names are stable
-across the multiworld even though the puzzles are procedural:
-`Slot 07 - Books - Solution 1` means the same thing to the server, the
-tracker and the client every time.
+**Location names are content-based, not positional** - "Cookies Jigsaw (Good
+Tidings) - Match Reindeer", "Books (Randomized) #2 - Solution 2".
+
+This is forced. Archipelago's `location_name_to_id` is a `ClassVar` folded
+into the datapackage checksum, so the name set must be identical for every
+seed of the game. Slot 7 holds a different puzzle in every seed, so anything
+of the form "Slot 07 - ..." cannot exist. The set of *levels* is fixed, so
+naming by content works; a generator occupying several slots is numbered
+(" #2", " #3"), which caps repeats at `MaxGeneratorInstances`.
+
+The game shows no level name anywhere, so the mod adds a label under each
+card. Verified working: labels render in the game's own font beneath every
+card in the level select.
 
 **Unlocking:** one pack's worth of slots is open at start; the rest arrive as
 `Progressive Puzzle Pack` items, each opening the next `pack_size` slots in
@@ -87,13 +96,17 @@ whatever remains rather than a full group. At the defaults that is 4 slots
 free and **19 packs** - 18 of four and one of three. The filmstrip fills left
 to right exactly like vanilla.
 
-**Goal:** complete the credits card. Credits requires all 19 packs *and*
-`levels_to_beat` levels beaten (default 40, at least one solution each;
-skipped levels do not count).
+**Goal:** complete the credits card.
 
-The threshold is not redundant with the packs, because the binding constraint
-is abilities rather than packs: a player can hold all 19 packs, with all 79
-cards open, and still be unable to finish some of them for want of a verb.
+Credits is **its own progression item**, shuffled into the multiworld like any
+other - it can come from this world or another player's, early or late. It is
+not attached to a pack. When it arrives the card appears at the end of the
+filmstrip, and it stays locked showing "beat N puzzles" until
+`levels_to_beat` levels have been beaten (default 40, at least one solution
+each; skipped levels do not count).
+
+That makes the threshold the real gate rather than pack count, and keeps the
+finale visually last however early its unlock turns up.
 
 ## 4. Locations
 
@@ -102,7 +115,12 @@ Two kinds, roughly 180 total at default weights.
 | Kind | Rule | Requires |
 |---|---|---|
 | Solution | one per distinct solution on a level | `Pack(slot)` + **every** ability the level uses |
-| Controller | one per real controller, **only on levels with more than one** | `Pack(slot)` + that controller's ability |
+| Controller | one per controller GROUP, **only on levels with more than one** | `Pack(slot)` + that group's abilities, including its transitive dependencies |
+
+A controller *group* rather than a controller: mutually dependent controllers
+(`matchDependencySolutions`) are one puzzle wearing two hats and collapse into
+a single location. Measured in Phase 0 - 9 of 380 controllers declare a
+dependency, and 4 of the 5 affected levels are mutual pairs.
 
 A solution is an alternate arrangement of the *whole* level, so it cannot be
 recorded without finishing every controller - hence the stricter requirement.
