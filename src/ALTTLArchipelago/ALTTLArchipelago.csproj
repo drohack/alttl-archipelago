@@ -1,0 +1,135 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The BepInEx plugin that plays an Archipelago seed. This is the thing
+       that ships.
+
+       Prerequisites: src\GameDir.props pointing at an ALTTL install with
+       BepInEx (IL2CPP) installed and launched once, which generates the
+       interop assemblies referenced below. The game must be CLOSED when
+       building - the deploy step cannot overwrite a loaded DLL.
+
+       The game references cannot be satisfied on a CI runner with no game
+       installed, which is why the build that matters in CI is
+       ALTTLArchipelago.Core: it holds everything decidable without Unity and
+       has zero references, so a runner can compile and test it. Keep logic
+       there and keep this project thin. -->
+
+  <Import Project="..\GameDir.props" Condition="Exists('..\GameDir.props')" />
+
+  <Target Name="EnsureGameDir" BeforeTargets="BeforeBuild">
+    <Error Condition="'$(GameDir)' == '' Or !Exists('$(GameDir)')"
+           Text="GameDir is not set or does not exist. Copy src\GameDir.props.example to src\GameDir.props and point it at your A Little To The Left install." />
+  </Target>
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>ALTTLArchipelago</AssemblyName>
+    <RootNamespace>ALTTLArchipelago</RootNamespace>
+    <!-- Kept in step with [BepInPlugin] in Plugin.cs and world_version in
+         apworld/alttl/archipelago.json. Three places, in sync only by care. -->
+    <Version>0.1.0</Version>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>annotations</Nullable>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <!-- A library project does NOT copy its NuGet dependencies to the output
+         folder by default - a consuming app is expected to resolve them. A
+         BepInEx plugin has no consuming app, so without this the Archipelago
+         client simply is not there at runtime. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ALTTLArchipelago.Core\ALTTLArchipelago.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Ships alongside the plugin: BepInEx does not provide it. -->
+    <PackageReference Include="Archipelago.MultiClient.Net" Version="6.7.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Private=false on every game/BepInEx reference: these already exist in
+         the install, and copying them into the plugin folder would shadow the
+         real ones. -->
+    <Reference Include="BepInEx.Core">
+      <HintPath>$(GameDir)\BepInEx\core\BepInEx.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="BepInEx.Unity.IL2CPP">
+      <HintPath>$(GameDir)\BepInEx\core\BepInEx.Unity.IL2CPP.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2CppInterop.Runtime">
+      <HintPath>$(GameDir)\BepInEx\core\Il2CppInterop.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(GameDir)\BepInEx\core\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2Cppmscorlib">
+      <HintPath>$(GameDir)\BepInEx\interop\Il2Cppmscorlib.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2CppSystem.Core">
+      <HintPath>$(GameDir)\BepInEx\interop\Il2CppSystem.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(GameDir)\BepInEx\interop\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>$(GameDir)\BepInEx\interop\Unity.TextMeshPro.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- ReInput, for switching the game's input maps off while a text box
+         has focus: typing otherwise moved the mouse cursor. -->
+    <Reference Include="Rewired_Core">
+      <HintPath>$(GameDir)\BepInEx\interop\Rewired_Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- UnityEngine.Input, for reading Tab directly. Rewired is disabled at
+         that moment, so it cannot report the key itself. -->
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Localization">
+      <HintPath>$(GameDir)\BepInEx\interop\Unity.Localization.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Deploy the plugin AND the Archipelago client with its dependencies. The
+       layout here is deliberately identical to what the release zip contains,
+       so a dev install and a player install cannot diverge. -->
+  <Target Name="DeployToGame" AfterTargets="Build" Condition="'$(SkipDeploy)' != 'true'">
+    <ItemGroup>
+      <DeployFiles Include="$(TargetDir)ALTTLArchipelago.dll" />
+      <DeployFiles Include="$(TargetDir)ALTTLArchipelago.Core.dll" />
+      <DeployFiles Include="$(TargetDir)Archipelago.MultiClient.Net.dll" />
+      <DeployFiles Include="$(TargetDir)Newtonsoft.Json.dll" Condition="Exists('$(TargetDir)Newtonsoft.Json.dll')" />
+      <DeployFiles Include="$(TargetDir)websocket-sharp*.dll" />
+      <DeployFiles Include="$(TargetDir)System.Net.WebSockets*.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(DeployFiles)" DestinationFolder="$(GameDir)\BepInEx\plugins\ALTTLArchipelago" />
+    <Message Importance="high" Text="Deployed ALTTLArchipelago to $(GameDir)\BepInEx\plugins\ALTTLArchipelago" />
+  </Target>
+
+</Project>

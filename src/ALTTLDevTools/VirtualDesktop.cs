@@ -93,6 +93,84 @@ internal static class VirtualDesktop
         return result;
     }
 
+    /// <summary>
+    /// Raise the GAME window above the BepInEx console.
+    ///
+    /// The console is created first and keeps the foreground, so the game
+    /// starts hidden behind it and has to be clicked before it can be played -
+    /// every launch, which during a testing session is every couple of minutes.
+    ///
+    /// Both windows belong to this process, so no focus-stealing rules apply
+    /// and no AttachThreadInput dance is needed. The console is deliberately
+    /// left open and merely behind: it is the whole point of a dev build.
+    /// </summary>
+    internal static void FocusGameWindow(Action<string> log)
+    {
+        try
+        {
+            var game = GameWindow();
+            if (game == IntPtr.Zero)
+            {
+                log("could not find the game window to raise");
+                return;
+            }
+
+            // Restore first in case it came up minimised, then raise and focus.
+            ShowWindow(game, SW_SHOW);
+            BringWindowToTop(game);
+            SetForegroundWindow(game);
+            log("raised the game window above the console");
+        }
+        catch (Exception e)
+        {
+            log($"could not raise the game window: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// The Unity window, told apart from the BepInEx console by class name.
+    /// The console is a real console window (ConsoleWindowClass); Unity's is
+    /// UnityWndClass. Matching on the title would be fragile - both contain
+    /// the game's name.
+    /// </summary>
+    private static IntPtr GameWindow()
+    {
+        IntPtr found = IntPtr.Zero;
+        uint self = GetCurrentProcessId();
+        var className = new StringBuilder(256);
+
+        EnumWindows((h, _) =>
+        {
+            if (!IsWindowVisible(h)) return true;
+            GetWindowThreadProcessId(h, out uint pid);
+            if (pid != self) return true;
+
+            className.Clear();
+            GetClassNameW(h, className, className.Capacity);
+            if (className.ToString().IndexOf("Unity", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                found = h;
+                return false;
+            }
+            return true;
+        }, IntPtr.Zero);
+        return found;
+    }
+
+    private const int SW_SHOW = 5;
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool BringWindowToTop(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetClassNameW(IntPtr hWnd, StringBuilder name, int count);
+
     private static IEnumerable<IntPtr> OwnWindows()
     {
         var mine = new List<IntPtr>();

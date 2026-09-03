@@ -171,6 +171,8 @@ public class DevToolsBehaviour : MonoBehaviour
         {
             _desktopMoved = true;
             VirtualDesktop.MoveGameTo(DevToolsPlugin.TargetDesktop, m => DevToolsPlugin.Log.LogInfo(m));
+            // After any desktop move, so the raise is not undone by it.
+            VirtualDesktop.FocusGameWindow(m => DevToolsPlugin.Log.LogInfo(m));
         }
 
         var gm = GameManager.Instance;
@@ -742,6 +744,11 @@ public class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("tint", () => Phase0.TintCards(true));
             }
+            else if (cmd.StartsWith("clickbutton:", StringComparison.OrdinalIgnoreCase))
+            {
+                var name = cmd.Substring("clickbutton:".Length);
+                SafeRun("clickbutton", () => ClickButton(name));
+            }
             else if (cmd.StartsWith("unlockto:", StringComparison.OrdinalIgnoreCase))
             {
                 var arg = cmd.Substring("unlockto:".Length);
@@ -827,6 +834,60 @@ public class DevToolsBehaviour : MonoBehaviour
     /// Needed to compare tracker markers: a fresh save shows three unlocked
     /// cards, and the markers only matter on unlocked ones.
     /// </summary>
+    /// <summary>
+    /// "clickbutton:Name" invokes the onClick of the first Button whose
+    /// GameObject is called Name. There is no synthetic mouse input here, so
+    /// UI added by another plugin can be exercised from a script - which is
+    /// the only way to test the randomizer's own connection pane.
+    /// </summary>
+    private static void ClickButton(string name)
+    {
+        foreach (var button in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<UnityEngine.UI.Button>()))
+        {
+            var b = button == null ? null : button.TryCast<UnityEngine.UI.Button>();
+            if (b == null || b.gameObject == null) continue;
+            // Own name OR the parent's: a composite control such as the
+            // modal's confirm keeps its Button on a child, so matching only
+            // the Button's own GameObject missed it.
+            var parentName = b.transform.parent?.gameObject.name ?? "";
+            if (!string.Equals(b.gameObject.name, name, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(parentName, name, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!b.gameObject.activeInHierarchy) continue;
+
+            DevToolsPlugin.Log.LogInfo($"clickbutton: invoking {name} (Button on {b.gameObject.name})");
+            b.onClick.Invoke();
+            return;
+        }
+
+        // Also the game's own long-press control, which is a UIBehaviour and
+        // NOT a Button - the modal's confirm is one, so a Button-only search
+        // reported "no active button" for a control plainly on screen.
+        foreach (var obj in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<UILongPressButton>()))
+        {
+            var lp = obj == null ? null : obj.TryCast<UILongPressButton>();
+            if (lp == null || lp.gameObject == null) continue;
+            if (!string.Equals(lp.gameObject.name, name, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!lp.gameObject.activeInHierarchy) continue;
+
+            // The inner Button first - that is where a listener is normally
+            // attached - and only then the long-press event.
+            var inner = lp.Button;
+            if (inner != null)
+            {
+                DevToolsPlugin.Log.LogInfo($"clickbutton: invoking {name} (inner Button)");
+                inner.onClick.Invoke();
+                return;
+            }
+            DevToolsPlugin.Log.LogInfo($"clickbutton: invoking {name} (long press)");
+            lp.m_btnAction?.Invoke();
+            return;
+        }
+
+        DevToolsPlugin.Log.LogWarning($"clickbutton: no active control named {name}");
+    }
+
     private static void UnlockTo(string arg)
     {
         if (!int.TryParse(arg, NumberStyles.Integer, CultureInfo.InvariantCulture,
