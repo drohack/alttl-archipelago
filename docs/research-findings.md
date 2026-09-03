@@ -245,8 +245,8 @@ lock a level behind a total-solutions count and show it as locked.
 
 ## What was proven by experiment
 
-The probe (`src/ALTTLProbe/`) is a BepInEx plugin driven by a file-command
-channel at `BepInEx/alttl-probe-commands.txt`. Commands: `dump`, `solutions`,
+The probe (`src/ALTTLDevTools/`) is a BepInEx plugin driven by a file-command
+channel at `BepInEx/alttl-devtools-commands.txt`. Commands: `dump`, `solutions`,
 `state`, `boot:<index>[:<seed>]`, `complete`.
 
 | Claim | Result |
@@ -264,7 +264,7 @@ channel at `BepInEx/alttl-probe-commands.txt`. Commands: `dump`, `solutions`,
 - **A real solve reporting a real `SolutionId`.** The forced `CompleteLevel()`
   path completes the level but records no solution (`found=0`), because no
   ObjectController actually solved. Needs a human to solve one puzzle with the
-  probe running and read `alttl-events.log`.
+  probe running and read `alttl-watch.log`.
 - **Whether the level-select UI honours a forced lock.** `IsUnlocked` can be
   read; nothing has yet tried to *hold a level locked* against the player.
 - **Re-entering a solved level to find its other solutions.** The game clearly

@@ -16,15 +16,23 @@ called.
 """
 
 import json
-import os
+import pkgutil
 from typing import Dict, FrozenSet, List, Optional
-
-_DIR = os.path.join(os.path.dirname(__file__), "data")
 
 
 def _load(name: str) -> dict:
-    with open(os.path.join(_DIR, name), encoding="utf-8") as fh:
-        return json.load(fh)
+    """Read one of the shared data files.
+
+    Via pkgutil, NOT open(). A shipped world is a zip-imported .apworld, where
+    these files have no path on disk - open() raises FileNotFoundError and the
+    whole world fails to load. It works in a development checkout either way,
+    so the bug is invisible until someone installs the packaged build, which is
+    exactly how it was found.
+    """
+    raw = pkgutil.get_data(__package__, f"data/{name}")
+    if raw is None:      # pragma: no cover - a packaging error, not a run-time one
+        raise FileNotFoundError(f"{name} is missing from the alttl world package")
+    return json.loads(raw.decode("utf-8"))
 
 
 _LEVELS_RAW = _load("levels.json")

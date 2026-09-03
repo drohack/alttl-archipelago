@@ -107,3 +107,60 @@ jobs:
           find players -maxdepth 1 -name '*.yaml' ! -name 'A Little to the Left.yaml' -delete
           python Generate.py --player_files_path players --outputpath out --seed 20260902
           test -n "$(ls out/*.zip)"
+
+  apworld-package:
+    # Tests the ARTIFACT, not the folder. A world runs from inside a zip once
+    # packaged, where nothing has a path on disk, so a world that reads its own
+    # data with open() works all through development and fails the instant a
+    # player installs the release. That shipped here once. This job removes the
+    # loose copy, installs only the .apworld, and generates a real seed - the
+    # only arrangement in which that class of bug is visible.
+    name: apworld package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Read the minimum supported Archipelago version
+        id: ap
+        run: |
+          python3 -c "import json;print('ref=' + json.load(open('apworld/alttl/archipelago.json'))['minimum_ap_version'])" >> "$GITHUB_OUTPUT"
+      - name: Check out Archipelago at that version
+        uses: actions/checkout@v4
+        with:
+          repository: ArchipelagoMW/Archipelago
+          ref: ${{ steps.ap.outputs.ref }}
+          path: ap
+      - name: Install Archipelago's requirements
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ap/requirements.txt
+      - name: Build the apworld
+        run: python tools/build_apworld.py --out dist --install-to ap
+      - name: Confirm no loose copy can satisfy the import
+        run: |
+          test ! -e ap/worlds/alttl
+          test -f ap/custom_worlds/alttl.apworld
+      - name: The packaged world must load
+        working-directory: ap
+        run: |
+          python -c "
+          from worlds.AutoWorld import AutoWorldRegister
+          w = AutoWorldRegister.world_types['A Little to the Left']
+          assert w.zip_path, 'loaded from a folder, not the .apworld'
+          print('loaded from', w.zip_path)
+          "
+      - name: Generate a real seed from the packaged world
+        working-directory: ap
+        run: |
+          mkdir -p players out
+          python -c "from Options import generate_yaml_templates; generate_yaml_templates('players', False)"
+          find players -maxdepth 1 -name '*.yaml' ! -name 'A Little to the Left.yaml' -delete
+          python Generate.py --player_files_path players --outputpath out --seed 20260902
+          test -n "$(ls out/*.zip)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alttl-apworld
+          path: dist/alttl.apworld
+          if-no-files-found: error

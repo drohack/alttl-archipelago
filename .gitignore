@@ -30,3 +30,8 @@ __pycache__/
 *.bak
 *.png
 *.log
+
+# Local test servers and generated seeds
+/testserver/
+/testseed/
+/smoke_alttl/

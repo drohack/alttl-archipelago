@@ -1,7 +1,9 @@
 # A Little To The Left - Archipelago randomizer design
 
 Date: 2026-09-01
-Status: design agreed, not implemented
+Status: agreed. Phases 0-2 built (verification gate, repo skeleton, the
+apworld). The mod itself is not started. Amendments from measurement are marked
+inline and dated.
 
 Supporting research: [research-findings.md](../../research-findings.md) (the
 modding surface) and [content-report.md](../../content-report.md) (what the

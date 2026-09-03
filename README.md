@@ -1,15 +1,28 @@
-# A Little To The Left - Archipelago (research)
+# A Little To The Left - Archipelago
 
-Feasibility research for an [Archipelago](https://archipelago.gg) multiworld
-randomizer for [A Little To The Left](https://store.steampowered.com/app/1629520/).
+An [Archipelago](https://archipelago.gg) multiworld randomizer for
+[A Little To The Left](https://store.steampowered.com/app/1629520/).
 
-**Status: research only.** Nothing is designed or built yet. What exists is a
-BepInEx probe that proves the game is moddable and answers what a randomizer
-would be able to drive.
+**Status: a seed generates and the game connects to it.** Not playable yet -
+the mod reports what the seed contains and does not touch the puzzles.
 
-## The short answer
+| Part | State |
+|---|---|
+| Research and the verification gate | done, [verification log](docs/verification-log.md) |
+| Design | agreed, [spec](docs/superpowers/specs/2026-09-01-alttl-archipelago-design.md) |
+| `apworld/alttl/` - the Archipelago world | **generates real seeds**, 69 tests |
+| `src/ALTTLArchipelago.Core/` - Unity-free rules and state | started, 75 tests |
+| `src/ALTTLArchipelago/` - the BepInEx mod | connects, parses slot_data, 9 contract tests |
 
-Yes, and unusually easily.
+Verified end to end on 2026-09-02: a generated seed served by `MultiServer.py`,
+the game connecting to it under IL2CPP, receiving its starting item, and
+reporting the run back - 79 puzzles, 14 packs, 12 abilities. The next piece of
+work is putting those slots on the level select.
+
+## Is the game moddable?
+
+Yes, and unusually easily. This was the question the project started with, and
+the answers below are what the rest of the work rests on.
 
 - Unity 2020.3.26f1 / IL2CPP. **BepInEx 6 IL2CPP loads it cleanly.**
 - Nothing is obfuscated - the interop assemblies decompile to 683 readable
@@ -77,6 +90,9 @@ Drive it by writing a command into `<game>/BepInEx/alttl-devtools-commands.txt`:
 | `menu:title` / `menu:levels` / `menu:archive` / `menu:daily` | Jump to a menu |
 | `unlocks` | Write the campaign unlock/completion state and chapter membership |
 | `sections` | Log the level-select sections and every track icon's lock state |
+| `levelsweep` | Boot every level in turn and record its RUNTIME controllers to `apworld/alttl/data/levels.json`. This is the source of truth for the level table |
+| `gensweep:<index>[:<n>]` | Regenerate one procedural puzzle n times and record how its layout varies |
+| `cardlabels` / `cardlabels:off` | Put the level name under each level-select card |
 | `solve:<index>[:<solutionId>]` | Write a completion entry into the save |
 | `resetlevels` | Reset level completion data to a fresh save |
 | `reorder:<i1,i2,...>` or `reorder:off` | Replace the level-select track with an arbitrary level list |
@@ -89,13 +105,17 @@ Drive it by writing a command into `<game>/BepInEx/alttl-devtools-commands.txt`:
 | `marker:states` / `marker:refresh` / `marker:off` | Cycle the four tracker-badge states across the cards: green, green/red split corner to corner, red, star. See S5 in the verification log |
 | `unlockto:<n>` | Give the first n levels a completion entry, so the level select renders them unlocked |
 
-Gameplay events land in `BepInEx/alttl-events.log`.
+Gameplay events land in `BepInEx/alttl-watch.log`, and only when the
+`WatchEvents` config setting is on - `ObjectPlaced` alone fires hundreds of
+times per level load, so it is off by default.
 
 Curated copies of the probe output are in [docs/data/](docs/data/).
 
 ## Repository layout
 
-- `src/ALTTLArchipelago/` - the BepInEx mod (ships in releases)
+- `src/ALTTLArchipelago/` - the BepInEx mod that plays a seed. Deliberately
+  thin: it holds the Unity and Archipelago-client glue and nothing decidable
+  without them
 - `src/ALTTLArchipelago.Core/` - the mod's rules and state as pure C# with no
   Unity dependency, so all of it is unit-testable. It has zero references by
   design and CI builds it standalone to keep it that way
@@ -106,4 +126,60 @@ Curated copies of the probe output are in [docs/data/](docs/data/).
 - `docs/verification-log.md` - results of the Phase 0 verification gate
 - `docs/research-findings.md` - the modding surface: what was proven, and how
 - `docs/content-report.md` - the content: base game, daily, archive, DLC
-- `docs/data/` - the level table and controller survey the probe produced
+- `docs/data/` - the level table and controller survey the probe produced.
+  Reference data only: the survey walks level *prefabs*, and the runtime
+  controller set differs, so `apworld/alttl/data/levels.json` is the source of
+  truth
+- `tools/ap-sync.ps1` - copy `apworld/alttl` into the Archipelago clone
+- `tools/build_apworld.py` - package the world into a distributable
+  `alttl.apworld`
+- `.github/workflows/ci.yml` - Core built with no game installed, Core tests,
+  the world's tests against the minimum supported Archipelago version, the
+  packaged apworld generating a real seed, and an ASCII-only check
+
+## Building the mod
+
+```
+cp src/GameDir.props.example src/GameDir.props   # point it at your install
+dotnet build src/ALTTLArchipelago                # deploys into the game
+```
+
+The game must be closed, and BepInEx must have been launched once so the
+interop assemblies exist.
+
+**This is the one thing CI cannot build.** It references BepInEx interop
+assemblies generated from a local install, so a runner with no game cannot
+compile it. That is the whole reason `ALTTLArchipelago.Core` exists with zero
+references: everything decidable without Unity lives there and IS tested in
+CI, including the slot_data contract against a payload the generator really
+produced. If you want CI to build the plugin too, the usual answer in the
+BepInEx world is a separate repo publishing stripped reference assemblies as a
+NuGet package, the way TromboneChamp and Outer Wilds do it.
+
+To try it against a real seed, generate one, serve it with
+`python Archipelago/MultiServer.py --port 38281 <seed>.zip`, then set Host,
+Port and SlotName in `BepInEx/config/droha.alttl.archipelago.cfg` and launch.
+
+## The Archipelago world
+
+`apworld/alttl/` is the generator side, and it is the part that works today.
+It needs an Archipelago checkout to run against; the repo expects a clone at
+`Archipelago/`, which is gitignored.
+
+```
+powershell tools/ap-sync.ps1                              # copy the world in
+cd Archipelago
+python -m unittest discover -s worlds/alttl/test -t .     # 69 tests
+```
+
+The fill is seed-dependent, so a single seed proves very little - that is how a
+broadly broken fill once sat behind a fully green suite. `test_fill_stress.py`
+sweeps 28 option configurations across a span of fixed seeds; widen it before a
+release:
+
+```
+ALTTL_STRESS_SEEDS=200 python -m unittest worlds.alttl.test.test_fill_stress
+```
+
+To roll a real seed, put a yaml in a folder and run
+`python Generate.py --player_files_path <folder>`.
