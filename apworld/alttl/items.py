@@ -93,21 +93,31 @@ MIN_OPENING = 4
 #: wants - slow while you have few abilities, quick once you have many.
 PACK_ACCELERATIONS = (3, 2, 1)
 
-#: Hard ceiling on how many pack items a run may contain, and the reason the
-#: ramp is chosen rather than fixed.
+#: Ceiling on how many pack items a run may contain, PROPORTIONAL to its
+#: length, and the reason the ramp is chosen rather than fixed.
 #:
 #: Every pack is a progression item, and progression DENSITY is what decides
 #: whether a seed can be filled. Flat packs at pack_size 1 meant 75 of them
 #: against about 110 locations in a generators-only run - roughly a third of
 #: the pool blocking its own placement - and generation failed outright.
-#: Capping the count bounds that density for every option combination at once,
-#: which is why it is a cap and not a tuning knob.
 #:
-#: Measured 2026-09-02 over 28 configurations x 15 seeds: uncapped, the
-#: generators-only + pack_size 1 + no-starting-abilities combination filled
-#: 9/12. Capped, every configuration filled every seed. 14 is the largest value
-#: that does so, chosen so the default run's pacing is left alone.
+#: A FLAT cap of 14 was the first attempt and was wrong in a way a 79-puzzle
+#: run never shows: it is a sensible number of packs for 79 puzzles and far too
+#: many for 35, because a shorter run has proportionally fewer locations to
+#: absorb them. Measured 2026-09-03, pack_size 1 with no starting abilities:
+#: a 50-puzzle run filled 56/60 and a 35-puzzle run only 44/60. Scaling the cap
+#: with the length took both to 60/60 and left the 79-puzzle default on the
+#: same 14 packs it had before.
+#:
+#: 0.18 is where the two working points already sat - 14 packs across 79
+#: puzzles is 0.177 - so this generalises what the long run was doing rather
+#: than inventing a number.
+PACKS_PER_PUZZLE = 0.18
 MAX_PACKS = 14
+
+
+def _pack_cap(puzzle_count: int) -> int:
+    return max(1, min(MAX_PACKS, round(puzzle_count * PACKS_PER_PUZZLE)))
 
 
 def _schedule(puzzle_count: int, pack_size: int, acceleration: int) -> List[int]:
@@ -132,13 +142,23 @@ def pack_boundaries(puzzle_count: int, pack_size: int) -> List[int]:
     therefore widen faster - which is what the player asked for anyway, since
     they asked to start slow rather than to stay slow for eighty puzzles.
     """
+    cap = _pack_cap(puzzle_count)
     schedule = _schedule(puzzle_count, pack_size, PACK_ACCELERATIONS[-1])
     for acceleration in PACK_ACCELERATIONS:
         candidate = _schedule(puzzle_count, pack_size, acceleration)
-        if len(candidate) - 1 <= MAX_PACKS:
+        if len(candidate) - 1 <= cap:
             return candidate
-    # Even the steepest ramp overflows the cap. Cannot happen for the option
-    # ranges we ship; returning it beats returning nothing.
+    # Even the steepest ramp overflows the cap, which a short run at pack_size
+    # 1 really can do. Widen the step itself rather than shipping a run with
+    # far more pack items than it has room for.
+    if len(schedule) - 1 > cap:
+        widened = [min(max(pack_size, MIN_OPENING), puzzle_count)]
+        step_index = 1
+        while widened[-1] < puzzle_count:
+            widened.append(min(widened[-1] + pack_size + (step_index - 1) * 2,
+                               puzzle_count))
+            step_index += 1
+        return widened
     return schedule
 
 

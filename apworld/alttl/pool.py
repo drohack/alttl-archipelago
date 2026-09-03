@@ -14,6 +14,14 @@ from . import data, items, locations, rules, slots
 #: "... at Medicine Cabinet - Blue Bottles in droha's World at Ch.2 Level 3."
 CHAPTER_SIZES = (20, 16, 16, 15, 12)
 
+#: Checks the free opening should offer before the run is handed to the fill.
+#:
+#: Not a difficulty knob - it is the room the fill needs to place its first
+#: progression items. Below this the placement cascade cannot start, and on a
+#: small run it stalls outright. Six was the lowest value that cleared every
+#: measured configuration.
+OPENING_FLOOR = 6
+
 
 def _chapter_and_position(slot_index: int) -> str:
     seen = 0
@@ -22,6 +30,24 @@ def _chapter_and_position(slot_index: int) -> str:
             return f"Ch.{chapter} Level {slot_index - seen + 1}"
         seen += size
     return f"Level {slot_index + 1}"
+
+
+def _free_checks(plan_slice, held) -> int:
+    """Addressed checks in these slots that need no further ability.
+
+    Mirrors what rules.requirements will say for pack-free locations: a
+    solution needs the whole level's abilities, a part only its own group's.
+    """
+    total = 0
+    for slot in plan_slice:
+        level = slot.level
+        if level.abilities <= held:
+            total += level.solution_count
+        if level.has_parts:
+            for part in level.parts:
+                if level.part_abilities.get(part, frozenset()) <= held:
+                    total += 1
+    return total
 
 
 def decide(world) -> None:
@@ -78,20 +104,43 @@ def decide(world) -> None:
         world.random, world.plan, pack_size,
         o.guaranteed_open_slots.value, held)
 
-    # Last resort: if the opening is still entirely locked, grant one more
-    # ability rather than shipping a seed that cannot be started. Only reachable
-    # when the player asked for zero starting abilities and every drawn level
-    # needs one.
+    # Make sure the opening offers enough to DO, not merely something.
+    #
+    # An earlier version only rescued an opening that was entirely locked. That
+    # is too weak for a small, starved run: a 79-puzzle seed has plenty of
+    # ability-free checks lying around, but 8 puzzles drawn from one event pack
+    # with no mechanic coverage may offer two or three, and the fill has
+    # nowhere to put its first items. Measured - that exact combination failed
+    # about one generation in forty, and relaxing ANY single one of those
+    # settings fixed it.
+    #
+    # So abilities are granted until the free opening holds OPENING_FLOOR
+    # checks, or until granting stops helping. Each grant is the ability that
+    # opens the most, so the fewest are needed.
     if ability_locks and world.plan:
         window = min(max(pack_size, items.MIN_OPENING), len(world.plan))
-        if not any(world.plan[i].level.abilities <= held for i in range(window)):
-            needed = min(world.plan[:window], key=lambda s: len(s.level.abilities))
-            granted = False
-            for ability in sorted(needed.level.abilities):
-                if ability not in world.starting_abilities:
-                    world.starting_abilities.append(ability)
-                    held.add(ability)
-                    granted = True
+        granted = False
+
+        for _ in range(len(world.live_abilities)):
+            if _free_checks(world.plan[:window], held) >= OPENING_FLOOR:
+                break
+
+            best, gain = None, 0
+            for ability in world.live_abilities:
+                if ability in world.starting_abilities:
+                    continue
+                opened = _free_checks(world.plan[:window], held | {ability})
+                if opened > gain:
+                    best, gain = ability, opened
+
+            # Nothing left to grant, or nothing that would help. A run this
+            # thin is as open as it can be made; the fill takes it from here.
+            if best is None or gain <= _free_checks(world.plan[:window], held):
+                break
+
+            world.starting_abilities.append(best)
+            held.add(best)
+            granted = True
 
             # Reorder AGAIN with the wider ability set. The grant can make
             # levels elsewhere in the run solvable too, and without a second

@@ -86,6 +86,52 @@ class TestTables(unittest.TestCase):
             bounds = items.pack_boundaries(79, pack_size)
             self.assertGreaterEqual(bounds[0], min(items.MIN_OPENING, 79))
 
+    def test_the_levels_with_no_controller_groups_are_this_exact_set(self):
+        """Pinned because our logic being LOOSER than the game is the one
+        failure that generating seeds can never detect.
+
+        These three carry no puzzle controller at all, so every check on them
+        is unconditionally free in logic. That is correct only because the mod
+        dims objects BY controller class - a level the sweep saw no controllers
+        on has nothing to dim, so it stays fully playable and the check really
+        is free.
+
+        The danger is DIVERGENCE between the table and the running game. This
+        table came from a runtime sweep; if the game registers controllers at
+        play time that the sweep did not see, the mod would dim them while
+        logic still calls the check free, and the seed could be unwinnable in a
+        way no amount of generation testing reveals. Radial Dance Party is a
+        known bespoke Level subclass that reported zero controllers, so it is
+        exactly the shape of thing to distrust.
+
+        Note this is NOT the same as "needs no ability" - 35 levels need none,
+        because their controllers are Draggables, the free baseline verb. Those
+        are ordinary. These three are the ones we have no information about.
+
+        If this set changes, do not update the expectation - find out what the
+        game actually does with the new member.
+        """
+        ungrouped = {level.level_id for level in data.LEVELS if not level.parts}
+        self.assertEqual(
+            {"Drink Glasses", "Radial Dance Party", "MerryMess_Presents"},
+            ungrouped,
+            "the set of levels with no controller groups moved; see the docstring")
+
+    def test_every_level_offers_at_least_one_check(self):
+        """A level with no checks is a card that can never be collected, and
+        it would silently shrink the pool the fill has to work with."""
+        for level in data.LEVELS:
+            self.assertGreater(
+                len(locations.names_for(level, 1)), 0, level.level_id)
+
+    def test_no_part_needs_more_than_its_level(self):
+        """The safety direction: narrowing a part must never invent a
+        requirement the level as a whole does not have."""
+        for level in data.LEVELS:
+            for part, abilities in level.part_abilities.items():
+                self.assertTrue(abilities <= level.abilities,
+                                f"{level.level_id} / {part}")
+
     def test_single_group_levels_get_no_part_locations(self):
         """On a single-group level the group check and the first solution check
         are the same event; minting both would double count."""

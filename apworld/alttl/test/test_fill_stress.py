@@ -167,6 +167,86 @@ class TestTheOpeningIsUsable(unittest.TestCase):
         self.assertFalse(dead, "runs that cannot be started:\n" + "\n".join(dead))
 
 
+class TestEverySeedIsWinnable(unittest.TestCase):
+    """Filling is not the same as being completable.
+
+    A seed can fill perfectly and still strand a location behind a requirement
+    nothing satisfies, or place the goal out of reach. The fill only promises
+    it found somewhere for each item; these assert the player can actually
+    finish. Added after a randomised audit showed the committed tests checked
+    placement but never reachability.
+    """
+
+    def test_every_location_is_reachable_with_everything(self):
+        stranded = []
+        for name, options in CONFIGURATIONS.items():
+            for seed in seed_span():
+                test = _generate(options, seed)
+                distribute_items_restrictive(test.multiworld)
+
+                state = test.multiworld.get_all_state()
+                for location in test.multiworld.get_locations(test.player):
+                    if location.address is None:
+                        continue
+                    if not location.can_reach(state):
+                        stranded.append(f"  {name} (seed {seed}): {location.name}")
+                        break
+        self.assertFalse(stranded, "locations unreachable even holding every "
+                                   "item in the multiworld:\n"
+                                   + "\n".join(stranded))
+
+    def test_the_goal_is_always_achievable(self):
+        unwinnable = []
+        for name, options in CONFIGURATIONS.items():
+            for seed in seed_span():
+                test = _generate(options, seed)
+                distribute_items_restrictive(test.multiworld)
+
+                state = test.multiworld.get_all_state()
+                if not test.multiworld.has_beaten_game(state, test.player):
+                    unwinnable.append(f"  {name} (seed {seed})")
+        self.assertFalse(unwinnable, "seeds whose goal cannot be reached:\n"
+                                     + "\n".join(unwinnable))
+
+
+class TestTheOpeningCanAbsorbTheFirstItems(unittest.TestCase):
+    """The floor that pool.decide grants abilities to reach.
+
+    A small, starved run - few puzzles, one event pack, no mechanic coverage -
+    could offer two or three ability-free checks and leave the fill nowhere to
+    put its first progression items. Measured at about one generation in forty
+    for that combination before the floor existed.
+    """
+
+    def test_openings_meet_the_floor_where_the_content_allows(self):
+        from .. import items as apitems, pool as appool
+
+        thin = []
+        for name, options in CONFIGURATIONS.items():
+            for seed in seed_span():
+                test = _generate(options, seed)
+                world = test.multiworld.worlds[test.player]
+                if not world.options.ability_locks.value:
+                    continue
+
+                window = min(max(world.pack_size, apitems.MIN_OPENING),
+                             len(world.plan))
+                held = set(world.starting_abilities)
+                free = appool._free_checks(world.plan[:window], held)
+
+                # Below the floor is only acceptable when granting every
+                # remaining ability would still not reach it - a run that thin
+                # has nothing more to give.
+                if free < appool.OPENING_FLOOR:
+                    everything = held | set(world.live_abilities)
+                    best = appool._free_checks(world.plan[:window], everything)
+                    if best >= appool.OPENING_FLOOR:
+                        thin.append(f"  {name} (seed {seed}): {free} free checks, "
+                                    f"{best} reachable by granting more")
+        self.assertFalse(thin, "openings left thinner than the content allows:\n"
+                               + "\n".join(thin))
+
+
 class TestAlongsideOtherGames(unittest.TestCase):
     """Confirmation, not the gate.
 
