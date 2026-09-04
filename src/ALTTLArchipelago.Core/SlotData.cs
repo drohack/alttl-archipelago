@@ -42,6 +42,19 @@ public sealed class SlotData
     [JsonPropertyName("pack_total")]
     public int PackTotal { get; set; }
 
+    /// <summary>
+    /// Cumulative puzzles open after each pack; element 0 is the free opening.
+    ///
+    /// Sent by the generator rather than recomputed here. The ramp that
+    /// decides it is a gentlest-fit acceleration under a cap proportional to
+    /// run length, and a second implementation of that in C# would eventually
+    /// disagree - at which point the game unlocks a different set of puzzles
+    /// than the logic assumed reachable, and a seed that generated cleanly
+    /// cannot be finished.
+    /// </summary>
+    [JsonPropertyName("pack_boundaries")]
+    public List<int> PackBoundaries { get; set; } = new();
+
     /// <summary>Puzzles to beat before the credits card unlocks.</summary>
     [JsonPropertyName("levels_to_beat")]
     public int LevelsToBeat { get; set; } = 40;
@@ -68,6 +81,17 @@ public sealed class SlotData
     public Dictionary<string, Requirement> Requirements { get; set; } = new();
 
     /// <summary>Percentage of filler that is the cat knocking things over.</summary>
+    /// <summary>
+    /// Controller GameObject name -> group display name, per level.
+    ///
+    /// Sent by the generator rather than derived here. The grouping rule merges
+    /// mutually-dependent controllers into a single checkable unit, and that
+    /// decision is what a location IS - two implementations of it would
+    /// eventually disagree about whether one event or two is a check.
+    /// </summary>
+    [JsonPropertyName("controller_groups")]
+    public Dictionary<string, Dictionary<string, string>> ControllerGroups { get; set; } = new();
+
     [JsonPropertyName("cat_trap_chance")]
     public int CatTrapChance { get; set; } = 10;
 
@@ -127,9 +151,50 @@ public sealed class SlotData
 
         if (Slots.Count == 0) problems.Add("no slots");
         if (PackSize < 1) problems.Add($"pack_size is {PackSize}");
+
+        if (PackBoundaries.Count == 0)
+        {
+            problems.Add("no pack_boundaries - the mod cannot tell which "
+                + "puzzles a pack opens");
+        }
+        else
+        {
+            // Holding every pack must open every slot. One short strands the
+            // end of the track behind an item that does not exist.
+            if (PackBoundaries[PackBoundaries.Count - 1] != Slots.Count)
+            {
+                problems.Add(
+                    $"pack_boundaries end at {PackBoundaries[PackBoundaries.Count - 1]}"
+                    + $" but the run has {Slots.Count} slots");
+            }
+            if (PackBoundaries.Count - 1 != PackTotal)
+            {
+                problems.Add($"{PackBoundaries.Count - 1} pack steps but "
+                    + $"pack_total is {PackTotal}");
+            }
+        }
         if (LevelsToBeat > Slots.Count)
         {
             problems.Add($"levels_to_beat {LevelsToBeat} exceeds {Slots.Count} slots");
+        }
+
+        // Every level in the run needs its controller map, or every group check
+        // on it is silently unreportable: the solved event arrives, nothing
+        // matches, and no location is ever sent. Reported here because that
+        // failure is completely invisible while playing.
+        var missing = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var slot in Slots)
+        {
+            if (!string.IsNullOrEmpty(slot.LevelId)
+                && !ControllerGroups.ContainsKey(slot.LevelId))
+            {
+                missing.Add(slot.LevelId);
+            }
+        }
+        if (missing.Count > 0)
+        {
+            problems.Add($"{missing.Count} level(s) have no controller_groups entry: "
+                + string.Join(", ", missing.Take(5)));
         }
 
         for (int i = 0; i < Slots.Count; i++)

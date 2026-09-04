@@ -66,7 +66,8 @@ class Level:
     """One level, with everything the generator needs to place it."""
 
     __slots__ = ("level_id", "level_index", "source", "solution_count",
-                 "display", "parts", "part_abilities", "abilities")
+                 "display", "parts", "part_abilities", "abilities",
+                 "controller_group")
 
     def __init__(self, raw: dict):
         self.level_id: str = raw["levelId"]
@@ -91,6 +92,17 @@ class Level:
         # the location name is built from; verified unique within a level.
         self.part_abilities: Dict[str, FrozenSet[str]] = {
             p["display"]: frozenset(p["abilities"]) for p in parts_raw.values()
+        }
+
+        # Which group each controller belongs to, keyed by the controller's
+        # GameObject name. This is what the mod resolves a solved-controller
+        # event with: the event carries a GameObject, not a group, and a
+        # mutually-dependent pair is two controllers wearing one group.
+        # Exported by Core alongside the names so the two cannot disagree.
+        self.controller_group: Dict[str, str] = {
+            member: p["display"]
+            for p in parts_raw.values()
+            for member in p["members"]
         }
 
         self.abilities: FrozenSet[str] = frozenset(

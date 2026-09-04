@@ -297,3 +297,79 @@ prefabs. Most of the difference is legitimate - unregistered components,
 camera-pan helpers, duplicates on one GameObject - but it is a reminder that
 `docs/data/controller-survey.tsv` is reference data and
 `apworld/alttl/data/levels.json` is the source of truth.
+
+## Where a puzzle returns to, and four ideas that did not work
+
+Finishing or leaving a puzzle dropped the player on the **Archive** page rather
+than the run's track. The Archive is a level select, so it reads as "the track
+is broken - no chapters, wrong levels" rather than as a different screen, which
+is how it was first reported.
+
+The cause is that the game picks the destination from the level you are
+leaving: archive levels go to the Archive, daily ones to Daily Tidy, campaign
+ones to the track. Correct in vanilla; wrong here, because a run mixes all
+three sources.
+
+### What the menus actually are
+
+Dumped from inside a base level (Calendar), an archive level (Popcorn) and a
+generator level (Batteries). All three give the same twelve menus, and they are
+**singletons** - one `MainMenu` (the pause menu), one `ReplayMenu` (the
+post-level screen), one `LevelSelect`, one `ArchiveMenu`, one `DailyTidyMenu`.
+There is no per-level-type pause menu, so there is only ever one of each to
+take over.
+
+Exactly three classes in the game define a `LevelSelect()` method: `MainMenu`,
+`ReplayMenu` and `TitleMenu`. The third already goes to the campaign track.
+Those two facts together are what makes the fix complete rather than a
+patchwork - it is not "the buttons we found", it is all of them.
+
+### Four disproved hypotheses
+
+Each was checked in the running game, not reasoned about:
+
+| Idea | Result |
+|---|---|
+| Patch `LevelInterface.IsArchived`'s getter while the exit is decided | Archive |
+| Hold that patch for the whole level lifetime, in case the destination is cached at level start (`GameManager.SetGameStateCache` exists) | Archive |
+| **Set** `IsArchived` on the live interface - it has a setter - confirmed by a probe reporting `archived=False` mid-level | Archive |
+| File the run's completion data in `levelCompletionData` instead of `archiveCompletionData`, in case routing followed the save | Archive |
+
+`IsCredits`, `LevelType`, `ReactToDailyCompleting` and `IsRandomizable` are all
+settable too and none is the discriminator; `LevelManager` has no level-scope
+field to set. Whatever picks the destination is neither the level's flags nor
+its save list, and it is reached through the GENERIC `SetGameState<T>`, which
+cannot practically be patched under IL2CPP - the non-generic overload and
+`GameManager.Back` are never called on these routes at all.
+
+### What is in place
+
+`MainMenu.LevelSelect` and `ReplayMenu.LevelSelect` are taken over, and each
+calls the game's own `LevelManager.GoToLevelSelectForLevel` with a campaign
+level. That routine does the teardown, the transition and the menu setup; the
+only thing supplied is which track. Two earlier attempts that set the state
+directly left the puzzle loaded behind the menu, and then left it tinting the
+background - the level select recolours per section, and synthetic sections
+need `Section.BackgroundColor` set or they inherit whatever the puzzle painted.
+
+`LevelManager.GetNextLevelIndex` is answered with the next OPEN, unfinished slot
+**forward** from the current one. Answering with the first unfinished slot sent
+"next" back to the start of the run after finishing a puzzle near the end.
+
+Verified by playing each route and looking at the screen: pause mid-level; beat
+then post-level Level Select; beat then hamburger then Level Select; beat then
+the Next arrow.
+
+## Parked: a level that loads empty
+
+Reported once - a puzzle opened to a blank screen that ignored input, needing a
+restart. One cause was found and fixed: a generator level launched from the
+level select is never populated unless the launch passes both its seed and
+`forceReload`, and the boot command used in testing always passed both, which
+is why scripted testing never saw it.
+
+Whether that was the whole of it is unknown; it has not reproduced since, and
+a sweep of all 36 cards in a run found every playable one loading. Parked
+rather than closed. A watchdog now logs `LEVEL LOADED EMPTY: <id>` and shows a
+toast if a level sits with no objects and no controllers for six seconds, so
+the next occurrence names itself instead of needing to be reproduced.

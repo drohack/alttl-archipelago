@@ -57,8 +57,25 @@ internal sealed class Connection
     /// <summary>Raised on the MAIN thread once slot_data has been parsed.</summary>
     internal event Action<SlotData>? Ready;
 
+    /// <summary>One item, with what the text client would need to colour it.</summary>
+    internal readonly struct ReceivedItem
+    {
+        internal ReceivedItem(string name, ApPalette.ItemFlags flags, string from, bool fromSelf)
+        {
+            Name = name;
+            Flags = flags;
+            From = from;
+            FromSelf = fromSelf;
+        }
+
+        internal string Name { get; }
+        internal ApPalette.ItemFlags Flags { get; }
+        internal string From { get; }
+        internal bool FromSelf { get; }
+    }
+
     /// <summary>Raised on the MAIN thread for each item, oldest first.</summary>
-    internal event Action<string>? ItemReceived;
+    internal event Action<ReceivedItem>? ItemReceived;
 
     /// <summary>
     /// Connect on a BACKGROUND thread, reporting the outcome on the main one.
@@ -252,18 +269,127 @@ internal sealed class Connection
     /// </summary>
     private void OnItemReceived(ReceivedItemsHelper helper)
     {
-        var names = new List<string>();
+        var items = new List<ReceivedItem>();
         while (helper.Any())
         {
             var item = helper.DequeueItem();
-            names.Add(item.ItemName ?? item.ItemId.ToString());
+
+            // Flags and sender come off the item itself. Reading them here
+            // rather than passing a bare name is what lets a toast colour an
+            // item the way the text client does - and "progression" versus
+            // "filler" is meaning, not decoration.
+            var flags = ApPalette.ItemFlags.None;
+            var from = "";
+            var fromSelf = true;
+            try
+            {
+                flags = (ApPalette.ItemFlags)(int)item.Flags;
+                fromSelf = _session != null
+                    && item.Player.Slot == _session.ConnectionInfo.Slot;
+                // Alias first: it is what the player chose to be called.
+                from = item.Player.Alias ?? item.Player.Name ?? "";
+            }
+            catch (Exception e)
+            {
+                Plugin.Logger.LogWarning($"item: could not read its details: {e.Message}");
+            }
+
+            items.Add(new ReceivedItem(
+                item.ItemName ?? item.ItemId.ToString(), flags, from, fromSelf));
         }
 
-        if (names.Count == 0) return;
+        if (items.Count == 0) return;
         _dispatch(() =>
         {
-            foreach (var name in names) ItemReceived?.Invoke(name);
+            foreach (var item in items) ItemReceived?.Invoke(item);
         });
+    }
+
+    /// <summary>
+    /// Send locations, and report which ones the server accepted.
+    ///
+    /// Returns the names it actually sent so the ledger clears exactly those
+    /// and nothing else - a check earned while this call was in flight must
+    /// stay owed. Returns empty on any failure, which leaves everything owed
+    /// and lets the next flush try again.
+    /// </summary>
+    internal IReadOnlyList<string> SendChecks(IReadOnlyList<string> names)
+    {
+        if (!Connected || _session == null || names.Count == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        try
+        {
+            var ids = new List<long>();
+            var sent = new List<string>();
+            foreach (var name in names)
+            {
+                var id = _session.Locations.GetLocationIdFromName(Game, name);
+                if (id <= 0)
+                {
+                    // A location the datapackage does not know. Reporting it
+                    // loudly beats retrying it forever on every flush.
+                    Plugin.Logger.LogError($"checks: server has no location named '{name}'");
+                    sent.Add(name);           // give up on it rather than loop
+                    continue;
+                }
+                ids.Add(id);
+                sent.Add(name);
+            }
+
+            if (ids.Count > 0) _session.Locations.CompleteLocationChecks(ids.ToArray());
+            return sent;
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"checks: send failed, staying owed: {e.Message}");
+            return Array.Empty<string>();
+        }
+    }
+
+    /// <summary>
+    /// Tell the server the run is finished.
+    ///
+    /// Safe to call more than once - the server takes the first and ignores the
+    /// rest - which matters because the condition is evaluated on a poll rather
+    /// than at a single moment.
+    /// </summary>
+    internal bool ReportGoal()
+    {
+        try
+        {
+            if (!Connected || _session == null) return false;
+            _session.SetGoalAchieved();
+            return true;
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"goal: could not report it: {e.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>Location names the server already has for this slot.</summary>
+    internal IReadOnlyList<string> ServerChecks()
+    {
+        try
+        {
+            if (_session == null) return Array.Empty<string>();
+            var names = new List<string>();
+            foreach (var id in _session.Locations.AllLocationsChecked)
+            {
+                var name = _session.Locations.GetLocationNameFromId(id, Game);
+                if (!string.IsNullOrEmpty(name)) names.Add(name);
+            }
+            return names;
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"checks: could not read the server's list: {e.Message}");
+            return Array.Empty<string>();
+        }
     }
 
     private bool _closingDeliberately;

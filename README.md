@@ -10,14 +10,20 @@ the mod reports what the seed contains and does not touch the puzzles.
 |---|---|
 | Research and the verification gate | done, [verification log](docs/verification-log.md) |
 | Design | agreed, [spec](docs/superpowers/specs/2026-09-01-alttl-archipelago-design.md) |
-| `apworld/alttl/` - the Archipelago world | **generates real seeds**, 69 tests |
-| `src/ALTTLArchipelago.Core/` - Unity-free rules and state | started, 75 tests |
-| `src/ALTTLArchipelago/` - the BepInEx mod | connects, parses slot_data, 9 contract tests |
+| `apworld/alttl/` - the Archipelago world | **generates real seeds**, 91 tests |
+| `src/ALTTLArchipelago.Core/` - Unity-free rules and state | 162 tests |
+| `src/ALTTLArchipelago/` - the BepInEx mod | **plays a seed** |
 
-Verified end to end on 2026-09-02: a generated seed served by `MultiServer.py`,
-the game connecting to it under IL2CPP, receiving its starting item, and
-reporting the run back - 79 puzzles, 14 packs, 12 abilities. The next piece of
-work is putting those slots on the level select.
+Verified end to end on 2026-09-03: a generated seed served by `MultiServer.py`,
+played in game to completion. The seed's puzzles replace the campaign on the
+level select, packs reveal them in the order the generator planned, abilities
+gate the objects, solving sends checks the server accepts, items arriving are
+applied and announced, and the goal is reported back - the server declaring
+"Team #1 has completed all of their games".
+
+Known gaps are listed at the end of the
+[verification log](docs/verification-log.md): a level that once loaded empty and
+has not reproduced, and the Play button's behaviour in a run.
 
 ## Is the game moddable?
 

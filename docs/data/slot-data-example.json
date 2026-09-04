@@ -67,7 +67,212 @@
   },
   "ability_locks": true,
   "cat_trap_chance": 10,
+  "controller_groups": {
+    "Batteries (Randomized)": {
+      "Controller": "Controller"
+    },
+    "Books (Randomized)": {
+      "Shuffle": "Shuffle"
+    },
+    "Breadtags": {
+      "Crumbs": "Crumbs",
+      "Interlocking": "Interlocking"
+    },
+    "Buttons": {
+      "SortingItems Draggables": "Sorting Items"
+    },
+    "Calendar": {
+      "Repeating Sequence": "Repeating Sequence"
+    },
+    "Clock": {
+      "Match Shadows": "Match Shadows"
+    },
+    "GoodTidings_Cookies": {
+      "RowColSets": "Row Col Sets"
+    },
+    "GoodTidings_Cookies (Jigsaw)": {
+      "Match Candy Cane": "Match Candy Cane",
+      "Match Gingerbread Man": "Match Gingerbread Man",
+      "Match Reindeer": "Match Reindeer",
+      "Match Snowflake": "Match Snowflake",
+      "Match Tree": "Match Tree"
+    },
+    "GoodTidings_Ornament Box": {
+      "BulbsBox": "Bulbs Box"
+    },
+    "GoodTidings_Popcorn": {
+      "BotRow": "Bot Row",
+      "MidRow": "Mid Row",
+      "TopRow": "Top Row"
+    },
+    "GoodTidings_Presents (Stacked)": {
+      "Stacked Boxes": "Stacked Boxes"
+    },
+    "GoodTidings_Wreath": {
+      "Symmetrical Placeables": "Symmetrical"
+    },
+    "MedicineCabinet": {
+      "Blue Bottles Draggables": "Blue Bottles",
+      "Brush Draggables": "Brush",
+      "Contact Lenses Draggables": "Contact Lenses",
+      "Creams Draggables Stacked": "Creams Stacked",
+      "Cup Draggables": "Cup",
+      "Green Bottles Draggables": "Green Bottles",
+      "Jar Lid Draggable": "Jar Lid",
+      "Oral Containables": "Oral",
+      "Pick Draggables": "Pick",
+      "Pump Bottle Draggables": "Pump Bottle",
+      "Swabs Containables": "Swabs",
+      "Trinkets Draggables": "Trinkets",
+      "Tube Draggables": "Tube"
+    },
+    "MerryMess_CandyCanes": {
+      "Match Candy Cane (1)": "Match Candy Cane (1)",
+      "Match Candy Cane (2)": "Match Candy Cane (2)",
+      "Match Candy Cane (3)": "Match Candy Cane (3)",
+      "Match Candy Cane (4)": "Match Candy Cane (4)",
+      "Match Candy Cane (5)": "Match Candy Cane (5)",
+      "Ordered": "Ordered"
+    },
+    "MerryMess_Crackers": {
+      "Build Train": "Build Train",
+      "CrackerShuffleables": "Cracker"
+    },
+    "MerryMess_NutCrackers": {
+      "Shuffle": "Shuffle"
+    },
+    "MerryMess_Presents": {},
+    "MerryMess_SnowGlobes": {
+      "Match Pan (Draggables)": "Match Pan"
+    },
+    "Microscope": {
+      "Build Snowflakes": "Build Snowflakes"
+    },
+    "NeatStreak_Bathroom Drawer": {
+      "Bottle Containables": "Bottle",
+      "Draggables": "Draggables",
+      "Drawer Controller": "Drawer",
+      "Indexable": "Indexable"
+    },
+    "NeatStreak_Paper Plane Supplies": {
+      "Chalk DraggablesOrdered": "Chalk",
+      "ChalkBlue Jigsaw": "Chalk Blue",
+      "ChalkGreen Jigsaw": "Chalk Green",
+      "ChalkMint Jigsaw": "Chalk Mint",
+      "ChalkPink Jigsaw": "Chalk Pink",
+      "ChalkPurple Jigsaw": "Chalk Purple",
+      "ChalkRed Jigsaw": "Chalk Red",
+      "ChalkYellow Jigsaw": "Chalk Yellow",
+      "Containables": "Containables",
+      "Draggables": "Draggables",
+      "Drawer Controller": "Drawer"
+    },
+    "NeatStreak_Tool Drawer": {
+      "Containables": "Containables",
+      "Draggables": "Draggables",
+      "Drawer Controller": "Drawer"
+    },
+    "Pencils (Randomized)": {
+      "Ordered": "Ordered"
+    },
+    "Post-It Notes (Randomized)": {
+      "Draggable": "Draggable"
+    },
+    "Procedural Grid Puzzle": {
+      "Grid Puzzle": "Grid Puzzle"
+    },
+    "Shells": {
+      "Symmetrical Placeables": "Symmetrical"
+    },
+    "SnackPack Cereal": {
+      "Draggables Controller": "Draggables Controller"
+    },
+    "SnackPack Pretzels": {
+      "Ordered": "Ordered"
+    },
+    "SnackPack Sandwich": {
+      "Stack Ingredients": "Stack Ingredients"
+    },
+    "SomethingEggstra Broken Eggs": {
+      "Egg #1 (Center) Draggables": "Egg #1 (Center)",
+      "Egg #2 (Left) Draggables": "Egg #2 (Left)",
+      "Egg #3 (Right) Draggables": "Egg #3 (Right)"
+    },
+    "SomethingEggstra Egg Cups": {
+      "Shuffleables Cups": "Cups",
+      "Shuffleables Eggs": "Cups"
+    },
+    "SomethingEggstra Fridge": {
+      "EggsContainable": "Eggs Containable",
+      "Stackables (Tupperware)": "(Tupperware)",
+      "StandardObjects": "Standard Objects"
+    },
+    "SomethingEggstra PaintedEggs": {
+      "RowColSets": "Row Col Sets"
+    },
+    "Spice Jars": {
+      "SpiceJarShuffleables": "Spice Jar",
+      "SpiceJarShuffleables_BottomShelf": "Spice Jar"
+    },
+    "SpiderWeb": {
+      "Web Symmetry": "Web Symmetry"
+    },
+    "Spoons": {
+      "Size (Elastic)": "Size (Elastic)",
+      "Stacked": "Stacked"
+    },
+    "Stamps (Randomized)": {
+      "Stamps Pattern": "Stamps Pattern"
+    },
+    "Telescope": {
+      "Constellations": "Constellations"
+    },
+    "TrickOrTidy_Bats": {
+      "Interlocking": "Interlocking"
+    },
+    "TrickOrTidy_Bones": {
+      "Match Bones": "Match Bones"
+    },
+    "TrickOrTidy_Candy": {
+      "Grouped": "Grouped"
+    },
+    "TrickOrTidy_ChocolateBars": {
+      "Design (Shuffle)": "Design (Shuffle)",
+      "Height (Draggables)": "Height"
+    },
+    "TrickOrTidy_JackOLanterns": {
+      "Ordered": "Ordered"
+    },
+    "Trim Plant": {
+      "Pluckables": "Pluckables"
+    },
+    "TupperwareNesting": {
+      "Lids": "Lids",
+      "Stack 1": "Stack 1"
+    },
+    "Workbench": {
+      "DraggablesForTargets": "Draggables For Targets",
+      "ToolsController": "Tools"
+    }
+  },
   "levels_to_beat": 40,
+  "pack_boundaries": [
+    4,
+    8,
+    12,
+    16,
+    21,
+    26,
+    31,
+    37,
+    43,
+    49,
+    56,
+    63,
+    70,
+    78,
+    79
+  ],
   "pack_size": 4,
   "pack_total": 14,
   "requirements": {
@@ -471,7 +676,7 @@
       ],
       "packs": 13
     },
-    "Chocolate Bars (Trick or Tidy) - Height ()": {
+    "Chocolate Bars (Trick or Tidy) - Height": {
       "abilities": [],
       "packs": 13
     },

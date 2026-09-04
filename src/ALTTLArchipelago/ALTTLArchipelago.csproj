@@ -94,6 +94,17 @@
       <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.TextRenderingModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- Canvas and RenderMode live here, not in CoreModule or UnityEngine.UI.
+         The toast overlay is our own canvas, so this is needed to build it. -->
+    <!-- AudioClip and AudioSource, for the cat trap noise. -->
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.AudioModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.UIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.UI.dll</HintPath>
       <Private>false</Private>

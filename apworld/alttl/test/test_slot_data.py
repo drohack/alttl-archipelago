@@ -19,6 +19,7 @@ import unittest
 
 from Fill import distribute_items_restrictive
 from test.bases import WorldTestBase
+from .. import data
 
 #: Fixed so the example is stable; a churning golden file teaches people to
 #: regenerate it without reading the diff, which defeats the point.
@@ -78,6 +79,7 @@ class TestSlotDataExample(unittest.TestCase):
             self.assertEqual(built + "\n", fh.read())
 
 
+
 class TestSlotDataShape(unittest.TestCase):
     """What the mod is entitled to assume. Each of these is something the C#
     side dispatches on, so breaking one breaks the game rather than a test."""
@@ -88,9 +90,10 @@ class TestSlotDataShape(unittest.TestCase):
 
     def test_top_level_keys_are_exactly_these(self):
         self.assertEqual(
-            {"slots", "pack_size", "pack_total", "levels_to_beat",
-             "ability_locks", "abilities", "starting_abilities",
-             "requirements", "cat_trap_chance"},
+            {"slots", "pack_size", "pack_total", "pack_boundaries",
+             "levels_to_beat", "ability_locks", "abilities",
+             "starting_abilities", "requirements", "cat_trap_chance",
+             "controller_groups"},
             set(self.payload))
 
     def test_every_slot_carries_what_the_mod_needs_to_launch_it(self):
@@ -119,6 +122,23 @@ class TestSlotDataShape(unittest.TestCase):
             self.assertIsInstance(req["abilities"], list)
             self.assertLessEqual(req["packs"], self.payload["pack_total"], name)
 
+    def test_pack_boundaries_cover_the_run_exactly(self):
+        """What the mod unlocks from must agree with what the logic gated on.
+
+        Holding every pack has to open every slot - one short strands the end
+        of the track behind an item that does not exist, one long mints a pack
+        that reveals nothing.
+        """
+        bounds = self.payload["pack_boundaries"]
+        self.assertEqual(len(self.payload["slots"]), bounds[-1])
+        self.assertEqual(self.payload["pack_total"], len(bounds) - 1)
+        self.assertEqual(sorted(bounds), bounds, "boundaries must not go backwards")
+        self.assertGreaterEqual(bounds[0], 1, "the opening cannot be empty")
+
+    def test_no_location_needs_more_packs_than_exist(self):
+        for name, req in self.payload["requirements"].items():
+            self.assertLessEqual(req["packs"], self.payload["pack_total"], name)
+
     def test_abilities_map_to_controller_classes(self):
         for ability, classes in self.payload["abilities"].items():
             self.assertTrue(classes, f"{ability} unlocks no controller class")
@@ -134,3 +154,38 @@ class TestSlotDataShape(unittest.TestCase):
         a round trip is a bug the mod would hit and the tests would not."""
         self.assertEqual(self.payload,
                          json.loads(json.dumps(self.payload)))
+
+    def test_every_level_in_the_run_has_its_controller_map(self):
+        """The mod resolves a solved controller through this map.
+
+        A level missing from it means every group check on that level is
+        silently unreportable - the event arrives, nothing matches, and no
+        location is ever sent. That failure is invisible in game.
+        """
+        used = {slot["levelId"] for slot in self.payload["slots"]}
+        groups = self.payload["controller_groups"]
+        self.assertEqual(used, set(groups), "controller_groups misses a level")
+
+    def test_no_controller_maps_to_a_group_that_is_not_a_location(self):
+        """Group names must line up with the names locations were built from.
+
+        Only checked on levels with more than one group: a single-group level
+        mints no part location, because its group check and its first solution
+        check are the same event.
+        """
+        requirements = self.payload["requirements"]
+        by_level = {}
+        for slot in self.payload["slots"]:
+            by_level.setdefault(slot["levelId"], []).append(slot["instance"])
+
+        for level_id, groups in self.payload["controller_groups"].items():
+            names = set(groups.values())
+            if len(names) < 2:
+                continue
+            for instance in by_level[level_id]:
+                for group in names:
+                    display = data.BY_ID[level_id].display
+                    if instance > 1:
+                        display = f"{display} #{instance}"
+                    self.assertIn(f"{display} - {group}", requirements,
+                                  f"{level_id} group {group} names no location")

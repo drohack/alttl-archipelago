@@ -260,10 +260,32 @@ def slot_data(world) -> Mapping[str, Any]:
         ],
         "pack_size": world.pack_size,
         "pack_total": world.pack_total,
+        # Cumulative puzzles open after each pack, sent rather than recomputed.
+        #
+        # The mod needs to know which slots a pack reveals, and the ramp that
+        # decides that is not trivial - a gentlest-fit acceleration under a
+        # cap proportional to run length. Reimplementing it in C# would be two
+        # implementations of one rule, and the moment they disagreed the game
+        # would unlock a different set of puzzles than the logic assumed
+        # reachable. Sending it keeps one source of truth.
+        "pack_boundaries": items.pack_boundaries(len(world.plan), world.pack_size),
         "levels_to_beat": world.levels_to_beat,
         "ability_locks": bool(world.options.ability_locks.value),
         "abilities": {a: data.ABILITY_CLASSES[a] for a in world.live_abilities},
         "starting_abilities": sorted(world.starting_abilities),
         "requirements": world.requirements,
         "cat_trap_chance": world.options.cat_trap_chance.value,
+        # Controller GameObject name -> group display name, for the levels this
+        # run actually uses.
+        #
+        # Sent for the same reason as pack_boundaries: the grouping rule merges
+        # mutually-dependent controllers into one checkable unit, and the mod
+        # only ever sees a solved GameObject. Recomputing the merge in C# would
+        # be a second implementation of a rule that decides what a location IS.
+        # Keyed by level rather than by slot because it is a property of the
+        # level, and 16 of 79 slots in a typical run are repeats.
+        "controller_groups": {
+            level_id: dict(sorted(data.BY_ID[level_id].controller_group.items()))
+            for level_id in sorted({slot.level.level_id for slot in world.plan})
+        },
     }

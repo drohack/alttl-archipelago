@@ -39,6 +39,12 @@ public static class PartNames
         new(@"(?<=[a-z])(?=[A-Z])", RegexOptions.Compiled);
 
     /// <summary>
+    /// Brackets left empty by stripping the type word that lived inside them.
+    /// </summary>
+    private static readonly Regex EmptyBrackets =
+        new(@"\s*\(\s*\)", RegexOptions.Compiled);
+
+    /// <summary>
     /// Display names for every controller on a level, keyed by raw name.
     /// Computed per level because collision handling needs the whole set.
     /// </summary>
@@ -70,6 +76,10 @@ public static class PartNames
             // what stops "Draggables" being half-eaten by "Draggable".
             s = Regex.Replace(s, @"[\s_-]*" + w + @"\b", "", RegexOptions.IgnoreCase);
         }
+        // Some authors put the type INSIDE brackets - "Height (Draggables)" -
+        // so stripping the word leaves "Height ()" behind. Five location names
+        // shipped looking like that before this line existed.
+        s = EmptyBrackets.Replace(s, "");
         s = CamelBoundary.Replace(s, " ");
         s = string.Join(" ", s.Split(' ', StringSplitOptions.RemoveEmptyEntries)).Trim(' ', '-', '_');
         // Never reduce a name to nothing: a controller called exactly

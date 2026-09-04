@@ -30,6 +30,17 @@ public class NamesExportTests
     {
         public string display { get; set; } = "";
         public List<string> abilities { get; set; } = new();
+
+        /// <summary>
+        /// The controller GameObject names this group is made of.
+        ///
+        /// Usually just the key, but a mutually-dependent pair merges into one
+        /// group with two members. The mod needs this to answer the only
+        /// question it gets asked at runtime - "this controller just solved,
+        /// which location is that?" - because the solved event carries a
+        /// GameObject name, not a group.
+        /// </summary>
+        public List<string> members { get; set; } = new();
     }
 
     private sealed class LevelNames
@@ -67,6 +78,7 @@ public class NamesExportTests
                     // Sorted so the export is stable across runs; already the
                     // transitive closure over one-way dependencies.
                     abilities = g.Abilities.OrderBy(a => a, StringComparer.Ordinal).ToList(),
+                    members = g.Members.OrderBy(m => m, StringComparer.Ordinal).ToList(),
                 };
             }
             byLevel[level.LevelId] = entry;
@@ -80,6 +92,17 @@ public class NamesExportTests
                 + "seeds already in flight.",
             ["maxGeneratorInstances"] = LocationNames.MaxGeneratorInstances,
             ["credits"] = LocationNames.Credits,
+            // Pinned across languages for the same reason the location names
+            // are: the mod matches these as literal strings, so a mismatch is
+            // silent rather than loud.
+            ["items"] = new SortedDictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["pack"] = ItemNames.Pack,
+                ["credits"] = ItemNames.Credits,
+                ["skip"] = ItemNames.Skip,
+                ["catTrap"] = ItemNames.CatTrap,
+                ["beatenToken"] = ItemNames.BeatenToken,
+            },
             ["levels"] = byLevel,
         };
 

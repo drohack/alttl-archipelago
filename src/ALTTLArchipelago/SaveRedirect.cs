@@ -196,6 +196,29 @@ internal static class SaveRedirect
     private static bool IsAlreadyCompletedTask(Exception e)
         => e.Message.Contains("final state", StringComparison.Ordinal);
 
+    /// <summary>
+    /// The folder the game keeps saves in.
+    ///
+    /// Taken from the game's own answer rather than rebuilt from an
+    /// AppData guess, so it stays right on whatever platform layout the game
+    /// decides on. Note GetSavePath returns a FULL FILE PATH, not a directory -
+    /// treating it as one produced ".../save1.json/save1.json" and a backup
+    /// that silently wrote nothing.
+    /// </summary>
+    internal static string? SaveDirectory()
+    {
+        try
+        {
+            var path = SaveSystem.GetSavePath(false);
+            return string.IsNullOrEmpty(path) ? null : Path.GetDirectoryName(path);
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"could not resolve the save folder: {e.Message}");
+            return null;
+        }
+    }
+
     private static string? CampaignSavePath()
     {
         try

@@ -139,3 +139,28 @@ class TestTables(unittest.TestCase):
             names = locations.names_for(level, 1)
             if not level.has_parts:
                 self.assertEqual(level.solution_count, len(names), level.level_id)
+
+class TestItemNamesAgreeAcrossLanguages(unittest.TestCase):
+    """The mod matches item names as literal strings.
+
+    A mismatch does not raise anything - the item arrives, the log says so,
+    and nothing happens. The mod shipped a build matching "Puzzle Pack"
+    against an item actually called "Progressive Puzzle Pack", and every pack
+    it received unlocked nothing at all.
+    """
+
+    def test_the_exported_item_names_are_the_ones_the_pool_uses(self):
+        exported = data._NAMES_RAW["items"]
+        self.assertEqual(
+            {
+                "pack": items.PROGRESSIVE_PACK,
+                "credits": items.CREDITS_ITEM,
+                "skip": items.SKIP,
+                "catTrap": items.CAT_TRAP,
+                "beatenToken": items.BEATEN_TOKEN,
+            },
+            exported,
+            "ALTTLArchipelago.Core.ItemNames and items.py disagree; regenerate "
+            "names.json with ALTTL_WRITE_GOLDEN=1 dotnet test after checking "
+            "which side is right",
+        )

@@ -87,6 +87,17 @@ public class DevToolsPlugin : BasePlugin
     internal static int TargetDesktop;
 
     /// <summary>
+    /// Raise the game window above the BepInEx console at startup.
+    ///
+    /// OFF by default, and it must stay that way: SetForegroundWindow takes
+    /// focus from whatever the person at the keyboard is doing on whichever
+    /// desktop they are on, which makes a scripted launch genuinely disruptive
+    /// to someone working alongside it. Turn it on only for a session where
+    /// the game is meant to be the foreground window.
+    /// </summary>
+    internal static bool RaiseWindow;
+
+    /// <summary>
     /// Write a per-event transcript to alttl-watch.log. Off by default because
     /// ObjectPlaced fires hundreds of times per level load.
     /// </summary>
@@ -104,6 +115,14 @@ public class DevToolsPlugin : BasePlugin
             + "desktop at startup, 1-based in Task View order. 0 leaves them alone. "
             + "Windows otherwise puts a new window on whichever desktop was active "
             + "when it was created, which for a scripted launch is arbitrary.").Value;
+
+        RaiseWindow = Config.Bind(
+            "Window",
+            "RaiseWindowAtStartup",
+            false,
+            "Bring the game window to the foreground at startup. Off by default "
+            + "because it steals focus from whatever else is being worked on, on "
+            + "whichever virtual desktop that happens to be.").Value;
 
         WatchEvents = Config.Bind(
             "Debug",
@@ -167,12 +186,24 @@ public class DevToolsBehaviour : MonoBehaviour
         // Both the Unity window and the BepInEx console exist by now. Done
         // from here rather than Load() because at load time the window may
         // not have been created yet.
+        // Keep ticking while another window has focus.
+        //
+        // Unity stops calling Update on a backgrounded player, which for a
+        // scripted test means the command file is never polled and the game
+        // looks hung. That only showed up once the startup focus grab was
+        // turned off: with the window sitting unfocused on another virtual
+        // desktop, nothing ran at all.
+        if (!Application.runInBackground) Application.runInBackground = true;
+
         if (!_desktopMoved && _frames > 60)
         {
             _desktopMoved = true;
             VirtualDesktop.MoveGameTo(DevToolsPlugin.TargetDesktop, m => DevToolsPlugin.Log.LogInfo(m));
-            // After any desktop move, so the raise is not undone by it.
-            VirtualDesktop.FocusGameWindow(m => DevToolsPlugin.Log.LogInfo(m));
+            if (DevToolsPlugin.RaiseWindow)
+            {
+                // After any desktop move, so the raise is not undone by it.
+                VirtualDesktop.FocusGameWindow(m => DevToolsPlugin.Log.LogInfo(m));
+            }
         }
 
         var gm = GameManager.Instance;
@@ -675,6 +706,112 @@ public class DevToolsBehaviour : MonoBehaviour
                     li.CompleteLevel();
                 });
             }
+            else if (cmd.Equals("menus", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("menus", DumpMenus);
+            }
+            else if (cmd.Equals("replayselect", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("replayselect", () =>
+                {
+                    ReplayMenu? menu = null;
+                    foreach (var candidate in Resources.FindObjectsOfTypeAll(
+                                 Il2CppInterop.Runtime.Il2CppType.Of<ReplayMenu>()))
+                    {
+                        var found = candidate?.TryCast<ReplayMenu>();
+                        if (found == null || !found.gameObject.scene.IsValid()) continue;
+                        menu = found;
+                        break;
+                    }
+                    if (menu == null)
+                    {
+                        DevToolsPlugin.Log.LogWarning("replayselect: no live ReplayMenu");
+                        return;
+                    }
+                    DevToolsPlugin.Log.LogInfo("replayselect: post-level Level Select");
+                    menu.LevelSelect();
+                });
+            }
+            else if (cmd.Equals("next", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("next", () =>
+                {
+                    ReplayMenu? menu = null;
+                    foreach (var candidate in Resources.FindObjectsOfTypeAll(
+                                 Il2CppInterop.Runtime.Il2CppType.Of<ReplayMenu>()))
+                    {
+                        var found = candidate?.TryCast<ReplayMenu>();
+                        if (found == null || !found.gameObject.scene.IsValid()) continue;
+                        menu = found;
+                        break;
+                    }
+                    if (menu == null)
+                    {
+                        DevToolsPlugin.Log.LogWarning("next: no live ReplayMenu");
+                        return;
+                    }
+                    DevToolsPlugin.Log.LogInfo("next: pressing the arrow");
+                    menu.NextLevel();
+                });
+            }
+            else if (cmd.Equals("leave", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("leave", () =>
+                {
+                    // The pause menu's own Level Select button - the thing a
+                    // player actually presses to leave a puzzle. Asking the
+                    // game where it WOULD go proved nothing; this takes the
+                    // route.
+                    // FindObjectsOfTypeAll, because the pause menu is INACTIVE
+                    // while a puzzle is being played - a plain search finds
+                    // nothing and the button can never be pressed.
+                    // A LIVE instance, not a prefab. FindObjectsOfTypeAll
+                    // returns prefabs too, and pressing a button on one does
+                    // nothing useful - it produced a blank screen that looked
+                    // like a bug in the thing being tested.
+                    MainMenu? menu = null;
+                    foreach (var candidate in Resources.FindObjectsOfTypeAll(
+                                 Il2CppInterop.Runtime.Il2CppType.Of<MainMenu>()))
+                    {
+                        var found = candidate?.TryCast<MainMenu>();
+                        if (found == null) continue;
+                        if (!found.gameObject.scene.IsValid()) continue;   // prefab
+                        menu = found;
+                        break;
+                    }
+                    if (menu == null)
+                    {
+                        DevToolsPlugin.Log.LogWarning("leave: no MainMenu in the scene");
+                        return;
+                    }
+                    DevToolsPlugin.Log.LogInfo("leave: pressing Level Select");
+                    menu.LevelSelect();
+                });
+            }
+            else if (cmd.Equals("contextual", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("contextual", ReportContextualState);
+            }
+            else if (cmd.StartsWith("why:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("why", () => WhyBadge(cmd.Substring("why:".Length)));
+            }
+            else if (cmd.StartsWith("clicktrack:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("clicktrack", () => ClickTrack(cmd.Substring("clicktrack:".Length)));
+            }
+            else if (cmd.StartsWith("focus:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("focus", () => FocusIcon(cmd.Substring("focus:".Length)));
+            }
+            else if (cmd.Equals("controllers", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("controllers", ListControllers);
+            }
+            else if (cmd.StartsWith("solve:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("solve", () => SolveController(cmd.Substring("solve:".Length)));
+            }
             else if (cmd.Equals("state", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("state", ReportState);
@@ -886,6 +1023,264 @@ public class DevToolsBehaviour : MonoBehaviour
         }
 
         DevToolsPlugin.Log.LogWarning($"clickbutton: no active control named {name}");
+    }
+
+    /// <summary>
+    /// "contextual" asks the running gameplay state where it would return to.
+    ///
+    /// The screen you land on after a puzzle is whatever ContextualState says,
+    /// and it cannot be observed by completing a level from a script - a player
+    /// clicks through the completion screen to get there. Asking the question
+    /// directly is the only way to check the answer without a mouse.
+    /// </summary>
+    private static void ReportContextualState()
+    {
+        var state = GameManager.Instance.GameState;
+        if (state == null)
+        {
+            DevToolsPlugin.Log.LogWarning("contextual: no game state");
+            return;
+        }
+
+        var gameplay = state.TryCast<Gameplay_GameState>();
+        if (gameplay == null)
+        {
+            DevToolsPlugin.Log.LogInfo(
+                $"contextual: not in a level (state is {Str(() => state.GetIl2CppType().Name)})");
+            return;
+        }
+
+        var back = gameplay.ContextualState();
+        DevToolsPlugin.Log.LogInfo(
+            "contextual: finishing here would return to "
+            + Str(() => back == null ? "<null>" : back.GetIl2CppType().Name));
+    }
+
+    /// <summary>
+    /// "why:N" explains the badge on the card at track position N.
+    ///
+    /// A badge is four states wide and says nothing about WHY. When one reads
+    /// wrong - a card still half red after it looked finished - the only way to
+    /// settle it is to list the locations the card holds and say, for each,
+    /// whether it is collected and whether it is reachable.
+    ///
+    /// Read out of the mod through a file it writes, so the dev tools do not
+    /// need to reference it.
+    /// </summary>
+    private static void WhyBadge(string arg)
+    {
+        var path = Path.Combine(GameDir, "BepInEx", "alttl-why.txt");
+        File.WriteAllText(path, arg.Trim());
+        DevToolsPlugin.Log.LogInfo($"why: asked the mod about track position {arg.Trim()}");
+    }
+
+    /// <summary>
+    /// "menus" lists every menu the game knows about and its state.
+    ///
+    /// The question this answers is whether each level type gets a different
+    /// pause menu, or the same one behaving differently - which decides whether
+    /// a mod has to take over one menu or several.
+    /// </summary>
+    private static void DumpMenus()
+    {
+        var gm = GameManager.Instance;
+        var mm = gm == null ? null : gm.menuManager;
+        if (mm == null)
+        {
+            DevToolsPlugin.Log.LogWarning("menus: no MenuManager");
+            return;
+        }
+
+        var li = gm!.levelManager == null ? null : gm.levelManager.ActiveLevelInterface;
+        DevToolsPlugin.Log.LogInfo(
+            "menus: in " + Str(() => li == null ? "<no level>" : li.LevelId)
+            + " archived=" + Str(() => li == null ? "?" : li.IsArchived.ToString())
+            + " type=" + Str(() => li == null ? "?" : li.LevelType.ToString())
+            + " state=" + Str(() => gm.GameState == null
+                ? "?" : gm.GameState.GetIl2CppType().Name));
+
+        var menus = mm.Menus;
+        DevToolsPlugin.Log.LogInfo($"menus: {(menus == null ? 0 : menus.Count)} registered");
+        for (int i = 0; i < (menus == null ? 0 : menus.Count); i++)
+        {
+            var menu = menus![i];
+            if (menu == null) continue;
+            DevToolsPlugin.Log.LogInfo(
+                $"  [{i}] {Str(() => menu.GetIl2CppType().Name)}"
+                + $" object={Str(() => menu.gameObject.name)}"
+                + $" active={Str(() => menu.gameObject.activeInHierarchy.ToString())}"
+                + $" alpha={Str(() => menu.canvas == null ? "?" : menu.canvas.alpha.ToString("0.0"))}");
+        }
+    }
+
+    /// <summary>
+    /// "clicktrack:N" clicks the card at track POSITION N.
+    ///
+    /// Distinct from clickcard, which takes a level index. Once the track holds
+    /// dividers and a credits card, position is the only way to say "the third
+    /// thing on screen" - which is what a player actually clicks.
+    /// </summary>
+    private static void ClickTrack(string arg)
+    {
+        if (!int.TryParse(arg.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture,
+                out var position))
+        {
+            DevToolsPlugin.Log.LogWarning($"clicktrack: not a number: {arg}");
+            return;
+        }
+
+        var track = UnityEngine.Object.FindObjectOfType<LevelsTrack>();
+        var items = track == null ? null : track.trackItems;
+        if (items == null || position < 0 || position >= items.Count)
+        {
+            DevToolsPlugin.Log.LogWarning(
+                $"clicktrack: position {position} is not on the track");
+            return;
+        }
+
+        var icon = items[position];
+        DevToolsPlugin.Log.LogInfo(
+            $"clicktrack: position {position} is {Str(() => icon.level.LevelId)}");
+        icon.DoStartLevel();
+    }
+
+    /// <summary>
+    /// "focus:N" hovers the Nth card, and reports what the menu header says.
+    ///
+    /// A mouse cannot be scripted here, and whether hovering shows a level's
+    /// name is exactly the kind of thing that has to be observed rather than
+    /// reasoned about.
+    /// </summary>
+    private static void FocusIcon(string arg)
+    {
+        if (!int.TryParse(arg.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture,
+                out var index))
+        {
+            DevToolsPlugin.Log.LogWarning($"focus: not a number: {arg}");
+            return;
+        }
+
+        var track = UnityEngine.Object.FindObjectOfType<LevelsTrack>();
+        var items = track == null ? null : track.trackItems;
+        if (items == null || index < 0 || index >= items.Count)
+        {
+            DevToolsPlugin.Log.LogWarning("focus: no such card");
+            return;
+        }
+
+        var icon = items[index];
+        icon.OnFocus();
+        icon.IconFocus();
+
+        var select = UnityEngine.Object.FindObjectOfType<LevelSelect>();
+        DevToolsPlugin.Log.LogInfo(
+            $"focus: card {index} is {Str(() => icon.level.LevelId)}"
+            + $"; title=\"{Str(() => select.menuTitle.text)}\""
+            + $" subtitle=\"{Str(() => select.menuSubtitle.text)}\"");
+    }
+
+    /// <summary>
+    /// The controllers the RUNNING level has registered.
+    ///
+    /// Registered, not walked from the prefab: only the registered set raises
+    /// GameEvent_ObjectControllerSolved, and the two differ - MedicineCabinet
+    /// shows 14 on the prefab and 13 at runtime. A location built from the
+    /// prefab set would include one that can never be checked.
+    /// </summary>
+    private static void ListControllers()
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        var level = li == null ? null : li.Level;
+        if (level == null || level.objectControllers == null)
+        {
+            DevToolsPlugin.Log.LogWarning("controllers: no level running");
+            return;
+        }
+
+        var list = level.objectControllers;
+        DevToolsPlugin.Log.LogInfo(
+            $"controllers: {list.Count} registered on {Str(() => li!.LevelId)}");
+        for (int i = 0; i < list.Count; i++)
+        {
+            var oc = list[i];
+            if (oc == null) continue;
+            DevToolsPlugin.Log.LogInfo(
+                $"  [{i}] {Str(() => oc.gameObject.name)}"
+                + $" type={Str(() => oc.GetIl2CppType().Name)}"
+                + $" solved={Str(() => oc.IsSolved.ToString())}");
+        }
+    }
+
+    /// <summary>
+    /// Force one controller to report itself solved, by index or by name.
+    ///
+    /// This drives the game's OWN OnSolved, so the event that reaches a mod is
+    /// the real one - but it is still a forced solve, not a played one. It
+    /// proves the event-to-check path, not that the puzzle is solvable.
+    /// </summary>
+    private static void SolveController(string arg)
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        var level = li == null ? null : li.Level;
+        if (level == null || level.objectControllers == null)
+        {
+            DevToolsPlugin.Log.LogWarning("solve: no level running");
+            return;
+        }
+
+        var list = level.objectControllers;
+        ObjectController? target = null;
+
+        if (int.TryParse(arg.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture,
+                out var index))
+        {
+            if (index >= 0 && index < list.Count) target = list[index];
+        }
+        else
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                var oc = list[i];
+                if (oc != null && string.Equals(oc.gameObject.name, arg.Trim(),
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    target = oc;
+                    break;
+                }
+            }
+        }
+
+        if (target == null)
+        {
+            DevToolsPlugin.Log.LogWarning($"solve: no controller matching '{arg}'");
+            return;
+        }
+
+        var name = Str(() => target.gameObject.name);
+        DevToolsPlugin.Log.LogInfo($"solve: forcing {name} solved");
+
+        target.SetSolved(true);
+
+        // Raise the event through the game's own dispatcher rather than calling
+        // OnSolved.
+        //
+        // OnSolved is virtual, and every real controller is a subclass -
+        // DraggablesJigsaw here. Calling it on an ObjectController-typed
+        // reference through the interop shim invokes the BASE method, which
+        // raises nothing: the forced solve looked like it worked, the log said
+        // "forcing ... solved", and no event was ever dispatched.
+        //
+        // Note what this does and does not prove. It exercises a listener's
+        // handling of the event exactly as the game would deliver it. It does
+        // NOT prove the game raises the event when a puzzle is really solved -
+        // only playing one does that.
+        var data = new GameEventManager.GameEventData
+        {
+            ObjectController = target,
+            LevelInterface = li,
+        };
+        GameEventManager.AddGameEvent<GameEventManager.GameEvent_ObjectControllerSolved>(data);
+        DevToolsPlugin.Log.LogInfo($"solve: dispatched ObjectControllerSolved for {name}");
     }
 
     private static void UnlockTo(string arg)

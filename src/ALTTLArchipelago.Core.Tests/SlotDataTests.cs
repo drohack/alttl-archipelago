@@ -14,25 +14,7 @@ namespace ALTTLArchipelago.Core.Tests;
 /// </summary>
 public class SlotDataTests
 {
-    private static string ExamplePath()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null && !Directory.Exists(Path.Combine(dir.FullName, "docs", "data")))
-        {
-            dir = dir.Parent;
-        }
-        Assert.NotNull(dir);
-        return Path.Combine(dir!.FullName, "docs", "data", "slot-data-example.json");
-    }
-
-    private static SlotData Example()
-    {
-        var path = ExamplePath();
-        Assert.True(File.Exists(path),
-            $"{path} missing. Regenerate with ALTTL_WRITE_GOLDEN=1 "
-            + "python -m unittest worlds.alttl.test.test_slot_data");
-        return SlotData.FromJson(File.ReadAllText(path));
-    }
+    private static SlotData Example() => ExampleSeed.Load();
 
     [Fact]
     public void TheGeneratorsPayloadParses()

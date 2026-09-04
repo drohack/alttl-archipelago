@@ -108,4 +108,22 @@ public class PartNameTests
         Assert.Equal("Medicine Cabinet - Blue Bottles", location);
         Assert.Equal("Ch.2 Level 3", HintText.ForSlot(22));
     }
+
+    [Fact]
+    public void StrippingATypeWordDoesNotLeaveEmptyBracketsBehind()
+    {
+        // Some controllers wear the type inside brackets. Removing the word
+        // without the brackets shipped five location names reading like
+        // "Books 3 - Height ()".
+        Assert.Equal("Height", PartNames.Tidy("Height (Draggables)"));
+        Assert.Equal("Match Label", PartNames.Tidy("Match Label (Draggables)"));
+    }
+
+    [Fact]
+    public void BracketsThatStillHoldSomethingAreKept()
+    {
+        // Only the EMPTIED brackets go. "(Shuffle)" is not a type word, so it
+        // survives and stays part of the name.
+        Assert.Equal("Design (Shuffle)", PartNames.Tidy("Design (Shuffle)"));
+    }
 }

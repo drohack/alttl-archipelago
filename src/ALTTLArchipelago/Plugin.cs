@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using ALTTLArchipelago.Core;
 using BepInEx;
 using BepInEx.Configuration;
@@ -94,8 +95,45 @@ public sealed class Plugin : BasePlugin
         _retry = new RetryPolicy(_maxAttempts.Value);
 
         var harmony = new Harmony(Guid);
-        harmony.PatchAll(typeof(SaveRedirect));
-        harmony.PatchAll(typeof(ConnectionPane));
+        // Patched class by class, each in its own try, rather than one
+        // PatchAll over the assembly. A game update that renames one method
+        // should cost one feature, not the whole plugin - and the failure line
+        // is greppable so a battery can assert on its absence.
+        var applied = new List<string>();
+        var failed = new List<string>();
+
+        foreach (var (name, type) in new (string, Type)[]
+                 {
+                     ("save redirect", typeof(SaveRedirect)),
+                     ("connection pane", typeof(ConnectionPane)),
+                     ("track", typeof(Track)),
+                     ("skips", typeof(Skips)),
+                     ("navigation", typeof(Navigation)),
+                 })
+        {
+            try
+            {
+                harmony.PatchAll(type);
+                applied.Add(name);
+            }
+            catch (Exception e)
+            {
+                // A failed patch aborts the WHOLE class, so this is never "one
+                // method degraded" - it is the entire feature off. That is why
+                // the summary below lists what actually ended up live: a single
+                // error line in a long log was easy to skim past while a
+                // feature silently did nothing.
+                Logger.LogError($"PATCH FAILED, {name} IS DISABLED: {e.Message}");
+                failed.Add(name);
+            }
+        }
+
+        Plugin.Logger.LogInfo($"features live: {string.Join(", ", applied)}");
+        if (failed.Count > 0)
+        {
+            Plugin.Logger.LogError($"FEATURES DISABLED: {string.Join(", ", failed)}");
+        }
+
         foreach (var m in harmony.GetPatchedMethods())
         {
             Logger.LogInfo($"patched {m.DeclaringType?.Name}.{m.Name}");
@@ -182,8 +220,34 @@ public sealed class Plugin : BasePlugin
         Logger.LogInfo($"connecting to {_host.Value}:{_port.Value} as {_slotName.Value}");
 
         var connection = new Connection(Hub.OnMainThread);
-        connection.Ready += OnReady;
-        connection.ItemReceived += name => Logger.LogInfo($"received item: {name}");
+        // The connection is passed in, not read from _session: Ready fires
+        // DURING the connect, before the field is assigned. Reading the field
+        // here threw a NullReferenceException and, worse, made _session?.Seed
+        // silently yield "" - which the log then reported as "room reported
+        // no seed", a diagnosis that was never true.
+        connection.Ready += slot => OnReady(connection, slot);
+        connection.ItemReceived += item =>
+        {
+            Logger.LogInfo($"received item: {item.Name}");
+            Inventory.Receive(item.Name);
+
+            // Not the beaten token: the player gets one every time they finish
+            // a puzzle, and announcing it would drown the messages that matter.
+            if (item.Name == ALTTLArchipelago.Core.ItemNames.BeatenToken) return;
+
+            var painted = ALTTLArchipelago.Core.ApPalette.Paint(
+                item.Name, ALTTLArchipelago.Core.ApPalette.ForItem(item.Flags));
+
+            // "from X" only when someone else sent it, which is how the text
+            // client reads: your own items are just found.
+            var line = item.FromSelf || string.IsNullOrEmpty(item.From)
+                ? $"Received {painted}"
+                : $"Received {painted} from "
+                  + ALTTLArchipelago.Core.ApPalette.Paint(
+                      item.From, ALTTLArchipelago.Core.ApPalette.ForPlayer(false));
+
+            Toasts.Show(line, Toasts.Plain);
+        };
         connection.Dropped += OnDropped;
 
         // Off the main thread. The result comes back through the dispatcher,
@@ -225,6 +289,8 @@ public sealed class Plugin : BasePlugin
         // find a server at launch.
         _automatic = false;
         Logger.LogWarning($"connection lost: {reason}");
+        Toasts.Show("Disconnected from Archipelago - checks are kept and sent "
+            + "when the server is back", Toasts.Notice);
         // The run's save stays redirected while we try to get back: the player
         // is still in the multiworld, just briefly unable to talk to it.
         ScheduleRetry(reason);
@@ -288,6 +354,12 @@ public sealed class Plugin : BasePlugin
         _session?.Disconnect();
         _session = null;
 
+        _slot = null;
+        Toasts.Destroy();
+        Track.End();
+        Checks.End();
+        Inventory.End();
+        RunState.End();
         SaveRedirect.End();
         Logger.LogInfo("disconnected");
         ConnectionPane.RefreshStatus();
@@ -311,25 +383,122 @@ public sealed class Plugin : BasePlugin
     }
 
     /// <summary>
+    /// Set when a check is earned, so the next tick sends it.
+    ///
+    /// Deferred rather than sent inline because a solve event arrives deep
+    /// inside the game's own call stack, and a socket write from there blocks
+    /// whatever was mid-animation.
+    /// </summary>
+    private static bool _checksDirty;
+
+    private static float _sinceFlush;
+
+    /// <summary>
+    /// How often the owed queue is retried when a send did not clear it.
+    ///
+    /// The safety net behind the dirty flag: if a check is ever earned without
+    /// setting it, or a send fails, this still gets the queue out within a few
+    /// seconds. Checks that arrive late are a nuisance; checks that never
+    /// arrive lose someone's progress.
+    /// </summary>
+    private const float FlushInterval = 5f;
+
+    /// <summary>The seed, kept so the credits poll can read its goal.</summary>
+    private static ALTTLArchipelago.Core.SlotData? _slot;
+
+    /// <summary>The connected seed, or null when not in a run.</summary>
+    internal static ALTTLArchipelago.Core.SlotData? Seed => _slot;
+
+    internal static void TickCredits(float dt)
+        => Credits.Tick(dt, _slot, _session);
+
+    internal static void QueueCheckFlush() => _checksDirty = true;
+
+    internal static void TickChecks(float dt)
+    {
+        _sinceFlush += dt;
+        if (!_checksDirty && _sinceFlush < FlushInterval) return;
+
+        _checksDirty = false;
+        _sinceFlush = 0f;
+        FlushChecks();
+    }
+
+    /// <summary>
+    /// Send whatever is owed, and clear only what went.
+    ///
+    /// Nothing is dropped on failure: the ledger keeps the queue, and it is
+    /// persisted with the save, so quitting mid-offline does not lose it.
+    /// </summary>
+    private static void FlushChecks()
+    {
+        if (!Checks.Active) return;
+
+        var owed = Checks.Ledger.OwedForSaving();
+        if (owed.Count == 0) return;
+
+        if (_session == null || !_session.Connected)
+        {
+            // Offline. It stays owed - and it goes to disk now, because the
+            // next thing that happens might be the game closing.
+            RunState.SetOwed(owed);
+            return;
+        }
+
+        var sent = _session.SendChecks(owed);
+        if (sent.Count == 0) return;
+
+        Checks.Ledger.Acknowledge(sent);
+        RunState.SetOwed(Checks.Ledger.OwedForSaving());
+        Logger.LogInfo($"checks: sent {sent.Count}, {Checks.Ledger.Owed.Count} still owed");
+    }
+
+    /// <summary>
     /// What the seed contains, on the main thread.
     ///
     /// The save is redirected HERE rather than at connect, because only now is
     /// the room's seed known - and the seed is what stops two multiworlds
     /// played under one slot name sharing a save.
     /// </summary>
-    private static void OnReady(SlotData slot)
+    private static void OnReady(Connection connection, SlotData slot)
     {
         // The server's seed string if it gave one, otherwise a fingerprint of
         // the draw itself. RoomState.Seed came back empty on every connection
         // tested here, and without a fallback every multiworld played under
         // one slot name would share a single save file.
-        var seed = _session?.Seed ?? "";
+        var seed = connection.Seed ?? "";
         if (string.IsNullOrEmpty(seed))
         {
             seed = slot.Fingerprint();
             Logger.LogInfo($"room reported no seed; using the draw's fingerprint {seed}");
         }
         SaveRedirect.Begin(_slotName.Value, seed);
+
+        // The track goes up as soon as the seed is known, before any item has
+        // arrived, so the player sees their run rather than the campaign.
+        Track.Begin(slot);
+
+        // Before Checks, so a replayed item list has already opened the track
+        // by the time the first flush looks at what is reachable.
+        _slot = slot;
+        Inventory.Begin(slot);
+        Abilities.Reset();
+        Badges.Reset();
+        Credits.Reset();
+        Traps.Reset();
+        Checks.Begin(slot);
+
+        // Anything earned offline last time, before the server's own list is
+        // adopted - so a check we owe stays owed even if the server has it.
+        RunState.Begin(SaveRedirect.ActiveName ?? "run");
+        Checks.Ledger.RestoreOwed(RunState.Owed());
+        // The server's list first, so a check it already has is not re-sent on
+        // every login - but it is adopted as COLLECTED, never as acknowledged,
+        // so anything earned offline stays owed.
+        Checks.AdoptServerChecks(connection.ServerChecks());
+        FlushChecks();
+
+        Toasts.Show($"Connected to Archipelago - {slot.Slots.Count} puzzles", Toasts.Notice);
 
         Logger.LogInfo($"connected. {slot.Slots.Count} puzzles, "
             + $"{slot.PackTotal} packs of {slot.PackSize}, "
@@ -361,6 +530,16 @@ public sealed class Ticker : MonoBehaviour
     {
         Hub.Tick();
         Plugin.TickRetry(Time.unscaledDeltaTime);
+        Plugin.TickChecks(Time.unscaledDeltaTime);
+        Checks.TickAudit(Time.unscaledDeltaTime);
+        Checks.TickEmptyLevelWatch(Time.unscaledDeltaTime);
+        Abilities.Tick(Time.unscaledDeltaTime);
+        Toasts.Tick(Time.unscaledDeltaTime);
+        Badges.Tick(Time.unscaledDeltaTime);
+        Badges.TickWhy(Time.unscaledDeltaTime);
+        Plugin.TickCredits(Time.unscaledDeltaTime);
+        Traps.Tick();
+        Track.TickCreditsCard();
         TypingGuard.Tick(ConnectionPane.FocusedField, ConnectionPane.FocusNext);
     }
 }
