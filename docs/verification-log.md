@@ -765,3 +765,32 @@ quickly and repeatedly on this save, which leaves the routes it was actually
 reported from untested: entering a later card after moving around the menus, and
 whatever state the game was in at the time. The bug stays parked, the watchdog
 stays armed, and the soak is worth re-running after any change to level loading.
+
+## Badges and the credits card (2026-09-04)
+
+**A cat trap changes no badge.** Read every open slot's badge from the track,
+fired a real trap at Telescope, came back and read them again: byte-identical.
+Resetting a puzzle undoes the arrangement and nothing about what has been
+collected, which is what the badge reports.
+
+```
+why: position 0 = slot 0 TrickOrTidy_Candy #1, badge Doable, 3 packs held
+... trap: 1 cat(s) reset the puzzle ...
+(identical for all four open slots)
+```
+
+**The credits card appears when the Credits item arrives.** Sending it logged
+"track: the credits card is now on the track" and the card showed as
+`track[35] Credits unlocked=False unlockable=False` - present but locked, with
+the goal at 10 puzzles beaten.
+
+**Clicking it while locked refuses, but says nothing.** The state stayed on the
+level select and no level launched, which is the important half. The intended
+explanation did not appear: `Track.cs` has
+`"track: credits locked, {left} puzzle(s) to go"` and it never fired, because
+the game's own card lock refuses first - the card has no completion data, so the
+click never reaches our prefix.
+
+So a player who clicks the credits card early gets silence rather than "beat
+four more". Worth fixing when the credits path is next touched; it is a missing
+message, not a broken gate.
