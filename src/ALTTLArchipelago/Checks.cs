@@ -99,6 +99,13 @@ internal static class Checks
     {
         _currentSlot = slotIndex;
         _audited = false;
+
+        // Any skip in flight belongs to the level we just left. If it never
+        // produced a completion, the flag would otherwise sit set and swallow
+        // the Beaten token for THIS level, which the player would then have to
+        // earn twice with no way to know why.
+        Skips.Skipping = false;
+
         Plugin.Logger.LogInfo($"checks: now playing slot {slotIndex}");
     }
 
@@ -395,7 +402,20 @@ internal static class Checks
         if (solution != null) Report(solution);
 
         // Beating the level is its own location, granting the token the credits
-        // gate counts. Sent on any completion, not only the first solution.
+        // gate counts. Sent on any completion, not only the first solution -
+        // but NOT for a skip.
+        //
+        // The game reports a skipped level as complete, so without this a Skip
+        // item granted the credits token, and enough Skips reached the goal
+        // with nothing solved. The solution check above still fires: getting
+        // past the puzzle is what a Skip is for. Only the goal is protected.
+        if (Skips.Skipping)
+        {
+            Skips.Skipping = false;
+            Plugin.Logger.LogInfo("checks: skipped, so no Beaten token");
+            return;
+        }
+
         var beaten = _router.ForBeaten(_currentSlot);
         if (beaten != null) Report(beaten);
     }

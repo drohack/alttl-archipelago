@@ -917,6 +917,40 @@ public class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("controllers", ListControllers);
             }
+            else if (cmd.Equals("skip", StringComparison.OrdinalIgnoreCase))
+            {
+                // The game's own SkipLevel, which is where our gate lives.
+                //
+                // Not the pause-menu button: the button is only reachable with
+                // the menu open, and SkipLevel is where every route - button,
+                // pause menu, and the tooltip's hold-to-skip - ends up. Unlike
+                // ShowHideMenuItems it takes no GameEventData, so calling it
+                // needs nothing invented.
+                SafeRun("skip", () =>
+                {
+                    // FindObjectOfType only sees ACTIVE objects, and the pause
+                    // menu is inactive while closed - which is exactly the
+                    // state we want to skip from.
+                    MainMenu? menu = UnityEngine.Object.FindObjectOfType<MainMenu>();
+                    if (menu == null)
+                    {
+                        foreach (var obj in Resources.FindObjectsOfTypeAll(
+                                     Il2CppInterop.Runtime.Il2CppType.Of<MainMenu>()))
+                        {
+                            menu = obj == null ? null : obj.TryCast<MainMenu>();
+                            if (menu != null) break;
+                        }
+                    }
+                    if (menu == null)
+                    {
+                        DevToolsPlugin.Log.LogWarning(
+                            "skip: no MainMenu - it exists only while a level is running");
+                        return;
+                    }
+                    DevToolsPlugin.Log.LogInfo("skip: calling MainMenu.SkipLevel");
+                    menu.SkipLevel();
+                });
+            }
             else if (cmd.Equals("cats", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("cats", ListCats);

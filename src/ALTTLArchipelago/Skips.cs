@@ -26,6 +26,17 @@ internal static class Skips
     internal static int Spent { get; private set; }
 
     /// <summary>
+    /// A skip is in flight, so the next level completion is not a win.
+    ///
+    /// Consumed by the completion handler rather than cleared on a timer: one
+    /// skip produces exactly one completion. It is also cleared whenever a
+    /// level starts, so a skip that somehow never completes cannot leave the
+    /// flag set and silently swallow the NEXT genuine Beaten token.
+    /// </summary>
+    internal static bool Skipping { get; set; }
+
+
+    /// <summary>
     /// Refuse a skip nobody has paid for.
     ///
     /// A prefix on the game's own SkipLevel, so every route to it is covered
@@ -51,6 +62,20 @@ internal static class Skips
 
             RunState.SpendSkip();
             Spent++;
+
+            // Tell the check side that the completion about to arrive is a
+            // skip, not a win.
+            //
+            // The game fires LevelComplete for a skipped level exactly as for a
+            // solved one - measured, the order is LevelComplete then
+            // LevelSkipped - so the completion handler cannot tell them apart
+            // on its own, and was granting the Beaten token that the credits
+            // gate counts. Skipping was therefore a way to reach the goal
+            // without solving anything, which is the opposite of what
+            // Credits.cs documents. This prefix runs before the game's own skip
+            // work, so the flag is set before the completion fires.
+            Skipping = true;
+
             Plugin.Logger.LogInfo($"skip: spent one, {Available} left");
             Toasts.Show($"Skip used - {Available} left", Toasts.Notice);
             return true;

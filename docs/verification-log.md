@@ -590,3 +590,43 @@ its item. Our own log saying "sent" would not have been evidence.
 - **Only one level has no controllers**, not the three the plan flagged. Drink
   Glasses and MerryMess_Presents each have a single `Pannables` controller,
   which `abilities.json` lists under `notPuzzles`.
+
+## Skipping a puzzle counted toward the credits goal (2026-09-04)
+
+`Credits.cs` says plainly: "Beaten means completed, not skipped. The count comes
+from Level Beaten ... a skipped one contributes nothing, and the mod does not
+need its own rule to" enforce it. It did need one.
+
+**Reproduction.** Enter a level, receive a Skip, use it:
+
+```
+skip: spent one, 0 left
+LevelCompleteEarly  id=MerryMess_CandyCanes
+check: Candy Canes (Merry Mess) - Solution 1
+beaten: Candy Canes (Merry Mess) - Beaten      <- the credits token
+LevelComplete       id=MerryMess_CandyCanes
+LevelSkipped        id=MerryMess_CandyCanes
+```
+
+**Cause.** The game reports a skipped level as COMPLETE. `LevelComplete` fires
+for a skip exactly as for a win, and `LevelSkipped` arrives afterwards, so
+`OnLevelComplete` could not tell the two apart and granted the Beaten token
+unconditionally. Enough Skip items therefore reached the goal with nothing
+solved - the opposite of the documented design.
+
+**Fix.** The SkipLevel prefix sets a flag before the game's own skip work
+begins, so it is set before the completion fires; `OnLevelComplete` consumes it
+and withholds the token. The SOLUTION check still fires - getting past the
+puzzle is what a Skip is for - so only the goal is protected. The flag is also
+cleared whenever a slot is entered, so a skip that never completes cannot sit
+set and silently swallow the next genuine token.
+
+**Verified both directions**, which matters more than verifying the fix:
+
+```
+skip     -> "checks: skipped, so no Beaten token", no beaten line
+solve    -> "beaten: Bats (Trick or Tidy) - Beaten"
+```
+
+A fix that suppressed the token everywhere would have looked identical if only
+the skip case had been checked.
