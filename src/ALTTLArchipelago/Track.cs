@@ -196,6 +196,108 @@ internal static class Track
         return _state.Slots[slot].LevelIndex;
     }
 
+    /// <summary>
+    /// The last open slot with something the player can actually do now.
+    ///
+    /// Scans from the END of the track backwards. "Can do now" is stricter than
+    /// "unfinished": a slot whose remaining checks are all blocked by an
+    /// ability or a pack is skipped, because sending someone to a puzzle they
+    /// cannot progress is worse than sending them nowhere.
+    /// </summary>
+    internal static int FarthestPlayableSlot()
+    {
+        if (_state == null) return -1;
+
+        var progress = Checks.Progress;
+        var abilities = Inventory.Abilities;
+        var router = Checks.Router;
+
+        for (int slot = _state.Slots.Count - 1; slot >= 0; slot--)
+        {
+            if (!_state.IsOpen(slot)) continue;
+            if (router == null || progress == null || abilities == null) return slot;
+
+            foreach (var name in router.ForSlot(slot))
+            {
+                if (Checks.Ledger.IsCollected(name)) continue;
+                if (!progress.IsReachable(name, _state.PacksHeld, abilities)) continue;
+                return slot;
+            }
+        }
+        return -1;
+    }
+
+    /// <summary>
+    /// Start a slot's puzzle, with its baked seed and a forced reload.
+    ///
+    /// Goes through ArmSlot so the StartLevel patch applies both - without them
+    /// a generator level comes up empty. Returns false if it could not start,
+    /// so a caller can fall back to the game's own behaviour.
+    /// </summary>
+    internal static bool LaunchSlot(int slot)
+    {
+        try
+        {
+            var manager = GameManager.Instance?.levelManager;
+            if (manager == null) return false;
+
+            var index = ArmSlot(slot);
+            if (index < 0) return false;
+
+            manager.StartLevel(index, true, false, -1);
+            return true;
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"track: could not launch slot {slot}: {e.Message}");
+            return false;
+        }
+    }
+
+    private static float _sinceTrackCheck;
+
+    /// <summary>
+    /// Rebuild the track if what is on screen does not match the plan.
+    ///
+    /// The rebuild used to hang off LevelsTrack.MenuActivated, and that event
+    /// does not fire on every route into the level select - opening it from the
+    /// TITLE does not raise it. When that happened the SetLevels and
+    /// SetupSections postfixes still replaced the data, so the menu held our 35
+    /// entries and six pack sections, but nothing called LevelsTrack.Init, so no
+    /// icons were ever built. The result is a level select that renders as an
+    /// empty coloured screen - correct underneath, invisible on top.
+    ///
+    /// Comparing the card count against the plan catches that whatever route
+    /// was taken, including ones nobody has found. It is the cheap check the
+    /// event-based version should have had behind it from the start.
+    /// </summary>
+    internal static void TickTrackIntegrity(float dt)
+    {
+        if (_state == null || _plan.Count == 0) return;
+
+        _sinceTrackCheck += dt;
+        if (_sinceTrackCheck < 1f) return;
+        _sinceTrackCheck = 0f;
+
+        try
+        {
+            var track = CampaignTrack();
+            if (track == null || !track.gameObject.activeInHierarchy) return;
+
+            var items = track.trackItems;
+            var showing = items == null ? 0 : items.Count;
+            if (showing == _plan.Count) return;
+
+            Plugin.Logger.LogWarning(
+                $"track: {showing} cards on screen for {_plan.Count} planned - rebuilding");
+            Rebuild();
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"track: integrity check failed: {e.Message}");
+        }
+    }
+
     /// <summary>How many packs the player holds. Absolute - see TrackState.</summary>
     internal static void SetPacksHeld(int packs)
     {
@@ -701,6 +803,37 @@ internal static class Track
         // repeated levels on the track, a lookup by level is a guess, and a
         // wrong slot files a check against another puzzle's location.
         return Divider;
+    }
+
+    /// <summary>
+    /// Swallow a click on a pack divider completely.
+    ///
+    /// Blocking DoStartLevel was not enough. A real click enters through
+    /// OnPointerClick, which also selects the card and drives a transition -
+    /// and a chapter card has no puzzle behind it, so that transition ends on a
+    /// blank screen. Testing with DoStartLevel directly missed this entirely:
+    /// the guard fired, the track stayed intact, and the bug was still there
+    /// for anyone using a mouse.
+    ///
+    /// Refused at the click, so a divider behaves as the scenery it is.
+    /// </summary>
+    [HarmonyPatch(typeof(LevelIcon), nameof(LevelIcon.OnPointerClick))]
+    [HarmonyPrefix]
+    private static bool BeforeIconClicked(LevelIcon __instance)
+    {
+        try
+        {
+            if (_state == null) return true;
+            if (SlotIndexOf(__instance) != Divider) return true;
+
+            Refusals++;
+            return false;
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"track: click check failed, allowing: {e.Message}");
+            return true;
+        }
     }
 
     /// <summary>

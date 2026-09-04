@@ -53,6 +53,50 @@ internal static class Navigation
     }
 
     /// <summary>
+    /// Put Levels and Skip back into the pause menu.
+    ///
+    /// The game hides both on daily-tidy levels, which is right in vanilla -
+    /// a daily has no campaign track to return to and cannot be skipped. But a
+    /// run draws generator puzzles from exactly that pool, so opening one left
+    /// the pause menu with no way back to the track at all: Resume, Hint,
+    /// Settings, Reset, Exit. The only escape was quitting to the title.
+    ///
+    /// A postfix, so the game makes its decision first and this restores the
+    /// two entries a run needs. Skip comes back too - whether a skip is
+    /// actually allowed is decided by holding a Skip item, not by which pool
+    /// the puzzle came from.
+    /// </summary>
+    [HarmonyPatch(typeof(MainMenu), nameof(MainMenu.ShowHideMenuItems))]
+    [HarmonyPostfix]
+    private static void AfterShowHideMenuItems(MainMenu __instance)
+    {
+        try
+        {
+            if (!Track.Active) return;
+
+            var container = __instance.ButtonsContainer;
+            if (container == null) return;
+
+            for (int i = 0; i < container.childCount; i++)
+            {
+                var child = container.GetChild(i);
+                if (child == null) continue;
+
+                var wanted = child.name.StartsWith("Levels", StringComparison.Ordinal)
+                             || child.name.StartsWith("Skip", StringComparison.Ordinal);
+                if (!wanted || child.gameObject.activeSelf) continue;
+
+                child.gameObject.SetActive(true);
+                Plugin.Logger.LogInfo($"navigation: restored {child.name} to the pause menu");
+            }
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"navigation: could not fix the pause menu: {e.Message}");
+        }
+    }
+
+    /// <summary>
     /// Send an exit to the run's track, using the game's own routine.
     ///
     /// Two other approaches were tried against the running game and neither

@@ -109,6 +109,7 @@ public sealed class Plugin : BasePlugin
                      ("track", typeof(Track)),
                      ("skips", typeof(Skips)),
                      ("navigation", typeof(Navigation)),
+                     ("title screen", typeof(TitleScreen)),
                  })
         {
             try
@@ -357,6 +358,7 @@ public sealed class Plugin : BasePlugin
         _slot = null;
         Toasts.Destroy();
         Track.End();
+        TitleScreen.Refresh();
         Checks.End();
         Inventory.End();
         RunState.End();
@@ -477,6 +479,7 @@ public sealed class Plugin : BasePlugin
         // The track goes up as soon as the seed is known, before any item has
         // arrived, so the player sees their run rather than the campaign.
         Track.Begin(slot);
+        TitleScreen.Refresh();
 
         // Before Checks, so a replayed item list has already opened the track
         // by the time the first flush looks at what is reachable.
@@ -535,6 +538,7 @@ public sealed class Ticker : MonoBehaviour
         Checks.TickEmptyLevelWatch(Time.unscaledDeltaTime);
         Abilities.Tick(Time.unscaledDeltaTime);
         Toasts.Tick(Time.unscaledDeltaTime);
+        Track.TickTrackIntegrity(Time.unscaledDeltaTime);
         Badges.Tick(Time.unscaledDeltaTime);
         Badges.TickWhy(Time.unscaledDeltaTime);
         Plugin.TickCredits(Time.unscaledDeltaTime);

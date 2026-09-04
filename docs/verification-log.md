@@ -373,3 +373,152 @@ a sweep of all 36 cards in a run found every playable one loading. Parked
 rather than closed. A watchdog now logs `LEVEL LOADED EMPTY: <id>` and shows a
 toast if a level sits with no objects and no controllers for six seconds, so
 the next occurrence names itself instead of needing to be reproduced.
+
+## The title screen in a run
+
+**Play opens the FARTHEST open slot that still has something doable in it.**
+Vanilla Play resumes the campaign, which in a run meant landing on a puzzle
+already beaten. Farthest rather than first because the track only moves
+forwards - everything behind is finished or waiting on an item, so the useful
+place to be dropped is the edge of your progress. "Doable" is stricter than
+"unfinished": a slot whose remaining checks are all blocked by an ability or a
+pack is skipped, and if nothing anywhere is doable the track is opened instead
+of dropping the player into a puzzle they cannot progress.
+
+**Everything that leads outside the run is hidden while connected.** Decided by
+dumping the title screen's whole tree rather than by going through what was
+visible, which is how the DLC block turned up - it lives in its own container
+and a sweep of the main menu missed it entirely.
+
+| Entry | Hidden | Why |
+|---|---|---|
+| Archive | yes | its puzzles ARE the run's, reached through the track; the page is itself a level select, which is why landing on it read as a broken track |
+| Daily Tidy | yes | same |
+| Shuffle | yes | endless random campaign levels, no checks. Inactive unless the save has New Game Plus, so it would have been missed by looking |
+| DLC block | yes, entire | no DLC level can appear in a run - the table is base, archive and generator only. Hidden as a whole, heading and arrows included, rather than button by button, which would leave a heading over nothing |
+| Play, Levels, Settings, Quit, Archipelago | no | all meaningful in a run |
+
+Both verified in game, in both states:
+
+| | Play | Levels | Daily Tidy | Archive | DLC | Archipelago |
+|---|---|---|---|---|---|---|
+| connected | opens slot 29, the farthest playable | shown | **hidden** | **hidden** | **hidden** | shown |
+| not connected | vanilla, untouched | shown | shown | shown | shown | shown |
+
+The hiding is applied on `SetupTitleScreen` and again on connect and
+disconnect, because connecting happens AT the title screen - the screen has
+already been built by then, so without the second call the menus would stay
+visible until something else rebuilt it, which for someone connecting and
+pressing Play is never.
+
+## Opening a puzzle always rebuilds it
+
+Measured by logging the `Level` instance id on entry, leaving, and entering
+again:
+
+```
+Stamps (Randomized)  levelInstance=-35000  ->  -43310
+TrickOrTidy_Candy    levelInstance=-51620  ->  -60172
+```
+
+A new object both times, for a generator level and a normal one alike. So
+re-opening a puzzle you were part way through resets it regardless of anything
+the mod does.
+
+**That is why a cat trap now MISSES rather than queueing.** A trap held until
+the next puzzle opens would undo work the game had already discarded, and
+announce a setback that never happened. Arriving outside a puzzle it is spent
+with a line in the log; arriving while one is open it lands. Verified in all
+three states: at the title screen it misses, opening a puzzle springs nothing,
+and sent mid-puzzle it undoes a group.
+
+## Play starts the level through the game, not around it
+
+The first version called `LevelManager.StartLevel` directly. That loaded a
+level and left the title screen up - Play looked like it did nothing at all,
+while the log cheerfully reported a launch each time it was pressed.
+
+`TitleMenu.PlayGame` does the state transition, and the level it loads comes
+from `Gameplay_GameState.GetLevelIndex`. Answering that question, and letting
+the button run untouched, is what makes Play open the run's puzzle by the
+game's own path - the same shape that fixed the exit routes.
+
+## A test tool that clicked the wrong way
+
+Clicking a pack divider left the player on a blank screen. The guard against it
+already existed and fired correctly - and the bug was real anyway, because the
+guard was on `LevelIcon.DoStartLevel` while a real click enters through
+`OnPointerClick`, which also selects the card and drives a transition. A chapter
+card has no puzzle behind it, so that transition ends nowhere.
+
+The reason this was not caught: the `clicktrack` dev command called
+`DoStartLevel` directly. Under test the guard fired, the track stayed intact,
+and everything looked correct. With a mouse it broke. **The command now calls
+`OnPointerClick`**, so the tool takes the same path a player does, and the
+divider is refused at the click.
+
+A second safety net came out of the same report. The track rebuild hung off
+`LevelsTrack.MenuActivated`, and that event does not fire on every route into
+the level select - entering it from the TITLE does not raise it. When that
+happened the `SetLevels` and `SetupSections` postfixes still replaced the data,
+so the menu held the run's entries and sections, but nothing called
+`LevelsTrack.Init` and no icons were built: a level select that is correct
+underneath and invisible on top. A once-a-second check now compares the cards on
+screen against the plan and rebuilds on a mismatch, which covers whichever route
+was taken including ones nobody has found.
+
+## The pause menu hides Levels on generator puzzles
+
+Opening a generator puzzle and pressing escape gave: Resume, Hint, Settings,
+Reset, Exit. No Levels, no Skip - so the only way back to the track was quitting
+to the title.
+
+Confirmed by dumping the pause menu WHILE OPEN, which mattered: dumped closed it
+reports every button active, and the two are hidden only as the menu opens.
+Three separate attempts to check this from a closed menu all said everything was
+fine.
+
+```
+open:    Resume=True  Skip=False  Hint=True  Levels=False  Settings=True ...
+closed:  Resume=True  Skip=True   Hint=True  Levels=True   Settings=True ...
+```
+
+The cause is that generator puzzles come from the Daily Tidy pool, where hiding
+both is correct - a daily has no campaign track to return to and cannot be
+skipped. A run draws from that pool, so both need to come back. A postfix on
+`MainMenu.ShowHideMenuItems` restores them; whether a skip is allowed is decided
+by holding a Skip item, not by which pool the puzzle came from.
+
+**Not verified by the agent.** The buttons are only hidden during a real open,
+which needs a keypress, and calling ShowHideMenuItems directly does not
+reproduce the hiding. Confirmed by the player instead.
+
+## The cat trap did nothing for three rounds
+
+`ObjectController.Reset` does not move objects. Measured directly - record
+positions, displace everything, reset, read again:
+
+```
+before=(-4.2, -1.3)  displaced=(-3.4, -0.9)  afterReset=(-3.4, -0.9)
+Reset restores positions = False
+```
+
+It clears solved flags and nothing else. So the trap logged "the cat undid N
+groups", played the paw and showed a toast, while the puzzle sat untouched.
+
+**It survived testing because every check was made on a puzzle with no progress
+to undo.** The Popcorn screenshot showed three intact lines and was read as
+"the reset behaved"; all it showed was that nothing had broken. A trap that does
+nothing and a trap that undoes nothing look identical when there is nothing to
+undo. Two earlier designs - random displacement, then swapping positions between
+objects - were rejected for damaging puzzles, and this one was accepted for not
+damaging them, which was never the test that mattered.
+
+The trap now snapshots every object's position and rotation when a level opens
+and restores that on firing. It is safe by construction: the layout is one the
+level itself produced, and since levels are rebuilt from scratch on every entry,
+what is on screen at load IS the base state. Reset is still called afterwards so
+the solved flags agree with the screen.
+
+Verified by displacing a live puzzle, firing a real trap, and reading the
+positions back - the objects returned to their opening coordinates.

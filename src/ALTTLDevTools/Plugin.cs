@@ -706,6 +706,115 @@ public class DevToolsBehaviour : MonoBehaviour
                     li.CompleteLevel();
                 });
             }
+            else if (cmd.Equals("play", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("play", () =>
+                {
+                    var title = UnityEngine.Object.FindObjectOfType<TitleMenu>();
+                    if (title == null)
+                    {
+                        DevToolsPlugin.Log.LogWarning("play: no live TitleMenu");
+                        return;
+                    }
+                    DevToolsPlugin.Log.LogInfo("play: pressing Play");
+                    title.PlayGame();
+                });
+            }
+            else if (cmd.Equals("resettest", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("resettest", ResetTest);
+            }
+            else if (cmd.Equals("showpause", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("showpause", () =>
+                {
+                    MainMenu? menu = null;
+                    foreach (var candidate in Resources.FindObjectsOfTypeAll(
+                                 Il2CppInterop.Runtime.Il2CppType.Of<MainMenu>()))
+                    {
+                        var found = candidate?.TryCast<MainMenu>();
+                        if (found == null || !found.gameObject.scene.IsValid()) continue;
+                        menu = found;
+                        break;
+                    }
+                    if (menu == null)
+                    {
+                        DevToolsPlugin.Log.LogWarning("showpause: no live MainMenu");
+                        return;
+                    }
+
+                    // The method the game runs when the pause menu opens. The
+                    // buttons are only hidden at that moment, so dumping a
+                    // closed menu says nothing about what a player sees.
+                    DevToolsPlugin.Log.LogInfo("showpause: running ShowHideMenuItems");
+                    menu.ShowHideMenuItems(null);
+                });
+            }
+            else if (cmd.Equals("pausebuttons", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("pausebuttons", () =>
+                {
+                    MainMenu? menu = null;
+                    foreach (var candidate in Resources.FindObjectsOfTypeAll(
+                                 Il2CppInterop.Runtime.Il2CppType.Of<MainMenu>()))
+                    {
+                        var found = candidate?.TryCast<MainMenu>();
+                        if (found == null || !found.gameObject.scene.IsValid()) continue;
+                        menu = found;
+                        break;
+                    }
+                    if (menu == null)
+                    {
+                        DevToolsPlugin.Log.LogWarning("pausebuttons: no live MainMenu");
+                        return;
+                    }
+                    DevToolsPlugin.Log.LogInfo(
+                        "pausebuttons: active=" + Str(() => menu.gameObject.activeInHierarchy.ToString()));
+                    var container = menu.ButtonsContainer;
+                    if (container == null) { DevToolsPlugin.Log.LogWarning("  no container"); return; }
+                    for (int i = 0; i < container.childCount; i++)
+                    {
+                        var child = container.GetChild(i);
+                        DevToolsPlugin.Log.LogInfo(
+                            $"  {Str(() => child.name)} active="
+                            + Str(() => child.gameObject.activeSelf.ToString()));
+                    }
+                });
+            }
+            else if (cmd.Equals("titletree", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("titletree", () =>
+                {
+                    var title = UnityEngine.Object.FindObjectOfType<TitleMenu>();
+                    if (title == null)
+                    {
+                        DevToolsPlugin.Log.LogWarning("titletree: no title screen");
+                        return;
+                    }
+                    DevToolsPlugin.Log.LogInfo("titletree:");
+                    DumpTitle(title.transform, 0);
+                });
+            }
+            else if (cmd.Equals("titlebuttons", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("titlebuttons", () =>
+                {
+                    var title = UnityEngine.Object.FindObjectOfType<TitleMenu>();
+                    var container = title == null ? null : title.MainMenuContainer;
+                    if (container == null)
+                    {
+                        DevToolsPlugin.Log.LogWarning("titlebuttons: no title screen");
+                        return;
+                    }
+                    for (int i = 0; i < container.childCount; i++)
+                    {
+                        var child = container.GetChild(i);
+                        DevToolsPlugin.Log.LogInfo(
+                            $"  {Str(() => child.name)} active="
+                            + Str(() => child.gameObject.activeSelf.ToString()));
+                    }
+                });
+            }
             else if (cmd.Equals("menus", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("menus", DumpMenus);
@@ -1114,6 +1223,101 @@ public class DevToolsBehaviour : MonoBehaviour
     }
 
     /// <summary>
+    /// The title screen's whole tree, so nothing on it is decided by guesswork.
+    /// Depth-limited: the interesting things are entries and their badges, not
+    /// the text objects inside them.
+    /// </summary>
+    private static void DumpTitle(Transform t, int depth)
+    {
+        if (depth > 3) return;
+
+        for (int i = 0; i < t.childCount; i++)
+        {
+            var child = t.GetChild(i);
+            if (child == null) continue;
+
+            // Component type names rather than typed lookups: the dev tools
+            // deliberately reference as little of Unity's UI as possible.
+            var kinds = "";
+            foreach (var component in child.GetComponents<Component>())
+            {
+                if (component == null) continue;
+                var name = Str(() => component.GetIl2CppType().Name);
+                if (name == "Button" || name == "TextMeshProUGUI") kinds += " " + name;
+            }
+
+            DevToolsPlugin.Log.LogInfo(
+                new string(' ', (depth + 1) * 2)
+                + Str(() => child.name)
+                + " active=" + Str(() => child.gameObject.activeSelf.ToString())
+                + kinds);
+
+            DumpTitle(child, depth + 1);
+        }
+    }
+
+    /// <summary>
+    /// Does ObjectController.Reset actually move objects back?
+    ///
+    /// The cat trap is built on it, and "the cat undid N groups" was only ever
+    /// observed on puzzles with no progress to undo - which proves nothing.
+    /// This records positions, displaces everything, then resets, and prints
+    /// all three so the answer is not a matter of opinion.
+    /// </summary>
+    private static void ResetTest()
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        var level = li == null ? null : li.Level;
+        if (level == null || level.allLevelObjects == null)
+        {
+            DevToolsPlugin.Log.LogWarning("resettest: no level running");
+            return;
+        }
+
+        var objects = level.allLevelObjects;
+        var sample = Math.Min(3, objects.Count);
+
+        var before = new List<string>();
+        for (int i = 0; i < sample; i++)
+        {
+            before.Add(Str(() => objects[i].transform.localPosition.ToString()));
+        }
+
+        // Shove everything, as a stand-in for a player having moved pieces.
+        for (int i = 0; i < objects.Count; i++)
+        {
+            var obj = objects[i];
+            if (obj == null) continue;
+            obj.transform.localPosition += new Vector3(0.75f, 0.35f, 0f);
+        }
+
+        var moved = new List<string>();
+        for (int i = 0; i < sample; i++)
+        {
+            moved.Add(Str(() => objects[i].transform.localPosition.ToString()));
+        }
+
+        // Deliberately does NOT reset here any more. The point of this command
+        // is now to leave the level displaced so a real cat trap can be fired
+        // at it and the restore observed.
+        var after = new List<string>();
+        for (int i = 0; i < sample; i++)
+        {
+            after.Add(Str(() => objects[i].transform.localPosition.ToString()));
+        }
+
+        for (int i = 0; i < sample; i++)
+        {
+            DevToolsPlugin.Log.LogInfo(
+                $"resettest[{i}] before={before[i]} displaced={moved[i]} afterReset={after[i]}");
+        }
+        DevToolsPlugin.Log.LogInfo(
+            "resettest: level displaced. Fire a cat trap now and the objects
+"
+            + "should return to the 'before' positions above.");
+    }
+
+    /// <summary>
     /// "clicktrack:N" clicks the card at track POSITION N.
     ///
     /// Distinct from clickcard, which takes a level index. Once the track holds
@@ -1141,7 +1345,12 @@ public class DevToolsBehaviour : MonoBehaviour
         var icon = items[position];
         DevToolsPlugin.Log.LogInfo(
             $"clicktrack: position {position} is {Str(() => icon.level.LevelId)}");
-        icon.DoStartLevel();
+
+        // OnPointerClick, not DoStartLevel. A real click enters here and does
+        // selection and transition work on the way; going straight to
+        // DoStartLevel skips all of it, which made a card that breaks the menu
+        // on a real click look perfectly fine under test.
+        icon.OnPointerClick(null);
     }
 
     /// <summary>
@@ -1198,8 +1407,12 @@ public class DevToolsBehaviour : MonoBehaviour
         }
 
         var list = level.objectControllers;
+        // The Level's instance id answers whether re-entering a puzzle reuses
+        // the loaded level (progress kept) or rebuilds it (progress lost).
         DevToolsPlugin.Log.LogInfo(
-            $"controllers: {list.Count} registered on {Str(() => li!.LevelId)}");
+            $"controllers: {list.Count} registered on {Str(() => li!.LevelId)}"
+            + $" levelInstance={Str(() => level.GetInstanceID().ToString())}"
+            + $" solvedNow={Str(() => level.numSolutions.ToString())}");
         for (int i = 0; i < list.Count; i++)
         {
             var oc = list[i];
