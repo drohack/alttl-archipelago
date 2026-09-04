@@ -72,6 +72,8 @@ rather than being re-rolled into a different one.
 | 7 | Trap accounting balances | PASS - 8 received = 2 reset + 2 missed + 4 absorbed; `trapsSprung: 8` |
 | 8 | Ability dimming re-arms after the rebuild | PARTIAL - the pass runs every second from live state and was seen re-reporting object counts after a reset, but not yet on a level with a LOCKED group |
 | 9 | Trap fired while the player is HOLDING a piece | PASS - confirmed in play on Stamps: the held piece reset with everything else, nothing was left attached or stuck to the cursor |
+| 10 | Trap on pieces POSTED INTO something | PASS - confirmed in play on the envelopes: stamps come free of the envelope they were posted into, so the parents really are reset |
+| 11 | Trap with the pause menu open | PASS - layout byte-identical, seed kept, menu still up with all seven entries |
 
 Test 9 closes the gap left open under "A. Reset correctness under real placement"
 below for the surface-sticking mechanism specifically. It was confirmed by hand
@@ -79,41 +81,68 @@ rather than by the harness, and it is the strongest single result here: a
 grabbed object is live state held by the input layer, not just a transform, and
 it is precisely what a hand-rolled restore would have left dangling.
 
-## Still to prove
+## What was still to prove, and where it landed
 
-### A. Reset correctness under real placement
+### A. Reset correctness under real placement - CONFIRMED IN PLAY
 
-Everything above disturbed the puzzle by shoving transforms, which does NOT
-create attachments. The attachment case is argued structurally (the level is
-rebuilt) rather than demonstrated. To demonstrate it, the harness needs a
-disturbance that goes through the game's own drop path.
+This was the last thing standing on an argument rather than an observation, and
+it is now settled: droha played it. Stamps posted onto envelopes, a cat trap,
+and the parents came back correct - the pieces are loose again rather than
+riding the envelope they were posted into. An earlier session confirmed the
+other half, a trap fired while HOLDING a piece.
 
-`LevelObject` has no drag API (`OnPointerDown`, `OnDrag`, `Grab`, `Drop` all
-absent), so the entry point is in the input or selection layer and still has to
-be found. Until then this is one manual test: post a stamp onto an envelope,
-fire a trap, then drag the envelope and confirm the stamp stays behind.
+That matters more than the rest of this document, because it is the exact
+failure the previous design produced: pieces restored to the right coordinates
+while still attached, so dragging the envelope dragged them along. The rebuild
+argument said that could not happen any more. Now it has been looked at.
 
-### B. One test per puzzle mechanism
+Worth being clear about why it took a person. Everything the harness can do
+disturbs a puzzle by shoving transforms, which does NOT create attachments, so
+no automated test here could have exercised it. `LevelObject` has no drag API -
+`OnPointerDown`, `OnDrag`, `Grab` and `Drop` are all absent - so the entry point
+is somewhere in the input or selection layer and was never found. `press:` now
+dispatches real pointer clicks, which is most of what a drag harness would need
+if one is ever wanted, but the question it would answer has been answered.
 
-For each of: surfaces, drawers, grid cells, nesting, stacks, buoyancy,
-containables, jigsaw, ordered, telescoping, scrubbing/cleaning.
+### B. One test per puzzle mechanism - NOT DONE, AND PROBABLY NOT NEEDED
 
-Disturb, trap, then check all four:
+The original plan was a test each for surfaces, drawers, grid cells, nesting,
+stacks, buoyancy, containables, jigsaw, ordered, telescoping and cleaning.
 
-1. the layout matches the opening layout exactly;
-2. nothing is still attached to something it was placed into (drag test);
-3. the puzzle can still be solved to completion;
-4. no check is sent twice and no earned check is revoked.
+That list was written when the trap put pieces back itself, and every mechanism
+was a separate way to get it wrong. It is not that any more. `ResetLevel`
+rebuilds the level, so no mechanism can survive it - which is the point of
+choosing a construction over a list of cases. Surface-sticking has been
+confirmed by hand anyway (A above), and it is the mechanism the old design
+actually broke.
 
-### C. Run integrity
+Kept here rather than deleted because if the trap ever stops rebuilding and goes
+back to restoring pieces, this list becomes required reading again.
 
-- A trap must not send, revoke or duplicate checks already earned.
-- A trap on an ability-locked level: locked groups must still be dimmed and
-  non-interactive one second after the reset. **This is the one real risk the
-  rebuild introduces** - fresh `LevelObject`s mean our dimming has to re-arm.
-- The tracker badge must be correct after a reset.
-- A trap on the credits card.
-- A trap arriving during a level transition, and with the pause menu open.
+### C. Run integrity - DONE
+
+All of these have since been run and are recorded in
+`docs/verification-log.md`:
+
+- **Ability-locked level.** This was called out as the one real risk the rebuild
+  introduces, because fresh `LevelObject`s mean the dimming has to re-arm.
+  Tested on MedicineCabinet with 5 locked groups and 8 open: dimming re-armed
+  identically, confirmed by comparing screenshots either side of the trap.
+- **The tracker badge.** Read every open slot's badge, fired a trap, read them
+  again: byte-identical. A reset undoes the arrangement and nothing about what
+  has been collected.
+- **The credits card.** Appears when the Credits item arrives, refuses a click
+  while under the goal. One gap found and recorded: the refusal is silent,
+  because the game's own card lock fires before our "N puzzles to go" message.
+- **With the pause menu open.** Needed a way to open the menu from a script,
+  which took three attempts; now the DevTools `pause` command. Layout
+  byte-identical, seed kept, menu still up with all seven entries afterwards.
+- **Checks are not double-sent.** Re-entering and re-solving a rebuilt level
+  sends nothing new.
+
+Only a trap arriving mid-transition is untested, and it is the least
+interesting: the trap already handles arriving with no level open by counting
+itself spent.
 
 ### D. Built-in cats
 
