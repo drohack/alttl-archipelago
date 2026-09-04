@@ -87,44 +87,22 @@ internal static class Inventory
     /// </summary>
     private static void Apply()
     {
+        // The counting lives in Core, where it is tested. This method is the
+        // Unity half only: take the numbers and push them at the game.
+        var counts = InventoryCounts.From(
+            _received, _abilities == null ? null : _abilities.IsAbility);
 
-        var packs = 0;
-        var skips = 0;
-        var traps = 0;
-        var beaten = 0;
-
-        var credits = false;
-        var abilities = new List<string>();
-
-        foreach (var name in _received)
-        {
-            // Exact matches against ItemNames, which is pinned against the
-            // generator's own table. Prefix matching is what let "Puzzle Pack"
-            // look plausible while never matching "Progressive Puzzle Pack".
-            if (name == ItemNames.Pack) packs++;
-            else if (name == ItemNames.Credits) credits = true;
-            else if (name == ItemNames.Skip) skips++;
-            else if (name == ItemNames.CatTrap) traps++;
-            else if (name == ItemNames.BeatenToken) beaten++;
-            else if (_abilities != null && _abilities.IsAbility(name)) abilities.Add(name);
-
-            // Anything else is filler - Title Theme, Colour Scheme, Daily Badge
-            // - and changes nothing. Asking the seed's own ability catalogue
-            // above means there is no second list of names to keep in step with
-            // the generator.
-        }
-
-        PacksHeld = packs;
-        SkipsHeld = skips;
-        TrapsReceived = traps;
-        LevelsBeaten = beaten;
-        HasCredits = credits;
+        PacksHeld = counts.Packs;
+        SkipsHeld = counts.Skips;
+        TrapsReceived = counts.Traps;
+        LevelsBeaten = counts.Beaten;
+        HasCredits = counts.HasCredits;
 
         // Only the abilities that arrived as ITEMS. AbilityState holds the
         // seed's starting abilities separately, because the server never
         // resends those and clearing them here would lose them for good.
-        _abilities?.SetHeld(abilities);
+        _abilities?.SetHeld(counts.Abilities);
 
-        Track.SetPacksHeld(packs);
+        Track.SetPacksHeld(counts.Packs);
     }
 }

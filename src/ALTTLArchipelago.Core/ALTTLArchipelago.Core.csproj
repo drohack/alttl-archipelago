@@ -2,13 +2,24 @@
 
   <!-- The rules and state of the randomizer as pure C#.
 
-       THIS PROJECT MUST HAVE NO <Reference> AND NO <PackageReference>.
+       THIS PROJECT MUST NEVER REFERENCE UNITY, BEPINEX, OR THE GAME'S INTEROP
+       ASSEMBLIES. Ordinary .NET packages are allowed.
 
-       That is the entire enforcement of the Unity boundary, and CI protects it
-       by building this project alone on a runner with no game installed. If a
-       Unity, BepInEx or Archipelago.MultiClient.Net reference appears here,
-       that job fails - which is the point. Everything decidable without the
-       game lives here so it can be unit-tested without launching anything. -->
+       CI protects the rule by building this project alone on a runner with no
+       game installed, and that job is the real guarantee: anything needing the
+       game cannot compile there.
+
+       The rule used to ban <PackageReference> too, which was stricter than the
+       boundary it defends and cost real coverage. Archipelago.MultiClient.Net
+       is an ordinary NuGet package that restores and runs fine on a bare
+       runner, so banning it protected nothing while leaving four Unity-FREE
+       files - the connection, the inventory, the goal latch and the run state -
+       stranded in the plugin project with no tests. Two of the five bugs the
+       2026-09-04 audit found were in exactly that untested code.
+
+       So: packages by exception, listed below with a reason. Anything that
+       drags in the game does not belong here at all. -->
+
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -21,5 +32,13 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The only package, and only for the enums and value types the protocol
+         defines - the refusal codes. No socket is opened from here. It is an
+         ordinary .NET library that restores and runs on a runner with no game
+         installed, which is why allowing it costs the boundary nothing. -->
+    <PackageReference Include="Archipelago.MultiClient.Net" Version="6.7.1" />
+  </ItemGroup>
 
 </Project>

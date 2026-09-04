@@ -20,15 +20,16 @@ namespace ALTTLArchipelago;
 /// </summary>
 internal static class Credits
 {
-    private static bool _reported;
-    private static bool _announced;
+    private static GoalLatch _latch = new();
     private static float _sinceCheck;
 
-
+    /// <summary>
+    /// A fresh run. Called on connect, so a new seed does not inherit the last
+    /// one's "already reported".
+    /// </summary>
     internal static void Reset()
     {
-        _reported = false;
-        _announced = false;
+        _latch = new GoalLatch();
         _sinceCheck = 0f;
     }
 
@@ -53,28 +54,23 @@ internal static class Credits
 
         try
         {
+            // Both latches live in Core, where they are tested. This is the
+            // Unity half: ask, then do the talking and the sending.
             var left = Remaining(slot);
+            var held = Inventory.HasCredits;
 
-            if (left == 0 && Inventory.HasCredits && !_announced)
+            if (_latch.ShouldAnnounce(left, held))
             {
-                _announced = true;
                 Plugin.Logger.LogInfo(
                     $"credits: unlocked after {Checks.LevelsBeaten} puzzles");
                 Toasts.Show("The credits are unlocked", Toasts.Notice);
             }
 
-            if (_reported) return;
-
-            // The run is won when the goal condition holds. Reported as soon as
-            // it does rather than when the credits card is played: a player who
-            // has met the condition has finished the seed, and holding their
-            // completion hostage to watching an animation would strand a
-            // multiworld waiting on them.
-            if (left > 0 || !Inventory.HasCredits) return;
+            if (!_latch.ShouldReport(left, held)) return;
 
             if (session != null && session.ReportGoal())
             {
-                _reported = true;
+                _latch.Sent();
                 Plugin.Logger.LogInfo("goal: reported to the server");
                 Toasts.Show("Run complete", Toasts.Notice);
             }

@@ -33,8 +33,11 @@ internal static class Checks
     /// <summary>Which slot the player is currently inside, or -1 in a menu.</summary>
     private static int _currentSlot = -1;
 
-    /// <summary>Distinct solution ids seen per slot, in the order found.</summary>
-    private static readonly Dictionary<int, List<string>> _solutionsFound = new();
+    /// <summary>
+    /// Which solution number each completion is. The mapping lives in Core,
+    /// where it is tested; this file only feeds it the game's events.
+    /// </summary>
+    private static readonly SolutionOrdinals _solutions = new();
 
     /// <summary>
     /// The IL2CPP side holds listeners through a weak wrapper, so a delegate
@@ -70,7 +73,7 @@ internal static class Checks
         _progress = new SlotProgress(slot, _router);
         _slot = slot;
         _ledger = new CheckLedger();
-        _solutionsFound.Clear();
+        _solutions.Clear();
         _currentSlot = -1;
         Attach();
     }
@@ -81,7 +84,7 @@ internal static class Checks
         _progress = null;
         _slot = null;
         _currentSlot = -1;
-        _solutionsFound.Clear();
+        _solutions.Clear();
     }
 
     /// <summary>What the server says we have already checked.</summary>
@@ -396,20 +399,12 @@ internal static class Checks
         EnsureSlot();
         if (_router == null || _currentSlot < 0) return;
 
-        var solutionId = data?.SolutionId ?? "";
-
-        if (!_solutionsFound.TryGetValue(_currentSlot, out var found))
+        var nth = _solutions.Record(_currentSlot, data?.SolutionId ?? "");
+        if (nth > 0)
         {
-            found = new List<string>();
-            _solutionsFound[_currentSlot] = found;
+            var solution = _router.ForSolution(_currentSlot, nth);
+            if (solution != null) Report(solution);
         }
-
-        // Distinct, and ordinal. Re-finding a solution already found is not a
-        // new check - a player can complete the same arrangement repeatedly.
-        if (!found.Contains(solutionId)) found.Add(solutionId);
-
-        var solution = _router.ForSolution(_currentSlot, found.Count);
-        if (solution != null) Report(solution);
 
         // Beating the level is its own location, granting the token the credits
         // gate counts. Sent on any completion, not only the first solution -

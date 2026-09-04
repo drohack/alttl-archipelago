@@ -183,7 +183,7 @@ internal sealed class Connection
                 // into the same backoff, so a typo in the slot name was retried
                 // three times over nine seconds before the player was told
                 // anything - and the thing it was retrying could never succeed.
-                Terminal = IsTerminal(failure.ErrorCodes);
+                Terminal = Refusals.IsTerminal(failure.ErrorCodes);
 
                 LastError = why;
                 Plugin.Logger.LogWarning(
@@ -225,33 +225,6 @@ internal sealed class Connection
             Abandon();
             return e.Message;
         }
-    }
-
-    /// <summary>
-    /// Refusals that retrying cannot fix.
-    ///
-    /// SlotAlreadyTaken is deliberately NOT here: the usual cause is a previous
-    /// socket of our own that has not timed out yet, and waiting is exactly
-    /// what helps. UnknownError is not either - the library returns it for a
-    /// code it does not recognise, which is a reason to be cautious rather than
-    /// a reason to conclude anything.
-    /// </summary>
-    private static bool IsTerminal(ConnectionRefusedError[]? codes)
-    {
-        if (codes == null) return false;
-        foreach (var code in codes)
-        {
-            switch (code)
-            {
-                case ConnectionRefusedError.InvalidSlot:
-                case ConnectionRefusedError.InvalidGame:
-                case ConnectionRefusedError.InvalidPassword:
-                case ConnectionRefusedError.IncompatibleVersion:
-                case ConnectionRefusedError.InvalidItemsHandling:
-                    return true;
-            }
-        }
-        return false;
     }
 
     /// <summary>

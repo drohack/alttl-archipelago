@@ -1118,3 +1118,51 @@ Verified in game after the split: both plugins load, six feature patches live,
 the run connects, and a cat trap fired end to end - the paw drawn from `Traps`
 onto the kit's canvas, over toasts in the Archipelago palette, with the puzzle
 reset behind it.
+
+## Stage 5: the Core boundary, and what moved in behind it (2026-09-04)
+
+The rule was "no `<Reference>` and no `<PackageReference>`", enforced by a CI
+job that builds Core alone on a runner with no game. The job is the real
+guarantee and is unchanged. The blanket package ban was not: it was stricter
+than the boundary it defended and it cost coverage. Four Unity-FREE files - the
+connection, the inventory, the goal latch and the run state - sat in the plugin
+project untested, and two of the five bugs found this day were in them.
+
+The rule is now "never Unity, BepInEx, or the game's interop assemblies;
+ordinary .NET packages by exception, each with a reason". Core takes exactly one
+package, `Archipelago.MultiClient.Net`, for the enums the protocol defines. No
+socket is opened from Core. It still builds standalone with no game installed.
+
+Moved in, each with tests it did not have:
+
+| New in Core | Tests | What it encodes |
+|---|---|---|
+| `InventoryCounts` | 6 | counting a received-item list |
+| `SolutionOrdinals` | 5 | the Nth distinct solution id is the Nth solution location |
+| `Refusals` | 8 | which login refusals are worth retrying |
+| `GoalLatch` | 6 | announce once, report until the send actually lands |
+
+Core tests: 164 to 190.
+
+**One test is deliberately a counterexample.** `ADoubledListDoublesTheCounts`
+asserts that feeding the counter a doubled list reports doubled packs - the
+exact corruption the reconnect bug produced. It is there to record that counting
+is NOT what protects a reconnect; the session boundary is. If someone later
+teaches the counter to dedupe, that test fails and tells them they are hiding
+the bug rather than fixing it. Two packs really are two packs.
+
+**What did not move, and why.** `Connection` itself stays in the plugin. Its
+decision logic - the refusal classification - is out and tested, but the rest is
+socket lifecycle: creating a session, wiring events, marshalling to the main
+thread. Moving that would relocate code without making it testable, since what
+would need mocking is the library. `RunState` stays too: it is an atomic
+temp-file-then-rename over `System.Text.Json`, and its one real decision (the
+change-check that stops a timed flush rewriting an unchanged file) is three
+lines. The half worth testing was the ledger's, and that is already covered by
+`LocallyRecordedChecksSurviveARestart`.
+
+Verified in game after all four moves: plugins load, six patches live, the run
+connects with its restored state, and solving new groups still produces
+`check: Medicine Cabinet - Blue Bottles` followed by `checks: sent 1, 0 still
+owed`. Re-solving groups collected in earlier sessions correctly produced
+nothing, which is the ledger doing its job rather than a regression.
