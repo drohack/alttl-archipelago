@@ -39,19 +39,19 @@ public sealed class TrackState
     public int PackTotal => Math.Max(0, _boundaries.Count - 1);
 
     /// <summary>
-    /// How many slots are revealed right now.
-    ///
-    /// Clamped both ends: more packs than the seed has is not an error worth
-    /// refusing (a resend, or a generator change) and must not index past the
-    /// table.
-    /// </summary>
-    /// <summary>
     /// Where each pack stops, cumulative. The level select uses these to
     /// break the track into sections, so the breaks a player sees are the
     /// same ones the generator planned.
     /// </summary>
     public IReadOnlyList<int> Boundaries => _boundaries;
 
+    /// <summary>
+    /// How many slots are revealed right now.
+    ///
+    /// Clamped both ends: more packs than the seed has is not an error worth
+    /// refusing (a resend, or a generator change) and must not index past the
+    /// table.
+    /// </summary>
     public int OpenSlots
     {
         get

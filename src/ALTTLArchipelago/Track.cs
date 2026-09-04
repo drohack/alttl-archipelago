@@ -62,21 +62,6 @@ internal static class Track
     /// </summary>
     private static readonly List<int> _plan = new();
 
-    /// <summary>
-    /// Counts refusals and rebuilds so a battery can assert the patches FIRED
-    /// rather than merely that they applied. A Harmony patch that silently
-    /// failed to attach looks exactly like one that was never needed.
-    /// </summary>
-    internal static int Refusals { get; private set; }
-    internal static int TrackRebuilds { get; private set; }
-    internal static int SeedInjections { get; private set; }
-
-    /// <summary>
-    /// Launches where the pending slot did not match the level starting.
-    /// Non-zero is not fatal, but it means cards are being clicked whose
-    /// launch never happens - worth seeing rather than swallowing.
-    /// </summary>
-    internal static int StaleLaunches { get; private set; }
 
     /// <summary>
     /// The slot whose card was just clicked, read by the StartLevel patch.
@@ -262,8 +247,8 @@ internal static class Track
     /// The rebuild used to hang off LevelsTrack.MenuActivated, and that event
     /// does not fire on every route into the level select - opening it from the
     /// TITLE does not raise it. When that happened the SetLevels and
-    /// SetupSections postfixes still replaced the data, so the menu held our 35
-    /// entries and six pack sections, but nothing called LevelsTrack.Init, so no
+    /// SetupSections postfixes still replaced the data, so the menu held our
+    /// entries and pack sections, but nothing called LevelsTrack.Init, so no
     /// icons were ever built. The result is a level select that renders as an
     /// empty coloured screen - correct underneath, invisible on top.
     ///
@@ -483,7 +468,6 @@ internal static class Track
                 track.SetInitialScrollPosition();
             }
 
-            TrackRebuilds++;
             DescribeTrack(track);
         }
         catch (Exception e)
@@ -826,7 +810,6 @@ internal static class Track
             if (_state == null) return true;
             if (SlotIndexOf(__instance) != Divider) return true;
 
-            Refusals++;
             return false;
         }
         catch (Exception e)
@@ -865,7 +848,6 @@ internal static class Track
                 var left = Credits.Remaining(Plugin.Seed);
                 if (left <= 0) return true;
 
-                Refusals++;
                 Plugin.Logger.LogInfo($"track: credits locked, {left} puzzle(s) to go");
                 Toasts.Show($"Beat {left} more puzzle(s) to reach the credits", Toasts.Notice);
                 return false;
@@ -874,7 +856,6 @@ internal static class Track
             var slot = planned;
             if (!_state.IsOpen(slot))
             {
-                Refusals++;
                 _pendingSlot = -1;
                 Plugin.Logger.LogInfo(
                     $"track: slot {slot} is not unlocked yet ({_state.OpenSlots} open)");
@@ -923,7 +904,6 @@ internal static class Track
         // it, rebuilding an unrelated level from another puzzle's seed.
         if (age > 2)
         {
-            StaleLaunches++;
             Plugin.Logger.LogWarning(
                 $"track: ignoring a pending slot {slot} set {age} frames ago");
             return;
@@ -942,7 +922,6 @@ internal static class Track
         // never saw it and the first real click did.
         forceReload = true;
 
-        SeedInjections++;
         Plugin.Logger.LogInfo(
             $"track: slot {slot} {entry.LevelId} launching with seed {randomSeed}, forceReload");
     }

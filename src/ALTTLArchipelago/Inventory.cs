@@ -23,8 +23,6 @@ internal static class Inventory
 
     private static AbilityState? _abilities;
 
-    /// <summary>Counts applications so a battery can assert this ran at all.</summary>
-    internal static int Applications { get; private set; }
 
     internal static AbilityState? Abilities => _abilities;
     internal static int PacksHeld { get; private set; }
@@ -32,7 +30,7 @@ internal static class Inventory
     internal static int SkipsHeld { get; private set; }
     internal static int TrapsReceived { get; private set; }
     internal static int LevelsBeaten { get; private set; }
-    internal static int FillerReceived { get; private set; }
+
 
     /// <summary>
     /// A new connection is being made. Forget the last one's items.
@@ -63,7 +61,6 @@ internal static class Inventory
         SkipsHeld = 0;
         TrapsReceived = 0;
         LevelsBeaten = 0;
-        FillerReceived = 0;
         Apply();
     }
 
@@ -90,18 +87,12 @@ internal static class Inventory
     /// </summary>
     private static void Apply()
     {
-        Applications++;
 
         var packs = 0;
         var skips = 0;
         var traps = 0;
         var beaten = 0;
 
-        // Filler - Title Theme, Colour Scheme, Daily Badge - and anything else
-        // the server sends that is neither special nor a known ability. Asking
-        // the seed's own ability catalogue means there is no second list of
-        // names to keep in step with the generator.
-        var other = 0;
         var credits = false;
         var abilities = new List<string>();
 
@@ -116,14 +107,17 @@ internal static class Inventory
             else if (name == ItemNames.CatTrap) traps++;
             else if (name == ItemNames.BeatenToken) beaten++;
             else if (_abilities != null && _abilities.IsAbility(name)) abilities.Add(name);
-            else other++;
+
+            // Anything else is filler - Title Theme, Colour Scheme, Daily Badge
+            // - and changes nothing. Asking the seed's own ability catalogue
+            // above means there is no second list of names to keep in step with
+            // the generator.
         }
 
         PacksHeld = packs;
         SkipsHeld = skips;
         TrapsReceived = traps;
         LevelsBeaten = beaten;
-        FillerReceived = other;
         HasCredits = credits;
 
         // Only the abilities that arrived as ITEMS. AbilityState holds the

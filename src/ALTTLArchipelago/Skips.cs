@@ -21,9 +21,6 @@ internal static class Skips
     internal static int Available
         => Math.Max(0, Inventory.SkipsHeld - RunState.SkipsUsed);
 
-    /// <summary>Counts refusals, so a test can assert the patch FIRED.</summary>
-    internal static int Refusals { get; private set; }
-    internal static int Spent { get; private set; }
 
     /// <summary>
     /// A skip is in flight, so the next level completion is not a win.
@@ -53,7 +50,6 @@ internal static class Skips
 
             if (Available <= 0)
             {
-                Refusals++;
                 Plugin.Logger.LogInfo("skip: refused, none held");
                 Toasts.Show("No Skip available - find one to skip a puzzle",
                             Toasts.Notice);
@@ -61,7 +57,6 @@ internal static class Skips
             }
 
             RunState.SpendSkip();
-            Spent++;
 
             // Tell the check side that the completion about to arrive is a
             // skip, not a win.

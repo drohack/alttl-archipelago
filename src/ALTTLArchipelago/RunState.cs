@@ -65,8 +65,6 @@ internal static class RunState
     private static string? _path;
     private static Payload _state = new();
 
-    /// <summary>Counts writes, so a test can assert persistence actually ran.</summary>
-    internal static int Writes { get; private set; }
 
     internal static int SkipsUsed => _state.SkipsUsed;
     internal static int TrapsSprung => _state.TrapsSprung;
@@ -173,7 +171,6 @@ internal static class RunState
             var temp = _path + ".tmp";
             File.WriteAllText(temp, JsonSerializer.Serialize(_state));
             File.Move(temp, _path, overwrite: true);
-            Writes++;
         }
         catch (Exception e)
         {

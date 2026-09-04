@@ -14,11 +14,10 @@ namespace ALTTLArchipelago;
 /// <summary>
 /// A Little To The Left, as an Archipelago multiworld game.
 ///
-/// SCOPE RIGHT NOW: connect from the main menu, keep the connection up, and
-/// keep the run out of the player's campaign save. Nothing yet touches the
-/// level select or the puzzles - that is the next piece of work, and it comes
-/// after this one because it is the part that writes progress, and progress
-/// must have somewhere safe to go first.
+/// This file is the lifecycle: settings, patching, the connection and its
+/// retries, the check flush, and the per-frame tick that drives everything
+/// else. What each feature DOES lives in its own file - Track, Checks,
+/// Abilities, Badges, Traps, Skips, Credits.
 ///
 /// Architecture, each point a scar from the sibling cw4 project:
 ///

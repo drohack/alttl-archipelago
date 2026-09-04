@@ -987,3 +987,86 @@ Verified in game: entered a puzzle, returned to the track, and the badges were
 correct (red on the Pack 5 cards, which are blocked) with names intact and no
 exceptions logged. The badge state surviving the visibility gate is the part
 that could have broken.
+
+## Why exits take over the button (moved out of Navigation.cs, 2026-09-04)
+
+Kept here rather than in a 33-line comment on a 20-line method. `Navigation.cs`
+now carries the conclusion and a pointer to this, because the risk is someone
+replacing `GoToTrack` with something that looks cleaner - and all four cleaner
+things were tried and failed in the running game.
+
+Leaving a puzzle landed on the Archive instead of the run's track. Four
+approaches were tested and disproved:
+
+1. **Patch the navigation calls.** The exit buttons reach the generic
+   `SetGameState<T>`, which cannot be patched under IL2CPP. The non-generic
+   overload and `Back` were never called at all.
+2. **Patch `LevelInterface.IsArchived` for the exit.** Still the Archive.
+3. **Hold that patch for the whole level lifetime**, in case the destination is
+   cached at level start. Still the Archive.
+4. **SET the property on the live interface** - it has a setter - confirmed by a
+   probe reporting `archived=False` while the level ran. Still the Archive.
+
+And separately, filing the run's completion data in the CAMPAIGN list rather
+than the archive one, in case routing followed the save rather than the level.
+Also the Archive.
+
+So the destination is chosen by something that is neither the level's flags nor
+its save list. Taking over the button and calling the game's own
+`GoToLevelSelectForLevel` - handing it a campaign level so it picks the campaign
+track - is the fix. It is exhaustive rather than piecemeal because exactly three
+classes define `LevelSelect`: `MainMenu`, `ReplayMenu` and `TitleMenu`, and
+`TitleMenu` already goes to the campaign track.
+
+A `SetGameState` trace patch was kept alongside this while it was being
+investigated. It fired on every state transition for the whole run and its
+entire body was a log line, so it has been removed now the question is settled.
+
+## Stage 3: removing what was not being read (2026-09-04)
+
+**Twenty-two counters with no readers.** Every one carried a variant of "counts
+X, so a battery can assert this ran" or "so a test can assert the patch FIRED",
+and nothing anywhere read a single one - verified by script across the mod,
+Core, the tests, DevTools and the Python tools, not by eye. The instrumentation
+that would have justified retiring the safety polls was written and never
+connected, so it was dead weight making a promise it did not keep.
+
+Removed rather than wired up, because wiring them would need a harness that can
+read mod state, and DevTools deliberately shares no code with the mod. Three of
+them (`Skips.Refusals`, `Track.Refusals`, `Toasts.Shown`) initially looked live:
+their only apparent uses were the words "Refusals" and "Shown" appearing in
+unrelated comments.
+
+Kept: `Inventory.PacksHeld`, `SkipsHeld`, `TrapsReceived`, `LevelsBeaten`. Those
+are state the game reads, not counters.
+
+**A trace patch that outlived its investigation.** `Navigation
+.BeforeSetGameState` was a Harmony prefix on every game state transition whose
+entire body was a log line, kept while working out which call an exit button
+takes. That question is settled, so it fired on every transition of every run
+for nothing.
+
+**Comments that had stopped being true.** The worst was the `Plugin.cs` header,
+which still said "Nothing yet touches the level select or the puzzles - that is
+the next piece of work" in a mod that replaces the level select, gates the
+puzzles, sends checks and reports the goal. Also: a `Track.cs` comment citing
+"our 35 entries and six pack sections" for a seed with 79 slots, made
+seed-neutral; and a `TypingGuard.cs` doc saying the Rewired lookup is "found
+once and cached" twelve lines above code explaining it is deliberately retried
+and NOT cached on failure - the comment documented the bug that was fixed.
+
+**Four orphaned `<summary>` blocks** sitting above the wrong member, where a
+method moved and left its doc behind. Each is a silent XML-doc collision: the
+second summary wins and the first is dead text. Fixed in `AbilityState`,
+`TrackState`, `CheckLedger` and `Navigation`.
+
+**Deliberately kept**: the design rationale at the top of `Traps.cs`, which is
+longer than the code it documents. It is the record of three abandoned scatter
+implementations, and it is what stops the cat trap being "improved" back into
+one of them. The `Navigation` equivalent was moved here instead, because at 33
+lines on a 20-line method it had outgrown the file - but its conclusion and a
+pointer stayed behind, since the point of that comment is to be read by someone
+about to do the wrong thing.
+
+Verified after the deletions: all six feature patches live, connection up, run
+state intact, into a puzzle and back out, zero exceptions.

@@ -70,11 +70,11 @@ public sealed class AbilityState
         }
     }
 
-    /// <summary>Everything the player has, from either source.</summary>
     /// <summary>Is this item name one of the seed's abilities?</summary>
     public bool IsAbility(string name)
         => !string.IsNullOrEmpty(name) && _known.Contains(name);
 
+    /// <summary>Everything the player has, from either source.</summary>
     public IReadOnlyCollection<string> Held
     {
         get

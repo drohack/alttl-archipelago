@@ -48,9 +48,6 @@ internal static class Abilities
     /// </summary>
     private static string _lastSummary = "";
 
-    /// <summary>Counts passes that actually locked something, for assertions.</summary>
-    internal static int LockedControllers { get; private set; }
-    internal static int Passes { get; private set; }
 
     internal static void Reset()
     {
@@ -94,7 +91,6 @@ internal static class Abilities
                 return;
             }
 
-            Passes++;
             int locked = 0, unlocked = 0, objects = 0;
             var missing = new SortedSet<string>(StringComparer.Ordinal);
 
@@ -119,8 +115,6 @@ internal static class Abilities
 
                 objects += SetControllerLocked(controller, isLocked);
             }
-
-            LockedControllers = locked;
 
             var summary = $"{locked} locked, {unlocked} open, {objects} objects"
                 + (missing.Count > 0 ? $", waiting on {string.Join(", ", missing)}" : "");

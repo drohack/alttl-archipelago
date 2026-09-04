@@ -59,7 +59,6 @@ internal static class Toasts
     /// </summary>
     private static readonly Queue<(string Text, Color Colour)> _pending = new();
 
-    internal static int Shown { get; private set; }
 
     /// <summary>
     /// Default text colour. Individual names inside a line are coloured with
@@ -350,7 +349,6 @@ internal static class Toasts
         label.outlineColor = new Color32(0, 0, 0, 200);
 
         _lines.Add(new Line { Label = label });
-        Shown++;
 
         while (_lines.Count > MaxVisible)
         {

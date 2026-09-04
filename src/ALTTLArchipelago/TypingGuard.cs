@@ -108,10 +108,13 @@ internal static class TypingGuard
     /// Il2CppInterop renames members unpredictably - the assembly exports
     /// get_controllers, get_Controllers and get_maps, so the generated
     /// property names cannot be relied on at compile time and binding to the
-    /// wrong one is a build error rather than something that degrades. Found
-    /// once and cached; if it cannot be found the pane still works, the mouse
-    /// just drifts while typing, which is the bug this improves rather than a
-    /// new one.
+    /// wrong one is a build error rather than something that degrades.
+    ///
+    /// Resolved lazily and retried until it works - see SetRewiredMapsEnabled.
+    /// Rewired is not initialised at plugin load, so an eager probe that cached
+    /// the miss disabled the fix for the whole session. If it can never be
+    /// found the pane still works and the mouse just drifts while typing, which
+    /// is the bug this improves rather than a new one.
     /// </summary>
     /// <summary>Every player's map helper, with its SetAllMapsEnabled.</summary>
     private static readonly System.Collections.Generic.List<

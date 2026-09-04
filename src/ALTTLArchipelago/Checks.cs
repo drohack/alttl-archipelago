@@ -44,13 +44,6 @@ internal static class Checks
 
     private static bool _attached;
 
-    /// <summary>
-    /// Counts events actually handled, so a battery can assert the listeners
-    /// FIRED rather than merely that they were attached. A subscription that
-    /// silently failed looks identical to a quiet game.
-    /// </summary>
-    internal static int ControllerEvents { get; private set; }
-    internal static int LevelCompleteEvents { get; private set; }
 
     internal static CheckLedger Ledger => _ledger;
     internal static SlotProgress? Progress => _progress;
@@ -123,7 +116,6 @@ internal static class Checks
     /// <summary>Levels whose mismatch has already been reported, so it is said once.</summary>
     private static readonly HashSet<string> _mismatchesReported = new(StringComparer.Ordinal);
 
-    internal static int Mismatches { get; private set; }
 
     /// <summary>
     /// Compare the controllers the running level REGISTERED against the table
@@ -178,7 +170,6 @@ internal static class Checks
             // holds the ones that can be checked - so this is a report, not an
             // error. It is loud because a genuine new controller means the
             // logic and the game disagree about what is solvable.
-            Mismatches++;
             _mismatchesReported.Add(levelId);
             Plugin.Logger.LogWarning(
                 $"CONTROLLER MISMATCH on {levelId}: {registered.Count} registered, "
@@ -196,8 +187,6 @@ internal static class Checks
     private static string _watchedLevel = "";
     private static float _emptyFor;
 
-    /// <summary>Times a level came up with nothing in it.</summary>
-    internal static int EmptyLevels { get; private set; }
 
     /// <summary>
     /// Shout if a level is on screen with nothing in it.
@@ -272,7 +261,6 @@ internal static class Checks
         if (_emptyFor < EmptyAfter) return;
         if (_emptyFor - WatchInterval >= EmptyAfter) return;
 
-            EmptyLevels++;
             Plugin.Logger.LogError(
                 $"LEVEL LOADED EMPTY: {id} (index {li.LevelIndex}) has no objects "
                 + "and no controllers. The game will not accept input here.");
@@ -379,7 +367,6 @@ internal static class Checks
 
     private static void OnControllerSolved(GameEventManager.GameEventData data)
     {
-        ControllerEvents++;
         EnsureSlot();
         if (_router == null || _currentSlot < 0) return;
 
@@ -405,7 +392,6 @@ internal static class Checks
 
     private static void OnLevelComplete(GameEventManager.GameEventData data)
     {
-        LevelCompleteEvents++;
         EnsureSlot();
         if (_router == null || _currentSlot < 0) return;
 

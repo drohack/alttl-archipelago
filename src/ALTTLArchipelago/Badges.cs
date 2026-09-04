@@ -42,8 +42,6 @@ internal static class Badges
 
     private static float _sinceRefresh;
 
-    /// <summary>Counts badges drawn, so a test can assert this ran.</summary>
-    internal static int Drawn { get; private set; }
 
     /// <summary>
     /// What each card last showed, so an unchanged track is not redrawn.
@@ -227,7 +225,6 @@ internal static class Badges
             SetBadge(icon, status);
             SetName(icon, slot);
             _shown[i] = status;
-            Drawn++;
         }
     }
 

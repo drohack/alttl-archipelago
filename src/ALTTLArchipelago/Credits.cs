@@ -23,8 +23,6 @@ internal static class Credits
     private static bool _announced;
     private static float _sinceCheck;
 
-    /// <summary>Counts goal reports, so a test can assert this fired.</summary>
-    internal static int Reports { get; private set; }
 
     internal static void Reset()
     {
@@ -76,7 +74,6 @@ internal static class Credits
             if (session != null && session.ReportGoal())
             {
                 _reported = true;
-                Reports++;
                 Plugin.Logger.LogInfo("goal: reported to the server");
                 Toasts.Show("Run complete", Toasts.Notice);
             }

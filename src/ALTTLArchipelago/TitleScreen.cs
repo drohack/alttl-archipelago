@@ -44,8 +44,6 @@ internal static class TitleScreen
     /// </summary>
     private static readonly string[] HiddenSections = { "DLC Menu" };
 
-    /// <summary>Counts entries hidden, so a test can assert this ran.</summary>
-    internal static int Hidden { get; private set; }
 
     /// <summary>
     /// Hide the menus a run does not use.
@@ -130,7 +128,6 @@ internal static class TitleScreen
         if (target.gameObject.activeSelf == visible) return;
 
         target.gameObject.SetActive(visible);
-        if (!visible) Hidden++;
         Plugin.Logger.LogInfo(
             $"title: {target.name} {(visible ? "restored" : "hidden for the run")}");
     }

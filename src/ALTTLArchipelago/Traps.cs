@@ -54,12 +54,6 @@ internal static class Traps
     private static int _applied;
 
 
-    /// <summary>Counts traps that actually scattered something.</summary>
-    internal static int Sprung { get; private set; }
-
-    /// <summary>Traps that arrived with no puzzle open, and so missed.</summary>
-    internal static int Missed { get; private set; }
-
     internal static void Reset()
     {
         _applied = RunState.TrapsSprung;
@@ -89,7 +83,6 @@ internal static class Traps
         {
             _applied += owed;
             RunState.SpendTrap(owed);
-            Missed += owed;
             Plugin.Logger.LogInfo($"trap: {owed} cat(s) found nothing to knock over");
             return;
         }
@@ -116,7 +109,6 @@ internal static class Traps
     {
         try
         {
-            Sprung += cats;
             Toasts.Show("A cat has been through your puzzle", Toasts.Notice);
             Toasts.SweepPaw();
             PlayCatSound();

@@ -19,8 +19,7 @@ namespace ALTTLArchipelago;
 /// </summary>
 internal static class Navigation
 {
-    /// <summary>Counts redirects, so a test can assert the patch FIRED.</summary>
-    internal static int Redirects { get; private set; }
+
 
     private static LevelInterface? _home;
 
@@ -99,36 +98,23 @@ internal static class Navigation
     /// <summary>
     /// Send an exit to the run's track, using the game's own routine.
     ///
-    /// Two other approaches were tried against the running game and neither
-    /// worked, so this is not a first guess:
+    /// Taking the button over is the fix, not a shortcut around a tidier one.
+    /// FOUR tidier ones were tried against the running game and all four
+    /// failed: patching the navigation calls, and three separate ways of making
+    /// the game route itself off LevelInterface.IsArchived, plus filing the
+    /// run's completion data in the campaign list. Every one still landed on
+    /// the Archive. Whatever picks the destination is not the level's flags and
+    /// not its save list. The detail is in docs/verification-log.md - read it
+    /// before replacing this with something that looks cleaner.
     ///
-    /// - patching the navigation calls. The exit buttons reach the generic
-    ///   SetGameState&lt;T&gt;, which cannot be patched under IL2CPP; the
-    ///   non-generic overload and Back were never called at all.
-    /// - making the game route itself via LevelInterface.IsArchived. Tried
-    ///   three ways, each verified in game: patching the getter for the exit
-    ///   only; holding that patch for the whole level lifetime, in case the
-    ///   destination is cached at level start; and finally SETTING the property
-    ///   - it has a setter - on the live interface, confirmed by a probe
-    ///   reporting archived=False while the level ran. All three still landed
-    ///   on the Archive. The routing does not depend on that flag.
-    /// - filing the run's completion data in the CAMPAIGN list instead of the
-    ///   archive one, in case the routing followed the save rather than the
-    ///   level. Also landed on the Archive.
+    /// What works is calling GoToLevelSelectForLevel ourselves - the game's OWN
+    /// routine, which does the teardown, the transition and the menu setup -
+    /// handing it a campaign level so it picks the campaign track. The only
+    /// thing we supply is which track we want.
     ///
-    /// Four disproved hypotheses, each checked in the running game. Whatever
-    /// picks the destination is not the level's flags and not its save list, so
-    /// taking the button over is not a shortcut around a tidier fix - it is the
-    /// fix.
-    ///
-    /// What is left is to take over the button and call GoToLevelSelectForLevel
-    /// ourselves - the game's OWN routine, which does the teardown, the
-    /// transition and the menu setup - handing it a campaign level so it picks
-    /// the campaign track. The only thing we supply is which track we want.
-    ///
-    /// This is exhaustive rather than piecemeal: exactly three classes in the
-    /// game have a LevelSelect method - MainMenu, ReplayMenu and TitleMenu -
-    /// and TitleMenu already goes to the campaign track.
+    /// Exhaustive rather than piecemeal: exactly three classes in the game have
+    /// a LevelSelect method - MainMenu, ReplayMenu and TitleMenu - and
+    /// TitleMenu already goes to the campaign track.
     /// </summary>
     private static bool GoToTrack(string which)
     {
@@ -142,7 +128,6 @@ internal static class Navigation
 
             Plugin.Logger.LogInfo($"navigation: {which} -> the run's track");
             manager.GoToLevelSelectForLevel(home);
-            Redirects++;
             return false;
         }
         catch (Exception e)
@@ -190,31 +175,5 @@ internal static class Navigation
         {
             Plugin.Logger.LogWarning($"navigation: could not pick the next level: {e.Message}");
         }
-    }
-
-    /// <summary>
-    /// Catch the exit routes, not just the question.
-    ///
-    /// ContextualState is what the game ASKS, and patching it was not enough:
-    /// leaving a puzzle through the pause menu still landed on the Archive,
-    /// because that path sets the state directly. Both entry points are covered
-    /// here, and both log, so "it still goes to the wrong place" is answerable
-    /// from the log instead of by argument.
-    /// </summary>
-    /// <summary>
-    /// A trace of every state change while a run is on.
-    ///
-    /// Kept because guessing which call an exit button takes cost several
-    /// rounds of "still broken": the pause menu logs its own button and then no
-    /// SetGameState and no Back at all, because it uses the GENERIC
-    /// SetGameState<T>. That is the kind of thing worth being able to see
-    /// rather than reason about.
-    /// </summary>
-    [HarmonyPatch(typeof(GameManager), nameof(GameManager.SetGameState),
-        new[] { typeof(Il2CppSystem.Type), typeof(GameStateData), typeof(bool) })]
-    [HarmonyPrefix]
-    private static void BeforeSetGameState(Il2CppSystem.Type t)
-    {
-        if (Track.Active) Plugin.Logger.LogInfo($"navigation: SetGameState({t?.Name})");
     }
 }
