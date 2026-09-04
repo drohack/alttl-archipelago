@@ -15,23 +15,40 @@ set -euo pipefail
 GAME_DIR="G:/Games/Steam/steamapps/common/A Little To The Left"
 PLUGIN_DIR="$GAME_DIR/BepInEx/plugins/ALTTLArchipelago"
 
-powershell -NoProfile -Command \
-  "Get-Process | Where-Object {\$_.ProcessName -like '*Little*'} | Stop-Process -Force" \
-  >/dev/null 2>&1 || true
+# --no-kill compiles without closing a running game.
+#
+# The copy into the plugin folder fails while the DLL is loaded, and that is
+# reported rather than hidden - use it to check a change BUILDS while someone
+# is playing, then deploy properly once they are done. Closing the game out
+# from under a test in progress is worse than waiting.
+KILL=1
+[ "${1:-}" = "--no-kill" ] && KILL=0
 
-# Give Windows time to release the file handles the process held.
-for _ in 1 2 3 4 5 6 7 8 9 10; do
+if [ "$KILL" = "1" ]; then
     powershell -NoProfile -Command \
-      "@(Get-Process | Where-Object {\$_.ProcessName -like '*Little*'}).Count" \
-      2>/dev/null | grep -q '^0' && break
-    sleep 1
-done
+      "Get-Process | Where-Object {\$_.ProcessName -like '*Little*'} | Stop-Process -Force" \
+      >/dev/null 2>&1 || true
+
+    # Give Windows time to release the file handles the process held.
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+        powershell -NoProfile -Command \
+          "@(Get-Process | Where-Object {\$_.ProcessName -like '*Little*'}).Count" \
+          2>/dev/null | grep -q '^0' && break
+        sleep 1
+    done
+else
+    echo "-- compile check only; the game stays open --"
+fi
+
 
 for project in src/ALTTLArchipelago src/ALTTLDevTools; do
     echo "-- building $project --"
     if ! dotnet build "$project" -c Debug --nologo -v q; then
-        echo "BUILD FAILED: $project"
-        exit 1
+        if [ "$KILL" = "1" ]; then
+            echo "BUILD FAILED: $project"
+            exit 1
+        fi
+        echo "(compiled; deploy copy skipped because the game is open)"
     fi
 done
 

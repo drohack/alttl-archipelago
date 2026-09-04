@@ -33,6 +33,18 @@ internal static class RunState
 
         [JsonPropertyName("skipsUsed")]
         public int SkipsUsed { get; set; }
+
+        /// <summary>
+        /// Traps that have already gone off.
+        ///
+        /// Archipelago replays the whole item list on every reconnect, so
+        /// without this every cat you have ever been sent fires again the
+        /// moment you log back in - and since that happens before a puzzle is
+        /// open, they are all spent as misses and a genuinely new trap has
+        /// nothing left to do.
+        /// </summary>
+        [JsonPropertyName("trapsSprung")]
+        public int TrapsSprung { get; set; }
     }
 
     private static string? _path;
@@ -42,6 +54,7 @@ internal static class RunState
     internal static int Writes { get; private set; }
 
     internal static int SkipsUsed => _state.SkipsUsed;
+    internal static int TrapsSprung => _state.TrapsSprung;
 
     internal static void Begin(string saveName)
     {
@@ -60,11 +73,12 @@ internal static class RunState
             if (loaded == null) return;
 
             _state = loaded;
-            if (_state.Owed.Count > 0 || _state.SkipsUsed > 0)
+            if (_state.Owed.Count > 0 || _state.SkipsUsed > 0 || _state.TrapsSprung > 0)
             {
                 Plugin.Logger.LogInfo(
                     $"run state: {_state.Owed.Count} check(s) still owed, "
-                    + $"{_state.SkipsUsed} skip(s) used");
+                    + $"{_state.SkipsUsed} skip(s) used, "
+                    + $"{_state.TrapsSprung} trap(s) already sprung");
             }
         }
         catch (Exception e)
@@ -93,6 +107,13 @@ internal static class RunState
     internal static void SpendSkip()
     {
         _state.SkipsUsed++;
+        Write();
+    }
+
+    internal static void SpendTrap(int count)
+    {
+        if (count <= 0) return;
+        _state.TrapsSprung += count;
         Write();
     }
 

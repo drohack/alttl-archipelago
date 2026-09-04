@@ -484,6 +484,13 @@ public sealed class Plugin : BasePlugin
         // Before Checks, so a replayed item list has already opened the track
         // by the time the first flush looks at what is reachable.
         _slot = slot;
+
+        // The run state FIRST: it carries how many traps have already gone off
+        // and how many skips were spent, and Traps.Reset reads that. Resetting
+        // before it was loaded left the count at zero, so every cat in the
+        // run's history fired again on each login.
+        RunState.Begin(SaveRedirect.ActiveName ?? "run");
+
         Inventory.Begin(slot);
         Abilities.Reset();
         Badges.Reset();
@@ -493,7 +500,6 @@ public sealed class Plugin : BasePlugin
 
         // Anything earned offline last time, before the server's own list is
         // adopted - so a check we owe stays owed even if the server has it.
-        RunState.Begin(SaveRedirect.ActiveName ?? "run");
         Checks.Ledger.RestoreOwed(RunState.Owed());
         // The server's list first, so a check it already has is not re-sent on
         // every login - but it is adopted as COLLECTED, never as acknowledged,

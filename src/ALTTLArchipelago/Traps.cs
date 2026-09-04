@@ -14,19 +14,27 @@ namespace ALTTLArchipelago;
 /// scatters the puzzle ourselves, which works everywhere.
 ///
 /// It UNDOES the puzzle rather than rearranging it, by calling the game's own
-/// ObjectController.Reset on each group. Two cleverer versions were tried and
-/// both broke puzzles:
+/// ResetLevel - the same code behind the pause menu's Reset button. Three
+/// cleverer versions were tried and all three broke puzzles:
 ///
 /// - displacing objects by a random offset took pieces off the line, shelf or
 ///   grid they belong to, and in a puzzle whose only move is reordering along
 ///   an axis there was then no way to put them back;
 /// - swapping positions among the objects themselves looked safe, and is not:
 ///   Popcorn arranges its pieces on THREE separate lines, so a swap across
-///   lines leaves an arrangement the puzzle can never accept.
+///   lines leaves an arrangement the puzzle can never accept;
+/// - restoring each object's opening transform and parent, which is the one
+///   that looks obviously correct and is the most misleading. A piece is not
+///   merely SOMEWHERE, it is IN something - stuck to a surface, in a drawer, in
+///   a grid cell, nested, or on a stack - and LevelObject exposes none of those
+///   links (probed: no RemoveFromSurface, no attachedToObject, no
+///   m_originalParent on it). Pieces went back to the right spot still attached
+///   to the envelope they had been posted into, and dragging the envelope
+///   dragged them with it.
 ///
-/// Reset is the game's own answer to "put this back how it started", so it
-/// cannot produce a state the level does not understand. Losing progress IS the
-/// trap; making a puzzle unsolvable is a bug.
+/// ResetLevel knows every one of those mechanisms because it IS the game's, so
+/// it cannot produce a state the level does not understand. Losing progress is
+/// the trap; making a puzzle unsolvable is a bug.
 ///
 /// What it deliberately does NOT touch:
 ///
@@ -36,23 +44,15 @@ namespace ALTTLArchipelago;
 /// </summary>
 internal static class Traps
 {
+    /// <summary>
+    /// Traps already accounted for, INCLUDING ones from previous sessions.
+    ///
+    /// Seeded from the run state rather than starting at zero: the item list is
+    /// replayed in full on every reconnect, so a counter that began at zero
+    /// re-fired every cat in the run's history each time you logged in.
+    /// </summary>
     private static int _applied;
 
-    /// <summary>
-    /// Where every object stood when the level opened.
-    ///
-    /// ObjectController.Reset does NOT move anything - measured, objects stay
-    /// exactly where they were put - so a trap built on it undid nothing while
-    /// cheerfully announcing that a cat had been through. Restoring the opening
-    /// layout is the only thing that actually undoes a puzzle, and it is safe by
-    /// construction: it is a state the level itself produced.
-    ///
-    /// Taken once per level. Levels are rebuilt from scratch on every entry, so
-    /// what is on screen at load IS the base state.
-    /// </summary>
-    private static readonly List<(LevelObject Obj, Vector3 Pos, Quaternion Rot)> _opening = new();
-
-    private static int _snapshotOf;
 
     /// <summary>Counts traps that actually scattered something.</summary>
     internal static int Sprung { get; private set; }
@@ -62,9 +62,7 @@ internal static class Traps
 
     internal static void Reset()
     {
-        _applied = 0;
-        _opening.Clear();
-        _snapshotOf = 0;
+        _applied = RunState.TrapsSprung;
     }
 
     /// <summary>
@@ -76,8 +74,6 @@ internal static class Traps
     /// </summary>
     internal static void Tick()
     {
-        RememberOpeningLayout();
-
         var owed = Inventory.TrapsReceived - _applied;
         if (owed <= 0) return;
 
@@ -92,106 +88,52 @@ internal static class Traps
         if (level == null || level.allLevelObjects == null)
         {
             _applied += owed;
+            RunState.SpendTrap(owed);
             Missed += owed;
             Plugin.Logger.LogInfo($"trap: {owed} cat(s) found nothing to knock over");
             return;
         }
 
-        for (int i = 0; i < owed; i++)
-        {
-            _applied++;
-            Spring(level);
-        }
+        // One reset covers any number of cats: the puzzle can only go back to
+        // its opening state once, and resetting N times in a row would just
+        // replay the animation into an already-reset level.
+        _applied += owed;
+        RunState.SpendTrap(owed);
+        Spring(owed);
     }
 
-    /// <summary>Snapshot the layout the moment a new level is up.</summary>
-    private static void RememberOpeningLayout()
+    /// <summary>
+    /// Undo the puzzle with the game's own reset.
+    ///
+    /// The paw is ours and lives on our own overlay canvas rather than in the
+    /// level, so the reset underneath it cannot destroy it mid-swipe.
+    ///
+    /// The animation is played BEFORE the reset for the same reason a cat is
+    /// startling: the swipe should be what the player sees happen to the
+    /// puzzle, not an explanation offered afterwards.
+    /// </summary>
+    private static void Spring(int cats)
     {
         try
         {
-            var level = GameManager.Instance?.levelManager?.ActiveLevelInterface?.Level;
-            if (level == null || level.allLevelObjects == null)
-            {
-                _snapshotOf = 0;
-                return;
-            }
-
-            var id = level.GetInstanceID();
-            if (id == _snapshotOf) return;
-
-            _snapshotOf = id;
-            _opening.Clear();
-
-            var objects = level.allLevelObjects;
-            for (int i = 0; i < objects.Count; i++)
-            {
-                var obj = objects[i];
-                if (obj == null) continue;
-                _opening.Add((obj, obj.transform.localPosition, obj.transform.localRotation));
-            }
-        }
-        catch (Exception e)
-        {
-            Plugin.Logger.LogWarning($"trap: could not record the layout: {e.Message}");
-        }
-    }
-
-    private static void Spring(Level level)
-    {
-        try
-        {
-            var abilities = Inventory.Abilities;
-            var controllers = level.objectControllers;
-
-            // Put everything back where the level started it. This is what
-            // actually undoes the puzzle; the controller Reset below only
-            // clears the solved flags so the level agrees with the screen.
-            int moved = 0;
-            foreach (var (obj, pos, rot) in _opening)
-            {
-                try
-                {
-                    if (obj == null) continue;
-                    obj.transform.localPosition = pos;
-                    obj.transform.localRotation = rot;
-                    obj.SetPlaced(false);
-                    moved++;
-                }
-                catch
-                {
-                    // One awkward object must not abandon the rest.
-                }
-            }
-
-            int reset = 0;
-            for (int i = 0; i < (controllers == null ? 0 : controllers.Count); i++)
-            {
-                var controller = controllers![i];
-                if (controller == null) continue;
-
-                // A locked group is dimmed and unsolvable, so undoing it would
-                // take away work the player cannot redo.
-                var cls = controller.GetIl2CppType()?.Name ?? "";
-                if (abilities != null && abilities.LocksEnabled
-                    && abilities.IsClassLocked(cls)) continue;
-
-                try
-                {
-                    controller.Reset();
-                    reset++;
-                }
-                catch
-                {
-                    // One awkward controller must not abandon the rest.
-                }
-            }
-
-            Sprung++;
-            Plugin.Logger.LogInfo(
-                $"trap: the cat put back {moved} object(s) and undid {reset} group(s)");
+            Sprung += cats;
             Toasts.Show("A cat has been through your puzzle", Toasts.Notice);
             Toasts.SweepPaw();
             PlayCatSound();
+
+            var manager = GameManager.Instance?.levelManager;
+            if (manager == null)
+            {
+                // The animation has already played, so say plainly that the
+                // puzzle survived rather than leaving a silent mismatch between
+                // what was shown and what happened.
+                Plugin.Logger.LogWarning(
+                    "trap: no level manager, so the cat only made noise");
+                return;
+            }
+
+            manager.ResetLevel();
+            Plugin.Logger.LogInfo($"trap: {cats} cat(s) reset the puzzle");
         }
         catch (Exception e)
         {

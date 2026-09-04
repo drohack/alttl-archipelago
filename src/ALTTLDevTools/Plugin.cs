@@ -917,6 +917,14 @@ public class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("controllers", ListControllers);
             }
+            else if (cmd.Equals("cats", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("cats", ListCats);
+            }
+            else if (cmd.StartsWith("layout:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("layout", () => DumpLayout(cmd.Substring("layout:".Length)));
+            }
             else if (cmd.StartsWith("solve:", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("solve", () => SolveController(cmd.Substring("solve:".Length)));
@@ -1312,8 +1320,7 @@ public class DevToolsBehaviour : MonoBehaviour
                 $"resettest[{i}] before={before[i]} displaced={moved[i]} afterReset={after[i]}");
         }
         DevToolsPlugin.Log.LogInfo(
-            "resettest: level displaced. Fire a cat trap now and the objects
-"
+            "resettest: level displaced. Fire a cat trap now and the objects "
             + "should return to the 'before' positions above.");
     }
 
@@ -1396,6 +1403,122 @@ public class DevToolsBehaviour : MonoBehaviour
     /// shows 14 on the prefab and 13 at runtime. A location built from the
     /// prefab set would include one that can never be checked.
     /// </summary>
+    /// <summary>
+    /// Every cat-ish component in the running scene.
+    ///
+    /// The question this answers is "does THIS level have a built-in cat, and
+    /// what class is it": CatSwipe turned out to be only a config helper - it
+    /// has SetupSwipe, AddSwipeables and the mass and angular settings, but no
+    /// trigger - so whatever performs a cat event is a class the static probe
+    /// never named. Scanning a real scene names it, once, instead of guessing
+    /// class names one compile at a time.
+    ///
+    /// Deliberately a scene-wide scan rather than a walk of the level's own
+    /// object list: a cat that lives outside allLevelObjects is exactly the
+    /// case a narrower scan would miss and then report as "no cat here".
+    /// </summary>
+    /// <summary>
+    /// Write the whole level's layout to a file, for diffing.
+    ///
+    /// Records the PARENT and the placed flag beside the position, because
+    /// position alone is what made the last two rounds of cat-trap testing lie.
+    /// A piece posted into an envelope and then "restored" sat at the correct
+    /// coordinates while still parented to the envelope, so every position-only
+    /// check passed and dragging the envelope still dragged the piece.
+    ///
+    /// World position as well as local: a piece can be at the right LOCAL
+    /// offset under the wrong parent and be in completely the wrong place on
+    /// screen, which is precisely the failure a local-only dump hides.
+    ///
+    /// Usage is snapshot, disturb, trap, snapshot, diff the two files. If the
+    /// trap put the level back, they are byte-identical.
+    /// </summary>
+    private static void DumpLayout(string tag)
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        var level = li == null ? null : li.Level;
+        if (level == null || level.allLevelObjects == null)
+        {
+            DevToolsPlugin.Log.LogWarning($"layout: no level running, nothing written for '{tag}'");
+            return;
+        }
+
+        var safe = new string(tag.Trim().ToCharArray());
+        foreach (var bad in Path.GetInvalidFileNameChars()) safe = safe.Replace(bad, '_');
+        if (safe.Length == 0) safe = "layout";
+
+        var path = Path.Combine(GameDir, "BepInEx", $"alttl-layout-{safe}.tsv");
+        var objects = level.allLevelObjects;
+        var rows = new List<string> { "idx	name	parent	world	local	rot	placed	active" };
+
+        for (int i = 0; i < objects.Count; i++)
+        {
+            var obj = objects[i];
+            if (obj == null) { rows.Add($"{i}	(null)"); continue; }
+            var t = obj.transform;
+            rows.Add(string.Join("	", new[]
+            {
+                i.ToString(),
+                Str(() => obj.gameObject.name),
+                Str(() => t.parent == null ? "(root)" : t.parent.name),
+                // Rounded: physics settles to values that wobble in the last
+                // decimal place between frames, and an exact dump would report
+                // a difference on every run whether or not anything moved.
+                Str(() => Round(t.position)),
+                Str(() => Round(t.localPosition)),
+                Str(() => t.localEulerAngles.z.ToString("F1")),
+                Str(() => obj.placed.ToString()),
+                Str(() => obj.gameObject.activeInHierarchy.ToString()),
+            }));
+        }
+
+        File.WriteAllLines(path, rows);
+        DevToolsPlugin.Log.LogInfo(
+            $"layout: wrote {objects.Count} object(s) for '{safe}'"
+            + $" level={Str(() => li!.LevelId)}"
+            + $" instance={Str(() => level.GetInstanceID().ToString())} -> {path}");
+    }
+
+    private static string Round(Vector3 v)
+        => $"({v.x.ToString("F2")}, {v.y.ToString("F2")}, {v.z.ToString("F2")})";
+
+    private static void ListCats()
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        var levelId = li == null ? "(none)" : Str(() => li.LevelId);
+
+        var all = UnityEngine.Object.FindObjectsOfType<Component>();
+        int hits = 0;
+        var seen = new System.Collections.Generic.Dictionary<string, int>();
+
+        for (int i = 0; i < all.Length; i++)
+        {
+            var c = all[i];
+            if (c == null) continue;
+
+            string type;
+            try { type = c.GetIl2CppType().Name; }
+            catch { continue; }
+
+            if (type.IndexOf("Cat", StringComparison.Ordinal) < 0
+                && type.IndexOf("Paw", StringComparison.Ordinal) < 0
+                && type.IndexOf("Swipe", StringComparison.Ordinal) < 0) continue;
+
+            hits++;
+            seen[type] = seen.TryGetValue(type, out var n) ? n + 1 : 1;
+            DevToolsPlugin.Log.LogInfo(
+                $"  {type} on '{Str(() => c.gameObject.name)}'"
+                + $" active={Str(() => c.gameObject.activeInHierarchy.ToString())}");
+        }
+
+        DevToolsPlugin.Log.LogInfo(
+            $"cats: level={levelId} components={hits} distinctTypes={seen.Count}");
+        foreach (var kv in seen)
+        {
+            DevToolsPlugin.Log.LogInfo($"cats: type {kv.Key} x{kv.Value}");
+        }
+    }
+
     private static void ListControllers()
     {
         var li = GameManager.Instance.levelManager.ActiveLevelInterface;
