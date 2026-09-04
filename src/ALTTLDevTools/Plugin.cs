@@ -951,6 +951,18 @@ public class DevToolsBehaviour : MonoBehaviour
                     menu.SkipLevel();
                 });
             }
+            else if (cmd.StartsWith("press:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("press", () => PressControl(cmd.Substring("press:".Length)));
+            }
+            else if (cmd.Equals("buttons", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("buttons", ListButtons);
+            }
+            else if (cmd.StartsWith("bounds:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("bounds", () => DumpBounds(cmd.Substring("bounds:".Length)));
+            }
             else if (cmd.Equals("cats", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("cats", ListCats);
@@ -1374,12 +1386,76 @@ public class DevToolsBehaviour : MonoBehaviour
             return;
         }
 
-        var track = UnityEngine.Object.FindObjectOfType<LevelsTrack>();
+        // The POPULATED track, not merely the first one found.
+        //
+        // FindObjectOfType returns one arbitrary active instance, and the scene
+        // holds more than one LevelsTrack. Picking the wrong (empty) one made
+        // every position report "not on the track" - including positions that
+        // had just been clicked successfully - while the mod's own log happily
+        // said it had built 35 items. Inactive ones count too: the menu is
+        // cached and rebuilt, so the live track is not always the active one.
+        // Prefer a LIVE track, and only then a populated one.
+        //
+        // Both halves were learned the hard way. FindObjectOfType returns one
+        // arbitrary ACTIVE instance and picked an empty track, so every
+        // position reported "not on the track". Widening to
+        // FindObjectsOfTypeAll and taking the fullest one fixed that and broke
+        // something quieter: the scene keeps stale tracks around, so after a
+        // few menu transitions the fullest track is a LEFTOVER. Clicking its
+        // icons resolves the level name perfectly and then does nothing at all,
+        // because the icon is not the one on screen. A silent no-op is far
+        // worse than a warning.
+        LevelsTrack? track = null;
+        int best = -1;
+        bool bestLive = false;
+        foreach (var obj in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<LevelsTrack>()))
+        {
+            var candidate = obj == null ? null : obj.TryCast<LevelsTrack>();
+            if (candidate == null) continue;
+
+            int n;
+            bool live;
+            try
+            {
+                n = candidate.trackItems == null ? 0 : candidate.trackItems.Count;
+                live = candidate.gameObject != null && candidate.gameObject.activeInHierarchy;
+            }
+            catch { continue; }
+
+            // A live track always beats a dead one, however full the dead one.
+            if (live != bestLive ? live : n > best)
+            {
+                best = n;
+                bestLive = live;
+                track = candidate;
+            }
+        }
+
+        // Refuse to click a dead track rather than doing it silently.
+        //
+        // After a level completes, the level select takes a moment to come up:
+        // the game state already says Levels_GameState while every LevelsTrack
+        // is still inactive. Clicking then resolved the level name correctly
+        // and did absolutely nothing, so a scripted run looked like the game
+        // was ignoring it. Saying "not up yet" turns a silent no-op into
+        // something a caller can wait on and retry.
+        if (track == null || !bestLive)
+        {
+            DevToolsPlugin.Log.LogWarning(
+                $"clicktrack: the track is not up yet (best was a"
+                + $" {(track == null ? "missing" : "DEAD")} track of {best} item(s))");
+            return;
+        }
+
+        DevToolsPlugin.Log.LogInfo($"clicktrack: using a live track of {best} item(s)");
+
         var items = track == null ? null : track.trackItems;
         if (items == null || position < 0 || position >= items.Count)
         {
             DevToolsPlugin.Log.LogWarning(
-                $"clicktrack: position {position} is not on the track");
+                $"clicktrack: position {position} is not on the track"
+                + $" (best track found had {best} item(s))");
             return;
         }
 
@@ -1515,6 +1591,166 @@ public class DevToolsBehaviour : MonoBehaviour
 
     private static string Round(Vector3 v)
         => $"({v.x.ToString("F2")}, {v.y.ToString("F2")}, {v.z.ToString("F2")})";
+
+    /// <summary>
+    /// Every managed object's world bounds, grouped by controller.
+    ///
+    /// Feeds the blocking question the plan flagged and the generator audit
+    /// could not answer: an ability-locked group is dimmed and immovable, so if
+    /// one of its objects sits physically on top of a FREE group's objects, a
+    /// part check we call reachable may not be. Logic looser than the game is
+    /// the dangerous direction, because it makes a seed unwinnable.
+    ///
+    /// Bounds rather than positions, because overlap is about extent: two
+    /// objects can have distant centres and still be stacked. Renderer bounds
+    /// are already in world space, so no transform maths is needed here - and
+    /// doing it here rather than offline is what keeps this honest, since the
+    /// numbers come from the same renderer the player sees.
+    ///
+    /// This only finds CANDIDATES. Whether an overlap actually prevents solving
+    /// the free group depends on where its pieces need to travel, which needs a
+    /// person to try. Reported as a list to review, never as a verdict.
+    /// </summary>
+    /// <summary>
+    /// Every clickable control currently on screen, with its parent.
+    ///
+    /// Added after guessing control names twice and being wrong twice - the
+    /// tutorial modal's confirm reads "Okay" on screen and is not named Okay,
+    /// and the pause menu could not be found at all because it is inactive
+    /// while closed. A scripted run has to dismiss whatever a player would
+    /// dismiss, and it cannot do that by guessing what the artist called it.
+    ///
+    /// Parent as well as name because clickbutton matches either, and the
+    /// confirm on a modal keeps its Button on a child.
+    /// </summary>
+    /// <summary>
+    /// Click a control the way a pointer would, not by invoking onClick.
+    ///
+    /// clickbutton invokes Button.onClick and returns as soon as it finds a
+    /// Button. That is not the same as clicking: the level-select tutorial's
+    /// confirm reads "Okay", IS a Button, and has nothing attached to onClick -
+    /// invoking it four times left the modal on page 1 of 3 while the log
+    /// cheerfully reported four successful clicks. The behaviour lives on a
+    /// pointer handler instead.
+    ///
+    /// So this dispatches a real pointer-click through the EventSystem, which
+    /// is what every IPointerClickHandler in the game is actually listening
+    /// for, and reports how many handlers received it - zero being the answer
+    /// that matters, since that is the case clickbutton reported as success.
+    /// </summary>
+    private static void PressControl(string name)
+    {
+        name = name.Trim();
+        foreach (var obj in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<UnityEngine.UI.Button>()))
+        {
+            var b = obj == null ? null : obj.TryCast<UnityEngine.UI.Button>();
+            if (b == null || b.gameObject == null) continue;
+            if (!b.gameObject.activeInHierarchy) continue;
+
+            var parent = "";
+            try { parent = b.transform.parent == null ? "" : b.transform.parent.gameObject.name; }
+            catch { }
+            if (!string.Equals(b.gameObject.name, name, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(parent, name, StringComparison.OrdinalIgnoreCase)) continue;
+
+            var data = new UnityEngine.EventSystems.PointerEventData(
+                UnityEngine.EventSystems.EventSystem.current);
+            data.button = UnityEngine.EventSystems.PointerEventData.InputButton.Left;
+
+            UnityEngine.EventSystems.ExecuteEvents.Execute(
+                b.gameObject, data,
+                UnityEngine.EventSystems.ExecuteEvents.pointerDownHandler);
+            UnityEngine.EventSystems.ExecuteEvents.Execute(
+                b.gameObject, data,
+                UnityEngine.EventSystems.ExecuteEvents.pointerUpHandler);
+            var got = UnityEngine.EventSystems.ExecuteEvents.Execute(
+                b.gameObject, data,
+                UnityEngine.EventSystems.ExecuteEvents.pointerClickHandler);
+
+            DevToolsPlugin.Log.LogInfo(
+                $"press: {name} - pointer click {(got ? "handled" : "NOT handled")}");
+            return;
+        }
+        DevToolsPlugin.Log.LogWarning($"press: no active control named {name}");
+    }
+
+    private static void ListButtons()
+    {
+        int n = 0;
+        foreach (var obj in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<UnityEngine.UI.Button>()))
+        {
+            var b = obj == null ? null : obj.TryCast<UnityEngine.UI.Button>();
+            if (b == null || b.gameObject == null) continue;
+            if (!b.gameObject.activeInHierarchy) continue;
+
+            var parent = "";
+            try { parent = b.transform.parent == null ? "(root)" : b.transform.parent.gameObject.name; }
+            catch { }
+
+            string label = "";
+            try
+            {
+                var t = b.GetComponentInChildren<TMPro.TMP_Text>();
+                if (t != null) label = t.text;
+            }
+            catch { }
+
+            DevToolsPlugin.Log.LogInfo(
+                $"  button '{Str(() => b.gameObject.name)}' parent='{parent}' text='{label}'");
+            n++;
+        }
+        DevToolsPlugin.Log.LogInfo($"buttons: {n} active");
+    }
+
+    private static void DumpBounds(string tag)
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        var level = li == null ? null : li.Level;
+        if (level == null || level.objectControllers == null)
+        {
+            DevToolsPlugin.Log.LogWarning($"bounds: no level running for '{tag}'");
+            return;
+        }
+
+        var safe = tag.Trim();
+        foreach (var bad in Path.GetInvalidFileNameChars()) safe = safe.Replace(bad, '_');
+        if (safe.Length == 0) safe = "bounds";
+
+        var path = Path.Combine(GameDir, "BepInEx", $"alttl-bounds-{safe}.tsv");
+        var rows = new List<string> { "controller\ttype\tobject\tcx\tcy\tex\tey" };
+
+        var list = level.objectControllers;
+        for (int i = 0; i < list.Count; i++)
+        {
+            var oc = list[i];
+            if (oc == null) continue;
+
+            var cname = Str(() => oc.gameObject.name);
+            var ctype = Str(() => oc.GetIl2CppType().Name);
+            var managed = oc.ManagedObjects;
+            for (int k = 0; k < (managed == null ? 0 : managed.Count); k++)
+            {
+                var obj = managed![k];
+                if (obj == null) continue;
+                var r = obj.GetComponentInChildren<Renderer>();
+                if (r == null) continue;
+                var b = r.bounds;
+                rows.Add(string.Join("\t", new[]
+                {
+                    cname, ctype, Str(() => obj.gameObject.name),
+                    b.center.x.ToString("F3"), b.center.y.ToString("F3"),
+                    b.extents.x.ToString("F3"), b.extents.y.ToString("F3"),
+                }));
+            }
+        }
+
+        File.WriteAllLines(path, rows);
+        DevToolsPlugin.Log.LogInfo(
+            $"bounds: wrote {rows.Count - 1} object(s) across {list.Count} controller(s)"
+            + $" for {Str(() => li!.LevelId)} -> {path}");
+    }
 
     private static void ListCats()
     {

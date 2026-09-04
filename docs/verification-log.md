@@ -630,3 +630,138 @@ solve    -> "beaten: Bats (Trick or Tidy) - Beaten"
 
 A fix that suppressed the token everywhere would have looked identical if only
 the skip case had been checked.
+
+## The test harness clicked a track that was not there (2026-09-04)
+
+Automating a full run surfaced three harness faults in a row, each hiding the
+next. None was a product bug; all three would have produced confident wrong
+answers.
+
+**1. The wrong track.** `clicktrack` used `FindObjectOfType<LevelsTrack>()`,
+which returns one arbitrary ACTIVE instance. The scene holds more than one, and
+it kept picking an empty one, so every position reported "not on the track" -
+including positions clicked successfully a minute earlier, while the mod's own
+log said it had built 35 items.
+
+**2. A stale track.** Widening the search to `FindObjectsOfTypeAll` and taking
+the fullest track fixed that and broke something quieter. The scene keeps dead
+tracks around, so after a few menu transitions the fullest one is a LEFTOVER.
+Clicking its icons resolved the level name perfectly - the log read
+`clicktrack: position 1 is Telescope` - and then did nothing whatsoever. This
+was strictly worse than the bug it replaced: a warning became a silent no-op.
+
+**3. Clicking before the track exists.** With live-vs-dead reported, the real
+timing showed up. After a level completes, the game reports
+`Levels_GameState` while every `LevelsTrack` is still inactive. A click in that
+window lands on nothing. It only appeared in a scripted run because a person
+takes longer than 4 seconds to choose the next card.
+
+`clicktrack` now prefers a live track, refuses to click when only a dead one
+exists, and says which it used; the driver waits for a live track and retries
+rather than guessing a delay. That is the same conclusion the level sweep
+already reached about controller counts: wait for the state you need, do not
+assume a delay is long enough.
+
+**The pattern, for the third time in this feature.** `FindObjectOfType` is the
+common thread - it also failed to find the pause menu for the skip test, because
+the menu is inactive while closed. Any probe that reaches for "the" instance of
+something is asserting there is exactly one and that it is active, and in this
+game neither holds.
+
+## Beating a level can drop the run onto the Daily Tidy page (2026-09-04)
+
+Reported in play as "sometimes when I beat a level it brings me to the daily
+tidys page" and never pinned down, because it is not random.
+
+**Trigger.** It happens when the NEXT track slot is a daily-pool level.
+Reproduced deterministically:
+
+```
+navigation: next -> slot 10 (level 1000)
+state: gameState=DailyTidy_GameState activeLevel=none
+```
+
+Level 1000 is Procedural Grid Puzzle, `isDailyTidy: true`. `GetNextLevelIndex`
+is answered correctly - the right slot, the right index - and the game then
+routes by the level's KIND, sending daily levels to the daily screen instead of
+loading them inside the run.
+
+**Why the other routes are fine.** Clicking a track card works because it goes
+through `StartLevel(index, showTransition, forceReload, seed)`, which loads the
+level directly rather than asking the game where a level of that kind belongs.
+That is also why this never showed up in card-driven testing.
+
+**Not yet fixed.** The fix belongs with the other launch paths - launch daily-
+pool levels ourselves rather than handing the index back and letting the game
+choose a state - but it wants doing carefully: an earlier attempt at exactly
+this shape (calling StartLevel from Play) loaded a level underneath a title
+screen that never went away.
+
+## What automating a full run cost, and what it was worth
+
+The goal was a synthetic playthrough to the credits, driving the game's own
+controls. It did not get there. What it produced instead was five harness
+faults and one product bug, which is a fair trade but not the intended one.
+
+Harness faults, in the order they hid behind each other:
+
+1. `FindObjectOfType<LevelsTrack>()` returned an empty track, so every card
+   reported "not on the track".
+2. Widening to `FindObjectsOfTypeAll` and taking the fullest track picked a
+   STALE one. Clicking its icons resolved the card name and did nothing - a
+   warning replaced by a silent no-op, which is worse.
+3. After a completion the game reports `Levels_GameState` while every track is
+   still inactive, so a click lands on nothing. Only visible in a scripted run,
+   because a person takes longer than four seconds to pick the next card.
+4. `leave` from the TITLE screen is not a route a player has. It reported
+   Levels_GameState, found a live track, resolved a card and logged "now
+   playing slot 0", and no level ever launched.
+5. `clickbutton` invokes `Button.onClick`, which is not a click. The level
+   select tutorial's confirm IS a Button with nothing on onClick: four invokes
+   reported four successes while the modal sat on page 1 of 3. A real pointer
+   click through `ExecuteEvents` dismissed it first time. Added as `press:`.
+
+**The pattern behind all five**: each one produced a confident, plausible log
+line while doing nothing. That is the same failure as the cat trap announcing a
+reset it had not performed, and it is why every probe here now reports which
+thing it found and whether the game accepted it.
+
+**Where it stands.** The loop reaches a level, solves it and banks the checks,
+then cannot reliably get back to another level: the post-completion `RetryUI`
+offers only Continue, Retry and Menu, Continue hits the daily bug above, and
+setting `Title_GameState` directly reaches a title where `PlayGame` never asks
+`GetLevelIndex`, so our answer is not used. Finishing this needs the daily
+routing fixed first.
+
+## The blocking screen over-reports (2026-09-04)
+
+`bounds:<tag>` dumps every managed object's world renderer bounds by controller,
+and `tools/blocking.py` flags locked objects overlapping free ones. It runs, and
+on MedicineCabinet with 9 locked and 17 free objects it reported 21 overlaps.
+
+That number should not be believed. The dump records x and y only, and a
+bathroom cabinet is full of objects legitimately sitting in FRONT of each other;
+without depth, "overlaps" and "is in the way" are indistinguishable. It is a
+candidate list for a person to review, and a noisy one. Recording z and the
+sorting order would sharpen it; knowing where a free piece needs to travel would
+be needed to settle it.
+
+## The blank-level soak found nothing, in 60 valid loads (2026-09-04)
+
+`tools/emptysoak.py` boots levels in a deliberately hostile order - heaviest and
+lightest interleaved, shuffled, with re-visits - and watches for the armed
+`LEVEL LOADED EMPTY` line.
+
+**The first run was worthless and said it was fine.** It moved on after 0.4 to
+1.2 seconds per level, and the watchdog only reports a level empty after it has
+stayed empty for a CONTINUOUS 6 seconds. The detector could not fire however
+broken a level was, and 40 loads of "0 empty" measured nothing. The dwell is now
+7.5 seconds, above the threshold, and is a named constant next to a comment
+saying why.
+
+**The real run: 60 loads, 0 empty.** That is a genuine negative, not a silent
+one - but a weak one. It says the bug does not reproduce by loading levels
+quickly and repeatedly on this save, which leaves the routes it was actually
+reported from untested: entering a later card after moving around the menus, and
+whatever state the game was in at the time. The bug stays parked, the watchdog
+stays armed, and the soak is worth re-running after any change to level loading.
