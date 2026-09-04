@@ -274,7 +274,21 @@ public sealed class Plugin : BasePlugin
                 else
                 {
                     _session = null;
-                    if (_automatic)
+
+                    // A refusal retrying cannot fix - a bad slot name, the
+                    // wrong password, the wrong game, an incompatible version.
+                    // Backing off and dialling again just delays telling the
+                    // player something only they can put right.
+                    if (connection.Terminal)
+                    {
+                        _automatic = false;
+                        _retry.Reset();
+                        _retryIn = 0f;
+                        Logger.LogWarning($"not retrying: {error}");
+                        Toasts.Show($"Archipelago refused the connection - {error}",
+                            Toasts.Notice);
+                    }
+                    else if (_automatic)
                     {
                         _automatic = false;
                         _retry.Reset();
@@ -442,8 +456,11 @@ public sealed class Plugin : BasePlugin
     {
         if (!Checks.Active) return;
 
+        // The cheap test first. OwedForSaving copies the set and sorts it, and
+        // this runs on a timer whether or not anything is owed.
+        if (Checks.Ledger.Owed.Count == 0) return;
+
         var owed = Checks.Ledger.OwedForSaving();
-        if (owed.Count == 0) return;
 
         // To disk FIRST, before any attempt to send, because the next thing
         // that happens might be the game closing.
@@ -466,13 +483,29 @@ public sealed class Plugin : BasePlugin
 
         if (_session == null || !_session.Connected) return;
 
-        var sent = _session.SendChecks(owed);
-        if (sent.Count == 0) return;
+        // One send in flight at a time. The flush runs on a timer, so without
+        // this a slow acknowledgement means the same locations are sent again
+        // underneath it. Harmless to the server - duplicates are explicitly
+        // fine - but it churns the queue and the log.
+        if (_sending) return;
+        _sending = true;
 
-        Checks.Ledger.Acknowledge(sent);
-        RunState.SetOwed(Checks.Ledger.OwedForSaving());
-        Logger.LogInfo($"checks: sent {sent.Count}, {Checks.Ledger.Owed.Count} still owed");
+        _session.SendChecksAsync(owed, accepted =>
+        {
+            _sending = false;
+            if (accepted.Count == 0) return;
+
+            // Only what the server actually took. Anything else stays owed and
+            // goes out on the next flush.
+            Checks.Ledger.Acknowledge(accepted);
+            RunState.SetOwed(Checks.Ledger.OwedForSaving());
+            Logger.LogInfo(
+                $"checks: sent {accepted.Count}, {Checks.Ledger.Owed.Count} still owed");
+        });
     }
+
+    /// <summary>A send is awaiting the server's acknowledgement.</summary>
+    private static bool _sending;
 
     /// <summary>
     /// What the seed contains, on the main thread.

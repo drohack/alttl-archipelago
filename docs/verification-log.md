@@ -869,3 +869,59 @@ is adopted.
 Verified end to end: beat a puzzle, `run.json` gains
 `"beaten":["Fridge (Something Eggstra) - Beaten"]`, restart the game, and the
 run state reports `1 puzzle(s) beaten`. Before the fix it reported none.
+
+## Sending checks, and refusals that cannot be retried (2026-09-04)
+
+Two more from the same audit, both in `Connection`.
+
+### The send was never confirmed
+
+`SendChecks` returned the names it had looped over, and `FlushChecks` cleared
+the ledger on that. A throw kept them owed, so the window was narrow - the
+socket dying after the `Connected` test but before the frame went out - but in
+that window the check vanished from the server and from the queue at once. The
+blocking overload also ran on the Unity main thread.
+
+Now `SendChecksAsync` uses `CompleteLocationChecksAsync` and acknowledges only
+when the task completes without faulting, with one send in flight at a time so
+the 5s flush cannot stack duplicates underneath a slow acknowledgement.
+
+**A correction worth recording**: the audit claimed the library offers
+`CompleteLocationChecksAsync(Action<bool>, long[])`, and it does not. The real
+signature is `CompleteLocationChecksAsync(long[])` returning a Task, and the
+library has no acknowledgement callback at all - the task completing means the
+send left, not that the server recorded it. So this is an improvement rather
+than a guarantee: a dead socket now faults the task where the blocking call
+returned normally. The remaining gap is closed by the server's own list at the
+next login and by duplicates being explicitly harmless.
+
+Verified server-side rather than from our own log, which is the point:
+`(Team #1) droha sent Colour Scheme to droha (Medicine Cabinet - Swabs)`.
+
+### A wrong slot name is not a flaky network
+
+`LoginFailure.ErrorCodes` was discarded and every failure went into the same
+backoff, so a typo in the slot name was retried three times over nine seconds
+before the player was told anything - and it could never have succeeded.
+Terminal codes (`InvalidSlot`, `InvalidGame`, `InvalidPassword`,
+`IncompatibleVersion`, `InvalidItemsHandling`) now stop immediately and say why.
+`SlotAlreadyTaken` is deliberately still retried: the usual cause is a previous
+socket of ours that has not timed out, and waiting is what helps.
+
+Separately, no failure path closed its session. Every attempt builds a new
+`Connection`, and the server keeps the socket open after a refusal expecting
+another `Connect` on it, so each refused login left a live socket with
+`ItemReceived` still wired to the live `Inventory`. `Abandon()` now unwires and
+disconnects on every failure path.
+
+Verified with a deliberately wrong slot name, on both routes:
+
+```
+connecting to localhost:38281 as notaplayer
+login refused (will not retry): The slot name did not match any slot on the server.
+not retrying: The slot name did not match any slot on the server.
+```
+
+One attempt, no backoff, and the reason on screen. The manual Connect press is
+the case that actually regressed - at launch the auto-connect path already
+skipped retries, so testing only that would have proved nothing.

@@ -25,6 +25,13 @@ internal sealed class Connection
     internal Connection(Action<Action> dispatch) => _dispatch = dispatch;
 
     internal bool Connected { get; private set; }
+
+    /// <summary>
+    /// The last failure was one retrying cannot fix - a bad slot name, wrong
+    /// password, wrong game, incompatible version. The caller should stop and
+    /// say so rather than back off and try again.
+    /// </summary>
+    internal bool Terminal { get; private set; }
     internal SlotData? Slot { get; private set; }
 
     /// <summary>The slot this session logged in as, for display and naming.</summary>
@@ -169,8 +176,24 @@ internal sealed class Connection
             {
                 var why = string.Join("; ", failure.Errors);
                 if (why.Length == 0) why = "login refused";
+
+                // A wrong slot name is not a flaky network.
+                //
+                // The refusal codes were being discarded and every failure fed
+                // into the same backoff, so a typo in the slot name was retried
+                // three times over nine seconds before the player was told
+                // anything - and the thing it was retrying could never succeed.
+                Terminal = IsTerminal(failure.ErrorCodes);
+
                 LastError = why;
-                Plugin.Logger.LogWarning($"login refused: {why}");
+                Plugin.Logger.LogWarning(
+                    $"login refused{(Terminal ? " (will not retry)" : "")}: {why}");
+
+                // The server keeps the socket open after a refusal, expecting
+                // another Connect on it. We dial a fresh one per attempt
+                // instead, so this one has to be closed or it lingers with its
+                // handlers still wired to the live Inventory.
+                Abandon();
                 return why;
             }
 
@@ -199,7 +222,65 @@ internal sealed class Connection
         {
             LastError = e.Message;
             Plugin.Logger.LogError($"connect failed: {e}");
+            Abandon();
             return e.Message;
+        }
+    }
+
+    /// <summary>
+    /// Refusals that retrying cannot fix.
+    ///
+    /// SlotAlreadyTaken is deliberately NOT here: the usual cause is a previous
+    /// socket of our own that has not timed out yet, and waiting is exactly
+    /// what helps. UnknownError is not either - the library returns it for a
+    /// code it does not recognise, which is a reason to be cautious rather than
+    /// a reason to conclude anything.
+    /// </summary>
+    private static bool IsTerminal(ConnectionRefusedError[]? codes)
+    {
+        if (codes == null) return false;
+        foreach (var code in codes)
+        {
+            switch (code)
+            {
+                case ConnectionRefusedError.InvalidSlot:
+                case ConnectionRefusedError.InvalidGame:
+                case ConnectionRefusedError.InvalidPassword:
+                case ConnectionRefusedError.IncompatibleVersion:
+                case ConnectionRefusedError.InvalidItemsHandling:
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Close a session we are giving up on, and stop listening to it.
+    ///
+    /// Every attempt builds a new Connection, so without this each failure left
+    /// a live socket behind with ItemReceived still pointed at the live
+    /// Inventory. A refused login does not close the socket server-side, so
+    /// they accumulated one per attempt.
+    /// </summary>
+    private void Abandon()
+    {
+        var session = _session;
+        _session = null;
+        if (session == null) return;
+
+        try
+        {
+            _closingDeliberately = true;
+            session.Items.ItemReceived -= OnItemReceived;
+            session.Socket.DisconnectAsync();
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"could not close the refused session: {e.Message}");
+        }
+        finally
+        {
+            _closingDeliberately = false;
         }
     }
 
@@ -355,17 +436,34 @@ internal sealed class Connection
     /// stay owed. Returns empty on any failure, which leaves everything owed
     /// and lets the next flush try again.
     /// </summary>
-    internal IReadOnlyList<string> SendChecks(IReadOnlyList<string> names)
+    /// <summary>
+    /// Send what is owed, and report back only what the server accepted.
+    ///
+    /// Asynchronous on purpose, twice over. The blocking overload ran on the
+    /// Unity main thread, so a slow send stalled a frame. Worse, it told the
+    /// caller nothing: the old version returned the names it had looped over,
+    /// and the ledger cleared them on that basis. If the socket died after the
+    /// Connected check but before the frame went out, the send moved nothing,
+    /// threw nothing, and the queue was emptied anyway - the check was gone
+    /// from both the server and the owed list, permanently.
+    ///
+    /// Re-sending on doubt is safe: the protocol says duplicate location checks
+    /// do not cause issues, so the only wrong answer here is dropping one.
+    ///
+    /// The callback arrives on a socket thread and is marshalled before it
+    /// reaches the ledger.
+    /// </summary>
+    internal void SendChecksAsync(
+        IReadOnlyList<string> names, Action<IReadOnlyList<string>> accepted)
     {
-        if (!Connected || _session == null || names.Count == 0)
-        {
-            return Array.Empty<string>();
-        }
+        if (!Connected || _session == null || names.Count == 0) return;
 
         try
         {
             var ids = new List<long>();
-            var sent = new List<string>();
+            var sending = new List<string>();
+            var giveUp = new List<string>();
+
             foreach (var name in names)
             {
                 var id = _session.Locations.GetLocationIdFromName(Game, name);
@@ -374,20 +472,46 @@ internal sealed class Connection
                     // A location the datapackage does not know. Reporting it
                     // loudly beats retrying it forever on every flush.
                     Plugin.Logger.LogError($"checks: server has no location named '{name}'");
-                    sent.Add(name);           // give up on it rather than loop
+                    giveUp.Add(name);
                     continue;
                 }
                 ids.Add(id);
-                sent.Add(name);
+                sending.Add(name);
             }
 
-            if (ids.Count > 0) _session.Locations.CompleteLocationChecks(ids.ToArray());
-            return sent;
+            // Dropped rather than sent, but they must leave the queue or every
+            // flush retries a send that can only ever be rejected.
+            if (giveUp.Count > 0) _dispatch(() => accepted(giveUp));
+
+            if (ids.Count == 0) return;
+
+            // CompleteLocationChecksAsync(long[]) returns a Task and there is
+            // no acknowledgement callback in the library - the task completing
+            // means the send left, not that the server recorded it. That is
+            // still strictly better than before: a dead socket faults the task,
+            // where the blocking call returned normally and the queue was
+            // cleared regardless.
+            //
+            // The remaining gap is closed by the server's own list at the next
+            // login, and by duplicates being explicitly harmless: anything it
+            // did not record is simply sent again.
+            _session.Locations.CompleteLocationChecksAsync(ids.ToArray())
+                .ContinueWith(task =>
+                {
+                    if (task.IsFaulted)
+                    {
+                        var why = task.Exception?.GetBaseException().Message ?? "unknown";
+                        Plugin.Logger.LogWarning(
+                            $"checks: send of {sending.Count} failed, staying owed: {why}");
+                        return;
+                    }
+                    if (task.IsCanceled) return;
+                    _dispatch(() => accepted(sending));
+                });
         }
         catch (Exception e)
         {
             Plugin.Logger.LogWarning($"checks: send failed, staying owed: {e.Message}");
-            return Array.Empty<string>();
         }
     }
 
