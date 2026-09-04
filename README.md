@@ -11,7 +11,7 @@ the mod reports what the seed contains and does not touch the puzzles.
 | Research and the verification gate | done, [verification log](docs/verification-log.md) |
 | Design | agreed, [spec](docs/superpowers/specs/2026-09-01-alttl-archipelago-design.md) |
 | `apworld/alttl/` - the Archipelago world | **generates real seeds**, 91 tests |
-| `src/ALTTLArchipelago.Core/` - Unity-free rules and state | 162 tests |
+| `src/ALTTLArchipelago.Core/` - Unity-free rules and state | 190 tests |
 | `src/ALTTLArchipelago/` - the BepInEx mod | **plays a seed** |
 
 Verified end to end on 2026-09-03: a generated seed served by `MultiServer.py`,
@@ -123,9 +123,17 @@ Curated copies of the probe output are in [docs/data/](docs/data/).
   thin: it holds the Unity and Archipelago-client glue and nothing decidable
   without them
 - `src/ALTTLArchipelago.Core/` - the mod's rules and state as pure C# with no
-  Unity dependency, so all of it is unit-testable. It has zero references by
-  design and CI builds it standalone to keep it that way
+  Unity dependency, so all of it is unit-testable. It must never reference
+  Unity, BepInEx or the game's interop assemblies, and CI builds it standalone
+  on a runner with no game installed to keep it that way. Ordinary .NET packages
+  are allowed by exception, each with a reason in the csproj - currently one,
+  the Archipelago client, for the enums the protocol defines
 - `src/ALTTLArchipelago.Core.Tests/` - those tests
+- `src/ALTTLModKit/` - pieces that know nothing about Archipelago or this game:
+  a toast overlay, a Rewired typing guard, a socket-thread-to-main-thread
+  dispatch queue, and a Windows virtual-desktop helper. A separate project so a
+  reference back into the mod cannot compile, which is what keeps them
+  extractable
 - `src/ALTTLDevTools/` - the research and survey plugin. Deliberately not part
   of the randomizer, installed separately, never shipped
 - `apworld/alttl/` - the Archipelago world (Python)
@@ -155,8 +163,8 @@ interop assemblies exist.
 
 **This is the one thing CI cannot build.** It references BepInEx interop
 assemblies generated from a local install, so a runner with no game cannot
-compile it. That is the whole reason `ALTTLArchipelago.Core` exists with zero
-references: everything decidable without Unity lives there and IS tested in
+compile it. That is the whole reason `ALTTLArchipelago.Core` exists without any
+game references: everything decidable without Unity lives there and IS tested in
 CI, including the slot_data contract against a payload the generator really
 produced. If you want CI to build the plugin too, the usual answer in the
 BepInEx world is a separate repo publishing stripped reference assemblies as a
