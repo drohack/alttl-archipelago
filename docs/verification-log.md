@@ -925,3 +925,65 @@ not retrying: The slot name did not match any slot on the server.
 One attempt, no backoff, and the reason on screen. The manual Connect press is
 the case that actually regressed - at launch the auto-connect path already
 skipped retries, so testing only that would have proved nothing.
+
+## Stage 2: what the per-frame passes were actually doing (2026-09-04)
+
+The tick tree is fifteen calls a frame, and most were correctly gated. The cost
+was concentrated in a few places, and the largest was doing all of its work
+while the player could not see any of it.
+
+**The badge refresh ran every second inside a puzzle.** The level select is
+built once and cached, so `trackItems` stays populated for the whole session -
+and `Badges.Refresh` had no visibility check, unlike `Track.TickTrackIntegrity`,
+which has always had one. Every second, for 79 slots: a scene scan, a list
+allocation and a LINQ `Distinct` per slot, and several hundred name
+constructions each running a compiled regex, a split and a join. All of it to
+recompute an answer fixed by the seed, and all of it thrown away because no card
+was on screen.
+
+Three changes, in order of payoff:
+
+- `Badges.Refresh` returns when the track is not `activeInHierarchy`. Safe
+  because the badges are repainted from scratch on the next tick once it is up,
+  which already had to work: the game destroys them when it rebuilds the icons.
+- `CheckRouter.ForSlot` memoizes per slot. Which locations a slot CAN produce is
+  fixed at generation; only whether they are collected changes, and that is the
+  caller's question.
+- `DisplayNames.For` memoizes per level id. Pure function, fewer than two
+  hundred inputs in the whole game.
+
+**Smaller ones, same shape - work repeated for an answer that had not changed:**
+
+- `Abilities.Apply` asked `GetIl2CppType().Name` for every controller every
+  second, for a value fixed for the object's lifetime; now resolved once per
+  instance id and cleared with the rest of the run state, since ids get reused.
+  It also wrote every renderer's colour unconditionally on a settled level -
+  a few hundred interop writes a second to set a colour to what it already was.
+- `Checks.TickEmptyLevelWatch` polled three interop properties deep every second
+  for the whole process lifetime, including through plain vanilla play with the
+  mod idle. Now gated on a run being active. Its `_emptyFor > 6.5f` upper bound
+  was unreachable - the counter moves in whole interval steps, so the window was
+  only ever hit exactly - and it hardcoded the interval it was counting in.
+- `Badges.TickWhy` did a `Path.Combine` and a `File.Exists` every second,
+  forever, for a diagnostic nothing in the shipping mod reads. It is the
+  DevTools command-file pattern copied into player-facing code. Now behind a
+  config flag, `Diagnostics.BadgeWhyProbe`, default off - a switch rather than a
+  deletion, because it is genuinely the only way to argue with a wrong badge.
+- `ConnectionPane.FocusedField` allocated an array every frame - sixty a second
+  for the session, pane open or not - because the typing guard calls it from
+  `Update`.
+- `Toasts.FindFont` ran a full-scene `FindObjectsOfType<TextMeshProUGUI>` per
+  toast LINE, despite `Build()` having already resolved one. A reconnect replays
+  the whole item list at once, so that was a scene scan per item in one frame.
+
+**Not changed, and why.** Every timer zeroes its accumulator instead of
+subtracting, so each period is really the interval plus one frame. That was
+fixed only in the empty-level watch, where the accumulator is used
+arithmetically to measure elapsed time and the drift changed what the number
+meant. Elsewhere it is a sub-2% imprecision on a poll whose exact period does
+not matter, and rewriting all of them would be churn for no behaviour change.
+
+Verified in game: entered a puzzle, returned to the track, and the badges were
+correct (red on the Pack 5 cards, which are blocked) with names intact and no
+exceptions logged. The badge state surviving the visibility gate is the part
+that could have broken.

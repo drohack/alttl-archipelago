@@ -56,8 +56,10 @@ internal static class Abilities
     {
         _lastSummary = "";
         _sincePass = 0f;
-        // Colours belong to objects that are gone; ids get reused.
+        // Colours and class names belong to objects that are gone; ids get
+        // reused, so a stale entry would answer for the wrong object.
         _original.Clear();
+        _classes.Clear();
     }
 
     /// <summary>
@@ -101,7 +103,7 @@ internal static class Abilities
                 var controller = controllers[i];
                 if (controller == null) continue;
 
-                var cls = controller.GetIl2CppType()?.Name ?? "";
+                var cls = ClassOf(controller);
                 var isLocked = state.IsClassLocked(cls);
 
                 if (isLocked)
@@ -159,6 +161,30 @@ internal static class Abilities
         return touched;
     }
 
+    /// <summary>
+    /// The controller's class name, resolved once per object.
+    ///
+    /// GetIl2CppType().Name is an interop type resolution plus a native string
+    /// marshal, and this pass asked it for every controller every second for a
+    /// value that is fixed for the object's lifetime. Keyed by instance id, and
+    /// cleared with the rest of the state when a run ends.
+    /// </summary>
+    private static readonly Dictionary<int, string> _classes = new();
+
+    private static string ClassOf(ObjectController controller)
+    {
+        var id = controller.GetInstanceID();
+        if (_classes.TryGetValue(id, out var known)) return known;
+
+        var cls = controller.GetIl2CppType()?.Name ?? "";
+
+        // Levels are rebuilt constantly - every entry, and every cat trap - so
+        // without a bound this grows for as long as the game is open.
+        if (_classes.Count > 512) _classes.Clear();
+        _classes[id] = cls;
+        return cls;
+    }
+
     private static void Tint(LevelObject obj, bool isLocked)
     {
         Paint(obj.renderer, isLocked);
@@ -183,6 +209,13 @@ internal static class Abilities
             _original[id] = was;
         }
 
-        renderer.color = isLocked ? Locked : was;
+        var want = isLocked ? Locked : was;
+
+        // Only when it is actually changing. This pass re-asserts every object
+        // every second by design, so on a settled level every one of these was
+        // a redundant write into IL2CPP - a few hundred a second on a level
+        // where nothing had moved.
+        if (renderer.color == want) return;
+        renderer.color = want;
     }
 }

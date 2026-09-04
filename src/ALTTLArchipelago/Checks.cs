@@ -208,11 +208,30 @@ internal static class Checks
     /// and cost a restart to diagnose. This turns a silent hang into one line
     /// naming the level, so the next report is actionable immediately.
     /// </summary>
+    /// <summary>How often the empty-level watch looks.</summary>
+    private const float WatchInterval = 1f;
+
+    /// <summary>
+    /// How long a level must stay empty before it is called broken. Long
+    /// enough that a slow load is not accused, short enough to still be on
+    /// screen while the player is looking at it.
+    /// </summary>
+    private const float EmptyAfter = 6f;
+
     internal static void TickEmptyLevelWatch(float dt)
     {
+        // Only while a run is on. This watches for a bug in OUR level loading,
+        // and it was polling the game every second for the whole process
+        // lifetime - through the menus, and through plain vanilla play with the
+        // mod idle - reaching three interop properties deep each time.
+        if (!Active) return;
+
         _sinceLevelWatch += dt;
-        if (_sinceLevelWatch < 1f) return;
-        _sinceLevelWatch = 0f;
+        if (_sinceLevelWatch < WatchInterval) return;
+
+        // Subtract rather than zero, so the period is the interval and not the
+        // interval plus however long the frame took.
+        _sinceLevelWatch -= WatchInterval;
 
         try
         {
@@ -243,11 +262,15 @@ internal static class Checks
                 return;
             }
 
-            _emptyFor += 1f;
+            _emptyFor += WatchInterval;
 
             // Six seconds. Long enough that a slow load is not accused, short
             // enough to be on screen while the player is still looking at it.
-            if (_emptyFor < 6f || _emptyFor > 6.5f) return;
+            // Once, at the moment it crosses the threshold. The upper bound used
+        // to be 6.5, which was unreachable: _emptyFor moves in whole interval
+        // steps, so the window was only ever hit exactly.
+        if (_emptyFor < EmptyAfter) return;
+        if (_emptyFor - WatchInterval >= EmptyAfter) return;
 
             EmptyLevels++;
             Plugin.Logger.LogError(

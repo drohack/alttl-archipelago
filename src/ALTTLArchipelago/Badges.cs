@@ -95,6 +95,15 @@ internal static class Badges
     /// </summary>
     internal static void TickWhy(float dt)
     {
+        // Off unless someone asked for it.
+        //
+        // This was a Path.Combine and a File.Exists every second, forever, in
+        // the shipping mod - the DevTools command-file pattern copied into
+        // player-facing code, for a diagnostic no shipping code reads. It is
+        // genuinely useful when a badge looks wrong, so it is a switch rather
+        // than a deletion.
+        if (!Plugin.WhyProbeEnabled) return;
+
         _sinceWhy += dt;
         if (_sinceWhy < 1f) return;
         _sinceWhy = 0f;
@@ -171,6 +180,19 @@ internal static class Badges
         var track = Track.CampaignTrack();
         var items = track == null ? null : track.trackItems;
         if (items == null) return;
+
+        // Nothing to repaint when no card is on screen.
+        //
+        // The level select is built once and cached, so trackItems stays
+        // populated for the whole session - which meant this full recompute ran
+        // every second while the player was inside a puzzle, looking at none of
+        // it. Track.TickTrackIntegrity has always had this check; the badge
+        // path never did.
+        //
+        // Safe to skip: the badges are repainted from scratch on the next tick
+        // once the track is up again, which is the same thing that already
+        // happens after the game rebuilds the icons.
+        if (!track!.gameObject.activeInHierarchy) return;
 
         for (int i = 0; i < items.Count; i++)
         {

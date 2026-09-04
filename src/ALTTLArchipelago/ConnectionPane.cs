@@ -686,10 +686,12 @@ internal static class ConnectionPane
     /// </summary>
     internal static TMP_InputField? FocusedField()
     {
-        foreach (var field in new[] { _address, _slot, _password })
-        {
-            if (field != null && field.isFocused) return field;
-        }
+        // Written out rather than looped over a temporary array: this is called
+        // every frame by the typing guard, so the array was sixty allocations a
+        // second for the whole session, pane open or not.
+        if (_address != null && _address.isFocused) return _address;
+        if (_slot != null && _slot.isFocused) return _slot;
+        if (_password != null && _password.isFocused) return _password;
         return null;
     }
 

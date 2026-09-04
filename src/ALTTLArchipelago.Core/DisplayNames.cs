@@ -42,9 +42,33 @@ public static class DisplayNames
 
     private static readonly Regex CamelBoundary = new(@"(?<=[a-z])(?=[A-Z])", RegexOptions.Compiled);
 
+    /// <summary>
+    /// Answers already worked out. The result is a pure function of the level
+    /// id and there are fewer than two hundred of those in the whole game.
+    ///
+    /// Worth caching because of who calls it: the tracker badge rebuilt every
+    /// card's status once a second, and each card cost several of these, so a
+    /// regex replace, a split and a join ran a few hundred times a second to
+    /// produce strings that had not changed since the seed was generated.
+    ///
+    /// Concurrent because slot_data is parsed off the main thread while the
+    /// game keeps rendering.
+    /// </summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string>
+        Cache = new(StringComparer.Ordinal);
+
     public static string For(string levelId)
     {
         if (string.IsNullOrWhiteSpace(levelId)) return "";
+        if (Cache.TryGetValue(levelId, out var cached)) return cached;
+
+        var built = Build(levelId);
+        Cache[levelId] = built;
+        return built;
+    }
+
+    private static string Build(string levelId)
+    {
 
         foreach (var (prefix, pack) in Packs)
         {

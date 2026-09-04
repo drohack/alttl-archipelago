@@ -364,11 +364,24 @@ internal static class Toasts
     /// Borrow a font from whatever the game already has on screen, the same
     /// trick the connection pane uses. Loading our own would mean shipping one.
     /// </summary>
+    private static TMP_FontAsset? _font;
+
+    /// <summary>
+    /// Borrow a font from whatever the game already has on screen, the same
+    /// trick the connection pane uses. Loading our own would mean shipping one.
+    ///
+    /// Kept once found. The scan allocates an array of every TMP component in
+    /// the scene, and it was run per toast LINE - so a reconnect, which replays
+    /// the whole item list at once, did a full scene scan for each item in a
+    /// single frame.
+    /// </summary>
     private static TMP_FontAsset? FindFont()
     {
+        if (_font != null) return _font;
+
         foreach (var t in UnityEngine.Object.FindObjectsOfType<TextMeshProUGUI>())
         {
-            if (t != null && t.font != null) return t.font;
+            if (t != null && t.font != null) return _font = t.font;
         }
         return null;
     }

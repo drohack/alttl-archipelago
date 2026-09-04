@@ -124,6 +124,25 @@ public sealed class CheckRouter
     /// </summary>
     public IReadOnlyList<string> ForSlot(int slotIndex)
     {
+        // Built once per slot. Which locations a slot CAN produce is fixed by
+        // the seed; only whether they are collected changes, and that is the
+        // caller's question, not this one's.
+        //
+        // The badge refresh asked this for every card once a second, and each
+        // answer allocated a list, ran a LINQ Distinct and built several names
+        // through a regex - a few hundred allocations a second to reproduce an
+        // identical answer.
+        if (_forSlot.TryGetValue(slotIndex, out var known)) return known;
+
+        var built = BuildForSlot(slotIndex);
+        _forSlot[slotIndex] = built;
+        return built;
+    }
+
+    private readonly Dictionary<int, IReadOnlyList<string>> _forSlot = new();
+
+    private IReadOnlyList<string> BuildForSlot(int slotIndex)
+    {
         var entry = SlotAt(slotIndex);
         if (entry == null) return Array.Empty<string>();
 

@@ -42,6 +42,14 @@ public sealed class Plugin : BasePlugin
     private static ConfigEntry<string> _password = null!;
     private static ConfigEntry<bool> _autoConnect = null!;
     private static ConfigEntry<int> _maxAttempts = null!;
+    private static ConfigEntry<bool> _whyProbe = null!;
+
+    /// <summary>
+    /// Whether the badge "why is this card that colour" file probe is running.
+    /// Off by default: it costs a filesystem check every second and answers a
+    /// question only someone debugging the tracker is asking.
+    /// </summary>
+    internal static bool WhyProbeEnabled => _whyProbe.Value;
 
     private static Connection? _session;
     private static RetryPolicy _retry = new();
@@ -91,6 +99,11 @@ public sealed class Plugin : BasePlugin
             RetryPolicy.DefaultMaxAttempts,
             "How many times to retry a lost or refused connection before "
             + "giving up and waiting for you to press Connect.");
+
+        _whyProbe = Config.Bind("Diagnostics", "BadgeWhyProbe", false,
+            "Watch BepInEx/alttl-why.txt and explain the tracker badge for the "
+            + "track position written into it. For debugging a badge that looks "
+            + "wrong; costs a file check every second while on.");
 
         _retry = new RetryPolicy(_maxAttempts.Value);
 
