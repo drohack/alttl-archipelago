@@ -96,6 +96,72 @@ internal static class Navigation
     }
 
     /// <summary>
+    /// Send Continue to the run's next puzzle, launching it ourselves.
+    ///
+    /// Answering GetNextLevelIndex is not enough, and the reason is the bug
+    /// this fixes. The index we hand back is correct; the game then routes by
+    /// the level's KIND, and a daily-pool level (995-1000, isDailyTidy) is
+    /// routed to the Daily Tidy page rather than loaded into the run. So
+    /// finishing a puzzle whose next slot happened to be one of those dropped
+    /// the player out of their run entirely. It looked intermittent because it
+    /// depends on what the next slot is.
+    ///
+    /// Launching it ourselves is the same thing clicking the card does, and
+    /// that path has never had this problem: StartLevel loads a level rather
+    /// than asking where a level of that kind belongs. ArmSlot sets the pending
+    /// slot for this frame, so the seed and forceReload are filled in by
+    /// Track.BeforeStartLevel exactly as they are for a click.
+    ///
+    /// The state is set BEFORE the load. Skipping that is what once left a
+    /// level running underneath a title screen that never went away - and here
+    /// the screen in question is the post-level retry UI.
+    /// </summary>
+    private static bool GoToNext(string which)
+    {
+        try
+        {
+            if (!Track.Active) return true;              // not a run; vanilla
+
+            var next = Track.NextUnfinishedSlot();
+            if (next < 0)
+            {
+                // Nothing left to play. The game's own answer is as good as
+                // ours, and better than inventing one.
+                Plugin.Logger.LogInfo($"navigation: {which}, nothing unfinished left");
+                return true;
+            }
+
+            var gm = GameManager.Instance;
+            var manager = gm?.levelManager;
+            if (gm == null || manager == null) return true;
+
+            var index = Track.ArmSlot(next);
+            if (index < 0) return true;
+
+            Plugin.Logger.LogInfo(
+                $"navigation: {which} -> slot {next} (level {index}), launching it");
+
+            gm.SetGameState<Gameplay_GameState>(null, false);
+            manager.StartLevel(index, true, true, -1);
+            return false;
+        }
+        catch (Exception e)
+        {
+            // Fail open: the game's own Continue is better than none.
+            Plugin.Logger.LogWarning($"navigation: {which} failed, using the game's: {e.Message}");
+            return true;
+        }
+    }
+
+    [HarmonyPatch(typeof(RetryMenu), nameof(RetryMenu.NextLevel))]
+    [HarmonyPrefix]
+    private static bool BeforeRetryNext() => GoToNext("post-level Continue");
+
+    [HarmonyPatch(typeof(ReplayMenu), nameof(ReplayMenu.NextLevel))]
+    [HarmonyPrefix]
+    private static bool BeforeReplayNext() => GoToNext("replay Next");
+
+    /// <summary>
     /// Send an exit to the run's track, using the game's own routine.
     ///
     /// Taking the button over is the fix, not a shortcut around a tidier one.

@@ -1166,3 +1166,49 @@ connects with its restored state, and solving new groups still produces
 `check: Medicine Cabinet - Blue Bottles` followed by `checks: sent 1, 0 still
 owed`. Re-solving groups collected in earlier sessions correctly produced
 nothing, which is the ledger doing its job rather than a regression.
+
+## Beating a level no longer drops the run onto Daily Tidy (2026-09-04)
+
+The bug reported in play as "sometimes when I beat a level it brings me to the
+daily tidys page", reproduced deterministically and now fixed.
+
+**Why it looked intermittent.** It fires when the NEXT track slot happens to be
+a daily-pool level - one of the sixteen with `isDailyTidy`, including the six
+generator levels at 995-1000. `AfterGetNextLevelIndex` answered with the right
+index; the game then routed by the level's KIND and sent it to the Daily Tidy
+page instead of loading it into the run.
+
+**The fix is to stop answering and start launching.** `RetryMenu.NextLevel` and
+`ReplayMenu.NextLevel` - the Continue buttons - are taken over the same way the
+exit buttons already were. `Track.ArmSlot` sets the pending slot for the frame
+so `Track.BeforeStartLevel` fills in the seed and forceReload, then
+`StartLevel` loads it. That is exactly what clicking a card does, and the card
+path never had this problem: `StartLevel` loads a level rather than asking
+where a level of that kind belongs.
+
+The gameplay state is set BEFORE the load. Skipping that is what once left a
+level running underneath a title screen that never went away, and the screen
+here is the post-level retry UI.
+
+**Verified on the failing case.** Completed MedicineCabinet, whose next slot is
+25 - Spice Jars, level 26, `isDailyTidy: true`:
+
+```
+navigation: post-level Continue -> slot 25 (level 26), launching it
+state: gameState=GameplayModal_GameState activeLevel=Spice Jars index=26
+```
+
+Before the fix that read `DailyTidy_GameState activeLevel=none`. Screenshot
+confirms the puzzle on screen, behind the game's own one-time Colour Assist
+prompt - which is what `GameplayModal_GameState` is, not a stuck screen.
+
+**What is NOT independently verified, stated plainly.** The takeover applies to
+every Continue, not only ones landing on a daily-pool level, so ordinary
+destinations go through the new path too. That case has not been exercised end
+to end: two attempts to finish an ordinary level for the purpose failed to
+complete it (TupperwareNesting reported `solved=False` after both its
+controllers were forced, and Spice Jars has two solutions so its retry screen
+offers something other than Continue). The residual risk is low but real -
+`GoToNext` has no branch on level kind, so an ordinary destination differs only
+in the index handed to `StartLevel`, which is the card-click call that is
+exercised constantly. Worth watching on the next real playthrough.
