@@ -1250,3 +1250,44 @@ a real Cat Trap sent from the server:
 
 No exceptions logged. This closes the last item that was blocked purely on not
 being able to drive input.
+
+## Other players' names were markup (2026-09-04)
+
+Found while answering an unrelated question, which is worth admitting: nothing
+was looking for it.
+
+`ApPalette.Paint` wrapped text in a TextMeshPro `<color>` tag and handed it to a
+label. The text is not ours. Item names come from other games' apworlds, and the
+SENDER's name is a slot name or an alias the other player chose and can change
+mid-game with `/alias`. TMP parses rich text, so a player calling themselves
+`<size=400%>` resized someone else's notifications, and one calling themselves
+`</color><color=#FF0000>` could recolour the rest of the line.
+
+Presentational rather than dangerous - TMP tags cannot do anything but draw -
+but trivially abusable between friends, and cheap to close.
+
+**The first fix was wrong, and only looking at the screen caught it.** Replacing
+`<` with the numeric reference `&#60;` is safe and passed six unit tests. On
+screen it rendered as the literal text `&#60;size=400%>` - TMP does not decode
+numeric references. Safe and unreadable.
+
+The fix is `<noparse>`, which I had rejected in a comment an hour earlier as
+unsafe because content carrying its own closing tag breaks out of it. That is
+true and it is also fixable: strip `</noparse>` from the content first, and
+there is nothing left to escape with. Text containing no `<` is returned
+untouched, so the overwhelmingly common case carries no wrapper at all.
+
+Verified by rendering both cases and reading them:
+
+```
+Received <size=400%>BIG from a<3b
+```
+
+The tag shows literally at normal size rather than being obeyed, `a<3b` reads
+correctly, and the colours still apply because the `<color>` wrapper sits
+outside the `noparse`. Ordinary toasts are pixel-identical to before.
+
+Eight tests in `ApPaletteTests`, including the one that matters: the tag TEXT
+survives, because it is someone's name and they should see it. "Does not contain
+`<size`" would have been the wrong assertion - it would also pass if the name
+had been silently mangled.

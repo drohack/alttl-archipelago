@@ -60,6 +60,41 @@ public static class ApPalette
     /// <summary>A player name: magenta for you, yellow for anyone else.</summary>
     public static string ForPlayer(bool isSelf) => isSelf ? Magenta : Yellow;
 
-    /// <summary>Wrap text in a TextMeshPro colour tag.</summary>
-    public static string Paint(string text, string hex) => $"<color=#{hex}>{text}</color>";
+    /// <summary>
+    /// Wrap text in a TextMeshPro colour tag.
+    ///
+    /// The text is escaped first. It is not ours: item names come from other
+    /// games' apworlds, and the sender's name is a slot name or an alias the
+    /// other PLAYER chose and can change with /alias mid-game. Both land in a
+    /// TextMeshPro label, which parses rich text - so a player called
+    /// "&#60;size=400%&#62;" resized someone else's notifications.
+    /// </summary>
+    public static string Paint(string text, string hex)
+        => $"<color=#{hex}>{Escape(text)}</color>";
+
+    /// <summary>
+    /// Make text safe to put inside a rich-text label.
+    ///
+    /// Wrapped in &#60;noparse&#62;, which makes TextMeshPro render the span
+    /// literally. The obvious breakout - content containing its own closing
+    /// noparse tag - is removed first, so there is nothing to escape out of.
+    ///
+    /// The numeric reference "&amp;#60;" was tried first and rejected after
+    /// looking at it: TMP does NOT decode it, so a name showed up on screen as
+    /// the raw escape. It was safe and unreadable. Only checking the rendering
+    /// caught that.
+    ///
+    /// Text with no angle bracket is returned untouched, so the overwhelmingly
+    /// common case carries no wrapper at all.
+    /// </summary>
+    public static string Escape(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return "";
+        if (text.IndexOf('<') < 0) return text;
+
+        var safe = System.Text.RegularExpressions.Regex.Replace(
+            text, "</noparse>", "",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return $"<noparse>{safe}</noparse>";
+    }
 }
