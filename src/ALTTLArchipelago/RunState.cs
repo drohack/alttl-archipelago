@@ -45,6 +45,21 @@ internal static class RunState
         /// </summary>
         [JsonPropertyName("trapsSprung")]
         public int TrapsSprung { get; set; }
+
+        /// <summary>
+        /// Event locations we have collected - the Beaten tokens.
+        ///
+        /// The only checks nothing else can restore. They have no address, so
+        /// the server never lists them back at login, and they are never owed
+        /// because sending one can only ever be rejected. Both of the things
+        /// that rebuild a ledger therefore miss them.
+        ///
+        /// Without this the beaten count returned to zero on every login, so
+        /// the credits goal could only be reached inside one unbroken session -
+        /// and the track's badges forgot which puzzles were finished.
+        /// </summary>
+        [JsonPropertyName("beaten")]
+        public List<string> Beaten { get; set; } = new();
     }
 
     private static string? _path;
@@ -73,12 +88,14 @@ internal static class RunState
             if (loaded == null) return;
 
             _state = loaded;
-            if (_state.Owed.Count > 0 || _state.SkipsUsed > 0 || _state.TrapsSprung > 0)
+            if (_state.Owed.Count > 0 || _state.SkipsUsed > 0 || _state.TrapsSprung > 0
+                || _state.Beaten.Count > 0)
             {
                 Plugin.Logger.LogInfo(
                     $"run state: {_state.Owed.Count} check(s) still owed, "
                     + $"{_state.SkipsUsed} skip(s) used, "
-                    + $"{_state.TrapsSprung} trap(s) already sprung");
+                    + $"{_state.TrapsSprung} trap(s) already sprung, "
+                    + $"{_state.Beaten.Count} puzzle(s) beaten");
             }
         }
         catch (Exception e)
@@ -97,6 +114,16 @@ internal static class RunState
     }
 
     internal static IReadOnlyList<string> Owed() => _state.Owed;
+
+    internal static IReadOnlyList<string> Beaten() => _state.Beaten;
+
+    internal static void SetBeaten(IReadOnlyList<string> beaten)
+    {
+        if (Same(_state.Beaten, beaten)) return;
+
+        _state.Beaten = new List<string>(beaten);
+        Write();
+    }
 
     internal static void SetOwed(IReadOnlyList<string> owed)
     {

@@ -794,3 +794,78 @@ click never reaches our prefix.
 So a player who clicks the credits card early gets silence rather than "beat
 four more". Worth fixing when the credits path is next touched; it is a missing
 message, not a broken gate.
+
+## Audit findings: three reconnect bugs, one hiding the next (2026-09-04)
+
+An audit of the mod against Archipelago's client documentation turned up three
+faults in the reconnect path. They were stacked: the first made the second
+unreachable, which is why testing had never seen either.
+
+### The client never noticed the server was gone
+
+`Connection` wired its reconnect to `Socket.SocketClosed`. Measured: killing the
+server mid-session raises `ErrorReceived` and **not** `SocketClosed`, so nothing
+ever invoked the retry. The log showed a single `socket error:` line and then
+silence - the client sat believing it was connected, indefinitely, with no
+retry, no reconnect and nothing on screen to say otherwise. Checks earned after
+that went to the offline queue and stayed there, which is why the queue looked
+like it was working: it was catching the throw, not detecting a disconnection.
+
+Fixed by treating a closed socket reported through `ErrorReceived` as a drop,
+via a shared `Drop()` that is idempotent through the `Connected` flag so either
+event can raise it. `ArchipelagoSocketClosedException` is not always what
+arrives - the case that went unnoticed was a plain `WebSocketException`
+carrying "closed without completing the close handshake".
+
+Verified: killing the server now logs `disconnected:`, then `connection lost:`,
+then retries at 3s and 6s, then `giving up after 3 attempts`. Before the fix,
+none of those lines appeared at all.
+
+### The item list was cumulative across a reconnect
+
+`Inventory._received` was cleared only by `End()`, which runs on an explicit
+disconnect. Every other route to `OnReady` called `Begin`, which deliberately
+does not clear - for a real reason: precollected items arrive a step ahead of
+`slot_data`, and clearing there threw them away. So the server's replay was
+appended to the previous session's list and every count doubled. Packs and
+Skips silently; traps loudly, since owed is `TrapsReceived - TrapsSprung`.
+
+The file's own invariant named the case it failed: *"calling it twice with the
+same list must leave the game in the same place, because that is exactly what a
+reconnect does"*. On a reconnect the list was not the same, it was doubled.
+
+Fixed with an explicit session boundary, `Inventory.NewSession()`, called from
+`Plugin.Attempt` before the socket can deliver anything - so the pre-`Ready`
+window that motivated the original design still works.
+
+**This is why the two are one entry.** The doubling was latent: the only path
+that reached it was the auto-retry, which never fired because of the bug above.
+Fixing the reconnect would have activated it.
+
+Verified: reconnect with 105 items replayed into a session that already held 96.
+The track stayed at 4 open / 5 packs, and exactly 5 cats fired - the genuinely
+unaccounted ones, with `trapsSprung` going 61 to 66 against 66 items received.
+A doubled list would have been 201 entries and roughly 71 cats.
+
+### Beaten progress was never persisted
+
+`LevelsBeaten` counts collected EVENT locations - the Beaten tokens. Those have
+no address, so the server never lists them back at login, and they are
+deliberately never owed because sending one can only be rejected. But
+`RunState` persisted only `owed`, `skipsUsed` and `trapsSprung`, and
+`Checks.Begin` builds a fresh ledger restored solely from the owed queue and the
+server's list. Event locations are in neither, so the count returned to zero on
+every login: **the credits goal was only reachable inside one unbroken session.**
+
+This was visible the day before and misread. During the badge test, four slots
+beaten in earlier sessions all reported `badge Doable`. It was noted as odd and
+passed over.
+
+Fixed by tracking locally-recorded checks as their own set in `CheckLedger`
+(`LocalForSaving` / `RestoreLocal`, with two Core tests), persisting them in
+`RunState` as `beaten`, and restoring them in `OnReady` before the server's list
+is adopted.
+
+Verified end to end: beat a puzzle, `run.json` gains
+`"beaten":["Fridge (Something Eggstra) - Beaten"]`, restart the game, and the
+run state reports `1 puzzle(s) beaten`. Before the fix it reported none.

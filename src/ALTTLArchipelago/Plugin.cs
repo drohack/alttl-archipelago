@@ -220,6 +220,12 @@ public sealed class Plugin : BasePlugin
 
         Logger.LogInfo($"connecting to {_host.Value}:{_port.Value} as {_slotName.Value}");
 
+        // Before anything can arrive on the new socket. The server replays the
+        // whole item list on every connect, so without this the second
+        // connection's replay lands on top of the first's and every count
+        // doubles.
+        Inventory.NewSession();
+
         var connection = new Connection(Hub.OnMainThread);
         // The connection is passed in, not read from _session: Ready fires
         // DURING the connect, before the field is assigned. Reading the field
@@ -510,6 +516,11 @@ public sealed class Plugin : BasePlugin
         Credits.Reset();
         Traps.Reset();
         Checks.Begin(slot);
+
+        // The Beaten tokens first. They are event locations, so neither the
+        // owed queue nor the server's list carries them - this is their only
+        // route back, and the credits goal is counted from them.
+        Checks.Ledger.RestoreLocal(RunState.Beaten());
 
         // Anything earned offline last time, before the server's own list is
         // adopted - so a check we owe stays owed even if the server has it.

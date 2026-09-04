@@ -118,4 +118,47 @@ public class CheckLedgerTests
         Assert.False(ledger.Check(null!));
         Assert.Empty(ledger.Owed);
     }
+
+    [Fact]
+    public void LocallyRecordedChecksSurviveARestart()
+    {
+        // The Beaten locations are Archipelago EVENT locations: the server has
+        // no address for them, so it never lists them back at login and they
+        // are never owed. That makes them the only checks nothing else can
+        // restore - and the credits goal is counted from them.
+        //
+        // Without this the beaten count returned to zero on every login and a
+        // run could only be finished in one unbroken session.
+        var first = new CheckLedger();
+        first.RecordLocal("Spoons - Beaten");
+        first.RecordLocal("Telescope - Beaten");
+        first.Check("Spoons - Solution 1");
+
+        var saved = first.LocalForSaving();
+
+        // Only the event checks, not the ordinary one, and in a stable order so
+        // the save file does not churn.
+        Assert.Equal(new[] { "Spoons - Beaten", "Telescope - Beaten" }, saved);
+
+        var next = new CheckLedger();
+        next.RestoreLocal(saved);
+
+        Assert.True(next.IsCollected("Spoons - Beaten"));
+        Assert.True(next.IsCollected("Telescope - Beaten"));
+
+        // Restored as collected, never as owed: sending one can only ever be
+        // rejected, so owing it would retry forever.
+        Assert.Empty(next.Owed);
+    }
+
+    [Fact]
+    public void RestoredLocalChecksAreStillExportedAgain()
+    {
+        // A restart must not quietly drop what a previous restart restored.
+        var ledger = new CheckLedger();
+        ledger.RestoreLocal(new[] { "Spoons - Beaten" });
+        ledger.RecordLocal("Bats - Beaten");
+
+        Assert.Equal(new[] { "Bats - Beaten", "Spoons - Beaten" }, ledger.LocalForSaving());
+    }
 }

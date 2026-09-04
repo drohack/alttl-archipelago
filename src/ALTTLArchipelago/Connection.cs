@@ -242,22 +242,64 @@ internal sealed class Connection
             var reason = e?.GetBaseException().Message ?? "";
             Plugin.Logger.LogWarning(
                 $"socket error: {message}{(reason.Length > 0 ? " - " + reason : "")}");
-        };
-        session.Socket.SocketClosed += reason =>
-        {
-            var wasConnected = Connected;
-            Connected = false;
-            LastError = reason?.ToString() ?? "connection closed";
-            Plugin.Logger.LogWarning($"disconnected: {reason}");
 
-            // Only an UNEXPECTED drop should trigger a reconnect. A deliberate
-            // Disconnect() clears Connected first, so this stays quiet for it.
-            if (wasConnected && !_closingDeliberately)
-            {
-                var why = LastError;
-                _dispatch(() => Dropped?.Invoke(why));
-            }
+            // A closed socket reported HERE is still a drop.
+            //
+            // Measured: kill the server mid-session and this fires, while
+            // SocketClosed never does. The reconnect machinery was wired only
+            // to SocketClosed, so nothing invoked it - the client sat believing
+            // it was still connected, indefinitely, with no retry and nothing
+            // on screen to say otherwise. Every check earned after that went to
+            // the offline queue and stayed there.
+            //
+            // Not every error is a drop, so this only reacts to the socket
+            // actually being closed; Drop() is idempotent, so if SocketClosed
+            // does also fire the second one is ignored.
+            if (IsSocketClosed(e)) Drop(reason.Length > 0 ? reason : message);
         };
+        session.Socket.SocketClosed += reason => Drop(reason?.ToString());
+    }
+
+    /// <summary>
+    /// The socket is gone. Say so once, and ask for a reconnect.
+    ///
+    /// Idempotent through the Connected flag, because the library reports a
+    /// drop through either SocketClosed or ErrorReceived depending on how the
+    /// connection died, and both are wired.
+    /// </summary>
+    private void Drop(string? reason)
+    {
+        if (!Connected) return;                  // already handled, or never up
+
+        Connected = false;
+        LastError = string.IsNullOrEmpty(reason) ? "connection closed" : reason!;
+        Plugin.Logger.LogWarning($"disconnected: {LastError}");
+
+        // Only an UNEXPECTED drop should trigger a reconnect. A deliberate
+        // Disconnect() clears Connected first, so this stays quiet for it.
+        if (_closingDeliberately) return;
+
+        var why = LastError;
+        _dispatch(() => Dropped?.Invoke(why));
+    }
+
+    /// <summary>Is this error the socket having closed, rather than a hiccup?</summary>
+    private static bool IsSocketClosed(Exception? e)
+    {
+        for (var cur = e; cur != null; cur = cur.InnerException)
+        {
+            if (cur is Archipelago.MultiClient.Net.Exceptions.ArchipelagoSocketClosedException)
+            {
+                return true;
+            }
+
+            // The library does not always wrap it. The websocket layer's own
+            // "closed without completing the close handshake" arrives as a
+            // plain WebSocketException, and that is exactly the case that went
+            // unnoticed.
+            if (cur is System.Net.WebSockets.WebSocketException) return true;
+        }
+        return false;
     }
 
     /// <summary>

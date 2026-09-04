@@ -34,12 +34,29 @@ internal static class Inventory
     internal static int LevelsBeaten { get; private set; }
     internal static int FillerReceived { get; private set; }
 
+    /// <summary>
+    /// A new connection is being made. Forget the last one's items.
+    ///
+    /// This is the session boundary, and it has to be HERE rather than in
+    /// <see cref="Begin"/>, because items start arriving before slot_data has
+    /// been parsed - a precollected starting ability landed a full step ahead
+    /// of Ready in testing - so Begin cannot clear without throwing those away.
+    ///
+    /// Without a boundary the list was cumulative across an in-session
+    /// reconnect: the server replays every item on connect, Receive appended
+    /// them a second time, and the counts doubled. Packs and Skips doubled
+    /// silently; traps announced themselves by firing a burst, since owed is
+    /// TrapsReceived minus the number already sprung.
+    ///
+    /// It never showed up in testing because every reconnect test restarted the
+    /// process, and a fresh process starts with an empty list.
+    /// </summary>
+    internal static void NewSession() => _received.Clear();
+
     internal static void Begin(SlotData slot)
     {
-        // NOT cleared. Items start arriving before slot_data has been parsed -
-        // a precollected starting ability landed a full step ahead of Ready in
-        // testing - and clearing here threw that item away for the rest of the
-        // session, because the server does not send it twice.
+        // Deliberately does NOT clear: see NewSession, which already did, and
+        // anything that arrived since is this session's and must be kept.
         _abilities = new AbilityState(slot);
         PacksHeld = 0;
         HasCredits = false;

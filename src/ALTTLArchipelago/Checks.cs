@@ -431,6 +431,15 @@ internal static class Checks
             if (!_ledger.RecordLocal(location)) return;
             Plugin.Logger.LogInfo($"beaten: {location}");
 
+            // Straight to disk, not via the check flush.
+            //
+            // The flush exists to send owed checks and returns early when
+            // nothing is owed, which for an event location is always - so
+            // routing this through it would persist nothing. Nothing else can
+            // recover these either: the server has no address for them, so it
+            // never lists them back at login.
+            RunState.SetBeaten(_ledger.LocalForSaving());
+
             // Beating a puzzle is the thing the credits gate counts, so it is
             // worth saying out loud - it was silent before, which made
             // finishing a level feel like nothing had happened.

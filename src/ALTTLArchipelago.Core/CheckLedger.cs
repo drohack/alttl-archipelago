@@ -23,6 +23,19 @@ public sealed class CheckLedger
     private readonly HashSet<string> _collected = new(StringComparer.Ordinal);
     private readonly HashSet<string> _owed = new(StringComparer.Ordinal);
 
+    /// <summary>
+    /// The subset of <see cref="_collected"/> that came from us and can never
+    /// come from anywhere else.
+    ///
+    /// Event locations have no address, so the server never lists them back at
+    /// login, and they are deliberately never owed - so neither of the two
+    /// things that rebuild a ledger knows about them. Tracked apart purely so
+    /// they can be written to the save and restored; without that the beaten
+    /// count reset to zero on every login and the credits goal was reachable
+    /// only inside one unbroken session.
+    /// </summary>
+    private readonly HashSet<string> _local = new(StringComparer.Ordinal);
+
     /// <summary>Everything known checked, from any source.</summary>
     public IReadOnlyCollection<string> Collected => _collected;
 
@@ -44,14 +57,6 @@ public sealed class CheckLedger
     }
 
     /// <summary>
-    /// Take on the server's view at login.
-    ///
-    /// These count as collected but are NOT owed - the server already has
-    /// them. Anything we owed before stays owed even if the server also lists
-    /// it, because a location can be in both: collected offline, sent, and the
-    /// acknowledgement lost to the same disconnect.
-    /// </summary>
-    /// <summary>
     /// Record a check that is real but has nowhere to be sent.
     ///
     /// The Beaten locations are Archipelago event locations: the generator uses
@@ -63,9 +68,46 @@ public sealed class CheckLedger
     public bool RecordLocal(string name)
     {
         if (string.IsNullOrEmpty(name)) return false;
+        _local.Add(name);
         return _collected.Add(name);
     }
 
+    /// <summary>
+    /// The locally-recorded event checks, in a stable order, for the save file.
+    /// Sorted so a save that changed nothing produces an identical file.
+    /// </summary>
+    public IReadOnlyList<string> LocalForSaving()
+    {
+        var list = new List<string>(_local);
+        list.Sort(StringComparer.Ordinal);
+        return list;
+    }
+
+    /// <summary>
+    /// Restore event checks persisted across a restart.
+    ///
+    /// Collected, never owed - the same rule as when they were first earned.
+    /// They also stay in the local set, so the next save writes them out again
+    /// rather than quietly dropping what this restore just recovered.
+    /// </summary>
+    public void RestoreLocal(IEnumerable<string> names)
+    {
+        foreach (var name in names)
+        {
+            if (string.IsNullOrEmpty(name)) continue;
+            _local.Add(name);
+            _collected.Add(name);
+        }
+    }
+
+    /// <summary>
+    /// Take on the server's view at login.
+    ///
+    /// These count as collected but are NOT owed - the server already has
+    /// them. Anything we owed before stays owed even if the server also lists
+    /// it, because a location can be in both: collected offline, sent, and the
+    /// acknowledgement lost to the same disconnect.
+    /// </summary>
     public void AdoptServerChecks(IEnumerable<string> names)
     {
         foreach (var name in names)
@@ -109,5 +151,6 @@ public sealed class CheckLedger
     {
         _collected.Clear();
         _owed.Clear();
+        _local.Clear();
     }
 }
