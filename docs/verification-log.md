@@ -1070,3 +1070,51 @@ about to do the wrong thing.
 
 Verified after the deletions: all six feature patches live, connection up, run
 state intact, into a puzzle and back out, zero exceptions.
+
+## Stage 4: what came out into src/ALTTLModKit (2026-09-04)
+
+878 lines that never knew what Archipelago was, now in their own project with
+zero references back into the mod - verified by grep, including the one
+remaining mod-specific string (the overlay's GameObject name, now a settable
+property).
+
+| Moved | Lines | What it was coupled by |
+|---|---|---|
+| `TypingGuard` | 295 | `Plugin.Logger` x5 |
+| `Toasts` (minus the cat) | 290 | `Plugin.Logger` x6, two palette constants |
+| `VirtualDesktop` | 231 | nothing but its namespace |
+| `Hub` | 62 | one log line |
+
+All four now take their logger as a delegate. The toast colours are properties
+the mod sets from `ApPalette` at startup, so a message still reads the same as
+the same message in the Archipelago text client, but the kit ships plain
+defaults and does not know what a palette is.
+
+**A project rather than a folder, deliberately.** A reference back into the mod
+will not compile, so "just read it from Plugin" stops being available and the
+coupling cannot creep back.
+
+**The cat came out of the toast system.** `SweepPaw`, `TickPaw` and
+`FindPawSprite` - about 110 lines - lived in `Toasts` because they borrow its
+canvas, which made a general notification system carry a cat animation and the
+only IL2CPP dependency it otherwise had no need of. They are in `Traps.cs` now,
+drawing onto `Toasts.OverlayRoot`: still one canvas and the right sort order,
+no cat in the kit.
+
+**One honest compromise.** `TypingGuard` needs
+`Rewired.Integration.UnityUI.RewiredStandaloneInputModule`, and in this game
+that type is compiled into Assembly-CSharp rather than Rewired_Core or
+Rewired_Windows - checked, the name appears only in the former. So the kit has
+exactly one game reference, for exactly one type, and the csproj says so. A port
+to another Rewired game re-points that and nothing else.
+
+**A deploy list is not a project reference.** The first attempt loaded nothing:
+`DeployToGame` names each DLL explicitly, so `ALTTLModKit.dll` was built, was
+not copied, and the plugin failed to load with no plugin-side error to read -
+the only symptom was the game never reaching "overlay ready". Both plugins'
+deploy lists now name it.
+
+Verified in game after the split: both plugins load, six feature patches live,
+the run connects, and a cat trap fired end to end - the paw drawn from `Traps`
+onto the kit's canvas, over toasts in the Archipelago palette, with the puzzle
+reset behind it.

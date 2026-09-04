@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace ALTTLArchipelago;
+namespace ALTTLModKit;
 
 /// <summary>
 /// Stops the game reacting to keystrokes meant for a text box.
@@ -24,7 +24,7 @@ namespace ALTTLArchipelago;
 /// Restoring matters more than disabling. Leaving the game's input disabled
 /// after closing a dialog would be far worse than the bug being fixed.
 /// </summary>
-internal static class TypingGuard
+public static class TypingGuard
 {
     private static bool _suppressed;
 
@@ -32,7 +32,7 @@ internal static class TypingGuard
     private static int _horizontal, _vertical, _submit, _cancel;
     private static Rewired.Integration.UnityUI.RewiredStandaloneInputModule? _module;
 
-    internal static bool Suppressed => _suppressed;
+    public static bool Suppressed => _suppressed;
 
     /// <summary>
     /// Look Rewired up at startup rather than on the first keystroke.
@@ -41,12 +41,12 @@ internal static class TypingGuard
     /// hit the bug, and the absence of the log line was the only clue. Now the
     /// log says on every launch whether the mouse-drift fix can work at all.
     /// </summary>
-    internal static void Probe()
+    public static void Probe()
     {
         if (!_mapsLookedUp) ResolveMapHelper();
     }
 
-    internal static void Suppress()
+    public static void Suppress()
     {
         if (_suppressed) return;
         _suppressed = true;
@@ -74,11 +74,11 @@ internal static class TypingGuard
         }
         catch (Exception e)
         {
-            Plugin.Logger.LogWarning($"could not unbind UI navigation: {e.Message}");
+            Warn($"could not unbind UI navigation: {e.Message}");
         }
     }
 
-    internal static void Restore()
+    public static void Restore()
     {
         if (!_suppressed) return;
         _suppressed = false;
@@ -97,7 +97,7 @@ internal static class TypingGuard
         }
         catch (Exception e)
         {
-            Plugin.Logger.LogError($"COULD NOT restore UI navigation: {e.Message}");
+            Warn($"COULD NOT restore UI navigation: {e.Message}");
         }
         _module = null;
     }
@@ -139,8 +139,8 @@ internal static class TypingGuard
         {
             // Re-enabling failing is far worse than disabling failing: the
             // game would be left unable to take input.
-            if (enabled) Plugin.Logger.LogError($"COULD NOT RE-ENABLE Rewired maps: {e.Message}");
-            else Plugin.Logger.LogWarning($"could not disable Rewired maps: {e.Message}");
+            if (enabled) Warn($"COULD NOT RE-ENABLE Rewired maps: {e.Message}");
+            else Warn($"could not disable Rewired maps: {e.Message}");
         }
     }
 
@@ -176,13 +176,13 @@ internal static class TypingGuard
 
         if (_mapHelpers.Count == 0)
         {
-            Plugin.Logger.LogWarning(
+            Warn(
                 "Rewired: no per-player map helper found; the mouse will drift while typing");
             return;
         }
 
         _mapsLookedUp = true;
-        Plugin.Logger.LogInfo($"Rewired maps reachable for {_mapHelpers.Count} player(s)");
+        Warn($"Rewired maps reachable for {_mapHelpers.Count} player(s)");
     }
 
     /// <summary>
@@ -218,7 +218,7 @@ internal static class TypingGuard
         var count = Get(type, players, "playerCount", "PlayerCount") as int?;
         if (count is null or < 1)
         {
-            Plugin.Logger.LogWarning("Rewired: could not determine the player count");
+            Warn("Rewired: could not determine the player count");
             return found;
         }
 
@@ -270,7 +270,7 @@ internal static class TypingGuard
     /// through several paths - clicking, Escape, the modal closing - and
     /// missing one would leave the game's input switched off.
     /// </summary>
-    internal static void Tick(Func<TMPro.TMP_InputField?> focused, Action focusNext)
+    public static void Tick(Func<TMPro.TMP_InputField?> focused, Action focusNext)
     {
         var field = focused();
         var wantsSuppression = field != null;
@@ -284,4 +284,12 @@ internal static class TypingGuard
         // Rewired is switched off at this point and would report nothing.
         if (Input.GetKeyDown(KeyCode.Tab)) focusNext();
     }
+
+    /// <summary>
+    /// Where to report a problem. A delegate rather than a plugin's logger,
+    /// which was the only thing tying this to one mod.
+    /// </summary>
+    public static Action<string>? OnWarning { get; set; }
+
+    private static void Warn(string message) => OnWarning?.Invoke(message);
 }

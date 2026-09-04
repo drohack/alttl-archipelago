@@ -4,7 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace ALTTLArchipelago;
+namespace ALTTLModKit;
 
 /// <summary>
 /// Transient messages in the corner: what you just found, what someone sent
@@ -20,7 +20,7 @@ namespace ALTTLArchipelago;
 /// raycastTarget=false, so there is no path by which a message drifting over a
 /// puzzle piece could eat the click that was meant to move it.
 /// </summary>
-internal static class Toasts
+public static class Toasts
 {
     /// <summary>
     /// How long a message stays fully visible before fading.
@@ -66,18 +66,43 @@ internal static class Toasts
     /// message looks like in the Archipelago text client - anyone who plays
     /// multiworlds reads those colours as meaning.
     /// </summary>
-    internal static readonly Color Plain = HexColor(ALTTLArchipelago.Core.ApPalette.White);
+    public static Color Plain { get; set; } = Color.white;
 
     /// <summary>Connection notices and other things the mod itself says.</summary>
-    internal static readonly Color Notice = HexColor(ALTTLArchipelago.Core.ApPalette.Orange);
+    public static Color Notice { get; set; } = new(1f, 0.68f, 0.28f);
 
-    private static Color HexColor(string hex)
+    /// <summary>Parse "RRGGBB" into a colour, for callers holding a palette.</summary>
+    public static Color HexColor(string hex)
         => new(
             Convert.ToInt32(hex.Substring(0, 2), 16) / 255f,
             Convert.ToInt32(hex.Substring(2, 2), 16) / 255f,
             Convert.ToInt32(hex.Substring(4, 2), 16) / 255f);
 
-    internal static void Show(string text, Color colour)
+    /// <summary>
+    /// Where to report a problem building or drawing the overlay.
+    /// A delegate, so the kit does not need to know whose logger it is.
+    /// </summary>
+    public static Action<string>? OnWarning { get; set; }
+
+    /// <summary>Where to report ordinary progress. Optional, like OnWarning.</summary>
+    public static Action<string>? OnInfo { get; set; }
+
+    /// <summary>
+    /// Name of the overlay GameObject. Settable so two mods using the kit do
+    /// not present the scene with two identically named canvases - which is
+    /// exactly the confusion that made a badge get painted onto the Archive's
+    /// track instead of ours.
+    /// </summary>
+    public static string CanvasName { get; set; } = "ModKitToasts";
+
+    /// <summary>
+    /// The overlay's root, for a consumer that wants to draw its own thing on
+    /// it - an animation, a marker - without building a second canvas that
+    /// would fight this one for sort order. Null until the overlay is up.
+    /// </summary>
+    public static Transform? OverlayRoot => _canvas == null ? null : _canvas.transform;
+
+    public static void Show(string text, Color colour)
     {
         if (string.IsNullOrEmpty(text)) return;
 
@@ -94,127 +119,15 @@ internal static class Toasts
         }
         catch (Exception e)
         {
-            Plugin.Logger.LogWarning($"toast: could not show '{text}': {e.Message}");
+            Warn($"toast: could not show '{text}': {e.Message}");
         }
     }
 
-    private static GameObject? _paw;
-    private static float _pawAge;
-
-    /// <summary>How long the swipe takes, end to end.</summary>
-    private const float SwipeSeconds = 0.7f;
-
-    /// <summary>
-    /// Sweep a cat paw across the screen.
-    ///
-    /// Ours, on our own canvas, rather than the game's CatPaw: that is a
-    /// per-level object which most levels simply do not have, so a trap relying
-    /// on it showed nothing at all on the level where it fired. The point is to
-    /// SEE something go through, not to reproduce the original animation.
-    /// </summary>
-    internal static void SweepPaw()
+    public static void Tick(float dt)
     {
         try
         {
-            if (_stack == null || _canvas == null) return;
-            if (_paw != null) UnityEngine.Object.Destroy(_paw);
-
-            _paw = new GameObject("catpaw");
-            _paw.transform.SetParent(_canvas.transform, false);
-
-            var rect = _paw.AddComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = new Vector2(320f, 320f);
-
-            var image = _paw.AddComponent<Image>();
-            image.sprite = FindPawSprite();
-            image.color = image.sprite == null
-                ? new Color(0.10f, 0.10f, 0.12f, 0.9f)   // silhouette
-                : Color.white;
-            image.preserveAspect = true;
-            image.raycastTarget = false;
-
-            _pawAge = 0f;
-        }
-        catch (Exception e)
-        {
-            Plugin.Logger.LogWarning($"toast: no paw: {e.Message}");
-        }
-    }
-
-    private static void TickPaw(float dt)
-    {
-        if (_paw == null) return;
-
-        _pawAge += dt;
-        if (_pawAge >= SwipeSeconds)
-        {
-            UnityEngine.Object.Destroy(_paw);
-            _paw = null;
-            return;
-        }
-
-        var t = _pawAge / SwipeSeconds;
-        var rect = _paw.GetComponent<RectTransform>();
-        if (rect == null) return;
-
-        // In from the right, out to the left, dipping as it goes - a swipe
-        // rather than a slide.
-        rect.anchoredPosition = new Vector2(
-            Mathf.Lerp(1200f, -1200f, t),
-            Mathf.Sin(t * Mathf.PI) * -160f + 120f);
-        rect.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(-25f, 25f, t));
-    }
-
-    private static Sprite? _pawSprite;
-    private static bool _pawSpriteSearched;
-
-    /// <summary>
-    /// A cat sprite from whatever the game has loaded, if there is one.
-    ///
-    /// Falls back to a plain dark silhouette, which still reads as something
-    /// swiping past. Shipping art would mean shipping art.
-    /// </summary>
-    private static Sprite? FindPawSprite()
-    {
-        if (_pawSpriteSearched) return _pawSprite;
-        _pawSpriteSearched = true;
-
-        try
-        {
-            // The IL2CPP shim exposes only the non-generic overload, which
-            // hands back UnityEngine.Object and needs casting per item.
-            var all = Resources.FindObjectsOfTypeAll(
-                Il2CppInterop.Runtime.Il2CppType.Of<Sprite>());
-            for (int i = 0; i < (all == null ? 0 : all.Count); i++)
-            {
-                var sprite = all![i]?.TryCast<Sprite>();
-                var name = sprite == null ? "" : sprite.name;
-                if (string.IsNullOrEmpty(name)) continue;
-                if (name.IndexOf("paw", StringComparison.OrdinalIgnoreCase) >= 0
-                    || name.IndexOf("cat", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    _pawSprite = sprite;
-                    Plugin.Logger.LogInfo($"toast: using '{name}' for the cat paw");
-                    break;
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            Plugin.Logger.LogWarning($"toast: could not find a paw sprite: {e.Message}");
-        }
-        return _pawSprite;
-    }
-
-    internal static void Tick(float dt)
-    {
-        try
-        {
-            TickPaw(dt);
-
+    
             if (_stack == null)
             {
                 if (_pending.Count > 0) Build();
@@ -249,12 +162,12 @@ internal static class Toasts
         }
         catch (Exception e)
         {
-            Plugin.Logger.LogWarning($"toast: tick failed: {e.Message}");
+            Warn($"toast: tick failed: {e.Message}");
         }
     }
 
     /// <summary>Tear down, so a reconnect does not stack two canvases.</summary>
-    internal static void Destroy()
+    public static void Destroy()
     {
         try
         {
@@ -264,7 +177,7 @@ internal static class Toasts
         }
         catch (Exception e)
         {
-            Plugin.Logger.LogWarning($"toast: could not tear down: {e.Message}");
+            Warn($"toast: could not tear down: {e.Message}");
         }
         _canvas = null;
         _stack = null;
@@ -277,7 +190,7 @@ internal static class Toasts
 
         try
         {
-            _canvas = new GameObject("ALTTLArchipelagoToasts");
+            _canvas = new GameObject(CanvasName);
             UnityEngine.Object.DontDestroyOnLoad(_canvas);
 
             var canvas = _canvas.AddComponent<Canvas>();
@@ -315,11 +228,11 @@ internal static class Toasts
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             _stack = stack.transform;
-            Plugin.Logger.LogInfo("toasts: overlay ready");
+            OnInfo?.Invoke("toasts: overlay ready");
         }
         catch (Exception e)
         {
-            Plugin.Logger.LogWarning($"toast: could not build the overlay: {e.Message}");
+            Warn($"toast: could not build the overlay: {e.Message}");
             Destroy();
         }
     }
@@ -383,4 +296,6 @@ internal static class Toasts
         }
         return null;
     }
+
+    private static void Warn(string message) => OnWarning?.Invoke(message);
 }

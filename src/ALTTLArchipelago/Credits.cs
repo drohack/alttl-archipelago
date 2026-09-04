@@ -1,5 +1,6 @@
 using System;
 using ALTTLArchipelago.Core;
+using ALTTLModKit;
 
 namespace ALTTLArchipelago;
 

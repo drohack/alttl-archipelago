@@ -42,6 +42,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ALTTLModKit\ALTTLModKit.csproj" />
     <ProjectReference Include="..\ALTTLArchipelago.Core\ALTTLArchipelago.Core.csproj" />
   </ItemGroup>
 
@@ -134,6 +135,7 @@
     <ItemGroup>
       <DeployFiles Include="$(TargetDir)ALTTLArchipelago.dll" />
       <DeployFiles Include="$(TargetDir)ALTTLArchipelago.Core.dll" />
+      <DeployFiles Include="$(TargetDir)ALTTLModKit.dll" />
       <DeployFiles Include="$(TargetDir)Archipelago.MultiClient.Net.dll" />
       <DeployFiles Include="$(TargetDir)Newtonsoft.Json.dll" Condition="Exists('$(TargetDir)Newtonsoft.Json.dll')" />
       <DeployFiles Include="$(TargetDir)websocket-sharp*.dll" />

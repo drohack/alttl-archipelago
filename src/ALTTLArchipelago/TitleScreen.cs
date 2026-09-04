@@ -2,6 +2,7 @@ using System;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
+using ALTTLModKit;
 
 namespace ALTTLArchipelago;
 

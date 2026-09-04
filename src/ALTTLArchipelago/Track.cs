@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using ALTTLArchipelago.Core;
 using HarmonyLib;
+using ALTTLModKit;
 
 namespace ALTTLArchipelago;
 

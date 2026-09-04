@@ -33,6 +33,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ALTTLModKit\ALTTLModKit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="BepInEx.Core">
       <HintPath>$(GameDir)\BepInEx\core\BepInEx.Core.dll</HintPath>
       <Private>false</Private>
@@ -94,6 +98,9 @@
   <Target Name="DeployToGame" AfterTargets="Build" Condition="'$(SkipDeploy)' != 'true'">
     <ItemGroup>
       <DeployFiles Include="$(TargetDir)ALTTLDevTools.dll" />
+      <!-- Both plugins use the kit. BepInEx loads each plugin folder
+           separately, so each needs its own copy. -->
+      <DeployFiles Include="$(TargetDir)ALTTLModKit.dll" />
     </ItemGroup>
     <Copy SourceFiles="@(DeployFiles)" DestinationFolder="$(GameDir)\BepInEx\plugins\ALTTLDevTools" />
     <Message Importance="high" Text="Deployed ALTTLDevTools to $(GameDir)\BepInEx\plugins\ALTTLDevTools" />

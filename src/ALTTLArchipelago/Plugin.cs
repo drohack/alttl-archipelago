@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using ALTTLArchipelago.Core;
+using ALTTLModKit;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
@@ -80,6 +81,20 @@ public sealed class Plugin : BasePlugin
     public override void Load()
     {
         Logger = base.Log;
+
+        // The kit takes its logger rather than reaching for ours; this is the
+        // one line that replaces the reference it used to hold.
+        Hub.OnError = m => Logger.LogError(m);
+        Toasts.OnWarning = m => Logger.LogWarning(m);
+        Toasts.OnInfo = m => Logger.LogInfo(m);
+        Toasts.CanvasName = "ALTTLArchipelagoToasts";
+        TypingGuard.OnWarning = m => Logger.LogWarning(m);
+
+        // The kit ships with plain defaults; these are the Archipelago text
+        // client's own colours, so a message here reads the same as the same
+        // message there.
+        Toasts.Plain = Toasts.HexColor(ApPalette.White);
+        Toasts.Notice = Toasts.HexColor(ApPalette.Orange);
 
         _host = Config.Bind("Server", "Host", "archipelago.gg",
             "Server address, without the port. Editable in-game.");
@@ -617,7 +632,7 @@ public sealed class Ticker : MonoBehaviour
         Badges.Tick(Time.unscaledDeltaTime);
         Badges.TickWhy(Time.unscaledDeltaTime);
         Plugin.TickCredits(Time.unscaledDeltaTime);
-        Traps.Tick();
+        Traps.Tick(Time.unscaledDeltaTime);
         Track.TickCreditsCard();
         TypingGuard.Tick(ConnectionPane.FocusedField, ConnectionPane.FocusNext);
     }

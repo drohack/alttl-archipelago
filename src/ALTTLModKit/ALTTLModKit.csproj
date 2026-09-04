@@ -1,0 +1,101 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Pieces that are useful to any BepInEx IL2CPP mod, not just this one.
+
+       Nothing in here knows what Archipelago is, what a randomizer is, or what
+       A Little To The Left is. Each file takes its logger as a delegate rather
+       than reaching for a plugin's static, which is the whole of what kept them
+       coupled before.
+
+       WHY IT IS A PROJECT AND NOT A FOLDER: the boundary is the point. A
+       reference back into the mod will not compile, so "just read it from
+       Plugin" stops being available and the coupling cannot creep back. It also
+       means these can be lifted out to their own repo later without untangling
+       anything, which is a decision this defers rather than makes.
+
+       Unlike ALTTLArchipelago.Core this DOES reference Unity, BepInEx and the
+       game's interop assemblies, so it cannot be built on a runner with no game
+       installed - the same constraint as the plugin itself. Core remains the
+       project CI compiles. -->
+
+  <Import Project="..\GameDir.props" Condition="Exists('..\GameDir.props')" />
+
+  <Target Name="EnsureGameDir" BeforeTargets="BeforeBuild">
+    <Error Condition="'$(GameDir)' == '' Or !Exists('$(GameDir)')"
+           Text="GameDir is not set or does not exist. Copy src\GameDir.props.example to src\GameDir.props and point it at your A Little To The Left install." />
+  </Target>
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>ALTTLModKit</AssemblyName>
+    <RootNamespace>ALTTLModKit</RootNamespace>
+    <Version>0.1.0</Version>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>annotations</Nullable>
+    <!-- CA1416: the virtual-desktop helper is Windows-only by nature. -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Private=false throughout: these already exist in the install, and
+         copying them into the plugin folder would shadow the real ones. -->
+    <Reference Include="Il2CppInterop.Runtime">
+      <HintPath>$(GameDir)\BepInEx\core\Il2CppInterop.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2Cppmscorlib">
+      <HintPath>$(GameDir)\BepInEx\interop\Il2Cppmscorlib.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Il2CppSystem.Core">
+      <HintPath>$(GameDir)\BepInEx\interop\Il2CppSystem.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>$(GameDir)\BepInEx\interop\Unity.TextMeshPro.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.UIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- ReInput, for switching the game's input maps off while a text box has
+         focus: typing otherwise moved the mouse cursor. -->
+    <Reference Include="Rewired_Core">
+      <HintPath>$(GameDir)\BepInEx\interop\Rewired_Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- The ONE game-specific reference here, and only for a single type.
+         Rewired.Integration.UnityUI.RewiredStandaloneInputModule is compiled
+         into this game's own assembly rather than into Rewired_Core or
+         Rewired_Windows - checked, the name appears only in Assembly-CSharp. A
+         port to another Rewired game would re-point this at wherever that game
+         keeps the UI integration; nothing else in the kit touches it. -->
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(GameDir)\BepInEx\interop\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- UnityEngine.Input, for reading Tab directly. Rewired is disabled at
+         that moment, so it cannot report the key itself. -->
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>

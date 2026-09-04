@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace ALTTLDevTools;
+namespace ALTTLModKit;
 
 /// <summary>
 /// Moves the game's windows to a chosen Windows virtual desktop at startup.
@@ -25,7 +25,7 @@ namespace ALTTLDevTools;
 /// worth the breakage for this.
 /// </summary>
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-internal static class VirtualDesktop
+public static class VirtualDesktop
 {
     private const string DesktopsKey =
         @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VirtualDesktops";
@@ -34,7 +34,7 @@ internal static class VirtualDesktop
     /// Moves every visible top-level window of this process to the 1-based
     /// virtual desktop index. A value below 1 does nothing.
     /// </summary>
-    internal static void MoveGameTo(int oneBasedIndex, Action<string> log)
+    public static void MoveGameTo(int oneBasedIndex, Action<string> log)
     {
         if (oneBasedIndex < 1) return;
 
@@ -104,7 +104,7 @@ internal static class VirtualDesktop
     /// and no AttachThreadInput dance is needed. The console is deliberately
     /// left open and merely behind: it is the whole point of a dev build.
     /// </summary>
-    internal static void FocusGameWindow(Action<string> log)
+    public static void FocusGameWindow(Action<string> log)
     {
         try
         {

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 
-namespace ALTTLArchipelago;
+namespace ALTTLModKit;
 
 /// <summary>
 /// The boundary between the Archipelago client's threads and Unity's.
@@ -17,12 +17,20 @@ namespace ALTTLArchipelago;
 /// the sibling cw4 project, so all state lives here and the MonoBehaviour that
 /// ticks it holds none.
 /// </summary>
-internal static class Hub
+public static class Hub
 {
     private static readonly ConcurrentQueue<Action> Pending = new();
 
+    /// <summary>
+    /// Where to report an action that threw.
+    ///
+    /// A delegate rather than a reference to some plugin's logger, because that
+    /// single line was the only thing tying this to one mod.
+    /// </summary>
+    public static Action<string>? OnError { get; set; }
+
     /// <summary>Queue work to run on the next Unity frame.</summary>
-    internal static void OnMainThread(Action action)
+    public static void OnMainThread(Action action)
     {
         if (action != null) Pending.Enqueue(action);
     }
@@ -35,7 +43,7 @@ internal static class Hub
     /// The count is snapshotted so an action that queues more work cannot spin
     /// this loop forever within a single frame.
     /// </summary>
-    internal static void Tick()
+    public static void Tick()
     {
         int budget = Pending.Count;
         while (budget-- > 0 && Pending.TryDequeue(out var action))
@@ -46,10 +54,9 @@ internal static class Hub
             }
             catch (Exception e)
             {
-                Plugin.Logger.LogError($"queued action threw: {e}");
+                OnError?.Invoke($"queued action threw: {e}");
             }
         }
     }
 
-    internal static int PendingCount => Pending.Count;
 }

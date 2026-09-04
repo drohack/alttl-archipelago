@@ -8,6 +8,7 @@ using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
 using Il2CppInterop.Runtime.Injection;
+using ALTTLModKit;
 using UnityEngine;
 
 namespace ALTTLDevTools;
