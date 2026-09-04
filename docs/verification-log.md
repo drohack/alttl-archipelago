@@ -1212,3 +1212,41 @@ offers something other than Continue). The residual risk is low but real -
 `GoToNext` has no branch on level kind, so an ordinary destination differs only
 in the index handed to `StartLevel`, which is the card-click call that is
 exercised constantly. Worth watching on the next real playthrough.
+
+## The pause-menu trap test, finally run (2026-09-04)
+
+Parked since the cat-trap work because a scripted run cannot press Escape. It
+took three attempts to open the menu, and the first two are worth recording
+because both reported success:
+
+1. `MenuManager.PostOpenMenuEvent(menu, null)` - accepted silently, opened
+   nothing.
+2. The same with a real `new MenuData()` - accepted silently, opened nothing.
+3. Raising the game's own `GameEvent_MenuOpen` through
+   `GameEventManager.AddGameEvent`, the way `solve:` raises
+   `ObjectControllerSolved` - opened it.
+
+That is the same "reported success, did nothing" shape as every other harness
+fault in this feature, which is why the check is a `buttons` dump afterwards
+rather than the call's return value. Added as the DevTools `pause` command.
+
+Opening it also confirms something previously only argued: the pause menu on a
+generator level carries all seven entries - Resume, Let It Be, Hint, Levels,
+Settings, Reset, Exit - so the restore of Levels and Skip is right, seen rather
+than inferred.
+
+**The test itself passes.** With the menu open on Post-It Notes (Randomized),
+a real Cat Trap sent from the server:
+
+- the trap fired and reset the puzzle;
+- the layout afterwards is byte-identical to the opening layout, parents and
+  placed flags included;
+- the seed survived (492449292), so the rebuild is the same puzzle;
+- the state is still `Gameplay_GameState` on the same level, not dropped
+  somewhere;
+- the pause menu is still up and still has its seven entries, confirmed by
+  screenshot - the rebuild underneath it did not leave the menu holding
+  references to a destroyed level.
+
+No exceptions logged. This closes the last item that was blocked purely on not
+being able to drive input.

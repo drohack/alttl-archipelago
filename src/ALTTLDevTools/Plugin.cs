@@ -956,6 +956,10 @@ public class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("press", () => PressControl(cmd.Substring("press:".Length)));
             }
+            else if (cmd.Equals("pause", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("pause", OpenPauseMenu);
+            }
             else if (cmd.Equals("buttons", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("buttons", ListButtons);
@@ -1674,6 +1678,62 @@ public class DevToolsBehaviour : MonoBehaviour
             return;
         }
         DevToolsPlugin.Log.LogWarning($"press: no active control named {name}");
+    }
+
+    /// <summary>
+    /// Open the in-level pause menu, the way the game does.
+    ///
+    /// Needed because a scripted run cannot press Escape, and every cheaper
+    /// route was wrong: the menu has no Show/Open/Toggle, FindObjectOfType
+    /// cannot see it because it is inactive while closed, and calling
+    /// ShowHideMenuItems directly throws - the game dereferences the
+    /// GameEventData a caller has no way to construct. PostOpenMenuEvent is
+    /// what the game itself posts.
+    ///
+    /// This is what unblocks testing anything WITH the pause menu open, which
+    /// until now could only be described rather than checked.
+    /// </summary>
+    private static void OpenPauseMenu()
+    {
+        var gm = GameManager.Instance;
+        var mm = gm == null ? null : gm.menuManager;
+        if (mm == null)
+        {
+            DevToolsPlugin.Log.LogWarning("pause: no menu manager");
+            return;
+        }
+
+        // Inactive objects included: closed is exactly the state it is in.
+        MainMenu? menu = null;
+        foreach (var obj in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<MainMenu>()))
+        {
+            menu = obj == null ? null : obj.TryCast<MainMenu>();
+            if (menu != null) break;
+        }
+
+        if (menu == null)
+        {
+            DevToolsPlugin.Log.LogWarning(
+                "pause: no MainMenu - it exists only while a level is running");
+            return;
+        }
+
+        // Raise the game's own MenuOpen event, the same way solve: raises
+        // ObjectControllerSolved.
+        //
+        // PostOpenMenuEvent was tried first, with null MenuData and then with a
+        // real one. Both were accepted silently and opened nothing - the same
+        // "reported success, did nothing" shape as everything else in this
+        // harness, which is why the buttons dump is checked afterwards rather
+        // than the call's return.
+        var data = new GameEventManager.GameEventData
+        {
+            Menu = menu,
+            LevelInterface = GameManager.Instance.levelManager.ActiveLevelInterface,
+        };
+        DevToolsPlugin.Log.LogInfo("pause: raising MenuOpen");
+        GameEventManager.AddGameEvent<GameEventManager.GameEvent_MenuOpen>(data);
     }
 
     private static void ListButtons()
