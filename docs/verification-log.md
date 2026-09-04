@@ -1309,3 +1309,31 @@ Eight tests in `ApPaletteTests`, including the one that matters: the tag TEXT
 survives, because it is someone's name and they should see it. "Does not contain
 `<size`" would have been the wrong assertion - it would also pass if the name
 had been silently mangled.
+
+## Connecting announced your whole item history (2026-09-04)
+
+Reported in play: "every time you open up the game i see cat traps being sent,
+are they being sent multiple times?"
+
+They are not. Archipelago resends the WHOLE item list on every connect, by
+design, and the mod already refuses to re-apply it - the counts are rebuilt from
+the list rather than incremented, and traps are checked against `trapsSprung`
+so none re-fire. The delivery was correct. The ANNOUNCING was not: one toast per
+item meant launching the game produced a wall of "Received Cat Trap from Server"
+for cats sent hours earlier, which looks exactly like being spammed with traps.
+
+Now the toasts are suppressed for a three-second window that opens with the
+session - before Ready, because items start arriving ahead of slot_data - and
+one line is shown when the burst stops:
+
+```
+Connected to Archipelago - 30 puzzles
+Restored 128 item(s) from the server
+```
+
+Silence would have been worse than the spam: someone reconnecting deserves to
+know their things came back. A genuinely new item landing inside the window is
+folded into the summary rather than lost - it is still applied either way.
+
+Verified on a connect that replays 128 items: two lines on screen, and the log
+still records every individual item for diagnosis.

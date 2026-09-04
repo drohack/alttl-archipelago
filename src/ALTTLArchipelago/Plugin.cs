@@ -253,6 +253,12 @@ public sealed class Plugin : BasePlugin
         // doubles.
         Inventory.NewSession();
 
+        // Opened here rather than at Ready: items start arriving before
+        // slot_data is parsed, so a window that began at Ready would miss the
+        // front of the replay.
+        _replayQuietFor = ReplayQuiet;
+        _replayed = 0;
+
         var connection = new Connection(Hub.OnMainThread);
         // The connection is passed in, not read from _session: Ready fires
         // DURING the connect, before the field is assigned. Reading the field
@@ -268,6 +274,24 @@ public sealed class Plugin : BasePlugin
             // Not the beaten token: the player gets one every time they finish
             // a puzzle, and announcing it would drown the messages that matter.
             if (item.Name == ALTTLArchipelago.Core.ItemNames.BeatenToken) return;
+
+            // Quiet during the reconnect replay.
+            //
+            // Archipelago resends the WHOLE item history on every connect, so
+            // announcing each one meant launching the game produced a wall of
+            // "Received Cat Trap from Server" for cats sent hours ago. Nothing
+            // is being re-delivered and nothing re-fires - the counts are
+            // rebuilt from the list and the traps are already spent - but the
+            // toasts made it look like it.
+            //
+            // Counted instead, and summarised once when the burst stops. A
+            // genuinely new item that lands inside the window is folded into
+            // that summary rather than lost.
+            if (_replayQuietFor > 0f)
+            {
+                _replayed++;
+                return;
+            }
 
             var painted = ALTTLArchipelago.Core.ApPalette.Paint(
                 item.Name, ALTTLArchipelago.Core.ApPalette.ForItem(item.Flags));
@@ -534,6 +558,34 @@ public sealed class Plugin : BasePlugin
     /// <summary>A send is awaiting the server's acknowledgement.</summary>
     private static bool _sending;
 
+    /// <summary>How long the item replay is given to finish, in seconds.</summary>
+    private const float ReplayQuiet = 3f;
+
+    private static float _replayQuietFor;
+    private static int _replayed;
+
+    /// <summary>
+    /// Close the quiet window once the replay stops, and say what arrived.
+    ///
+    /// One line instead of one per item. Silence would be worse: a player
+    /// reconnecting deserves to know their things came back.
+    /// </summary>
+    internal static void TickItemReplay(float dt)
+    {
+        if (_replayQuietFor <= 0f) return;
+
+        _replayQuietFor -= dt;
+        if (_replayQuietFor > 0f) return;
+
+        _replayQuietFor = 0f;
+        if (_replayed <= 0) return;
+
+        var n = _replayed;
+        _replayed = 0;
+        Logger.LogInfo($"items: {n} restored on connect");
+        Toasts.Show($"Restored {n} item(s) from the server", Toasts.Notice);
+    }
+
     /// <summary>
     /// What the seed contains, on the main thread.
     ///
@@ -624,6 +676,7 @@ public sealed class Ticker : MonoBehaviour
         Hub.Tick();
         Plugin.TickRetry(Time.unscaledDeltaTime);
         Plugin.TickChecks(Time.unscaledDeltaTime);
+        Plugin.TickItemReplay(Time.unscaledDeltaTime);
         Checks.TickAudit(Time.unscaledDeltaTime);
         Checks.TickEmptyLevelWatch(Time.unscaledDeltaTime);
         Abilities.Tick(Time.unscaledDeltaTime);
