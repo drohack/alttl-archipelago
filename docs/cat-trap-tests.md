@@ -120,25 +120,83 @@ Disturb, trap, then check all four:
 Wanted behaviour: on a level that HAS a real cat event, fire a random valid one
 of that level's own; otherwise fall back to the reset.
 
-Research so far:
+#### The sweep (done)
 
-- `CatSwipe`, `CatSwipe_DropObjects`, `CatSwipe_RecordPlayer` and
-  `CatEyesController` are real classes; `CatInteraction` and `CatObject` are
-  not (they are only strings in the binary).
-- `CatSwipe` is a **config helper, not a trigger**: it has `SetupSwipe`,
-  `AddSwipeables`, `DoSwipeAudio` and the mass and angular settings, but no
-  method that performs a swipe. Whatever performs a cat event is a class the
-  static probe has not yet named.
-- `hasSwatCatInLevel` is the flag that answers "does this level have one", and
-  it is NOT on `LevelInterface`, `Level` or `LevelManager`.
-- Two levels scanned at runtime so far (Stamps, Telescope) contain no cat
-  component at all - only the global `CatAchievementTracker`. So the reset
-  fallback is the common case, not the exception.
+`levelsweep` now records each level's own cats into `alttl-levels.json`, the
+table both the apworld and the mod already consume. It is keyed by level id and
+scanned from the level's own transform, so it is a fact about the game and the
+same for every seed. The sweep otherwise reproduced the previous table
+byte-for-byte, and the 91 apworld tests pass against the new one.
 
-Next step is a sweep: boot every level in the table and run the `cats` probe,
-producing the list of levels that have a real cat and the class that owns it.
-That list is the input to the feature; without it, "pick a random valid cat"
-has nothing to pick from.
+**13 of 111 levels carry a cat**, and every one of them carries exactly one -
+except PawPrints, whose whole level is cat-themed (70 components). So "pick a
+random valid cat for this level" turns out to be almost moot: on a level with a
+cat there is one cat to pick.
+
+| Level | Index | Class | Trigger found |
+|---|---|---|---|
+| Place Setting | 32 | `CatGrab` | `DoGrab()`, no args |
+| Shells (generator) | 62 | `CatGrab` | `DoGrab()`, no args |
+| Stamps | 9 | `CatGrab` | `DoGrab()`, no args |
+| MerryMess_Crackers (archive) | 1016 | `CatGrab` | `DoGrab()`, no args |
+| TupperwareTower | 83 | `CatClimb` | `DoClimb()`, `StartCatClimb()` |
+| Clover | 68 | `CatSwipe` | none |
+| Pasta | 30 | `CatSwipe` | none |
+| Wrong Aspect Papers | 17 | `CatSwipe` | none |
+| Sharp Pencils | 19 | `CatSwipe_RecordPlayer` | none |
+| Trim Plant (Vines) | 63 | `CatSwipe_DropObjects` | none |
+| Frame Maze | 72 | `CatchNet` | none |
+| Radial Dance Party | 81 | `RadialCatIntro` | an intro, not a trap |
+| PawPrints | 57 | 15 paw-print classes | the level itself |
+
+#### What that means for the feature
+
+There is **no uniform "perform this level's cat event" API**. `CatGrab` and
+`CatClimb` expose a clean trigger; `CatSwipe` and its two subclasses are config
+helpers only (`SetupSwipe`, `AddSwipeables`, `DoSwipeAudio` - nothing that
+performs a swipe), and `CatchNet` exposes nothing either. `hasSwatCatInLevel`,
+the flag that would answer the question directly, is not on `LevelInterface`,
+`Level` or `LevelManager`.
+
+So built-in cats would be five bespoke integrations, each with unknown effects
+on puzzle state, covering at most 12 of 111 levels - and only 5 of those have a
+trigger at all. **Recommendation: keep the reset as the universal behaviour.**
+If we want the flourish later, the 4 `CatGrab` levels are the cheap win: one
+class, one no-arg call, and the trap can still reset afterwards so the outcome
+is identical either way.
+
+## Later: use a level's own cat (NOT BUILT - upgrade feature)
+
+Decided 2026-09-04: the reset is the behaviour for every level for now. This
+section is the design sketch if we want the flourish later, and the reason it
+was not worth doing yet.
+
+**What it would do.** On a level that ships with a real cat, play THAT cat -
+Stamps' paw reaching in and grabbing a stamp, Tupperware's cat climbing the
+tower - instead of our overlay paw, then reset as usual. The reset still does
+the actual work, so the outcome is identical and the feature is purely
+cosmetic. That is what makes it safe to add later and safe to skip now.
+
+**What it would cost.** Five bespoke integrations, because there is no shared
+trigger. Two of the five classes have no trigger at all, so those levels would
+need the cat driven some other way or left on the overlay paw. At best it
+changes 12 of 111 levels; realistically 5, the ones with a callable trigger.
+
+**Where to start.** The four `CatGrab` levels - Place Setting, Shells, Stamps
+and MerryMess_Crackers. One class, one no-arg `DoGrab()`, and the data to find
+them is already in `alttl-levels.json` under each level's `cats` array. Sketch:
+
+    // in Traps.Spring, before the reset
+    var grab = FindInLevel<CatGrab>();     // level's own transform, not the scene
+    if (grab != null) grab.DoGrab();       // the game's cat
+    else Toasts.SweepPaw();                // ours
+
+**What has to be checked if we build it.** Whether `DoGrab()` is safe to call
+out of sequence - these cats are scripted parts of a puzzle's own choreography,
+not general-purpose effects, so one may assume a state the puzzle is not in.
+And whether the animation survives the reset that follows it: our paw does
+because it lives on our overlay canvas, but the game's cat is IN the level and
+the reset rebuilds the level, so it would likely need to finish first.
 
 ## The harness
 

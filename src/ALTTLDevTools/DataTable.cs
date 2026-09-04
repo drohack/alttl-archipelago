@@ -188,6 +188,61 @@ internal sealed class DataTable
         }
     }
 
+    /// <summary>
+    /// The level's own cat, if it has one.
+    ///
+    /// Recorded per level and keyed by level id, so the answer is the same for
+    /// every seed: which puzzles ship with a real cat event is a fact about the
+    /// game, not about a run. The trap reads it for whatever level is open.
+    ///
+    /// Scanned under the LEVEL's transform rather than the whole scene on
+    /// purpose. A scene-wide scan picks up CatAchievementTracker, which sits on
+    /// a global object and is present in every level - it would report a cat
+    /// everywhere and mean nothing.
+    ///
+    /// Inactive children are included: a cat that has not been triggered yet is
+    /// exactly the case this is looking for, and a swipe object waiting its
+    /// turn may well be switched off.
+    /// </summary>
+    private static string CatsIn(Level? level)
+    {
+        var row = new StringBuilder("[");
+        if (level == null) return row.Append(']').ToString();
+
+        try
+        {
+            var found = level.gameObject.GetComponentsInChildren<Component>(true);
+            int n = 0;
+            for (int i = 0; i < (found == null ? 0 : found.Length); i++)
+            {
+                var c = found![i];
+                if (c == null) continue;
+
+                string type;
+                try { type = c.GetIl2CppType().Name; }
+                catch { continue; }
+
+                if (type.IndexOf("Cat", StringComparison.Ordinal) < 0
+                    && type.IndexOf("Paw", StringComparison.Ordinal) < 0
+                    && type.IndexOf("Swipe", StringComparison.Ordinal) < 0) continue;
+
+                if (n > 0) row.Append(", ");
+                row.Append('{');
+                row.Append($"\"type\": {Json(type)}");
+                row.Append($", \"name\": {Json(Str(() => c.gameObject.name))}");
+                row.Append($", \"active\": {Bool(() => c.gameObject.activeInHierarchy)}");
+                row.Append('}');
+                n++;
+            }
+        }
+        catch (Exception e)
+        {
+            DevToolsPlugin.Log.LogWarning($"levelsweep: cats threw: {e.Message}");
+        }
+
+        return row.Append(']').ToString();
+    }
+
     private void Record(int index)
     {
         var lm = GameManager.Instance.levelManager;
@@ -243,7 +298,10 @@ internal sealed class DataTable
             DevToolsPlugin.Log.LogWarning($"levelsweep: controllers for {index} threw: {e.Message}");
         }
 
-        row.Append("]}");
+        row.Append(']');
+        row.Append(", \"cats\": ");
+        row.Append(CatsIn(level));
+        row.Append('}');
 
         if (!_first) _out.AppendLine(",");
         _out.Append(row);
