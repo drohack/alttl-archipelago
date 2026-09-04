@@ -763,8 +763,14 @@ saying why.
 one - but a weak one. It says the bug does not reproduce by loading levels
 quickly and repeatedly on this save, which leaves the routes it was actually
 reported from untested: entering a later card after moving around the menus, and
-whatever state the game was in at the time. The bug stays parked, the watchdog
-stays armed, and the soak is worth re-running after any change to level loading.
+whatever state the game was in at the time.
+
+**Closed on 2026-09-04, unresolved.** Dropped from the open list at droha's call:
+it has not been seen in a long time and cannot be reproduced, so carrying it
+around as an open item costs attention and buys nothing. The watchdog stays
+armed and `tools/emptysoak.py` stays in the tree - between them, a recurrence
+will announce itself with a log line and a toast rather than needing to be
+described from memory. Reopen it if that line ever appears.
 
 ## Badges and the credits card (2026-09-04)
 
@@ -1202,16 +1208,28 @@ Before the fix that read `DailyTidy_GameState activeLevel=none`. Screenshot
 confirms the puzzle on screen, behind the game's own one-time Colour Assist
 prompt - which is what `GameplayModal_GameState` is, not a stuck screen.
 
-**What is NOT independently verified, stated plainly.** The takeover applies to
-every Continue, not only ones landing on a daily-pool level, so ordinary
-destinations go through the new path too. That case has not been exercised end
-to end: two attempts to finish an ordinary level for the purpose failed to
-complete it (TupperwareNesting reported `solved=False` after both its
-controllers were forced, and Spice Jars has two solutions so its retry screen
-offers something other than Continue). The residual risk is low but real -
-`GoToNext` has no branch on level kind, so an ordinary destination differs only
-in the index handed to `StartLevel`, which is the card-click call that is
-exercised constantly. Worth watching on the next real playthrough.
+**The ordinary destination, verified separately.** The takeover applies to every
+Continue, not only ones landing on a daily-pool level, so that case needed its
+own test. Two earlier attempts failed for want of a level I could finish -
+TupperwareNesting reported `solved=False` with both controllers forced, and
+Spice Jars has two solutions so its retry screen offers something other than
+Continue.
+
+Picking the source properly rather than hoping fixed it. `NextUnfinishedSlot`
+scans forward from the current slot, so the test needs a source that is
+completable AND whose following slot is ordinary and unfinished. Reading the
+track dump against the level table gives one: TrickOrTidy_Bones, one controller
+and none of it ability-locked, followed by MerryMess_CandyCanes.
+
+```
+navigation: post-level Continue -> slot 7 (level 1015), launching it
+state: gameState=Gameplay_GameState activeLevel=MerryMess_CandyCanes index=1015
+controllers: 6 registered on MerryMess_CandyCanes
+```
+
+Loaded straight into gameplay with its six controllers registered, no modal, no
+exceptions, and a screenshot of a playable puzzle. Both destinations - daily
+pool and ordinary - now go through the takeover and land correctly.
 
 ## The pause-menu trap test, finally run (2026-09-04)
 
