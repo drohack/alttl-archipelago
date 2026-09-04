@@ -960,6 +960,14 @@ public class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("pause", OpenPauseMenu);
             }
+            else if (cmd.Equals("hints", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("hints", ReportHints);
+            }
+            else if (cmd.StartsWith("members:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("members", () => ListMembers(cmd.Substring("members:".Length)));
+            }
             else if (cmd.Equals("buttons", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("buttons", ListButtons);
@@ -1734,6 +1742,125 @@ public class DevToolsBehaviour : MonoBehaviour
         };
         DevToolsPlugin.Log.LogInfo("pause: raising MenuOpen");
         GameEventManager.AddGameEvent<GameEventManager.GameEvent_MenuOpen>(data);
+    }
+
+    /// <summary>
+    /// List a game type's members: "members:HintManager" or
+    /// "members:HintManager:hint" to filter.
+    ///
+    /// Built after guessing member names one compile at a time for the third
+    /// time in this project. The compile-error oracle works - a wrong name is a
+    /// CS1061 - but it answers one guess per build, and the interop assembly
+    /// renames things unpredictably, so the guesses are often wrong twice over.
+    /// Asking the loaded assembly is instant and exhaustive.
+    ///
+    /// Ordinary .NET reflection, because the interop assemblies ARE managed
+    /// assemblies once the process is up. That is also why this cannot be done
+    /// offline: outside the game there is nothing to reflect over.
+    /// </summary>
+    /// <summary>
+    /// Does the running level actually have a hint?
+    ///
+    /// The question is whether a Hint item is worth minting: hints are authored
+    /// per level as IMAGES, so a procedurally generated layout may have none,
+    /// or may have one drawn for a different arrangement. Reading the values
+    /// beats reasoning about it.
+    /// </summary>
+    private static void ReportHints()
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        if (li == null)
+        {
+            DevToolsPlugin.Log.LogWarning("hints: no level running");
+            return;
+        }
+
+        var images = -1;
+        try { images = li.HintImages == null ? 0 : li.HintImages.Count; } catch { }
+
+        DevToolsPlugin.Log.LogInfo(
+            $"hints: {Str(() => li.LevelId)}"
+            + $" randomizable={Str(() => li.IsRandomizable.ToString())}"
+            + $" daily={Str(() => li.IsDailyTidy.ToString())}"
+            + $" available={Str(() => li.HintAvailable.ToString())}"
+            + $" used={Str(() => li.HintUsed.ToString())}"
+            + $" images={images}");
+
+        foreach (var obj in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<HintMenu>()))
+        {
+            var menu = obj == null ? null : obj.TryCast<HintMenu>();
+            if (menu == null) continue;
+            DevToolsPlugin.Log.LogInfo(
+                $"hints: menu NumActiveHints={Str(() => menu.NumActiveHints.ToString())}"
+                + $" maxIndex={Str(() => menu.m_maxHintIndex.ToString())}"
+                + $" isDaily={Str(() => menu.m_isDailyTidyHint.ToString())}");
+            break;
+        }
+    }
+
+    private static void ListMembers(string arg)
+    {
+        var parts = arg.Split(':');
+        var wanted = parts[0].Trim();
+        var filter = parts.Length > 1 ? parts[1].Trim() : "";
+
+        Type? found = null;
+        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            Type?[] types;
+            try { types = asm.GetTypes(); }
+            catch (System.Reflection.ReflectionTypeLoadException e) { types = e.Types; }
+            catch { continue; }
+
+            foreach (var t in types)
+            {
+                if (t != null && string.Equals(t.Name, wanted, StringComparison.OrdinalIgnoreCase))
+                {
+                    found = t;
+                    break;
+                }
+            }
+            if (found != null) break;
+        }
+
+        if (found == null)
+        {
+            DevToolsPlugin.Log.LogWarning($"members: no type named {wanted}");
+            return;
+        }
+
+        const System.Reflection.BindingFlags Any =
+            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic
+            | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static
+            | System.Reflection.BindingFlags.DeclaredOnly;
+
+        bool Match(string n)
+            => filter.Length == 0 || n.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
+
+        DevToolsPlugin.Log.LogInfo($"members: {found.FullName} (base {found.BaseType?.Name})");
+        int n = 0;
+        foreach (var pr in found.GetProperties(Any))
+        {
+            if (!Match(pr.Name)) continue;
+            DevToolsPlugin.Log.LogInfo($"  P {pr.Name} : {pr.PropertyType.Name}");
+            n++;
+        }
+        foreach (var f in found.GetFields(Any))
+        {
+            if (!Match(f.Name) || f.Name.StartsWith("NativeFieldInfoPtr_")
+                || f.Name.StartsWith("NativeMethodInfoPtr_")) continue;
+            DevToolsPlugin.Log.LogInfo($"  F {f.Name} : {f.FieldType.Name}");
+            n++;
+        }
+        foreach (var m in found.GetMethods(Any))
+        {
+            if (!Match(m.Name) || m.Name.StartsWith("get_") || m.Name.StartsWith("set_")) continue;
+            var ps = string.Join(", ", Array.ConvertAll(m.GetParameters(), x => x.ParameterType.Name));
+            DevToolsPlugin.Log.LogInfo($"  M {m.Name}({ps}) : {m.ReturnType.Name}");
+            n++;
+        }
+        DevToolsPlugin.Log.LogInfo($"members: {n} shown");
     }
 
     private static void ListButtons()
