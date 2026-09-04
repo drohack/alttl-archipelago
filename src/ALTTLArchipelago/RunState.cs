@@ -100,8 +100,23 @@ internal static class RunState
 
     internal static void SetOwed(IReadOnlyList<string> owed)
     {
+        // Skip a write that would change nothing. The flush that calls this
+        // runs on a timer, so an offline session sits re-saving the same list
+        // every few seconds otherwise.
+        if (Same(_state.Owed, owed)) return;
+
         _state.Owed = new List<string>(owed);
         Write();
+    }
+
+    private static bool Same(List<string> a, IReadOnlyList<string> b)
+    {
+        if (a.Count != b.Count) return false;
+        for (int i = 0; i < a.Count; i++)
+        {
+            if (!string.Equals(a[i], b[i], StringComparison.Ordinal)) return false;
+        }
+        return true;
     }
 
     internal static void SpendSkip()

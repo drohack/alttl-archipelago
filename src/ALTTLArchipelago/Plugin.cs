@@ -439,13 +439,26 @@ public sealed class Plugin : BasePlugin
         var owed = Checks.Ledger.OwedForSaving();
         if (owed.Count == 0) return;
 
-        if (_session == null || !_session.Connected)
-        {
-            // Offline. It stays owed - and it goes to disk now, because the
-            // next thing that happens might be the game closing.
-            RunState.SetOwed(owed);
-            return;
-        }
+        // To disk FIRST, before any attempt to send, because the next thing
+        // that happens might be the game closing.
+        //
+        // This used to be written only on the two paths that KNEW where they
+        // stood: an explicit offline branch, and after a successful send. The
+        // path between them lost checks. When a server disappears the client
+        // goes on reporting Connected for a while, so the offline branch is
+        // skipped, the send silently moves nothing, `sent.Count == 0` returns
+        // early - and nothing was ever written. Measured 2026-09-04: killed the
+        // server mid-puzzle, solved it, quit, restarted the server and
+        // reconnected, and "Telescope - Solution 1" was simply gone, with the
+        // run state cheerfully reporting 0 checks owed.
+        //
+        // Writing first costs a file write on a path that already touches the
+        // network, and it makes the guarantee unconditional rather than
+        // dependent on correctly detecting a disconnection - which is the part
+        // that cannot be relied on.
+        RunState.SetOwed(owed);
+
+        if (_session == null || !_session.Connected) return;
 
         var sent = _session.SendChecks(owed);
         if (sent.Count == 0) return;

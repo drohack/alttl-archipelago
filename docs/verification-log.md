@@ -522,3 +522,71 @@ the solved flags agree with the screen.
 
 Verified by displacing a live puzzle, firing a real trap, and reading the
 positions back - the objects returned to their opening coordinates.
+
+## The offline queue dropped checks when the server vanished (2026-09-04)
+
+The queue exists so that solving a puzzle while disconnected is not lost work.
+It did not survive its first real test.
+
+**Reproduction.** Open a puzzle while connected, kill the server, solve it, quit
+the game, restart the server, reconnect. The check earned offline was gone:
+
+```
+check: Telescope - Solution 1          <- earned
+socket error: ArchipelagoSocketClosedException
+run.json: {"owed":[], ...}             <- never written
+(after reconnect) run state: 0 check(s) still owed
+```
+
+**Cause.** `FlushChecks` wrote the owed list on the two paths that knew where
+they stood - an explicit offline branch, and after a successful send:
+
+```csharp
+if (_session == null || !_session.Connected) { RunState.SetOwed(owed); return; }
+var sent = _session.SendChecks(owed);
+if (sent.Count == 0) return;            // wrote nothing
+```
+
+The path between them is the one that happens. When a server disappears the
+client goes on reporting `Connected` for a while, so the offline branch is
+skipped; the send then moves nothing and returns early, having written nothing.
+The ledger still held the check in memory, and the process then exited.
+
+**Fix.** Write what is owed BEFORE attempting to send, unconditionally. The
+guarantee no longer depends on correctly detecting a disconnection, which is
+the part that cannot be relied on. `SetOwed` skips a write that would change
+nothing, so an offline session does not re-save the same list on every flush.
+
+**Verified end to end**, same reproduction, on the fix:
+
+```
+run.json (offline)  {"owed":["Candy (Trick or Tidy) - Solution 1"], ...}
+                    ... survives the quit ...
+(reconnect)         run state: 1 check(s) still owed
+                    checks: sent 1, 0 still owed
+(server)            droha sent Cat Trap to droha (Candy (Trick or Tidy) - Solution 1)
+```
+
+The last line is the one that matters: the check reached the server and paid out
+its item. Our own log saying "sent" would not have been evidence.
+
+### Also found while testing
+
+- **`boot:` leaked levels.** It called `StartLevel` with `forceReload` but never
+  destroyed the previous level, so its listeners stayed on the global event bus.
+  Booting Radial Dance Party and then hopping away left
+  `RadialDanceParty.CheckWinCondition` subscribed, and the next solve anywhere
+  threw inside it and was lost - two levels and several minutes from the cause.
+  `boot:` now tears down first, exactly as the level sweep already did.
+- **`showpause` is not a pause-menu test.** It invokes
+  `MainMenu.ShowHideMenuItems(null)` directly and the game dereferences the null
+  `GameEventData`. Testing a trap "with the pause menu open" still needs a real
+  input path.
+- **Radial Dance Party has 0 controllers and TupperwareNesting has 2** - the
+  true registered counts, re-measured by booting each with the sweep's own flags
+  and waiting 25 seconds. The comment in `DataTable.cs` claiming 13 and 9 was
+  wrong and has been corrected. The table matches the running game and the
+  runtime-vs-table guard stays quiet.
+- **Only one level has no controllers**, not the three the plan flagged. Drink
+  Glasses and MerryMess_Presents each have a single `Pannables` controller,
+  which `abilities.json` lists under `notPuzzles`.

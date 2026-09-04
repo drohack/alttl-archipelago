@@ -136,14 +136,29 @@ internal sealed class DataTable
         if (!done && _wait < 600) return;
 
         // Controllers register themselves in their own Start, and the
-        // animation-heavy levels register late: at a flat 20-frame settle
-        // Radial Dance Party recorded 0 of its 13 controllers and
-        // TupperwareNesting 2 of its 9, because their rings and stacks are
-        // still tweening in. So wait for the count to STOP CHANGING rather
-        // than guessing a delay.
+        // animation-heavy levels register late while their rings and stacks
+        // tween in. So wait for the count to STOP CHANGING rather than
+        // guessing a delay.
+        //
+        // This comment used to claim Radial Dance Party has 13 controllers and
+        // TupperwareNesting 9, and that a flat 20-frame settle caught only 0
+        // and 2 of them. Re-measured 2026-09-04 by booting both with the same
+        // flags the sweep uses (showTransition and forceReload both true) and
+        // waiting 25 SECONDS, far longer than any settle: Radial Dance Party
+        // registers 0 and TupperwareNesting registers 2 (Lids/TupperwareLids
+        // and Stack 1/StackablesZ). Those are the true counts, the table
+        // records them, and the mod's runtime-vs-table guard stays quiet on
+        // both. The 13 and the 9 were wrong.
+        //
+        // The wait stays anyway: it costs a few frames, it is the right shape
+        // for a value that is built rather than read, and the alternative -
+        // guessing a delay - is how a wrong number gets written down.
         int count = ControllerCount();
-        // Never record an empty level early: zero is "stable" too, and that is
-        // exactly how the two intro-driven levels slipped through.
+        // Never record an empty level early: zero is "stable" too, so a level
+        // read before its controllers register looks settled and empty. Radial
+        // Dance Party really is empty, so this guard costs it 900 frames and
+        // changes nothing - that is the right trade, because a level that is
+        // genuinely late would otherwise be recorded as having no checks.
         if (count <= 0 && _wait < 900) return;
         if (count != _lastCount)
         {

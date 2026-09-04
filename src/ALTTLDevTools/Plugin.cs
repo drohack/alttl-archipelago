@@ -1877,6 +1877,26 @@ public class DevToolsBehaviour : MonoBehaviour
 
         var gm = GameManager.Instance;
         DevToolsPlugin.Log.LogInfo($"boot: StartLevel(index={index}, seed={seed})");
+
+        // Destroy whatever is loaded first, exactly as the level sweep does.
+        //
+        // forceReload alone leaves the previous level ALIVE, and its listeners
+        // stay subscribed to the global event bus. Booting Radial Dance Party
+        // and then hopping to another level left RadialDanceParty.
+        // CheckWinCondition attached, so the next solve anywhere threw a
+        // NullReferenceException inside it and the solve was lost. The failure
+        // surfaced two levels and several minutes away from the boot that
+        // caused it, which is what makes it worth doing unconditionally.
+        try
+        {
+            var live = gm.levelManager.ActiveLevelInterface;
+            if (live != null) live.ReleaseAssetsAndDestroyLevel();
+        }
+        catch (Exception e)
+        {
+            DevToolsPlugin.Log.LogWarning($"boot: teardown threw: {e.Message}");
+        }
+
         gm.SetGameState<Gameplay_GameState>(null, false);
         gm.levelManager.StartLevel(index, true, true, seed);
     }
