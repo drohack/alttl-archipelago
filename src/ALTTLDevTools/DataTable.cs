@@ -314,6 +314,12 @@ internal sealed class DataTable
         }
 
         row.Append(']');
+
+        // Hints are authored per level as images, so whether a level HAS one is
+        // a fact about the level and belongs in the table beside its
+        // controllers. Recorded after a claim was made off a sample of three.
+        row.Append($", \"hintAvailable\": {Bool(() => li!.HintAvailable)}");
+        row.Append($", \"hintImages\": {Str(() => (li!.HintImages == null ? 0 : li.HintImages.Count).ToString())}");
         row.Append(", \"cats\": ");
         row.Append(CatsIn(level));
         row.Append('}');

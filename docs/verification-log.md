@@ -1337,3 +1337,41 @@ folded into the summary rather than lost - it is still applied either way.
 
 Verified on a connect that replays 128 items: two lines on screen, and the log
 still records every individual item for diagnosis.
+
+## Hints: a claim made from three levels, corrected by sweeping 111 (2026-09-05)
+
+I reported that generated levels have no hints, on a sample of one randomized
+level. droha pushed back that the table looked odd. It was.
+
+The sweep now records `hintAvailable` and `hintImages` per level, and the real
+distribution is:
+
+| group | levels | with hint images |
+|---|---|---|
+| base campaign | 69 | 69 |
+| archive (event packs) | 26 | 26 |
+| randomizable (generated) | 16 | **10** |
+
+**Only six levels in the whole game have no hint images**, and they are exactly
+the six daily-exclusive generator puzzles: Books, Batteries, Stamps, Post-It
+Notes, Pencils and Procedural Grid. Every other level has at least one, most
+have one, and some have up to five.
+
+The ten OTHER randomizable levels - Telescope, Buttons, Calendar, Clock,
+Microscope, Shells, Spice Jars, SpiderWeb, Trim Plant, Breadtags - are campaign
+levels that also carry a randomizer, and they DO have hints. Generalising from
+Stamps to "generated levels" swept those ten up wrongly.
+
+**`HintAvailable` is not the flag I took it for.** The sweep reads it as true
+for all 111 levels including the six with no images, while my single-level probe
+read it as false for Stamps. Whatever it means, it is not "a hint exists" and it
+is state-dependent; `hintImages` is the concrete signal and is what the table
+now carries.
+
+Measured against the draw rather than the level list, since the six can repeat:
+a default 79-puzzle seed has **about 20 hintless puzzles, 25%** - not the 64% I
+claimed from the wrong grouping.
+
+That changes the conclusion. A hint item is not dead weight on two-thirds of a
+run; it is useful on three-quarters of it. Whether it is worth minting is now a
+design question rather than a technical veto.
