@@ -60,6 +60,25 @@ internal static class RunState
         /// </summary>
         [JsonPropertyName("beaten")]
         public List<string> Beaten { get; set; } = new();
+
+        /// <summary>
+        /// Hint pages already paid for, as "slot:page".
+        ///
+        /// A set of keys rather than a spent COUNT, and the difference is the
+        /// whole point: a page you have opened must stay open. With a counter,
+        /// leaving a puzzle and coming back would charge a second Hint Page
+        /// for a page you had already read, and re-reading your own hint is
+        /// not something a player should pay for twice. The length of this
+        /// list is what has been spent, so one field answers both questions.
+        ///
+        /// Keyed by SLOT, not level index: a generator can be drawn several
+        /// times into one run, and each instance has its own notepad.
+        ///
+        /// A missing key deserialises to an empty list, so run files written
+        /// before this existed stay valid.
+        /// </summary>
+        [JsonPropertyName("hintPages")]
+        public List<string> HintPages { get; set; } = new();
     }
 
     private static string? _path;
@@ -68,6 +87,26 @@ internal static class RunState
 
     internal static int SkipsUsed => _state.SkipsUsed;
     internal static int TrapsSprung => _state.TrapsSprung;
+
+    /// <summary>How many Hint Pages have been spent.</summary>
+    internal static int HintPagesOpened => _state.HintPages.Count;
+
+    /// <summary>Has this page already been paid for?</summary>
+    internal static bool IsHintPageOpen(string key)
+        => _state.HintPages.Contains(key);
+
+    /// <summary>
+    /// Pay for a page. Returns false if it was already open, so the caller
+    /// cannot double charge by calling twice.
+    /// </summary>
+    internal static bool OpenHintPage(string key)
+    {
+        if (string.IsNullOrEmpty(key)) return false;
+        if (_state.HintPages.Contains(key)) return false;
+        _state.HintPages.Add(key);
+        Write();
+        return true;
+    }
 
     internal static void Begin(string saveName)
     {
@@ -87,12 +126,13 @@ internal static class RunState
 
             _state = loaded;
             if (_state.Owed.Count > 0 || _state.SkipsUsed > 0 || _state.TrapsSprung > 0
-                || _state.Beaten.Count > 0)
+                || _state.Beaten.Count > 0 || _state.HintPages.Count > 0)
             {
                 Plugin.Logger.LogInfo(
                     $"run state: {_state.Owed.Count} check(s) still owed, "
                     + $"{_state.SkipsUsed} skip(s) used, "
                     + $"{_state.TrapsSprung} trap(s) already sprung, "
+                    + $"{_state.HintPages.Count} hint page(s) opened, "
                     + $"{_state.Beaten.Count} puzzle(s) beaten");
             }
         }

@@ -171,7 +171,25 @@ class CatTrapChance(Range):
     display_name = "Cat Trap Chance"
     range_start = 0
     range_end = 100
-    default = 10
+    default = 25
+
+
+class HintCoverage(Range):
+    """Percentage of this seed's hint pages that get a Hint Page item.
+
+    This is a percentage, not a count, because how many pages a run contains
+    depends on which puzzles it drew - most levels have one page, some have up
+    to five, and a few have none at all. At the default of 100 every page in
+    your run has exactly one item that opens it. Lower it and some notepads
+    stay covered for good.
+
+    Without a Hint Page the notepad still opens, so you can see that a hint
+    exists and how long it is - you just cannot erase the scribble.
+    """
+    display_name = "Hint Coverage"
+    range_start = 0
+    range_end = 100
+    default = 100
 
 
 class SkipCount(Range):
@@ -201,6 +219,7 @@ class ALTTLOptions(PerGameCommonOptions):
     levels_to_beat: LevelsToBeat
     cat_trap_chance: CatTrapChance
     skip_count: SkipCount
+    hint_coverage: HintCoverage
 
 
 option_groups = [
@@ -223,6 +242,7 @@ option_groups = [
     ], start_collapsed=True),
     OptionGroup("Items", [
         SkipCount,
+        HintCoverage,
         CatTrapChance,
     ], start_collapsed=True),
 ]

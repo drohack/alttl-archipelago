@@ -34,12 +34,32 @@ SKIP = "Skip"
 #: interruption. Costs time, never progress.
 CAT_TRAP = "Cat Trap"
 
+#: Uncovers one page of one puzzle's hint notepad. The game's own unit: a
+#: level's notepad is an array of HintPage objects, each with its own erasable
+#: scribble, so "a page" is a thing the game already counts rather than a
+#: currency invented here. Without one the notepad still opens - the player can
+#: see a hint exists and how many pages - but the scribble will not wipe.
+HINT_PAGE = "Hint Page"
+
 ABILITY_ITEMS: List[str] = list(data.ABILITIES)
 
+#: Recolours the puzzle backdrop, using the game's own palette of background
+#: colours so the result never looks foreign.
+LEVEL_BACKGROUND = "Level Background"
+
+#: The same, for the pause screen.
+MENU_BACKGROUND = "Menu Background"
+
+#: Filler that actually does something.
+#:
+#: This list used to read Title Theme, Colour Scheme and Daily Badge, and all
+#: three were names with no code behind them - about three quarters of a
+#: default seed paid out in items that did nothing at all. They are deleted
+#: rather than kept alongside these two, because filler that does nothing
+#: dilutes filler that does.
 FILLER_ITEMS: List[str] = [
-    "Title Theme",
-    "Colour Scheme",
-    "Daily Badge",
+    LEVEL_BACKGROUND,
+    MENU_BACKGROUND,
 ]
 
 TRAP_ITEMS: List[str] = [CAT_TRAP]
@@ -54,6 +74,16 @@ _ALL_NAMES: List[str] = (
     + ABILITY_ITEMS
     + TRAP_ITEMS
     + FILLER_ITEMS
+    # Appended last, and new names must keep being appended last. Ids are
+    # positional: slipping HINT_PAGE in beside SKIP where it reads better would
+    # renumber every ability, trap and filler after it and silently repoint
+    # every seed already in flight.
+    #
+    # Note that dropping a name from FILLER_ITEMS above does exactly that to
+    # HINT_PAGE - it sits after them, so shortening that list by one moves its
+    # id down by one. That is why world_version is bumped alongside; there is
+    # no way to shrink an earlier list and leave later ids alone.
+    + [HINT_PAGE]
 )
 
 ITEM_NAME_TO_ID: Dict[str, int] = {
@@ -77,7 +107,9 @@ def classification(name: str) -> ItemClassification:
         return ItemClassification.progression
     if name in TRAP_ITEMS:
         return ItemClassification.trap
-    if name == SKIP:
+    if name in (SKIP, HINT_PAGE):
+        # Useful, not progression: nothing in the access rules asks whether a
+        # hint has been read, so the fill is free to place these anywhere.
         return ItemClassification.useful
     return ItemClassification.filler
 

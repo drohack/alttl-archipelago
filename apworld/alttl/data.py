@@ -67,7 +67,7 @@ class Level:
 
     __slots__ = ("level_id", "level_index", "source", "solution_count",
                  "display", "parts", "part_abilities", "abilities",
-                 "controller_group")
+                 "controller_group", "hint_images")
 
     def __init__(self, raw: dict):
         self.level_id: str = raw["levelId"]
@@ -104,6 +104,15 @@ class Level:
             for p in parts_raw.values()
             for member in p["members"]
         }
+
+        # How many hint pages this level's notepad holds. Not one per level:
+        # 74 levels have one, 31 have between two and five, and six have none.
+        # The Hint Page item is minted per PAGE, so this is summed over the
+        # drawn plan rather than derived from a puzzle count. Six generators
+        # read zero here because the sweep reads LevelInterface.HintImages;
+        # LevelRandomizer.GetRandomizerHints is a separate source that two of
+        # them override, which is a known open question, not a missing field.
+        self.hint_images: int = raw.get("hintImages", 0)
 
         self.abilities: FrozenSet[str] = frozenset(
             _CLASS_TO_ABILITY[c["type"]]

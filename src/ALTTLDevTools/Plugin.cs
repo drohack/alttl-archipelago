@@ -960,6 +960,34 @@ public class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("pause", OpenPauseMenu);
             }
+            else if (cmd.Equals("skiptip", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("skiptip", ShowSkipTooltip);
+            }
+            else if (cmd.StartsWith("findtext:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("findtext", () => FindText(cmd.Substring(9)));
+            }
+            else if (cmd.Equals("bgcatalogue", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("bgcatalogue", ReportBackgroundCatalogue);
+            }
+            else if (cmd.StartsWith("bgset:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("bgset", () => SetLevelBackground(cmd.Substring(6)));
+            }
+            else if (cmd.Equals("menubg", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("menubg", ReportMenuBackground);
+            }
+            else if (cmd.Equals("hinttaken", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("hinttaken", RaiseHintTaken);
+            }
+            else if (cmd.Equals("erase", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("erase", DragTheEraser);
+            }
             else if (cmd.Equals("hints", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("hints", ReportHints);
@@ -1794,10 +1822,478 @@ public class DevToolsBehaviour : MonoBehaviour
             DevToolsPlugin.Log.LogInfo(
                 $"hints: menu NumActiveHints={Str(() => menu.NumActiveHints.ToString())}"
                 + $" maxIndex={Str(() => menu.m_maxHintIndex.ToString())}"
+                + $" pages={Str(() => menu.HintPages == null ? "null" : menu.HintPages.Length.ToString())}"
                 + $" isDaily={Str(() => menu.m_isDailyTidyHint.ToString())}");
+
+            // Read CanBeWiped per page.
+            //
+            // This is not just reporting - it is the only way to exercise the
+            // randomizer's hint gate from a probe, because the gate is a
+            // prefix on this exact property getter. Reading it here goes
+            // through the same call the eraser makes, so a page that reports
+            // true has genuinely been paid for and a page that reports false
+            // has genuinely been refused. Reading it can therefore SPEND a
+            // Hint Page, which is intended: that is what makes it a test of
+            // the gate rather than a description of it.
+            ReportHintPages(menu);
             break;
         }
     }
+
+    /// <summary>
+    /// Each hint page, and whether the game would currently let it be wiped.
+    /// </summary>
+    private static void ReportHintPages(HintMenu menu)
+    {
+        var pages = menu.HintPages;
+        if (pages == null)
+        {
+            DevToolsPlugin.Log.LogInfo("hints: no page array");
+            return;
+        }
+
+        for (int i = 0; i < pages.Length; i++)
+        {
+            var page = pages[i];
+            if (page == null)
+            {
+                DevToolsPlugin.Log.LogInfo($"hints:   page {i}: null");
+                continue;
+            }
+
+            var surface = page.CleanableSurface;
+            DevToolsPlugin.Log.LogInfo(
+                $"hints:   page {i}"
+                + $" active={Str(() => page.gameObject.activeSelf.ToString())}"
+                + $" surface={(surface == null ? "null" : "yes")}"
+                + $" canBeWiped={(surface == null ? "-" : Str(() => surface.CanBeWiped.ToString()))}"
+                + $" isCleaned={(surface == null ? "-" : Str(() => surface.IsCleaned.ToString()))}");
+        }
+    }
+
+    /// <summary>
+    /// Drag the notepad's eraser across the current hint page, for real.
+    ///
+    /// Why this exists rather than a cheaper probe: the randomizer's hint gate
+    /// hangs off CleanableSurface.CanBeWiped, and the ONE question that cannot
+    /// be answered by reading state is whether the game ever consults that
+    /// property while a wipe is actually in progress. Reading CanBeWiped from
+    /// a probe answers a different question - it exercises the getter with no
+    /// wipe underway, which is exactly the case the gate is meant to ignore.
+    ///
+    /// So this drives the eraser through the UI drag handlers the player's
+    /// mouse would, and lets the game do the rest.
+    /// </summary>
+    private static void DragTheEraser()
+    {
+        HintMenu? menu = null;
+        foreach (var obj in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<HintMenu>()))
+        {
+            menu = obj == null ? null : obj.TryCast<HintMenu>();
+            if (menu != null) break;
+        }
+        if (menu == null)
+        {
+            DevToolsPlugin.Log.LogWarning("erase: no HintMenu");
+            return;
+        }
+
+        var eraser = menu.Eraser;
+        if (eraser == null || eraser.gameObject == null)
+        {
+            DevToolsPlugin.Log.LogWarning("erase: no Eraser on the menu");
+            return;
+        }
+
+        var index = menu.m_currentHintIndex;
+        var pages = menu.HintPages;
+        if (pages == null || index < 0 || index >= pages.Length)
+        {
+            DevToolsPlugin.Log.LogWarning($"erase: no page at index {index}");
+            return;
+        }
+
+        var page = pages[index];
+        if (page == null)
+        {
+            DevToolsPlugin.Log.LogWarning($"erase: page {index} is null");
+            return;
+        }
+
+        // Sweep across the page in screen space. The camera is null for an
+        // overlay canvas, which WorldToScreenPoint handles.
+        var cam = Camera.main;
+        var centre = RectTransformUtility.WorldToScreenPoint(
+            cam, page.transform.position);
+
+        DevToolsPlugin.Log.LogInfo(
+            $"erase: dragging over page {index} at ({centre.x:F0},{centre.y:F0})");
+
+        var data = new UnityEngine.EventSystems.PointerEventData(
+            UnityEngine.EventSystems.EventSystem.current);
+        data.button = UnityEngine.EventSystems.PointerEventData.InputButton.Left;
+        data.position = centre;
+        data.pressPosition = centre;
+
+        var go = eraser.gameObject;
+        UnityEngine.EventSystems.ExecuteEvents.Execute(
+            go, data, UnityEngine.EventSystems.ExecuteEvents.pointerDownHandler);
+        UnityEngine.EventSystems.ExecuteEvents.Execute(
+            go, data, UnityEngine.EventSystems.ExecuteEvents.initializePotentialDrag);
+        UnityEngine.EventSystems.ExecuteEvents.Execute(
+            go, data, UnityEngine.EventSystems.ExecuteEvents.beginDragHandler);
+
+        for (int step = -6; step <= 6; step++)
+        {
+            var at = new Vector2(centre.x + step * 40f, centre.y + step * 12f);
+            data.delta = new Vector2(40f, 12f);
+            data.position = at;
+            UnityEngine.EventSystems.ExecuteEvents.Execute(
+                go, data, UnityEngine.EventSystems.ExecuteEvents.dragHandler);
+        }
+
+        UnityEngine.EventSystems.ExecuteEvents.Execute(
+            go, data, UnityEngine.EventSystems.ExecuteEvents.endDragHandler);
+        UnityEngine.EventSystems.ExecuteEvents.Execute(
+            go, data, UnityEngine.EventSystems.ExecuteEvents.pointerUpHandler);
+
+        var surface = page.CleanableSurface;
+        DevToolsPlugin.Log.LogInfo(
+            $"erase: done, page {index}"
+            + $" isCleaned={(surface == null ? "-" : Str(() => surface.IsCleaned.ToString()))}"
+            + $" beingWiped={(surface == null ? "-" : Str(() => surface.IsBeingWiped().ToString()))}");
+    }
+
+    /// <summary>
+    /// Force the level-select skip prompt on screen, and say what it reads.
+    ///
+    /// Written to settle a question that a hierarchy scan could not: a label
+    /// at Menus/Level Select/Levels Track/Skip Tooltip reads "Skipppable" in
+    /// the object tree, but it has a localiser and had never been activated,
+    /// so that string may be nothing more than the placeholder baked into the
+    /// prefab. What a player actually sees is only knowable by showing it.
+    /// </summary>
+    private static void ShowSkipTooltip()
+    {
+        var found = 0;
+        foreach (var obj in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<LevelsTrack>()))
+        {
+            var track = obj == null ? null : obj.TryCast<LevelsTrack>();
+            if (track == null || track.gameObject == null) continue;
+            if (!track.gameObject.activeInHierarchy) continue;
+
+            var tip = track.skipTooltip;
+            if (tip == null)
+            {
+                DevToolsPlugin.Log.LogInfo(
+                    $"skiptip: {PathOf(track.transform)} has no skipTooltip");
+                continue;
+            }
+
+            found++;
+            DevToolsPlugin.Log.LogInfo(
+                $"skiptip: {PathOf(tip.transform)}"
+                + $" showing={Str(() => tip.Showing.ToString())}"
+                + $" expire={Str(() => tip.skipExpireTime.ToString())}"
+                + $" before={Str(() => tip.skipText.text)}");
+
+            tip.Show(true);
+            tip.StartSkipTooltip();
+
+            DevToolsPlugin.Log.LogInfo(
+                $"skiptip: shown, now reads {Str(() => tip.skipText.text)}"
+                + $" live={tip.gameObject.activeInHierarchy}");
+        }
+
+        if (found == 0)
+        {
+            DevToolsPlugin.Log.LogWarning(
+                "skiptip: no active LevelsTrack - open the level select first");
+        }
+    }
+
+
+    /// <summary>
+    /// Every text label whose content matches, anywhere in the loaded scene.
+    ///
+    /// Written to answer a specific question: the randomizer writes a count
+    /// into two pause-menu entries by name, and the entry named "Skip Button"
+    /// actually reads "Let It Be". If either caption appears on some OTHER
+    /// screen - a stuck-puzzle prompt, a settings row, a tutorial - then that
+    /// screen may be showing a label we have edited, or may be a place a count
+    /// ought to appear and does not.
+    ///
+    /// Includes inactive objects, because the screen that matters is usually
+    /// the one not currently open.
+    /// </summary>
+    private static void FindText(string needle)
+    {
+        needle = needle.Trim();
+        if (needle.Length == 0)
+        {
+            DevToolsPlugin.Log.LogWarning("findtext: give me something to look for");
+            return;
+        }
+
+        var hits = 0;
+        foreach (var obj in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<TMPro.TextMeshProUGUI>()))
+        {
+            var label = obj == null ? null : obj.TryCast<TMPro.TextMeshProUGUI>();
+            if (label == null || label.gameObject == null) continue;
+
+            string text;
+            try { text = label.text ?? ""; } catch { continue; }
+            if (text.IndexOf(needle, StringComparison.OrdinalIgnoreCase) < 0) continue;
+
+            hits++;
+            var localiser = label.gameObject.GetComponent<
+                UnityEngine.Localization.Components.LocalizeStringEvent>();
+
+            DevToolsPlugin.Log.LogInfo(
+                $"findtext:   {PathOf(label.transform)}"
+                + $" live={label.gameObject.activeInHierarchy}"
+                + $" localised={(localiser == null ? "NO" : "yes")}"
+                + $" text={text.Replace("\n", " ")}");
+        }
+        DevToolsPlugin.Log.LogInfo($"findtext: {hits} label(s) matching {needle}");
+    }
+
+
+    /// <summary>
+    /// The game's own palette of level background colours.
+    ///
+    /// This is the catalogue a Level Background item indexes into, so its SIZE
+    /// decides where the modulo wraps. Worth reading rather than assuming.
+    /// </summary>
+    private static void ReportBackgroundCatalogue()
+    {
+        var found = 0;
+        foreach (var obj in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<ColorSchemesData>()))
+        {
+            var data = obj == null ? null : obj.TryCast<ColorSchemesData>();
+            if (data == null) continue;
+            found++;
+
+            var schemes = data.levelColorSchemes;
+            DevToolsPlugin.Log.LogInfo(
+                $"bgcatalogue: {data.name}"
+                + $" levelColorSchemes={(schemes == null ? -1 : schemes.Length)}"
+                + $" BackgroundColors={Str(() => data.BackgroundColors.Count.ToString())}");
+
+            // Four ways to reach the same ten colours. Both the obvious ones
+            // throw "Index was outside the bounds of the array" through
+            // interop while Count and Length report 10 perfectly happily, so
+            // this tries each and says which survived - guessing a third time
+            // would be worse than measuring once.
+            Try("schemes[i].backgroundColor", () =>
+            {
+                for (int i = 0; i < schemes.Length; i++)
+                {
+                    var scheme = schemes[i];
+                    DevToolsPlugin.Log.LogInfo(
+                        $"bgcatalogue:   arr[{i}] {Rgb(scheme.backgroundColor)}");
+                }
+            });
+
+            Try("BackgroundColors[i]", () =>
+            {
+                var colours = data.BackgroundColors;
+                for (int i = 0; i < colours.Count; i++)
+                {
+                    DevToolsPlugin.Log.LogInfo(
+                        $"bgcatalogue:   list[{i}] {Rgb(colours[i])}");
+                }
+            });
+
+            Try("BackgroundColors foreach", () =>
+            {
+                var n = 0;
+                foreach (var c in data.BackgroundColors)
+                {
+                    DevToolsPlugin.Log.LogInfo(
+                        $"bgcatalogue:   iter[{n++}] {Rgb(c)}");
+                }
+            });
+
+            Try("BackgroundColors.ToArray", () =>
+            {
+                var arr = data.BackgroundColors.ToArray();
+                for (int i = 0; i < arr.Length; i++)
+                {
+                    DevToolsPlugin.Log.LogInfo(
+                        $"bgcatalogue:   toarr[{i}] {Rgb(arr[i])}");
+                }
+            });
+        }
+        if (found == 0) DevToolsPlugin.Log.LogWarning("bgcatalogue: no ColorSchemesData loaded");
+    }
+
+
+    /// <summary>
+    /// A colour as plain numbers.
+    ///
+    /// Not ColorUtility.ToHtmlStringRGB: every one of four different ways to
+    /// read the palette failed with the same "Index was outside the bounds of
+    /// the array", including on element zero, and the only thing all four had
+    /// in common was that call. Formatting the channels by hand removes it
+    /// from the experiment.
+    /// </summary>
+    private static string Rgb(Color c)
+        => $"({c.r:F3},{c.g:F3},{c.b:F3})";
+
+
+    /// <summary>
+    /// A transform's full path, for telling three "Background"s apart.
+    ///
+    /// PathOf, not Path: this file uses System.IO.Path, and a static method of
+    /// that name shadows the type for the whole class.
+    /// </summary>
+    private static string PathOf(Transform t)
+    {
+        var parts = new System.Collections.Generic.List<string>();
+        for (var at = t; at != null; at = at.parent) parts.Add(at.gameObject.name);
+        parts.Reverse();
+        return string.Join("/", parts);
+    }
+
+
+    /// <summary>Run a probe and report whether it survived.</summary>
+    private static void Try(string what, Action body)
+    {
+        try
+        {
+            body();
+            DevToolsPlugin.Log.LogInfo($"bgcatalogue: OK   {what}");
+        }
+        catch (Exception e)
+        {
+            DevToolsPlugin.Log.LogWarning($"bgcatalogue: FAIL {what}: {e.Message}");
+        }
+    }
+
+
+    /// <summary>
+    /// Write a background colour onto the running level and say what changed.
+    ///
+    /// The point is to find out whether the WRITE IS READ. Both of these are
+    /// plain fields, so assigning them always appears to succeed - the failure
+    /// mode is that nothing on screen moves, with a perfectly healthy log. Take
+    /// a screenshot after this; never trust the line it prints.
+    /// </summary>
+    private static void SetLevelBackground(string arg)
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        if (li == null)
+        {
+            DevToolsPlugin.Log.LogWarning("bgset: no level running");
+            return;
+        }
+
+        var text = arg.StartsWith("#") ? arg : "#" + arg;
+        if (!ColorUtility.TryParseHtmlString(text, out var wanted))
+        {
+            DevToolsPlugin.Log.LogWarning($"bgset: cannot parse colour {arg}");
+            return;
+        }
+
+        DevToolsPlugin.Log.LogInfo(
+            $"bgset: before BackgroundColor={Str(() => Rgb(li.BackgroundColor))}"
+            + $" Active={Str(() => Rgb(li.ActiveBackgroundColor))}");
+
+        try { li.BackgroundColor = wanted; }
+        catch (Exception e) { DevToolsPlugin.Log.LogWarning($"bgset: LevelInterface write threw: {e.Message}"); }
+
+        try
+        {
+            var level = li.Level;
+            if (level != null) level.backgroundColor = wanted;
+        }
+        catch (Exception e) { DevToolsPlugin.Log.LogWarning($"bgset: Level write threw: {e.Message}"); }
+
+        DevToolsPlugin.Log.LogInfo(
+            $"bgset: after  BackgroundColor={Str(() => Rgb(li.BackgroundColor))}"
+            + $" Active={Str(() => Rgb(li.ActiveBackgroundColor))}");
+
+        // Whatever actually paints the backdrop, name it. The camera clear
+        // colour is the most likely and the cheapest to check.
+        try
+        {
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                DevToolsPlugin.Log.LogInfo(
+                    $"bgset: Camera.main clearFlags={cam.clearFlags}"
+                    + $" background={Rgb(cam.backgroundColor)}");
+            }
+        }
+        catch { }
+    }
+
+
+    /// <summary>
+    /// What draws the pause screen's background. Do not assume one Image.
+    /// </summary>
+    private static void ReportMenuBackground()
+    {
+        foreach (var obj in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<MainMenu>()))
+        {
+            var menu = obj == null ? null : obj.TryCast<MainMenu>();
+            if (menu == null || menu.gameObject == null) continue;
+            if (!menu.gameObject.activeInHierarchy) continue;
+
+            DevToolsPlugin.Log.LogInfo($"menubg: MainMenu {PathOf(menu.transform)}");
+            var buttons = menu.ButtonsContainer;
+            DevToolsPlugin.Log.LogInfo(
+                $"menubg: ButtonsContainer {(buttons == null ? "null" : PathOf(buttons))}");
+            foreach (var img in menu.GetComponentsInChildren<UnityEngine.UI.Image>(true))
+            {
+                if (img == null || img.gameObject == null) continue;
+                var rt = img.gameObject.GetComponent<RectTransform>();
+                var size = rt == null ? "?" : $"{rt.rect.width:F0}x{rt.rect.height:F0}";
+                DevToolsPlugin.Log.LogInfo(
+                    $"menubg:   Image {PathOf(img.transform)}"
+                    + $" active={img.gameObject.activeSelf}"
+                    + $" size={size}"
+                    + $" color={Rgb(img.color)}"
+                    + $" sprite={(img.sprite == null ? "none" : img.sprite.name)}");
+            }
+            return;
+        }
+        DevToolsPlugin.Log.LogWarning("menubg: no active MainMenu - open the pause menu first");
+    }
+
+
+    /// <summary>
+    /// Fire the game's hint-taken path directly.
+    ///
+    /// The randomizer charges a Hint Page in a postfix on
+    /// LevelInterface.HintTaken, and that postfix has never been observed
+    /// firing: a synthetic pointer drag reaches the eraser's drag handlers but
+    /// never puts the surface into a wiping state, so the game never gets as
+    /// far as raising the event. Calling the method exercises the postfix end
+    /// to end, which leaves only "does the game call it when you scrub" - and
+    /// HintsTakenCounter.CheckHintTaken subscribes to the same event to keep a
+    /// Steam stat, so it demonstrably does.
+    /// </summary>
+    private static void RaiseHintTaken()
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        if (li == null)
+        {
+            DevToolsPlugin.Log.LogWarning("hinttaken: no level running");
+            return;
+        }
+
+        DevToolsPlugin.Log.LogInfo($"hinttaken: calling HintTaken on {Str(() => li.LevelId)}");
+        li.HintTaken(new GameEventManager.Level_GameEvent.EventData(li, ""));
+        DevToolsPlugin.Log.LogInfo("hinttaken: returned");
+    }
+
 
     private static void ListMembers(string arg)
     {

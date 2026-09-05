@@ -66,7 +66,7 @@
     ]
   },
   "ability_locks": true,
-  "cat_trap_chance": 10,
+  "cat_trap_chance": 25,
   "controller_groups": {
     "Batteries (Randomized)": {
       "Controller": "Controller"

@@ -158,6 +158,9 @@ class TestItemNamesAgreeAcrossLanguages(unittest.TestCase):
                 "skip": items.SKIP,
                 "catTrap": items.CAT_TRAP,
                 "beatenToken": items.BEATEN_TOKEN,
+                "hintPage": items.HINT_PAGE,
+                "levelBackground": items.LEVEL_BACKGROUND,
+                "menuBackground": items.MENU_BACKGROUND,
             },
             exported,
             "ALTTLArchipelago.Core.ItemNames and items.py disagree; regenerate "

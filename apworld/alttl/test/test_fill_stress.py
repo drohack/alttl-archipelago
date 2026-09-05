@@ -65,6 +65,21 @@ CONFIGURATIONS = {
     "no traps": {"cat_trap_chance": 0},
     "no skips": {"skip_count": 0},
     "max skips": {"skip_count": 20},
+    "no hint pages": {"hint_coverage": 0},
+    "half hint pages": {"hint_coverage": 50},
+    "every hint page": {"hint_coverage": 100},
+    # Hint Pages are minted from the drawn plan rather than from a flat count,
+    # so the interesting case is a run whose plan has almost no pages to sum:
+    # generators-only draws the six levels with empty notepads. Full coverage
+    # of nearly nothing must still fill.
+    "every hint page, generators only": {
+        "hint_coverage": 100, "mechanic_coverage": 0,
+        "archive_weight": 0, "archive_packs": []},
+    # And the other end: every dial that competes for the same residual turned
+    # up at once. Hints are taken before traps, so this is the configuration
+    # where traps could be squeezed to nothing.
+    "every hint page and every trap": {
+        "hint_coverage": 100, "cat_trap_chance": 100, "skip_count": 20},
     "beat everything": {"levels_to_beat": 79},
     "beat one": {"levels_to_beat": 1},
     # Deliberately hostile: the thinnest content with the tightest gates.

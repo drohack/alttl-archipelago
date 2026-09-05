@@ -25,6 +25,15 @@ public static class ItemNames
     /// <summary>Scatters the puzzle in progress.</summary>
     public const string CatTrap = "Cat Trap";
 
+    /// <summary>Uncovers one page of one puzzle's hint notepad.</summary>
+    public const string HintPage = "Hint Page";
+
+    /// <summary>Recolours the puzzle backdrop.</summary>
+    public const string LevelBackground = "Level Background";
+
+    /// <summary>Recolours the pause screen.</summary>
+    public const string MenuBackground = "Menu Background";
+
     /// <summary>
     /// Granted by an event location for beating a puzzle. It is an item the
     /// client receives, not an ability - counting it as one would put a
@@ -38,5 +47,6 @@ public static class ItemNames
     /// </summary>
     public static bool IsSpecial(string name)
         => name == Pack || name == Credits || name == Skip
-           || name == CatTrap || name == BeatenToken;
+           || name == CatTrap || name == BeatenToken || name == HintPage
+           || name == LevelBackground || name == MenuBackground;
 }

@@ -30,6 +30,9 @@ internal static class Inventory
     internal static int SkipsHeld { get; private set; }
     internal static int TrapsReceived { get; private set; }
     internal static int LevelsBeaten { get; private set; }
+    internal static int HintPagesHeld { get; private set; }
+    internal static int LevelBackgrounds { get; private set; }
+    internal static int MenuBackgrounds { get; private set; }
 
 
     /// <summary>
@@ -61,6 +64,9 @@ internal static class Inventory
         SkipsHeld = 0;
         TrapsReceived = 0;
         LevelsBeaten = 0;
+        HintPagesHeld = 0;
+        LevelBackgrounds = 0;
+        MenuBackgrounds = 0;
         Apply();
     }
 
@@ -96,6 +102,9 @@ internal static class Inventory
         SkipsHeld = counts.Skips;
         TrapsReceived = counts.Traps;
         LevelsBeaten = counts.Beaten;
+        HintPagesHeld = counts.HintPages;
+        LevelBackgrounds = counts.LevelBackgrounds;
+        MenuBackgrounds = counts.MenuBackgrounds;
         HasCredits = counts.HasCredits;
 
         // Only the abilities that arrived as ITEMS. AbilityState holds the
@@ -104,5 +113,12 @@ internal static class Inventory
         _abilities?.SetHeld(counts.Abilities);
 
         Track.SetPacksHeld(counts.Packs);
+
+        // Repaint now, not at the next level load. A Level Background is meant
+        // to be a visible reward, and a player who receives one mid-puzzle
+        // should see it land rather than find out later. Safe to call on every
+        // recount, replay included: the colour is derived from the count, so
+        // re-applying it writes the same value.
+        Backgrounds.ApplyToLevel();
     }
 }

@@ -19,29 +19,102 @@ public class InventoryCountsTests
             ItemNames.Pack, ItemNames.Pack, ItemNames.Skip,
             ItemNames.CatTrap, ItemNames.CatTrap, ItemNames.CatTrap,
             ItemNames.BeatenToken, ItemNames.Credits,
-            "Swapping", "Colour Scheme",
+            ItemNames.HintPage, ItemNames.HintPage,
+            ItemNames.LevelBackground, ItemNames.MenuBackground,
+            ItemNames.MenuBackground,
+            "Swapping",
         }, IsAbility);
 
         Assert.Equal(2, counts.Packs);
         Assert.Equal(1, counts.Skips);
         Assert.Equal(3, counts.Traps);
         Assert.Equal(1, counts.Beaten);
+        Assert.Equal(2, counts.HintPages);
+        Assert.Equal(1, counts.LevelBackgrounds);
+        Assert.Equal(2, counts.MenuBackgrounds);
         Assert.True(counts.HasCredits);
         Assert.Equal(new[] { "Swapping" }, counts.Abilities);
     }
 
     [Fact]
-    public void FillerIsIgnoredRatherThanMistakenForAnything()
+    public void AHintPageIsNotMistakenForAnAbility()
     {
-        // Title Theme, Colour Scheme and Daily Badge are real items the server
-        // sends. They must not land in Abilities, which would hand the player a
-        // mechanic they were never given.
+        // The failure this guards is quiet rather than loud. Anything the
+        // counter does not recognise falls through to isAbility, and the mod
+        // then hands the player a mechanic they were never sent - so a new
+        // item name that is missing from ItemNames.IsSpecial does not error,
+        // it silently unlocks something. "Hint Page" is a plausible ability
+        // name to a matcher that works by elimination.
+        var counts = InventoryCounts.From(
+            new[] { ItemNames.HintPage }, _ => true);
+
+        Assert.Equal(1, counts.HintPages);
+        Assert.Empty(counts.Abilities);
+    }
+
+    [Fact]
+    public void HintPagesAreCountedNotLatched()
+    {
+        // A level can hold up to five separately erasable pages, so holding
+        // three Hint Pages has to mean three, not "has hints". A boolean here
+        // would have been the natural shape and would silently cap every
+        // multi-page notepad at one.
+        var counts = InventoryCounts.From(
+            new[] { ItemNames.HintPage, ItemNames.HintPage, ItemNames.HintPage },
+            IsAbility);
+
+        Assert.Equal(3, counts.HintPages);
+    }
+
+    [Fact]
+    public void AnUnknownNameIsIgnoredRatherThanMistakenForAnAbility()
+    {
+        // Anything the counter does not recognise falls through to isAbility,
+        // and the mod then hands the player a mechanic they were never sent.
+        // A name from an older seed - these three were the filler pool before
+        // backgrounds replaced them - must do nothing rather than something.
         var counts = InventoryCounts.From(
             new[] { "Colour Scheme", "Title Theme", "Daily Badge" }, IsAbility);
 
         Assert.Empty(counts.Abilities);
         Assert.Equal(0, counts.Packs);
         Assert.False(counts.HasCredits);
+    }
+
+    [Fact]
+    public void BackgroundsAreCountedSoAReplayLandsOnTheSameColour()
+    {
+        // The invariant the whole background design rests on. The colour shown
+        // is palette[count % length], so it is a pure function of the count -
+        // which is what makes Archipelago's replay of the entire item list on
+        // every connect a no-op. A handler that stepped the palette forward on
+        // each arrival would put the player on a different colour every login.
+        var list = new[]
+        {
+            ItemNames.LevelBackground, ItemNames.LevelBackground,
+            ItemNames.MenuBackground,
+        };
+
+        var first = InventoryCounts.From(list, IsAbility);
+        var second = InventoryCounts.From(list, IsAbility);
+
+        Assert.Equal(2, first.LevelBackgrounds);
+        Assert.Equal(1, first.MenuBackgrounds);
+        Assert.Equal(first.LevelBackgrounds, second.LevelBackgrounds);
+        Assert.Equal(first.MenuBackgrounds, second.MenuBackgrounds);
+    }
+
+    [Fact]
+    public void TheTwoBackgroundsAreCountedSeparately()
+    {
+        // They recolour different surfaces, so sharing a counter would move
+        // the pause screen every time a puzzle backdrop changed.
+        var counts = InventoryCounts.From(
+            new[] { ItemNames.LevelBackground, ItemNames.LevelBackground,
+                    ItemNames.LevelBackground }, IsAbility);
+
+        Assert.Equal(3, counts.LevelBackgrounds);
+        Assert.Equal(0, counts.MenuBackgrounds);
     }
 
     [Fact]

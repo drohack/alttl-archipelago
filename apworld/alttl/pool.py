@@ -201,14 +201,47 @@ def create_items(world) -> None:
         pool.append(world.create_item(items.SKIP))
     remaining -= skips
 
+    # Traps are taken BEFORE hint pages, and the order is the whole meaning of
+    # cat_trap_chance. Hint Pages are far and away the largest tier - about 88
+    # of 168 slots in a default seed - so drawing them first left the trap
+    # percentage applying to a small residual, and cat_trap_chance = 25 bought
+    # twelve traps rather than thirty-four. The dial stopped meaning what its
+    # name says. Taking traps from the wider pool first restores that, and
+    # costs the hints nothing: full coverage is capped by the pages the seed
+    # actually contains, so it is the do-nothing filler underneath that
+    # shrinks.
     traps = remaining * world.options.cat_trap_chance.value // 100
     for _ in range(traps):
         pool.append(world.create_item(items.CAT_TRAP))
+    remaining -= traps
 
-    for name in filler_sequence(world, remaining - traps):
+    hints = min(available_hint_pages(world) * world.options.hint_coverage.value
+                // 100, remaining)
+    for _ in range(hints):
+        pool.append(world.create_item(items.HINT_PAGE))
+    remaining -= hints
+
+    for name in filler_sequence(world, remaining):
         pool.append(world.create_item(name))
 
     world.multiworld.itempool += pool
+
+
+def available_hint_pages(world) -> int:
+    """How many hint pages this seed actually contains.
+
+    Summed over the DRAWN plan, not over the level table, and per page rather
+    than per puzzle - both of which matter. A level's notepad holds anywhere
+    from zero to five pages, each with its own erasable scribble, so a puzzle
+    count would be wrong in both directions. Summing per slot also handles a
+    repeated generator correctly, since each instance is its own slot with its
+    own notepad.
+
+    The consequence worth stating: a slot whose level has no hint contributes
+    nothing, so at 100% coverage the pool holds exactly one item per page that
+    exists and can never mint a page there is nowhere to spend.
+    """
+    return sum(slot.level.hint_images for slot in world.plan)
 
 
 def filler_sequence(world, count: int) -> List[str]:

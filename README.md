@@ -183,12 +183,12 @@ It needs an Archipelago checkout to run against; the repo expects a clone at
 ```
 powershell tools/ap-sync.ps1                              # copy the world in
 cd Archipelago
-python -m unittest discover -s worlds/alttl/test -t .     # 69 tests
+python -m unittest discover -s worlds/alttl/test -t .     # 91 tests
 ```
 
 The fill is seed-dependent, so a single seed proves very little - that is how a
 broadly broken fill once sat behind a fully green suite. `test_fill_stress.py`
-sweeps 28 option configurations across a span of fixed seeds; widen it before a
+sweeps 32 option configurations across a span of fixed seeds; widen it before a
 release:
 
 ```

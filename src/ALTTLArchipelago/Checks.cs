@@ -103,6 +103,20 @@ internal static class Checks
         // earn twice with no way to know why.
         Skips.Skipping = false;
 
+        // Same reasoning for the hint refusal toast: it is latched so that
+        // dragging the eraser does not produce a wall of them, and the latch
+        // belongs to the notepad we just left.
+        Hints.LevelStarted();
+
+        // Recolour here rather than in a StartLevel postfix, which is where it
+        // was and did not work. Measured: after that postfix the level's own
+        // setup still runs and writes Camera.main.backgroundColor from the
+        // level's colour, so our value was overwritten a moment later. The
+        // giveaway was that LevelInterface.BackgroundColor read back as the
+        // colour we asked for while the camera - the thing that actually
+        // renders - still held the level's own.
+        Backgrounds.ApplyToLevel();
+
         Plugin.Logger.LogInfo($"checks: now playing slot {slotIndex}");
     }
 

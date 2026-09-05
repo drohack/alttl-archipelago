@@ -1375,3 +1375,312 @@ claimed from the wrong grouping.
 That changes the conclusion. A hint item is not dead weight on two-thirds of a
 run; it is useful on three-quarters of it. Whether it is worth minting is now a
 design question rather than a technical veto.
+
+---
+
+## Hint Pages, 2026-09-05
+
+Filler that does something. `Hint Page` is a new item that uncovers one page of
+one puzzle's hint notepad, minted from the drawn plan at `hint_coverage`
+percent (default 100). Measured over 8 default seeds: **86 Hint Pages per
+seed**, and dead filler falls from **74% of the pool to 24%**.
+
+### Answered by decompiling, not by guessing
+
+`ilspycmd` against `BepInEx/interop/Assembly-CSharp.dll` settled in minutes what
+had been open questions for two sessions. Worth remembering as a technique:
+these are managed stub assemblies, so every signature is readable even though
+no method body is.
+
+- **Pages are separately unlockable.** `HintMenu.HintPages` is an
+  `Il2CppReferenceArray<HintPage>`, each `HintPage` owns its own
+  `CleanableSurfaceUI`, and `GetHintPageIndexFromSurface(CleanableSurface)`
+  exists - the game itself must map a scrubbed surface back to a page. One item
+  per page is correct.
+- **`RandomizerHints` belongs to `LevelRandomizer`**, as a serialized
+  `List<Sprite>` plus `virtual GetRandomizerHints()`. It is a DIFFERENT source
+  from `LevelInterface.HintImages`, which the sweep reads, and Books and
+  Pencils override it. So two of the six "hintless" generators may not be.
+  Still open; worth at most 2 levels of 111.
+- **Fractional erasing is feasible** - `SurfaceDetails.CleanNormal`,
+  `SetCleanNormal(float)`, `ResetSurfaceDirt(surface)` all exist. Still not
+  recommended: the player picks WHERE to scrub, so a partial allowance makes
+  the reward luck.
+- `CleanableSurfaceUI : CleanableSurface` and `CanBeWiped` is non-virtual, so
+  one patch on the base covers the hint pages.
+
+### Four defects, each found by measuring rather than by reasoning
+
+Every one of these produced healthy-looking logs while being wrong.
+
+1. **Charged for pages that were not on screen.** `HintMenu.HintPages` is a
+   fixed pool of **eight** `HintPage` objects reused across levels, not one per
+   page - a one-page level still has seven inactive behind it. Anything
+   touching those surfaces billed for all eight. Guarded with
+   `m_currentHintIndex`.
+
+2. **Charged for merely opening the notepad.** `CanBeWiped` is polled the
+   instant the notepad opens, not while the eraser moves. Caught by screenshot:
+   the notepad open, scribble intact, and "Hint Page used - 0 left" already
+   toasting in the corner. A player could not check whether a hint existed and
+   back out.
+
+3. **A silent, instant process death.** Fixing (2) by gating on
+   `IsBeingWiped()` killed the game the moment the notepad opened - no managed
+   exception, nothing in BepInEx's log, nothing in Player.log, no crash dump.
+   `IsBeingWiped` reaches back into `CanBeWiped`, so the prefix called itself
+   until the stack was gone. **A stack overflow in a Harmony prefix presents as
+   the process vanishing, not as an error.** A re-entrancy guard stays in place
+   permanently: the hazard is structural, not specific to that one call.
+
+4. **`IsCleaned` does not mean the surface is clean.** Guarding on it looked
+   obviously right and silently disabled the entire gate - it reports `true` for
+   a page whose scribble is fully drawn on screen, so every page waved straight
+   through. Almost certainly reads through a `SurfaceDetails` that is not
+   populated until the surface registers with the manager. This is the same
+   trap as `HintAvailable` above, twice in the same subsystem: **a boolean named
+   after the question you are asking is not evidence it answers it.**
+
+### The shipped design
+
+`CanBeWiped` only ever says NO, and only when the player holds nothing. The
+charge lands in a postfix on `LevelInterface.HintTaken`, the game's own event
+for a hint genuinely uncovered past `HintManager.hintUsedAtNormal`. Opening a
+notepad and closing it therefore never costs anything, which is what (2)
+demanded, and there is no reliance on catching a wipe mid-poll, which is what
+(3) proved unworkable.
+
+Spend is recorded as a set of `"slot:page"` keys in the run file rather than a
+counter, so a page you have paid for stays free forever - a counter would have
+re-charged for re-reading your own hint. Keyed on slot, not level, because a
+generator can be drawn several times into one run.
+
+### Proven in play
+
+- Both suites green: **200** Core, **91** apworld, including five new
+  `hint_coverage` fill-stress configurations (0 / 50 / 100, 100% against a
+  generators-only plan whose notepads are mostly empty, and 100% hints with
+  100% traps and max skips competing for the same residual).
+- **100% means exactly the pages the seed holds.** A 14-puzzle seed summing to
+  12 pages minted 12 items; a 20-puzzle seed summing to 22 minted 22. The two
+  generator slots in the first seed contributed zero, so the pool can never
+  hold a page there is nowhere to spend.
+- All three patches apply: `CleanableSurface.get_CanBeWiped`,
+  `LevelInterface.HintTaken`, `HintMenu.Init`.
+- Item received and counted; the pause-menu count moved 0 to 1.
+- Pause menu renders `0 Let It Be` and `1 Hint` as small dim counts, and does
+  not stack the tag across four consecutive opens. Confirms again that the
+  entry named `Skip Button` reads **"Let It Be"** - match the object name,
+  never the caption.
+- Persistence round-trips: `hintPages: ["5:0"]` written to disk, and a run file
+  predating the field loads as `0 hint page(s) opened`.
+- Refusal and per-page charging were both observed directly in an earlier build
+  (`hint: opened page 5:0, 0 left` followed by `hint: refused, none held` for
+  page 1), which is what proves pages are billed one at a time.
+
+### Still unproven, and it needs a human
+
+**The charge on `HintTaken` has not been seen to fire.** Erasing cannot be
+driven from the harness: a synthetic pointer drag through `ExecuteEvents` on
+`HintMenu.Eraser` reaches the drag handlers but never puts the surface into a
+wiping state, so the game never raises the event. The `erase` DevTools command
+added for this does what it claims and is still not enough.
+
+So one manual check remains: on a puzzle with a hint, hold one Hint Page, rub
+the scribble off, and confirm the toast fires once and the count drops. Then do
+it holding none and confirm the scribble will not come off. Until that is done,
+treat the charging half as written-and-plausible rather than verified - the
+refusing half and everything above it are measured.
+
+---
+
+## Hint Page polish, and backgrounds as real filler, 2026-09-05
+
+droha reviewed the Hint Page numbers and found three real defects plus one
+piece of work that had been described and never built. All four are now done.
+
+### Traps back to meaning 25%
+
+Hint Pages were drawn before traps, so `cat_trap_chance = 25` applied to the
+small residual left after ~88 hint pages and bought **12** traps. Reordering so
+traps come first restores it to **34**. Hint pages are unaffected at 88, because
+100% coverage is capped by the pages the seed contains rather than by what is
+left over - the traps come out of the filler underneath.
+
+Measured over 8 default seeds after both changes:
+
+| | count | share | does something |
+|---|---|---|---|
+| progression | 26 | 15% | yes |
+| skips | 5 | 3% | yes |
+| cat traps | 34.6 | 20% | yes |
+| hint pages | 86.2 | 50% | yes |
+| Level Background | 11.1 | 6.5% | yes |
+| Menu Background | 8.4 | 4.9% | yes |
+| **filler that does nothing** | **0** | **0%** | - |
+
+Down from 74% at the start of this work.
+
+### Why 88 pages on 79 puzzles
+
+Worth writing down because it reads as an error: 61 of 79 slots have a hint,
+and those 61 carry 88 pages between them - 45 slots with one page, 9 with two,
+4 with three, 2 with four, 1 with five. Repeats count separately; that seed
+drew Buttons three times and Spice Jars four, each its own notepad.
+
+### The notepad now says what it costs
+
+droha's ask: a note that scrubbing spends a page, a count on the page, and a
+way to tell a page you have already paid for. All three are one label under the
+paper, refreshed on `HintMenu.Init` and on `SwitchToHint` so turning to page
+two updates it. Screenshotted in three states:
+
+- `Rubbing this out uses a Hint Page - you have 1`
+- `Already uncovered - reading this again is free`
+- `No Hint Pages - find one to uncover this hint`
+
+The fourth, `This puzzle has no hint`, shares its condition with the pause
+menu's "no hint" tag and was NOT exercised - neither has been seen on a
+generator with an empty notepad.
+
+### The charge is finally proven
+
+The postfix on `LevelInterface.HintTaken` had never been observed firing. A new
+DevTools `hinttaken` command calls the method directly, and the whole loop now
+has evidence:
+
+    hinttaken: calling HintTaken on NeatStreak_Tool Drawer
+    hint: page 5:0 read, 0 left
+    -> run file: hintPages: ["5:0"]
+    -> note changes to "Already uncovered - reading this again is free"
+
+What remains unproven is only whether the GAME calls `HintTaken` when a human
+scrubs. `HintsTakenCounter.CheckHintTaken` subscribes to the same event to keep
+a Steam stat, so it demonstrably does; a synthetic pointer drag still cannot
+reproduce it, because it reaches the eraser's drag handlers without ever
+putting the surface into a wiping state.
+
+### Backgrounds: three wrong hooks before the right one
+
+`Level Background` and `Menu Background` replace Title Theme, Colour Scheme and
+Daily Badge, which are deleted. The colour is `palette[(count - 1) % 10]` from
+the game's own `ColorSchemesData` - a function of the count, never a reaction
+to an arrival, so Archipelago's replay of the whole item list on every connect
+lands on the colour the player already had.
+
+**The camera is what renders the backdrop**, not `LevelInterface
+.BackgroundColor`. Both are plain fields, so writing them always appears to
+work; the tell was `BackgroundColor` reading back as the requested colour while
+`Camera.main.backgroundColor` still held the level's own. A postfix on
+`LevelManager.StartLevel` lost, and so did a call from `Checks.EnterSlot` - the
+game paints the camera later in level setup than either. It is now held by a
+per-frame comparison in the Ticker, which outlasts whenever the game writes
+instead of trying to name the moment.
+
+**The pause menu background is not a sibling of the buttons.** The layout is
+`Main Menu/Buttons` beside `Main Menu/Theme/<theme>/Background`, so walking up
+from `ButtonsContainer` and checking each ancestor's direct children never
+reaches it. There are also three full-screen Images called `Background`, one
+per theme, so a search including inactive objects picks by hierarchy order.
+Asking only for objects live in the hierarchy leaves the one theme on screen.
+
+### An exception that named the wrong call
+
+Reading the background palette failed with `Index was outside the bounds of the
+array` on element zero, through four different access paths, while `Length` and
+`Count` both reported 10. None of the indexers was at fault: the throw came
+from `ColorUtility.ToHtmlStringRGB` in the LOGGING, and interop surfaced it as
+an array bounds error. It cost a rewrite of working code and a false comment
+claiming the `BackgroundColors` indexer was broken, which has been corrected.
+
+**Do not read an exception's text as naming the call that raised it** - through
+IL2CPP interop it may not.
+
+### Also worth keeping
+
+- A build failure hid behind `deploy.sh >/dev/null`, and the game then ran the
+  previous DevTools DLL while its probe output looked merely unhelpful rather
+  than stale. deploy.sh's own header warns about exactly this; redirecting its
+  output defeats it.
+- A stale MultiServer from the previous day held port 38281. The new one prints
+  "Hosting game at ..." and exits; the game connects to the OLD seed, which
+  presents as a puzzle count that does not match the yaml. The line that proves
+  a real bind is "server listening on 0.0.0.0:38281".
+
+### Suites
+
+202 Core tests (new: both background counts, the replay invariant, and that the
+two are counted separately), 91 apworld tests including five `hint_coverage`
+fill-stress configurations.
+
+### Pause-menu counts: centred, live, and no longer permanent, 2026-09-05
+
+droha asked for the numbers to be vertically centred, and asked whether they
+had ever been seen to go UP. The honest answer to the second was no - the only
+evidence was a `buttons` log line reading 0 then 1, never a screenshot. Chasing
+it found two real bugs.
+
+**The counts were being erased and nobody noticed.** Writing them once in the
+`MainMenu.ShowHideMenuItems` postfix is not enough: the entries carry a
+`LocalizeStringEvent` that refreshes AFTER the postfix and rewrites the label
+with the plain caption. With the localiser left intact the probe read `Hint`
+and `Let It Be` with no tag at all. The original build only worked because it
+destroyed the localiser.
+
+**Destroying the localiser was worse than it looked.** These are permanent
+objects under `Menus/Main Menu`, not rebuilt per open, so destroying their
+localiser freezes both entries in whatever language was loaded, for the rest of
+the session. And because `AfterShowHideMenuItems` returned early when no run
+was active, a count written during a run stayed baked into the label
+afterwards, with nothing able to remove it.
+
+Both are fixed by re-applying rather than destroying: `Navigation
+.TickMenuCounts` rewrites the two cached entries each frame while a run is on
+and the menu is open, so the localiser may win a frame and we win the next. A
+language change is then picked up rather than fought, because `Caption()`
+re-reads the entry whenever it does not find our own markup. The no-run branch
+now restores the remembered captions instead of returning early.
+
+Measured consequence, and a better answer to droha's question than the one it
+started with: **the counts now update live.** Sending a Hint Page with the
+pause menu already open took the entry from 3 to 4 without it being reopened.
+
+**Centring** is `<voffset=0.18em>` wrapped OUTSIDE the `<size=55%>`, so em means
+the entry's own font size and the shift holds at any menu scale. Inline text of
+a smaller size shares the big text's baseline, which is why the count read as a
+subscript before. Screenshotted at `2 Let It Be` / `3 Hint`.
+
+### Where else those captions appear: one other place
+
+A new DevTools `findtext:<substring>` scans every `TextMeshProUGUI` in the
+loaded scene, inactive included, and reports path, liveness and whether a
+localiser is attached. Asked about "Let It Be", "Hint" and "skip":
+
+- `Menus/Main Menu/Buttons/Skip Button/SkipText` and `.../Hint Button/HintText`
+  are the only labels carrying those captions, and are the two we write. Both
+  still report `localised=yes`, confirming the localiser now survives.
+- `Menus/Level Select/Levels Track/Skip Tooltip/Container/Skip Text`, and a DLC
+  twin, matched a search for "skip" and are **nothing to do with skipping a
+  puzzle**. Forced on screen with a new `skiptip` probe: it is the
+  `Esc / [mouse] Skip` prompt in the top-right corner of the level select,
+  which skips the track's intro ANIMATION. `SkipTooltip` carries a sprite per
+  input device and a 3 second `skipExpireTime`, which is the shape of a
+  transient input hint, not a puzzle affordance. No count belongs on it and
+  the mod correctly does not touch it.
+
+**Two corrections to the first pass on this, both from the same root cause:**
+reading a label out of the object tree is not reading what a player sees.
+
+1. The text is **"Skip"**, not "Skipppable". The probe reported the latter
+   because the object had never been activated, so its LocalizeStringEvent had
+   never run and the label still held the placeholder baked into the prefab.
+   Activating it resolved the string. A label that reports `live=False` is
+   reporting its editor placeholder, not its caption.
+2. It was described here as "the one other surface that tells a player about
+   skipping [a puzzle]". It is not; it is an animation-skip prompt. That was
+   inferred from the object's name and the word "skip", which is the same
+   inference-from-names trap that produced the bad `HintAvailable` and
+   `IsCleaned` readings earlier in this work.
+
+Nothing else in any loaded menu shows either caption, so the label rewrite has
+no other surface to leak onto.

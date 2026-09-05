@@ -135,6 +135,7 @@ public sealed class Plugin : BasePlugin
                      ("connection pane", typeof(ConnectionPane)),
                      ("track", typeof(Track)),
                      ("skips", typeof(Skips)),
+                     ("hints", typeof(Hints)),
                      ("navigation", typeof(Navigation)),
                      ("title screen", typeof(TitleScreen)),
                  })
@@ -686,6 +687,8 @@ public sealed class Ticker : MonoBehaviour
         Badges.TickWhy(Time.unscaledDeltaTime);
         Plugin.TickCredits(Time.unscaledDeltaTime);
         Traps.Tick(Time.unscaledDeltaTime);
+        Backgrounds.Tick();
+        Navigation.TickMenuCounts();
         Track.TickCreditsCard();
         TypingGuard.Tick(ConnectionPane.FocusedField, ConnectionPane.FocusNext);
     }
