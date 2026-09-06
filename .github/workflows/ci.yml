@@ -83,14 +83,20 @@ jobs:
       - name: Install Archipelago's requirements
         run: |
           python -m pip install --upgrade pip
-          # setuptools explicitly. Archipelago's ModuleUpdate.update() runs at
-          # the top of Generate.py and MultiServer.py and imports pkg_resources
-          # from it; when that import fails it does not error, it PROMPTS -
-          # "pkg_resources not found, press enter to install it" - and on a
-          # runner with no stdin that becomes EOFError and a red build. Python
-          # 3.12 stopped shipping setuptools in new environments, so this is
-          # not in ap/requirements.txt and has to be asked for.
-          pip install setuptools
+          # setuptools, PINNED. Archipelago's ModuleUpdate.update() runs at
+          # the top of Generate.py and MultiServer.py and imports
+          # pkg_resources from it; when that import fails it does not error,
+          # it PROMPTS - "pkg_resources not found, press enter to install it"
+          # - and on a runner with no stdin that becomes EOFError and a red
+          # build. Python 3.12 stopped shipping setuptools in new
+          # environments, so it is not present and is not in
+          # ap/requirements.txt either.
+          #
+          # The pin is the actual fix. Plain "pip install setuptools" was
+          # tried first and changed nothing: it installs 84.x, and setuptools
+          # REMOVED pkg_resources in 81. Installing the newest one is exactly
+          # why the module was still missing.
+          pip install "setuptools<81"
           pip install -r ap/requirements.txt
       - name: Install the world
         run: cp -r apworld/alttl ap/worlds/alttl
@@ -143,14 +149,20 @@ jobs:
       - name: Install Archipelago's requirements
         run: |
           python -m pip install --upgrade pip
-          # setuptools explicitly. Archipelago's ModuleUpdate.update() runs at
-          # the top of Generate.py and MultiServer.py and imports pkg_resources
-          # from it; when that import fails it does not error, it PROMPTS -
-          # "pkg_resources not found, press enter to install it" - and on a
-          # runner with no stdin that becomes EOFError and a red build. Python
-          # 3.12 stopped shipping setuptools in new environments, so this is
-          # not in ap/requirements.txt and has to be asked for.
-          pip install setuptools
+          # setuptools, PINNED. Archipelago's ModuleUpdate.update() runs at
+          # the top of Generate.py and MultiServer.py and imports
+          # pkg_resources from it; when that import fails it does not error,
+          # it PROMPTS - "pkg_resources not found, press enter to install it"
+          # - and on a runner with no stdin that becomes EOFError and a red
+          # build. Python 3.12 stopped shipping setuptools in new
+          # environments, so it is not present and is not in
+          # ap/requirements.txt either.
+          #
+          # The pin is the actual fix. Plain "pip install setuptools" was
+          # tried first and changed nothing: it installs 84.x, and setuptools
+          # REMOVED pkg_resources in 81. Installing the newest one is exactly
+          # why the module was still missing.
+          pip install "setuptools<81"
           pip install -r ap/requirements.txt
       - name: Build the apworld
         run: python tools/build_apworld.py --out dist --install-to ap
