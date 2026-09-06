@@ -13,12 +13,18 @@ reproduces only the paths that already work.
 
 Reports every empty hit AND the total loads attempted, because "no hits" is only
 meaningful next to how many chances it had.
+
+Boots levels directly, which writes save state, so it runs inside harness_env
+and puts the save folder and BepInEx config back on exit.
 """
 import json
 import os
 import random
 import sys
 import time
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from harness_env import Environment
 
 GAME = r"G:/Games/Steam/steamapps/common/A Little To The Left"
 LOG = os.path.join(GAME, "BepInEx", "LogOutput.log")
@@ -118,4 +124,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    with Environment("emptysoak"):
+        main()

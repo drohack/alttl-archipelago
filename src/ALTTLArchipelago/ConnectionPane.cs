@@ -800,6 +800,10 @@ internal static class ConnectionPane
             string tag;
             if (Plugin.IsConnected) tag = "<color=#6BC77A>connected</color>";
             else if (Plugin.IsConnecting) tag = "<color=#E6C759>connecting</color>";
+            // A run from the cache is not the same as no run, and the entry
+            // used to read the same for both. "offline" alone next to a full
+            // track invites the player to think their checks are being lost.
+            else if (Plugin.IsOffline) tag = "<color=#E6C759>offline run</color>";
             else tag = "<color=#FFFFFF80>offline</color>";
 
             // Smaller and dimmer than the entry itself, so it reads as a note

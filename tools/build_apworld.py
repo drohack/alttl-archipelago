@@ -33,7 +33,11 @@ EXCLUDE_SUFFIXES = {".pyc", ".pyo"}
 
 #: The world's own tests are not shipped: they import Archipelago's test
 #: harness, which a player's install does not have on the import path.
-EXCLUDE_TOP_LEVEL = {"test"}
+#: player.yaml is the shipped template, but it is a RELEASE asset handed to
+#: the player separately - not something the world imports. It lives in the
+#: package so a test can hold it in step with ALTTLOptions; it does not belong
+#: inside the archive.
+EXCLUDE_TOP_LEVEL = {"test", "player.yaml"}
 
 
 def _wanted(path: pathlib.Path) -> bool:

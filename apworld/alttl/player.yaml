@@ -1,0 +1,101 @@
+# A Little to the Left - Archipelago player settings
+#
+# Edit `name`, save, and hand this to whoever generates the multiworld.
+# Everything below is set to its default, so the file works untouched.
+#
+# The full description of every setting is on the Archipelago webhost player
+# options page for this game, which is generated from the same source as this
+# file. What is here is the short version.
+
+name: Player1
+game: A Little to the Left
+description: A Little to the Left
+
+requires:
+  version: 0.6.7
+
+A Little to the Left:
+
+  # ---- Goal -----------------------------------------------------------
+
+  # Puzzles to beat before the credits unlock. A puzzle counts once solved
+  # any one way; skipped puzzles do not count. Clamped to puzzle_count.
+  levels_to_beat: 40
+
+  # How many puzzles the run contains. The full game is 79, laid out over
+  # five chapters exactly as vanilla. A lower number truncates the track
+  # rather than rescaling it. 8 to 79.
+  puzzle_count: 79
+
+  # How many puzzles the FIRST Puzzle Packs unlock. Packs widen as the run
+  # goes on, so this is where you start, not the rate for the whole game.
+  # A run always opens with at least four puzzles. 1 to 10.
+  pack_size: 4
+
+  # ---- What goes in the run -------------------------------------------
+
+  # How strongly to favour procedurally generated puzzles - the sixteen that
+  # build a fresh layout from a seed, so they are new even if you have
+  # finished the game. Weighed against archive_weight. 0 to 100.
+  generator_weight: 70
+
+  # How strongly to favour the seasonal event puzzles. Most players have
+  # never seen them, and they are the richest levels for checks. 0 to 100.
+  archive_weight: 30
+
+  # Puzzles guaranteed for each mechanic no generator can make - stacking,
+  # containers, drawers and jigsaws. Base-game puzzles enter the run ONLY
+  # through this setting; 0 means generated and event puzzles only, at the
+  # cost of losing those four mechanics entirely. 0 to 6.
+  mechanic_coverage: 3
+
+  # Most times any one generated puzzle may appear. 0 uses the maximum.
+  # Each appearance is a genuinely different layout, but the card art
+  # repeats.
+  generator_repeat_limit: 0
+
+  # Which seasonal event packs may appear. Removing a pack removes its
+  # puzzles - and jigsaws exist only in event packs, so turning enough of
+  # them off drops jigsaws and the ability with them.
+  archive_packs:
+    - good_tidings
+    - trick_or_tidy
+    - merry_mess
+    - drawer_chores
+    - something_eggstra
+    - snack_pack
+
+  # ---- Abilities -------------------------------------------------------
+
+  # Lock puzzle mechanics behind items. On, objects for a mechanic you have
+  # not unlocked sit dimmed and untouchable, so a puzzle can be partly
+  # solved and returned to. Off, the packs are the only gate.
+  ability_locks: true
+
+  # How many mechanics you begin with. 0 to 6.
+  starting_abilities: 1
+
+  # How many opening puzzles must be solvable straight away. Four always
+  # are, so this only has an effect above four. 0 to 10.
+  guaranteed_open_slots: 4
+
+  # ---- Items -----------------------------------------------------------
+
+  # How many Skip items are shuffled in. A Skip clears a puzzle you are
+  # stuck on; skipped puzzles do not count towards the credits. 0 to 20.
+  skip_count: 5
+
+  # Percentage of this seed's hint pages that get a Hint Page item. A
+  # 79-puzzle seed holds about 110 pages, so 50 is roughly 55 items. At 100
+  # the hints crowd out almost everything else. Without a Hint Page the
+  # notepad still opens - you just cannot erase the scribble. 0 to 100.
+  hint_coverage: 50
+
+  # Percentage of FILLER items that are the cat knocking your work over.
+  # Costs you time, never progress. 0 to 100.
+  cat_trap_chance: 25
+
+  # ---- Standard Archipelago options ------------------------------------
+
+  progression_balancing: 50
+  accessibility: full

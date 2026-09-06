@@ -21,9 +21,17 @@ Controls are pressed with `press:`, which dispatches a real pointer click.
 `clickbutton:` invokes Button.onClick and is not the same thing: the tutorial
 modal's confirm IS a Button, has nothing on onClick, and reported four
 successful clicks while staying on page 1 of 3.
+
+This drives real saves - it beats levels - so it runs inside harness_env, which
+puts the player's save folder and BepInEx config back on exit. Pass --keep to
+leave the finished run in place when the point of the run was to produce one.
 """
 import os
+import sys
 import time
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from harness_env import Environment
 
 GAME = r"G:/Games/Steam/steamapps/common/A Little To The Left"
 LOG = os.path.join(GAME, "BepInEx", "LogOutput.log")
@@ -163,4 +171,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if "--keep" in sys.argv:
+        # An escape hatch, not a default. Some sessions exist precisely to
+        # leave a part-played run behind to inspect, and a harness that always
+        # deletes its own output cannot serve them - but the deletion has to be
+        # the thing you opt out of, or it is the thing that gets forgotten.
+        print("-- --keep: the environment will NOT be restored --", flush=True)
+        main()
+    else:
+        with Environment("playthrough"):
+            main()

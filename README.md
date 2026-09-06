@@ -11,7 +11,7 @@ the mod reports what the seed contains and does not touch the puzzles.
 | Research and the verification gate | done, [verification log](docs/verification-log.md) |
 | Design | agreed, [spec](docs/superpowers/specs/2026-09-01-alttl-archipelago-design.md) |
 | `apworld/alttl/` - the Archipelago world | **generates real seeds**, 91 tests |
-| `src/ALTTLArchipelago.Core/` - Unity-free rules and state | 190 tests |
+| `src/ALTTLArchipelago.Core/` - Unity-free rules and state | 224 tests |
 | `src/ALTTLArchipelago/` - the BepInEx mod | **plays a seed** |
 
 Verified end to end on 2026-09-03: a generated seed served by `MultiServer.py`,
@@ -20,6 +20,11 @@ level select, packs reveal them in the order the generator planned, abilities
 gate the objects, solving sends checks the server accepts, items arriving are
 applied and announced, and the goal is reported back - the server declaring
 "Team #1 has completed all of their games".
+
+A run also survives the server going away. If no server answers at launch, the
+mod resumes the last run from a cache of the slot data and the received items,
+queues anything earned, and sends it on the next connection - verified in
+[docs/verification-log.md](docs/verification-log.md) by `tools/offline-test.py`.
 
 Known gaps are listed at the end of the
 [verification log](docs/verification-log.md): a level that once loaded empty and
@@ -138,6 +143,9 @@ Curated copies of the probe output are in [docs/data/](docs/data/).
   of the randomizer, installed separately, never shipped
 - `apworld/alttl/` - the Archipelago world (Python)
 - `docs/verification-log.md` - results of the Phase 0 verification gate
+- `docs/in-game-testing.md` - how to test against the one real install without
+  leaving a mess in it, and the harnesses that once measured nothing
+- `docs/installation.md` - what a player does with the three release files
 - `docs/research-findings.md` - the modding surface: what was proven, and how
 - `docs/content-report.md` - the content: base game, daily, archive, DLC
 - `docs/data/` - the level table and controller survey the probe produced.
@@ -145,8 +153,22 @@ Curated copies of the probe output are in [docs/data/](docs/data/).
   controller set differs, so `apworld/alttl/data/levels.json` is the source of
   truth
 - `tools/ap-sync.ps1` - copy `apworld/alttl` into the Archipelago clone
+- `tools/offline-test.py` - five phases proving a run survives the server going
+  away and rejoins when it comes back, including that a regenerated seed under
+  the same slot name does not come up on the cached plan
+- `tools/offline-reconnect-test.py` - the one claim that needs the pane:
+  pressing Connect during an offline run against a server that is still down
+  must leave the run alone
+- `tools/harness_env.py` - snapshot the player's BepInEx config and save folder
+  before a harness runs and restore them after, including on Ctrl-C. Wrap any
+  new harness that writes either. `--restore-latest` recovers from a hard kill
 - `tools/build_apworld.py` - package the world into a distributable
   `alttl.apworld`
+- `tools/package-release.py` - build all three release assets and refuse if the
+  version numbers disagree or the build produced a file it does not recognise
+- `tools/check-version.py` - the version lives in three files; fail when they
+  drift. `--set X.Y.Z` writes all three
+- `CHANGELOG.md`, `docs/installation.md` - what shipped, and how to install it
 - `.github/workflows/ci.yml` - Core built with no game installed, Core tests,
   the world's tests against the minimum supported Archipelago version, the
   packaged apworld generating a real seed, and an ASCII-only check

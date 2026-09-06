@@ -1928,3 +1928,178 @@ session changed `TargetVirtualDesktop` in the DevTools config and repeatedly
 rewrote the player's `.run.json`, announcing both rather than restoring them.
 The config was snapshotted and restored by hand for the retry test above. That
 should be the harness's job, not a habit.
+
+---
+
+## 2026-09-06
+
+### Stage 7 - harnesses now put the environment back. PASS
+
+`tools/harness_env.py`: an `Environment` context manager that snapshots both
+plugin configs and every file in the game's save folder on entry, and on exit
+restores them and deletes anything the run created. `tools/playthrough.py` and
+`tools/emptysoak.py` are wrapped in it. Written up in
+[docs/in-game-testing.md](in-game-testing.md).
+
+Verified against the real install rather than a fixture, by fingerprinting all
+17 protected files, mutating them the way a harness does, and comparing after:
+
+| Case | Mutation | Result |
+|---|---|---|
+| Normal exit | config repointed to `127.0.0.99:39999`, `AutoConnect=false`, `MaxRetries=7`, `TargetVirtualDesktop=3`, a junk `.run.json` created, `save1.json` appended to | 17 put back, 1 removed, **all 17 hashes identical to before** |
+| `KeyboardInterrupt` | as above | identical |
+| Exception | as above | identical |
+| Hard kill, then `--restore-latest` | config left at `Host = dead.example`, orphan run file left | `Host = localhost`, `AutoConnect = true`, orphan gone |
+
+The campaign save was deliberately corrupted in the first case, because the
+file the mod must never touch is the one worth proving recoverable.
+
+### The bug the round-trip test found, which nothing else would have
+
+The first version resolved the save folder as
+`~/AppData/LocalLow/Max Inferno/A Little to the Left` - the studio name as it
+is written everywhere a person reads it. The real folder is
+`maxinferno/A Little To The Left`.
+
+**Nothing failed.** `glob` matched no files, the snapshot contained the two
+config files, `_files_to_snapshot()` returned 2 instead of 17, and the harness
+printed that it had protected the environment. A harness whose whole purpose is
+protecting saves would have been protecting no saves, and saying so cheerfully.
+
+It is now found by glob. `_require_save_dir()` also refuses to run when it
+cannot be found, because restore deletes save-folder files absent from its
+manifest, and an empty `SAVE_DIR` makes that glob relative to the working
+directory - which is the repo.
+
+Same shape as the `emptysoak` dwell-time bug and the `-k` near-miss: the
+harness reported a clean result while being unable to produce a dirty one.
+
+### Stage 4 - playable with the server down. PASS
+
+An unreachable server at launch used to mean no run at all: `Ready` never
+fired, so the track never went up and the player got the vanilla game with a
+finished campaign in a save they could not reach. A mid-session drop already
+kept playing, so the two cases disagreed for no reason.
+
+`CachedSession` (Core, tested) holds the slot name, the seed, the draw and the
+**received item list**; `SlotCache` (mod) writes it to
+`alttl-last-session.json` beside the run files, debounced to at most one write
+every two seconds. `Plugin.StartOffline` mirrors `OnReady` minus the two steps
+that need a socket.
+
+Caching the item list is the half that is easy to miss. Without it the run
+comes back with zero packs and no abilities - a locked track, which is worse
+than no track.
+
+Measured by `tools/offline-test.py`, five phases against the real game and a
+real MultiServer, **7/7**:
+
+| Phase | Claim | Result |
+|---|---|---|
+| 1 ONLINE | a real connection writes a cache | seed 11789846964930290912, 24 puzzles, 21 items |
+| 2 OFFLINE | no server at all, the same run returns | same seed, same 24 puzzles, same 21 items, 12 packs held, `track: 24 puzzles, 10 open` |
+| 3 EARNED | a check solved offline is queued | 1 owed in the run file |
+| 4 REJOINED | the next connection sends it | `checks: sent 1, 0 still owed` |
+| 5 NOT STALE | a regenerated seed under the same slot name wins | new seed 43809784604865360243, 18 puzzles, cache replaced |
+| 5 NOT STALE | the old run's save survives it | present and untouched |
+
+Phase 5 is the hazard the plan singled out, and it holds by construction
+rather than by check: the save is named `save_ap_(slot)_(seed)`, a regenerated
+draw fingerprints differently, so a stale cache can be wrong about the content
+of a run but cannot write into a run it does not belong to.
+
+### The deferred inventory clear, and a claim withdrawn
+
+`Inventory.NewSession()` cleared the item list at the top of every connection
+ATTEMPT. That list is now written to disk, so it must never be briefly empty
+while a live run holds items - the clear is therefore deferred to the first
+thing the new session produces, an item or `Begin`.
+
+**The comment first written for that change described a failure that does not
+happen**, and it took three control runs of
+`tools/offline-reconnect-test.py` to establish it:
+
+1. **Immediate clear plus a recount, built on purpose. PASSED.** The test was
+   reading only the log after `connecting to localhost`, and the wipe is
+   logged just before it. The evidence sat in the window the test discarded.
+   Fixed to read both windows; the same control then failed, as it must.
+2. **The EXACT original clear, with no recount. PASSED - and that is the real
+   answer.** Nothing recounts, because the plain `Clear()` never called
+   `Apply()`, so the displayed state stays stale-correct. There was no track
+   collapse and no lost abilities. The comment claiming otherwise has been
+   corrected in the source.
+3. **The deferred clear that ships. PASSES.**
+
+So the change stands - a value written to disk should never be briefly wrong,
+and the residual exposure is a cache write already pending from a recent item
+serialising the emptied list - but it is a precaution taken when items started
+being cached, not a fix for a bug anybody saw.
+
+The first control passing is the finding worth keeping. A negative control is
+not a formality: it caught a test that would have reported green forever while
+measuring the wrong region of the log.
+
+### Two harness traps hit again on the way
+
+- **`SKIP_REQUIREMENTS_UPDATE=1` is needed locally too, not only in CI.**
+  `MultiServer.py` runs `ModuleUpdate.update()`, which PROMPTS rather than
+  failing when a requirement drifts - here `platformdirs 4.10.1` against a
+  pinned `4.9.4`. With no console the read is an EOFError and the server dies
+  before binding, showing only `No response from localhost:38281`. A whole
+  phase was lost to it. Server readiness is now the port accepting, not a
+  sleep, and the server's stderr goes to its own file.
+- **BepInEx truncates `LogOutput.log` on every launch.** A probe that recorded
+  the log size before launching and then seeked to it read nothing at all and
+  printed no lines, which looked like the command having had no effect.
+
+### Stage 6 - a release a player can install. PASS
+
+Three assets, one version, built by `tools/package-release.py`:
+
+    ALTTLArchipelago-0.3.0.zip   396,349 bytes   the BepInEx plugin
+    alttl.apworld                 40,717 bytes   the world
+    A Little to the Left.yaml      3,862 bytes   the player template
+
+Plus `CHANGELOG.md` and [docs/installation.md](installation.md).
+
+**The packager refuses rather than warns.** Both refusals were tested by
+causing them:
+
+- Version drift. `world_version` was set to 0.9.9 against 0.3.1 elsewhere; the
+  script printed all three and exited 1 without building anything.
+- An unrecognised file in the build output. The plugin contents are an
+  ALLOWLIST, not a glob, because the build sits beside interop assemblies
+  derived from the game which must never be redistributed. Verified by
+  listing the zip: exactly the five expected DLLs and a README, no interop.
+
+**The artifact was installed the way a player installs it**, not merely built.
+This matters because `tools/deploy.sh` only ever builds Debug, so the Release
+DLLs that actually ship had never been run. Extracting the zip into the game
+folder and launching: **5/5** - plugin loaded, all seven feature groups
+patched, none disabled, no exception, and the Archipelago menu entry present.
+
+The first run of that check reported the menu entry FAIL. It was the test:
+it sampled the log as soon as `features live:` appeared, and the entry is
+added later when the title screen builds. Same shape as the reconnect test -
+a harness reading the wrong window.
+
+### The player template is pinned to the options
+
+`apworld/alttl/player.yaml` ships as a release asset and is the file nothing
+else touches, so it is the one that rots. A template omitting an option is
+silent - generation succeeds on the default and the player never learns the
+setting exists. One naming a REMOVED option is worse: Archipelago rejects the
+whole yaml.
+
+`test_player_yaml.py` pins it both directions, plus that every value is the
+documented default and that `requires: version` equals `minimum_ap_version`.
+It is deliberately excluded from the `.apworld` - it is handed to the player
+separately - but lives in the package so the test can find it.
+
+Verified by generating a real seed from the shipped file untouched: 177 items,
+`AP_43809784604865360243.zip`.
+
+Its first version failed by demanding a description for `plando_items`:
+`ALTTLOptions` inherits the whole of `PerGameCommonOptions`, and those belong
+to Archipelago, not to this template. Now scoped by subtracting
+`PerGameCommonOptions.type_hints`.

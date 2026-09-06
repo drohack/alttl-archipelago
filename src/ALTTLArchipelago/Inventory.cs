@@ -36,28 +36,86 @@ internal static class Inventory
 
 
     /// <summary>
-    /// A new connection is being made. Forget the last one's items.
+    /// A new connection is being ATTEMPTED. The last one's items are forgotten
+    /// the moment the new one produces anything.
     ///
-    /// This is the session boundary, and it has to be HERE rather than in
-    /// <see cref="Begin"/>, because items start arriving before slot_data has
-    /// been parsed - a precollected starting ability landed a full step ahead
-    /// of Ready in testing - so Begin cannot clear without throwing those away.
+    /// This is the session boundary. It cannot be in <see cref="Begin"/>,
+    /// because items start arriving before slot_data has been parsed - a
+    /// precollected starting ability landed a full step ahead of Ready in
+    /// testing - so Begin alone would throw those away.
     ///
     /// Without a boundary the list was cumulative across an in-session
     /// reconnect: the server replays every item on connect, Receive appended
     /// them a second time, and the counts doubled. Packs and Skips doubled
     /// silently; traps announced themselves by firing a burst, since owed is
-    /// TrapsReceived minus the number already sprung.
+    /// TrapsReceived minus the number already sprung. It never showed up in
+    /// testing because every reconnect test restarted the process, and a fresh
+    /// process starts with an empty list.
     ///
-    /// It never showed up in testing because every reconnect test restarted the
-    /// process, and a fresh process starts with an empty list.
+    /// DEFERRED rather than immediate, because the list is now PERSISTED.
+    /// SlotCache reads Received() to write the offline cache, so an empty list
+    /// while a live run holds items is a list that can be written to disk, and
+    /// the next offline start would come up on a locked track. An ATTEMPT is
+    /// not a session; only its success is.
+    ///
+    /// So the clear is armed here and fires at the first thing the NEW session
+    /// produces, which is either an item or Begin. An attempt that fails
+    /// produces neither, and the run in progress is untouched.
+    ///
+    /// HONESTLY MEASURED, because the first version of this comment claimed a
+    /// dramatic failure that does not happen. The immediate clear was run
+    /// against tools/offline-reconnect-test.py deliberately: pressing Connect
+    /// during an offline run against a dead server did NOT collapse the track
+    /// or lose the abilities. Nothing recounts, because the plain clear never
+    /// called Apply, so the displayed state stays stale-correct until the next
+    /// arrival. The exposure is narrower and quieter than that: a cache write
+    /// already pending from a recent item would serialise the emptied list.
+    ///
+    /// That is worth closing anyway - a value written to disk should never be
+    /// briefly wrong - but it is a precaution taken when items started being
+    /// cached, not a fix for a bug anybody saw.
     /// </summary>
-    internal static void NewSession() => _received.Clear();
+    internal static void NewSession() => _clearPending = true;
+
+    /// <summary>Armed by NewSession, fired by the next Receive or Begin.</summary>
+    private static bool _clearPending;
+
+    /// <summary>Fire a pending clear exactly once. Both entry points call it.</summary>
+    private static void TakeOverIfPending()
+    {
+        if (!_clearPending) return;
+        _clearPending = false;
+        _received.Clear();
+    }
+
+    /// <summary>
+    /// Everything received, for the offline cache. A copy: the live list keeps
+    /// changing, and what is written must be what was true when asked.
+    /// </summary>
+    internal static IReadOnlyList<string> Received() => new List<string>(_received);
+
+    /// <summary>
+    /// Adopt a cached item list for an offline start.
+    ///
+    /// The counterpart of Received(). Safe to be replaced wholesale later: the
+    /// next real connection arms NewSession and the server's replay takes over
+    /// this list rather than adding to it, which is the same property that
+    /// stops a reconnect doubling every count.
+    /// </summary>
+    internal static void RestoreReceived(IReadOnlyList<string> items)
+    {
+        _clearPending = false;
+        _received.Clear();
+        _received.AddRange(items);
+    }
 
     internal static void Begin(SlotData slot)
     {
-        // Deliberately does NOT clear: see NewSession, which already did, and
-        // anything that arrived since is this session's and must be kept.
+        // Takes over from the previous session if nothing has yet - see
+        // NewSession. Anything that arrived since IS this session's and is
+        // kept, because the first arrival already did the clearing.
+        TakeOverIfPending();
+
         _abilities = new AbilityState(slot);
         PacksHeld = 0;
         HasCredits = false;
@@ -72,6 +130,7 @@ internal static class Inventory
 
     internal static void End()
     {
+        _clearPending = false;
         _received.Clear();
         _abilities = null;
     }
@@ -80,6 +139,7 @@ internal static class Inventory
     internal static void Receive(string name)
     {
         if (string.IsNullOrEmpty(name)) return;
+        TakeOverIfPending();
         _received.Add(name);
         Apply();
     }
@@ -120,5 +180,11 @@ internal static class Inventory
         // recount, replay included: the colour is derived from the count, so
         // re-applying it writes the same value.
         Backgrounds.ApplyToLevel();
+
+        // The offline cache is now out of date. Only marked, not written: a
+        // reconnect replays hundreds of items one at a time, and writing per
+        // item would serialise the whole draw hundreds of times to arrive back
+        // where it started.
+        SlotCache.MarkDirty();
     }
 }

@@ -175,9 +175,26 @@ public sealed class Plugin : BasePlugin
 
         Logger.LogInfo("A Little To The Left Archipelago loaded");
 
+        // The cache asks Plugin what to write rather than holding a copy, so
+        // there is exactly one place the current session lives.
+        SlotCache.Source = () => _slot == null || SaveRedirect.ActiveName == null
+            ? null
+            : CachedSession.Of(_slotName.Value, _seed, _slot,
+                               Inventory.Received(), DateTime.Now);
+
         // Quietly, and only once - see AutoConnect below.
+        //
+        // Deliberately the ONLY route to an offline start: it is armed when
+        // this attempt fails, and nowhere else. Arming it for auto-connect
+        // being OFF as well was written first and taken back out - "do not
+        // connect" is not "resume the last run", and with both arming it there
+        // was no way left to reach the campaign save at all. Auto-connect off
+        // is now the answer to "I want to play the normal game today".
         if (_autoConnect.Value) AutoConnect();
     }
+
+    /// <summary>The seed of the live run, for the cache. Empty when idle.</summary>
+    private static string _seed = "";
 
     /// <summary>Store what the pane collected, so it persists to the config.</summary>
     internal static void ApplySettings(string host, int port, string slot, string password)
@@ -401,6 +418,7 @@ public sealed class Plugin : BasePlugin
                         _retry.Reset();
                         _retryIn = 0f;
                         Logger.LogInfo($"no server at launch ({error}); staying offline");
+                        ArmOfflineStart("no server at launch");
                     }
                     else
                     {
@@ -484,6 +502,15 @@ public sealed class Plugin : BasePlugin
         _session = null;
 
         _slot = null;
+        _seed = "";
+        IsOffline = false;
+        _offlineIn = 0f;
+
+        // The cache FILE is deliberately kept - see SlotCache. Only the
+        // pending write is dropped, because _slot is null now and there is
+        // nothing left to describe.
+        SlotCache.End();
+
         Toasts.Destroy();
         Track.End();
         TitleScreen.Refresh();
@@ -519,6 +546,16 @@ public sealed class Plugin : BasePlugin
         {
             return $"Retrying in {Math.Ceiling(_retryIn):0}s "
                 + $"({AttemptLabel()})";
+        }
+        if (IsOffline)
+        {
+            // Says what is true and what happens next, because the state is
+            // new and "Not connected" would read as the run being broken.
+            var owed = Checks.Ledger.Owed.Count;
+            return owed > 0
+                ? $"Playing offline as {_slotName.Value} - {owed} check(s) "
+                  + "waiting to be sent"
+                : $"Playing offline as {_slotName.Value}";
         }
         return _retry.Describe(IsConnected, _slotName.Value);
     }
@@ -654,6 +691,135 @@ public sealed class Plugin : BasePlugin
         Toasts.Show($"Restored {n} item(s) from the server", Toasts.Notice);
     }
 
+    // ------------------------------------------------------------------
+    //  Offline play
+    // ------------------------------------------------------------------
+
+    /// <summary>
+    /// True when the run on screen came from the cache and no server has been
+    /// reached. Checks are still earned; they queue in RunState until one is.
+    /// </summary>
+    internal static bool IsOffline { get; private set; }
+
+    /// <summary>
+    /// Seconds until the offline start runs, or 0 when none is pending.
+    ///
+    /// Not started on the spot, because both places that arm it can fire
+    /// within milliseconds of Load - a refused connection to localhost comes
+    /// back almost instantly - and the track has a level select to decorate.
+    /// OnReady gets away with running that early only because a real server
+    /// handshake takes longer than the game's boot.
+    /// </summary>
+    private static float _offlineIn;
+
+    private static string _offlineWhy = "";
+
+    private static void ArmOfflineStart(string why)
+    {
+        if (_slot != null || _offlineIn > 0f) return;
+        _offlineWhy = why;
+        _offlineIn = 2f;
+    }
+
+    /// <summary>Counts down to the offline start. Called once per frame.</summary>
+    internal static void TickOfflineStart(float deltaSeconds)
+    {
+        if (_offlineIn <= 0f) return;
+
+        _offlineIn -= deltaSeconds;
+        if (_offlineIn > 0f) return;
+        _offlineIn = 0f;
+
+        // A server answered while this was counting down. It wins: its data is
+        // current and the cache is only ever a copy of it.
+        if (_slot != null || IsConnected || _connecting) return;
+
+        StartOffline(_offlineWhy);
+    }
+
+    /// <summary>
+    /// Bring the last run back with no server.
+    ///
+    /// Everything here mirrors OnReady, minus the two steps that need a
+    /// socket: the server's own check list is not adopted, and nothing is
+    /// sent. Both are picked up on the next connect - the ledger keeps what
+    /// was earned, RunState persists it, and FlushChecks pushes it.
+    /// </summary>
+    private static void StartOffline(string why)
+    {
+        var cache = SlotCache.Load();
+        if (cache == null)
+        {
+            Logger.LogInfo($"{why}, and no cached run to fall back on");
+            return;
+        }
+
+        if (!cache.IsFor(_slotName.Value))
+        {
+            // Not an error. Changing the slot name is how a player says
+            // "different multiworld", and starting someone else's run because
+            // the file happened to be there would be far worse than doing
+            // nothing.
+            Logger.LogInfo(
+                $"{why}; the cached run is for slot '{cache.SlotName}' but this "
+                + $"install is set to '{_slotName.Value}', so not starting it");
+            return;
+        }
+
+        var problems = cache.Problems();
+        if (problems.Count > 0)
+        {
+            Logger.LogWarning(
+                $"{why}, and the cached run is unusable: {string.Join("; ", problems)}");
+            return;
+        }
+
+        var slot = cache.Slot;
+        _seed = cache.Seed;
+        SaveRedirect.Begin(cache.SlotName, cache.Seed);
+
+        Track.Begin(slot);
+        TitleScreen.Refresh();
+        _slot = slot;
+
+        // Before Traps.Reset, which reads how many have already gone off.
+        RunState.Begin(SaveRedirect.ActiveName ?? "run");
+
+        // The items BEFORE Begin, which is the mirror image of the online
+        // order. Online they arrive on the socket ahead of slot_data and
+        // Begin recounts whatever landed; here the whole list is already
+        // known, so it is put in place first and Begin's recount finds it.
+        Inventory.RestoreReceived(cache.Items);
+        Inventory.Begin(slot);
+
+        Abilities.Reset();
+        Badges.Reset();
+        Credits.Reset();
+        Traps.Reset();
+        Checks.Begin(slot);
+
+        // The Beaten tokens, then anything earned offline last time. No
+        // AdoptServerChecks: there is no server to have a list. That means the
+        // ledger knows only what this install has seen, which is exactly right
+        // - a check the server already has is re-sent on the next connect, and
+        // Archipelago says duplicate sends are fine.
+        Checks.Ledger.RestoreLocal(RunState.Beaten());
+        Checks.Ledger.RestoreOwed(RunState.Owed());
+        FlushChecks();
+
+        IsOffline = true;
+
+        Logger.LogInfo(
+            $"offline: resumed slot '{cache.SlotName}' seed {cache.Seed} "
+            + $"saved {cache.SavedAt} - {slot.Slots.Count} puzzles, "
+            + $"{Inventory.PacksHeld} pack(s) held, {cache.Items.Count} item(s)");
+        Toasts.Show(
+            $"Playing offline - {Checks.LevelsBeaten} of {slot.LevelsToBeat} beaten. "
+            + "Checks are kept and sent when you connect.", Toasts.Notice);
+
+        ConnectionPane.RefreshStatus();
+    }
+
     /// <summary>
     /// What the seed contains, on the main thread.
     ///
@@ -673,6 +839,21 @@ public sealed class Plugin : BasePlugin
             seed = slot.Fingerprint();
             Logger.LogInfo($"room reported no seed; using the draw's fingerprint {seed}");
         }
+        _seed = seed;
+
+        // Any pending offline start is now moot, and a live offline run is
+        // simply taken over: everything below re-derives the whole session
+        // from the server, which is authoritative. The cached run and this one
+        // are the same run whenever the seeds match, and when they do not, the
+        // save is re-pointed at the right file by the line below.
+        _offlineIn = 0f;
+        if (IsOffline)
+        {
+            Logger.LogInfo($"a server answered; the offline run is taken over "
+                + $"by seed {seed}");
+            IsOffline = false;
+        }
+
         SaveRedirect.Begin(_slotName.Value, seed);
 
         // The track goes up as soon as the seed is known, before any item has
@@ -711,6 +892,12 @@ public sealed class Plugin : BasePlugin
         Checks.AdoptServerChecks(connection.ServerChecks());
         FlushChecks();
 
+        // Written immediately, not left to the debounce. This is the moment
+        // the cache is most worth having and least likely to be written
+        // otherwise: a player who connects, sees their run and quits within
+        // two seconds should still be able to start offline next time.
+        SlotCache.Flush();
+
         Toasts.Show($"Connected to Archipelago - {slot.Slots.Count} puzzles", Toasts.Notice);
 
         Logger.LogInfo($"connected. {slot.Slots.Count} puzzles, "
@@ -744,6 +931,8 @@ public sealed class Ticker : MonoBehaviour
         Hub.Tick();
         Plugin.TickRetry(Time.unscaledDeltaTime);
         Plugin.TickChecks(Time.unscaledDeltaTime);
+        Plugin.TickOfflineStart(Time.unscaledDeltaTime);
+        SlotCache.Tick(Time.unscaledDeltaTime);
         Plugin.TickItemReplay(Time.unscaledDeltaTime);
         Checks.TickAudit(Time.unscaledDeltaTime);
         Checks.TickEmptyLevelWatch(Time.unscaledDeltaTime);

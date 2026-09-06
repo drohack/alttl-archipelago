@@ -31,6 +31,11 @@ __pycache__/
 *.png
 *.log
 
+# Harness environment snapshots (tools/harness_env.py). Copies of the player's
+# saves and BepInEx config, kept on disk so a hard-killed run can still be
+# undone with --restore-latest.
+/tools/.harness-snapshots/
+
 # Local test servers and generated seeds
 /testserver/
 /testseed/

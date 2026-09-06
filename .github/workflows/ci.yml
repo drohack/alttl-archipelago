@@ -67,8 +67,16 @@ jobs:
         run: |
           python3 - <<'PY'
           import glob, sys
-          patterns = ["**/*.md", "**/*.cs", "**/*.py", "**/*.csproj", "**/*.yml", "**/*.json"]
-          skip = ("/bin/", "/obj/", "/Archipelago/", "/docs/data/")
+          # *.yaml as well as *.yml: the shipped player template is a .yaml,
+          # and it was not being checked at all until it existed.
+          patterns = ["**/*.md", "**/*.cs", "**/*.py", "**/*.csproj",
+                      "**/*.yml", "**/*.yaml", "**/*.json"]
+          # All gitignored, so a CI checkout has none of them - listed anyway
+          # so a developer running this snippet locally sees what CI sees.
+          # testserver/ in particular holds upstream's preset yamls, which are
+          # full of BOMs and em dashes and are not ours to rewrite.
+          skip = ("/bin/", "/obj/", "/Archipelago/", "/docs/data/",
+                  "/testserver/", "/dist/")
           bad = 0
           for pat in patterns:
               for f in glob.glob(pat, recursive=True):
@@ -263,3 +271,44 @@ jobs:
           name: alttl-apworld
           path: dist/alttl.apworld
           if-no-files-found: error
+
+  release-refuses:
+    # tools/package-release.py cannot run here - the plugin needs the game's
+    # interop assemblies, which a public runner cannot have and which must
+    # never be committed. What CAN be checked is the half that has nothing to
+    # do with the game: that it REFUSES a version mismatch.
+    #
+    # Worth a job of its own because the refusal is the whole point. A
+    # packager that warns and carries on is how a mod and an apworld ship
+    # agreeing on a number and disagreeing about the item table.
+    name: Packaging refuses a version mismatch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: It passes on the tree as committed
+        run: python tools/check-version.py
+      - name: It fails when the manifest drifts
+        run: |
+          python3 -c "
+          import json, pathlib
+          p = pathlib.Path('apworld/alttl/archipelago.json')
+          d = json.loads(p.read_text())
+          d['world_version'] = '99.99.99'
+          p.write_text(json.dumps(d))
+          "
+          if python tools/check-version.py; then
+            echo "check-version.py PASSED on a tree with a drifted version"
+            exit 1
+          fi
+          echo "refused, as it must"
+      - name: And packaging refuses too, without building anything
+        run: |
+          if python tools/package-release.py --skip-build; then
+            echo "package-release.py PACKAGED a version mismatch"
+            exit 1
+          fi
+          test ! -d dist
+          echo "refused, and wrote nothing"
