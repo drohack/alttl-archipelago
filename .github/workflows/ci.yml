@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
       - name: Build Core standalone
@@ -312,7 +312,7 @@ jobs:
           find players -maxdepth 1 -name '*.yaml' ! -name 'A Little to the Left.yaml' -delete
           python Generate.py --player_files_path players --outputpath out --seed 20260902
           test -n "$(ls out/*.zip)"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: alttl-apworld
           path: dist/alttl.apworld
