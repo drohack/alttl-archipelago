@@ -171,16 +171,23 @@ jobs:
         # four minutes, nearly all of it other people's.
         #
         # 0.6.8 added AP_TEST_WORLDS for exactly this, scoping world loading to
-        # a named list plus the suite's own fixtures. We are pinned to 0.6.7,
-        # which has no such switch, so the same thing is done by deleting the
-        # worlds instead. Safe here and ONLY here: this is a throwaway checkout
-        # in its own job, which is why the suite was moved out of the apworld
-        # job rather than pruning in place there.
+        # a named list plus the suite's own fixtures. It is NOT usable here and
+        # the reason matters: this job checks out minimum_ap_version, which is
+        # 0.6.7, because testing against a version we do not claim to support
+        # would leave the breakage for a player on the version we DO claim.
+        # Reaching for the env var would mean checking out 0.6.8, which trades
+        # the whole point of this job for a faster run.
+        #
+        # So the same scoping is done by deleting worlds instead. Safe here and
+        # ONLY here: a throwaway checkout in its own job, which is why the
+        # suite was moved out of the apworld job rather than pruned in place.
         #
         # generic and apquest are the fixture worlds 0.6.8 names in
         # _SUITE_FIXTURE_WORLDS - the suite needs them and does not test them.
-        # When the minimum reaches 0.6.8, delete this step and put
-        # AP_TEST_WORLDS=alttl on the one below.
+        #
+        # This step is replaceable by AP_TEST_WORLDS=alttl only if
+        # minimum_ap_version is ever RAISED to 0.6.8 or later - that is, when
+        # 0.6.8 becomes the minimum, not when it merely exists.
         run: |
           cd ap/worlds
           for d in */; do
