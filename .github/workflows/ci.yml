@@ -31,7 +31,7 @@ jobs:
     name: Core (no game installed)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
@@ -48,8 +48,8 @@ jobs:
     name: Version is consistent
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Check the version and the manifest
@@ -62,7 +62,7 @@ jobs:
     name: ASCII only
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Check for non-ASCII
         run: |
           python3 - <<'PY'
@@ -94,26 +94,69 @@ jobs:
           print("clean")
           PY
 
+  versions:
+    # Which Archipelago versions the world is tested against, resolved rather
+    # than written down, so the list cannot go stale by nobody editing it.
+    #
+    # TWO, and they are usually the same one:
+    #
+    #   minimum  archipelago.json's minimum_ap_version. The version we CLAIM
+    #            to support. Testing only main and shipping a claim about the
+    #            minimum is how cw4 left breakage for its players to find.
+    #   latest   the newest GitHub RELEASE. What a player actually installs.
+    #
+    # On 2026-09-06 both are 0.6.7 - 0.6.8 exists only on main and has never
+    # been released - so this runs one leg and says so. The point is that the
+    # day 0.6.8 ships, the second leg appears on its own and a break against
+    # it is ours to find rather than a player's.
+    #
+    # Deliberately NOT main. An unreleased branch can be red for reasons that
+    # never reach anybody, and chasing it is work nobody asked for.
+    name: Resolve Archipelago versions
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.pick.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          min=$(python3 -c "import json;print(json.load(open('apworld/alttl/archipelago.json'))['minimum_ap_version'])")
+          latest=$(gh api repos/ArchipelagoMW/Archipelago/releases/latest --jq .tag_name)
+          echo "declared minimum: $min"
+          echo "latest release:   $latest"
+          if [ "$min" = "$latest" ]; then
+            echo "the minimum IS the latest release; one leg"
+            entries="[{\"ref\":\"$min\",\"label\":\"minimum, and currently also the latest release\"}]"
+          else
+            echo "two legs: the minimum we claim, and the latest a player installs"
+            entries="[{\"ref\":\"$min\",\"label\":\"declared minimum\"},{\"ref\":\"$latest\",\"label\":\"latest release\"}]"
+          fi
+          echo "matrix=$entries" >> "$GITHUB_OUTPUT"
+
   apworld:
-    # Pinned to the DECLARED MINIMUM Archipelago version, not main. If we test
-    # against main and a player runs the minimum we claim to support, the
-    # breakage is theirs to find. cw4 learned this the expensive way.
-    name: apworld (minimum AP version)
+    # Run against every version `versions` resolved - see that job. Not pinned
+    # to main. If we test
+    needs: versions
+    strategy:
+      # A break on one version must not cancel the other leg. Knowing it fails
+      # on BOTH, or on only one, is most of the diagnosis.
+      fail-fast: false
+      matrix:
+        ap: ${{ fromJSON(needs.versions.outputs.matrix) }}
+    name: apworld (AP ${{ matrix.ap.ref }} - ${{ matrix.ap.label }})
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - name: Read the minimum supported Archipelago version
-        id: ap
-        run: |
-          python3 -c "import json;print('ref=' + json.load(open('apworld/alttl/archipelago.json'))['minimum_ap_version'])" >> "$GITHUB_OUTPUT"
-      - name: Check out Archipelago at that version
-        uses: actions/checkout@v4
+      - name: Check out Archipelago
+        uses: actions/checkout@v5
         with:
           repository: ArchipelagoMW/Archipelago
-          ref: ${{ steps.ap.outputs.ref }}
+          ref: ${{ matrix.ap.ref }}
           path: ap
       - name: Install Archipelago's requirements
         run: |
@@ -150,22 +193,23 @@ jobs:
     # container and are forbidden in a world manifest. That sat in the tree
     # through every commit until the suite that exists to catch it was finally
     # run.
-    name: apworld compliance (Archipelago's own tests)
+    needs: versions
+    strategy:
+      fail-fast: false
+      matrix:
+        ap: ${{ fromJSON(needs.versions.outputs.matrix) }}
+    name: compliance (AP ${{ matrix.ap.ref }} - ${{ matrix.ap.label }})
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - name: Read the minimum supported Archipelago version
-        id: ap
-        run: |
-          python3 -c "import json;print('ref=' + json.load(open('apworld/alttl/archipelago.json'))['minimum_ap_version'])" >> "$GITHUB_OUTPUT"
-      - name: Check out Archipelago at that version
-        uses: actions/checkout@v4
+      - name: Check out Archipelago
+        uses: actions/checkout@v5
         with:
           repository: ArchipelagoMW/Archipelago
-          ref: ${{ steps.ap.outputs.ref }}
+          ref: ${{ matrix.ap.ref }}
           path: ap
       - name: Install Archipelago's requirements
         run: |
@@ -179,23 +223,19 @@ jobs:
         # four minutes, nearly all of it other people's.
         #
         # 0.6.8 added AP_TEST_WORLDS for exactly this, scoping world loading to
-        # a named list plus the suite's own fixtures. It is NOT usable here and
-        # the reason matters: this job checks out minimum_ap_version, which is
-        # 0.6.7, because testing against a version we do not claim to support
-        # would leave the breakage for a player on the version we DO claim.
-        # Reaching for the env var would mean checking out 0.6.8, which trades
-        # the whole point of this job for a faster run.
+        # a named list plus the suite's own fixtures - but this job now runs as
+        # a MATRIX over several Archipelago versions, and 0.6.7 has no such
+        # switch. Deleting worlds is the one mechanism that works on every leg,
+        # and one mechanism is worth more here than a marginally faster run on
+        # some of them.
         #
-        # So the same scoping is done by deleting worlds instead. Safe here and
-        # ONLY here: a throwaway checkout in its own job, which is why the
-        # suite was moved out of the apworld job rather than pruned in place.
+        # Safe here and ONLY here: a throwaway checkout in its own job, which
+        # is why the suite was moved out of the apworld job rather than pruned
+        # in place.
         #
         # generic and apquest are the fixture worlds 0.6.8 names in
         # _SUITE_FIXTURE_WORLDS - the suite needs them and does not test them.
-        #
-        # This step is replaceable by AP_TEST_WORLDS=alttl only if
-        # minimum_ap_version is ever RAISED to 0.6.8 or later - that is, when
-        # 0.6.8 becomes the minimum, not when it merely exists.
+        # Keeping them on 0.6.7 too is harmless; it predates the concept.
         run: |
           cd ap/worlds
           for d in */; do
@@ -222,11 +262,17 @@ jobs:
     # player installs the release. That shipped here once. This job removes the
     # loose copy, installs only the .apworld, and generates a real seed - the
     # only arrangement in which that class of bug is visible.
+    #
+    # Deliberately NOT matrixed over Archipelago versions like apworld and
+    # compliance are. What it tests is the SHAPE of the artifact - that
+    # nothing inside reads its own files by path - which does not vary by
+    # Archipelago version, and it uploads the release artifact, so a matrix
+    # would produce several identical zips fighting over one artifact name.
     name: apworld package
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Read the minimum supported Archipelago version
@@ -234,7 +280,7 @@ jobs:
         run: |
           python3 -c "import json;print('ref=' + json.load(open('apworld/alttl/archipelago.json'))['minimum_ap_version'])" >> "$GITHUB_OUTPUT"
       - name: Check out Archipelago at that version
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ArchipelagoMW/Archipelago
           ref: ${{ steps.ap.outputs.ref }}
@@ -284,8 +330,8 @@ jobs:
     name: Packaging refuses a version mismatch
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: It passes on the tree as committed
