@@ -106,13 +106,24 @@ class Level:
         }
 
         # How many hint pages this level's notepad holds. Not one per level:
-        # 74 levels have one, 31 have between two and five, and six have none.
-        # The Hint Page item is minted per PAGE, so this is summed over the
-        # drawn plan rather than derived from a puzzle count. Six generators
-        # read zero here because the sweep reads LevelInterface.HintImages;
-        # LevelRandomizer.GetRandomizerHints is a separate source that two of
-        # them override, which is a known open question, not a missing field.
-        self.hint_images: int = raw.get("hintImages", 0)
+        # most have one, 31 have between two and five.
+        #
+        # The MAXIMUM of two sources, and it has to be. LevelInterface
+        # .HintImages misses the six generator puzzles entirely - they report
+        # zero there and still hand the player a real notepad, because a
+        # LevelRandomizer keeps its own supply and answers GetRandomizerHints()
+        # instead. Reading only the first source minted no Hint Page for those
+        # six while the player could spend up to two on each, and had the mod
+        # telling them the puzzle had no hint at all. Found in play, not by
+        # reasoning: droha opened Pencils and got a hint.
+        #
+        # randomizerHints is what the generated layout actually uses;
+        # randomizerHintPool is the larger authored list it draws from. The
+        # used count is the honest one - Books holds seven and shows two - and
+        # since pages are fungible across the whole run, being a page light
+        # occasionally costs far less than inflating every seed.
+        self.hint_images: int = max(raw.get("hintImages", 0),
+                                    raw.get("randomizerHints", 0))
 
         self.abilities: FrozenSet[str] = frozenset(
             _CLASS_TO_ABILITY[c["type"]]

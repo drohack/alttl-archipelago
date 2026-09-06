@@ -1806,6 +1806,25 @@ public class DevToolsBehaviour : MonoBehaviour
         var images = -1;
         try { images = li.HintImages == null ? 0 : li.HintImages.Count; } catch { }
 
+        // The OTHER source of hints, and the reason a level can report zero
+        // images and still show a scribble: LevelRandomizer carries its own
+        // List<Sprite> RandomizerHints plus a virtual GetRandomizerHints(),
+        // which Books and Pencils override. LevelInterface.HintImages is what
+        // the level sweep reads, so anything living only here is invisible to
+        // the generator's page count.
+        foreach (var obj in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<LevelRandomizer>()))
+        {
+            var rnd = obj == null ? null : obj.TryCast<LevelRandomizer>();
+            if (rnd == null || rnd.gameObject == null) continue;
+            if (!rnd.gameObject.activeInHierarchy) continue;
+
+            DevToolsPlugin.Log.LogInfo(
+                $"hints: randomizer {rnd.GetIl2CppType().Name}"
+                + $" RandomizerHints={Str(() => rnd.RandomizerHints == null ? "null" : rnd.RandomizerHints.Count.ToString())}"
+                + $" GetRandomizerHints={Str(() => rnd.GetRandomizerHints() == null ? "null" : rnd.GetRandomizerHints().Count.ToString())}");
+        }
+
         DevToolsPlugin.Log.LogInfo(
             $"hints: {Str(() => li.LevelId)}"
             + $" randomizable={Str(() => li.IsRandomizable.ToString())}"
@@ -1824,6 +1843,14 @@ public class DevToolsBehaviour : MonoBehaviour
                 + $" maxIndex={Str(() => menu.m_maxHintIndex.ToString())}"
                 + $" pages={Str(() => menu.HintPages == null ? "null" : menu.HintPages.Length.ToString())}"
                 + $" isDaily={Str(() => menu.m_isDailyTidyHint.ToString())}");
+
+            var mgr = menu.m_activeHintManager;
+            DevToolsPlugin.Log.LogInfo(
+                $"hints: manager={(mgr == null ? "null" : "yes")}"
+                + (mgr == null ? "" :
+                   $" usedAt={Str(() => mgr.hintUsedAtNormal.ToString())}"
+                   + $" fullAt={Str(() => mgr.hintFullyCleanedAtNormal.ToString())}"
+                   + $" taken={Str(() => mgr.m_hintsTakenIndexes.Count.ToString())}"));
 
             // Read CanBeWiped per page.
             //

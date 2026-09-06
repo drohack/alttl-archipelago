@@ -1684,3 +1684,120 @@ reading a label out of the object tree is not reading what a player sees.
 
 Nothing else in any loaded menu shows either caption, so the label rewrite has
 no other surface to leak onto.
+
+### Three defects from droha's manual test, 2026-09-05
+
+The first real play session found three things no probe had. Worth recording
+what each actually was, because in all three cases the code looked right.
+
+**1. Two seconds of scrubbing before anything acknowledged you.** The charge
+rides on the game's own HintTaken, which fires once the scribble is cleaned
+past `HintManager.hintUsedAtNormal`. Measured, that threshold is **0.25** - a
+quarter of the page - and nothing on screen moves while the game makes up its
+mind, so it reads as the feature being broken. Lowered to **0.12**. Not to
+zero: the merest brush of the eraser would then spend a page, which is the
+opposite trap.
+
+Getting the value applied took two wrong attempts, both of which failed
+SILENTLY:
+
+- A postfix on `HintManager.Start` guarded by `Track.Active`. The patch applies
+  and the method exists, but Start runs as the scene loads, which is before the
+  client has connected - so the guard skipped it every single time.
+- `FindObjectOfType<HintManager>()` as a fallback. That sees only objects
+  active in the hierarchy, and the manager sits inactive until a notepad wants
+  it. `Resources.FindObjectsOfTypeAll` finds it.
+
+The value is now applied from `LevelStarted`, which runs per level with a run
+known to be on.
+
+**2. The note label leaked one copy per level.** droha reported the text under
+the page as "overlapping itself" and unreadable. It was four labels stacked:
+`Menus/Hint Menu/Notepad` OUTLIVES the level, and `LevelStarted` cleared the
+cached reference without destroying the object - so the next level could not
+find the old label and built another over the top. The comment on that line
+asserted the notepad "is rebuilt with the level", which is exactly the false
+belief that caused it; both the code and the comment are corrected.
+`NoteLabel` now looks for an existing child by name before making one.
+Confirmed: three levels visited, one label.
+
+**3. The Hint entry was missing if you paused during the load.** The game hides
+it while a level is still coming up, and `AfterShowHideMenuItems` restored only
+Levels and Skip. Pausing early therefore showed a menu with no Hint at all, and
+it appeared only after resuming and pausing again - which reads as a bug in the
+mod rather than as timing. Hint is now restored alongside the other two.
+Confirmed by pausing with zero settle time after a level boot.
+
+**Also verified here, at last: the "no hint" pair.** On Procedural Grid Puzzle
+(one of the six generators with an empty notepad) the pause menu reads
+`no hint  Hint` rather than a count. That was the last state in the Hint Page
+work never to have been seen.
+
+### Every level has a hint after all, 2026-09-05
+
+droha opened the hint on Pencils (Randomized) - a level this project had called
+hintless all the way through - and got a real hint. Measured immediately after:
+
+| level | HintImages | RandomizerHints pool | this layout uses |
+|---|---|---|---|
+| Books (Randomized) | 0 | 7 | 2 |
+| Pencils (Randomized) | 0 | 5 | 2 |
+| Batteries / Stamps / Post-It / Grid | 0 | 1 | 1 |
+
+**Levels in the game with no hint from any source: zero.** The claim that six
+were hintless, repeated in this log, in the WebHost page and in three commit
+messages, was wrong from the first sweep. All of them are corrected.
+
+The cause was named a session earlier and not acted on. `LevelRandomizer` has
+its own `List<Sprite> RandomizerHints` and a virtual `GetRandomizerHints()`,
+which the static decompile showed Books and Pencils overriding. That was
+written down as "worth at most 2 levels of 111, so it does not block Stage 1"
+and left as an open question. It was worth all six, and the consequences were
+not cosmetic:
+
+- the generator minted NO Hint Page for those slots while a player could spend
+  up to two on each, so the pool was short
+- the pause menu and the notepad both told the player the puzzle had no hint
+
+Both sides now read the larger of the two sources: `Hints.PagesHere` at
+runtime, `max(hintImages, randomizerHints)` in `data.py`. The level sweep
+records `randomizerHintPool` and `randomizerHints` separately, because they
+disagree - the field is the authored list, the method is what the generated
+layout selected from it.
+
+**The lesson is not that the symbol was missed - it was found, and written
+down.** It was ranked as small on a guess about how many levels it touched,
+without measuring, and the guess was out by a factor of three. An open question
+about a data source is worth the ten minutes to close before building numbers
+on top of it.
+
+### Rebalancing that fell out of it
+
+Pages per default seed went from ~88 to ~112, which no longer fits: at 100%
+coverage the hint tier was clamped, about 8 pages per seed had no item anywhere
+in the multiworld, and backgrounds were squeezed to zero. Measured:
+
+| coverage | hints | traps | backgrounds | pages with no item |
+|---|---|---|---|---|
+| 100% | 103.0 | 33.8 | 0.0 | **8** |
+| 85% | 94.2 | 33.8 | 8.8 | 0 |
+| 70% | 77.5 | 33.8 | 25.5 | 0 |
+| 55% | 60.8 | 33.8 | 42.2 | 0 |
+
+droha chose **50%** as the new default, on the reasoning that nobody uses a
+hint on every level and the reassurance of full coverage is not worth the pool
+being nothing else. A default seed now reads:
+
+| | count | share |
+|---|---|---|
+| progression | 26.0 | 15% |
+| skips | 5.0 | 3% |
+| cat traps | 34.6 | 20% |
+| hint pages | 55.8 | 32% |
+| backgrounds | 50.0 | 29% |
+
+### Erase threshold
+
+Lowered again after droha tried 0.12 and still found it slow: `hintUsedAtNormal`
+is now **0.05**, down from the game's own 0.25. Confirmed in the log as
+`taken-threshold 0.25 -> 0.05`.

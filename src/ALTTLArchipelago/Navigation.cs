@@ -114,8 +114,15 @@ internal static class Navigation
                 if (isSkip) { _skipEntry = child; Annotate(child, $"{Skips.Available}"); }
                 else if (isHint) { _hintEntry = child; Annotate(child, HintTag()); }
 
+                // Hint is restored too. The game hides it while a level is
+                // still loading, so opening the pause menu early - which is
+                // exactly what someone does when they already know the puzzle
+                // - showed a menu with no Hint entry at all, and it only
+                // appeared after resuming and pausing again. On a puzzle with
+                // no hint the entry now reads "no hint" rather than being
+                // absent, which is a better answer than silence either way.
                 var wanted = child.name.StartsWith("Levels", StringComparison.Ordinal)
-                             || isSkip;
+                             || isSkip || isHint;
                 if (!wanted || child.gameObject.activeSelf) continue;
 
                 child.gameObject.SetActive(true);
@@ -193,17 +200,11 @@ internal static class Navigation
     /// </summary>
     private static string HintTag()
     {
-        try
-        {
-            var li = GameManager.Instance?.levelManager?.ActiveLevelInterface;
-            var pages = li?.HintImages == null ? 0 : li.HintImages.Count;
-            if (pages == 0) return "no hint";
-        }
-        catch
-        {
-            // Fall through to the count; a wrong number reads better than a
-            // pause menu that throws.
-        }
+        // Hints.PagesHere, not LevelInterface.HintImages. The two disagree on
+        // any level with a randomizer - Pencils reports no images and still
+        // has two pages - and reading the wrong one told the player a puzzle
+        // had no hint while its notepad opened a real one.
+        if (Hints.PagesHere() == 0) return "no hint";
         return $"{Hints.Available}";
     }
 

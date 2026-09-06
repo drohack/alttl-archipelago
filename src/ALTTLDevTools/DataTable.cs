@@ -219,6 +219,38 @@ internal sealed class DataTable
     /// exactly the case this is looking for, and a swipe object waiting its
     /// turn may well be switched off.
     /// </summary>
+    /// <summary>
+    /// How many hint pages a level's randomizer supplies, if it has one.
+    ///
+    /// <paramref name="pool"/> picks between the authored list and what this
+    /// generated layout actually selected from it. They differ - Pencils holds
+    /// five and uses two - so the generator wants the larger of the two: a
+    /// Hint Page pool that is short leaves a page nobody can afford, while one
+    /// that is long only leaves a spare, and pages are fungible.
+    /// </summary>
+    private static int RandomizerHintCount(Level level, bool pool)
+    {
+        if (level == null) return 0;
+
+        var best = 0;
+        foreach (var rnd in level.GetComponentsInChildren<LevelRandomizer>(true))
+        {
+            if (rnd == null) continue;
+            try
+            {
+                var list = pool ? rnd.RandomizerHints : rnd.GetRandomizerHints();
+                if (list != null && list.Count > best) best = list.Count;
+            }
+            catch
+            {
+                // A randomizer that throws on either accessor contributes
+                // nothing rather than aborting the sweep.
+            }
+        }
+        return best;
+    }
+
+
     private static string CatsIn(Level? level)
     {
         var row = new StringBuilder("[");
@@ -320,6 +352,17 @@ internal sealed class DataTable
         // controllers. Recorded after a claim was made off a sample of three.
         row.Append($", \"hintAvailable\": {Bool(() => li!.HintAvailable)}");
         row.Append($", \"hintImages\": {Str(() => (li!.HintImages == null ? 0 : li.HintImages.Count).ToString())}");
+
+        // The SECOND source of hint pages, and the reason hintImages alone was
+        // wrong. A LevelRandomizer carries its own List<Sprite>
+        // RandomizerHints and a virtual GetRandomizerHints(); Pencils and Books
+        // override it. Pencils reports hintImages = 0 while
+        // GetRandomizerHints() returns 2, so the generator minted no Hint Page
+        // for a puzzle with two real pages, and the mod told the player it had
+        // no hint at all. Both numbers are recorded because they disagree:
+        // the field is the authored pool, the method is what THIS layout uses.
+        row.Append($", \"randomizerHintPool\": {Str(() => RandomizerHintCount(level, pool: true).ToString())}");
+        row.Append($", \"randomizerHints\": {Str(() => RandomizerHintCount(level, pool: false).ToString())}");
         row.Append(", \"cats\": ");
         row.Append(CatsIn(level));
         row.Append('}');

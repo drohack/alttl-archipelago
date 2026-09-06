@@ -177,11 +177,15 @@ class CatTrapChance(Range):
 class HintCoverage(Range):
     """Percentage of this seed's hint pages that get a Hint Page item.
 
-    This is a percentage, not a count, because how many pages a run contains
-    depends on which puzzles it drew - most levels have one page, some have up
-    to five, and a few have none at all. At the default of 100 every page in
-    your run has exactly one item that opens it. Lower it and some notepads
-    stay covered for good.
+    A percentage rather than a count, because how many pages a run contains
+    depends on what it drew: every puzzle in the game has at least one, most
+    have exactly one, and some run to five. A default 79-puzzle seed holds
+    about 110 pages, so 50 means roughly 55 items - enough to open the hints
+    you actually reach for, without the pool being nothing but hints.
+
+    Turn it up if you want the reassurance of knowing every notepad in the run
+    can be opened. Note that at 100 the hint items crowd out almost everything
+    else, and can exceed the number of item slots the seed has to give.
 
     Without a Hint Page the notepad still opens, so you can see that a hint
     exists and how long it is - you just cannot erase the scribble.
@@ -189,7 +193,7 @@ class HintCoverage(Range):
     display_name = "Hint Coverage"
     range_start = 0
     range_end = 100
-    default = 100
+    default = 50
 
 
 class SkipCount(Range):

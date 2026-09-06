@@ -20,8 +20,13 @@ namespace ALTTLArchipelago;
 /// reading it is.
 ///
 /// A LEVEL IS NOT A PAGE. The notepad is an array of HintPage objects, each
-/// with its own erasable surface: 74 levels hold one page, 31 hold between two
-/// and five. One item opens one page, and page two of a level costs a second.
+/// with its own erasable surface: most levels hold one page and 31 hold
+/// between two and five. One item opens one page, and page two of a level
+/// costs a second.
+///
+/// EVERY level has at least one. The six generator puzzles were long believed
+/// to have none, because LevelInterface.HintImages reports zero for them -
+/// they answer GetRandomizerHints() instead. See PagesHere.
 /// </summary>
 internal static class Hints
 {
@@ -173,6 +178,95 @@ internal static class Hints
 
 
     /// <summary>
+    /// Make the game count a hint as taken sooner.
+    ///
+    /// The charge rides on the game's own HintTaken event, which fires once
+    /// the scribble is cleaned past HintManager.hintUsedAtNormal. At the stock
+    /// value that is a couple of seconds of scrubbing before anything
+    /// acknowledges you - droha tested it and reported the delay as the single
+    /// most confusing thing about the feature, because nothing on screen moves
+    /// while the game decides.
+    ///
+    /// Lowered rather than removed. At zero the merest brush of the eraser
+    /// would spend a page, which is the opposite trap: you could lose one by
+    /// putting the cursor down in the wrong place.
+    /// </summary>
+    [HarmonyPatch(typeof(HintManager), nameof(HintManager.Start))]
+    [HarmonyPostfix]
+    private static void AfterHintManagerStart(HintManager __instance)
+    {
+        // Only remembered here, never changed here. Start runs once as the
+        // scene loads, which is BEFORE the client has connected - a guard on
+        // Track.Active in this method therefore skipped it every time and the
+        // threshold was never lowered at all, silently. The value is applied
+        // from LevelStarted instead, which runs per level with a run known to
+        // be on.
+        _manager = __instance;
+    }
+
+    private static HintManager? _manager;
+
+
+    /// <summary>
+    /// Make the game count a hint as taken sooner.
+    ///
+    /// The charge rides on the game's own HintTaken event, which fires once
+    /// the scribble is cleaned past HintManager.hintUsedAtNormal. At the stock
+    /// value that is a couple of seconds of scrubbing before anything
+    /// acknowledges you - droha tested it and reported the delay as the most
+    /// confusing thing about the feature, because nothing on screen moves
+    /// while the game makes up its mind.
+    ///
+    /// Lowered rather than removed. At zero the merest brush of the eraser
+    /// would spend a page, which is the opposite trap: you could lose one by
+    /// putting the cursor down in the wrong place.
+    /// </summary>
+    private static void LowerTakenThreshold()
+    {
+        try
+        {
+            // Start is not reliable here. It is patched and the patch applies,
+            // but it never fired with the manager in hand - the object is
+            // built lazily rather than with the scene - so a lookup is needed
+            // as well. Once per level at worst, and only until one is found.
+            if (_manager == null)
+            {
+                // FindObjectsOfTypeAll, not FindObjectOfType: the latter sees
+                // only objects active in the hierarchy, and the hint manager
+                // sits inactive until a notepad wants it. The active-only
+                // search found nothing and the threshold silently stayed at
+                // its stock value, which looked exactly like the patch not
+                // working.
+                foreach (var obj in Resources.FindObjectsOfTypeAll(
+                             Il2CppInterop.Runtime.Il2CppType.Of<HintManager>()))
+                {
+                    _manager = obj == null ? null : obj.TryCast<HintManager>();
+                    if (_manager != null) break;
+                }
+                if (_manager == null) return;
+                Plugin.Logger.LogInfo("hint: found the HintManager by search");
+            }
+
+            var was = _manager.hintUsedAtNormal;
+            if (was <= TakenAt) return;             // already at least as eager
+
+            _manager.hintUsedAtNormal = TakenAt;
+            Plugin.Logger.LogInfo($"hint: taken-threshold {was} -> {TakenAt}");
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"hint: could not lower the threshold: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// How much of the scribble must be gone before the hint counts as taken,
+    /// as a fraction. The dial to turn if the delay still reads wrong.
+    /// </summary>
+    private const float TakenAt = 0.05f;
+
+
+    /// <summary>
     /// Charge for the page the player actually read.
     ///
     /// The game raises this once a hint has genuinely been uncovered - past
@@ -278,14 +372,55 @@ internal static class Hints
     }
 
 
+    /// <summary>
+    /// How many hint pages the running puzzle actually has.
+    ///
+    /// LevelInterface.HintImages is NOT the whole answer, which is what
+    /// droha found in play: clicking Hint on Pencils (Randomized) opened a
+    /// real hint on a puzzle the mod had just called hintless. A level with a
+    /// LevelRandomizer has a second, separate supply - RandomizerHints, with a
+    /// virtual GetRandomizerHints() that Pencils and Books override - and
+    /// HintImages reports zero for those. Measured on Pencils: HintImages 0,
+    /// GetRandomizerHints 2.
+    ///
+    /// Taking the larger of the two is what makes "no hint" mean it.
+    /// </summary>
+    internal static int PagesHere()
+    {
+        try
+        {
+            var li = GameManager.Instance?.levelManager?.ActiveLevelInterface;
+            if (li == null) return 0;
+
+            var pages = li.HintImages == null ? 0 : li.HintImages.Count;
+
+            var level = li.Level;
+            if (level != null)
+            {
+                foreach (var rnd in level.GetComponentsInChildren<LevelRandomizer>(true))
+                {
+                    if (rnd == null) continue;
+                    var from = rnd.GetRandomizerHints();
+                    if (from != null && from.Count > pages) pages = from.Count;
+                }
+            }
+            return pages;
+        }
+        catch
+        {
+            // A wrong count reads better than a notepad that throws, and
+            // erring high means we say a hint exists rather than denying one.
+            return 1;
+        }
+    }
+
+
     /// <summary>What the note should say for the page now showing.</summary>
     private static string NoteText()
     {
         if (!Track.Active) return "";
 
-        var li = GameManager.Instance?.levelManager?.ActiveLevelInterface;
-        var pages = li?.HintImages == null ? 0 : li.HintImages.Count;
-        if (pages == 0) return "This puzzle has no hint";
+        if (PagesHere() == 0) return "This puzzle has no hint";
 
         var key = _menu == null ? null : KeyFor(_menu.m_currentHintIndex);
         if (key == null) return "";
@@ -311,7 +446,23 @@ internal static class Hints
         if (_note != null) return _note;
         if (_menu == null || _menu.notepad == null) return null;
 
-        var go = new GameObject("ArchipelagoHintNote");
+        // Look for one we already made before making another. The notepad
+        // OUTLIVES the level, so clearing the cached reference on a level
+        // change - which is what LevelStarted used to do - did not remove the
+        // label from the scene; it just stopped us finding it, and the next
+        // level built a second one on top. Four levels in, four labels were
+        // drawing over each other and the note was unreadable.
+        var existing = _menu.notepad.Find(NoteName);
+        if (existing != null)
+        {
+            _note = existing.gameObject.GetComponent<TMPro.TextMeshProUGUI>();
+            if (_note != null) return _note;
+
+            // Named right but unusable - drop it rather than stack on it.
+            UnityEngine.Object.Destroy(existing.gameObject);
+        }
+
+        var go = new GameObject(NoteName);
         go.transform.SetParent(_menu.notepad, false);
 
         var rect = go.AddComponent<RectTransform>();
@@ -336,6 +487,9 @@ internal static class Hints
     }
 
     private static TMPro.TextMeshProUGUI? _note;
+
+    /// <summary>The label's object name, which is also how it is found again.</summary>
+    private const string NoteName = "ArchipelagoHintNote";
 
 
     /// <summary>
@@ -362,12 +516,17 @@ internal static class Hints
     internal static void LevelStarted()
     {
         _refused = false;
+        LowerTakenThreshold();
 
-        // The label belongs to the notepad, which is rebuilt with the level.
-        // Dropping the reference lets it be made again against the new one -
-        // Unity's == null is true for a destroyed object, so a stale wrapper
-        // would otherwise be handed back forever and the note would silently
-        // stop updating.
+        // Drop the cached label, which is now only a hint that it should be
+        // looked up again rather than a claim that it is gone.
+        //
+        // The comment here used to say the notepad is rebuilt with the level.
+        // It is not - Menus/Hint Menu/Notepad outlives every level - and that
+        // wrong belief is what made this line a leak: nulling the reference
+        // stopped us finding the label without removing it, so the next level
+        // built a second one over the top. NoteLabel now finds the existing
+        // child by name, which makes this safe whichever is true.
         _note = null;
     }
 }

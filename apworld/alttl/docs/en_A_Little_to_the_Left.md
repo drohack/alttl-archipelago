@@ -38,6 +38,12 @@ the pause screen, drawing from the ten background colours the game itself
 uses. They are the run's filler, and unlike most filler they do something you
 can see the moment they arrive.
 
+Every puzzle in the game has a hint, and a default seed holds about 110 pages
+across them. **Hint Coverage** decides how many get an item, and defaults to
+50% - enough to open the hints you actually reach for, without the pool being
+nothing but hints. Turn it up if you would rather know every notepad in the
+run can be opened.
+
 A **Hint Page** uncovers one page of one puzzle's hint notepad. Most puzzles
 have a one-page hint, but some run to five, and each page costs its own item.
 By default the multiworld contains exactly one Hint Page for every page your
@@ -66,8 +72,7 @@ immediately: objects that were dimmed become movable, including on a puzzle you
 already have open. Filler and traps apply the next time they can.
 
 Hint Pages go into a pool you spend by erasing. The pause menu shows how many
-you are holding beside the Hint entry, and reads "no hint" on the handful of
-puzzles that have no notepad at all.
+you are holding beside the Hint entry.
 
 Opening a notepad is always free, so you can check whether a hint exists and
 how long it is before deciding to spend. The page itself tells you where you
