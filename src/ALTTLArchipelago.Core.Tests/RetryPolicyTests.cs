@@ -53,12 +53,59 @@ public class RetryPolicyTests
     [Fact]
     public void NonsenseSettingsDegradeRatherThanThrow()
     {
-        // These come from a config file a player can edit.
-        var zero = new RetryPolicy(maxAttempts: 0, firstDelaySeconds: 0,
+        // These come from a config file a player can edit. Zero attempts is no
+        // longer nonsense - it is how "keep trying" is spelled - so the nonsense
+        // here is the negative, and the delays.
+        var junk = new RetryPolicy(maxAttempts: -4, firstDelaySeconds: 0,
                                    maxDelaySeconds: -5);
-        Assert.True(zero.MaxAttempts >= 1);
-        Assert.True(zero.DelayForAttempt(1) > 0);
-        Assert.Null(zero.Failed("only attempt"));
+        Assert.True(junk.DelayForAttempt(1) > 0);
+        Assert.True(junk.IsUnlimited);
+        Assert.NotNull(junk.Failed("still going"));
+    }
+
+    [Fact]
+    public void TheDefaultPolicyRetriesForever()
+    {
+        // Archipelago's own client is unbounded, and a bounded policy is worse
+        // than it sounds: it gives up quietly, and the button to start again
+        // was itself broken while an attempt was in flight.
+        var policy = new RetryPolicy();
+
+        Assert.True(policy.IsUnlimited);
+        for (int i = 0; i < 50; i++)
+        {
+            Assert.NotNull(policy.Failed("server is down"));
+            Assert.False(policy.GaveUp);
+        }
+    }
+
+    [Fact]
+    public void TheDefaultScheduleIsFiveTenTwentyFortySixty()
+    {
+        // Doubling to a one-minute ceiling. Without the cap, pure doubling
+        // reaches an hour by the twelfth attempt, which a player cannot tell
+        // apart from the mod having given up.
+        var policy = new RetryPolicy();
+
+        Assert.Equal(5, policy.DelayForAttempt(1));
+        Assert.Equal(10, policy.DelayForAttempt(2));
+        Assert.Equal(20, policy.DelayForAttempt(3));
+        Assert.Equal(40, policy.DelayForAttempt(4));
+        Assert.Equal(60, policy.DelayForAttempt(5));
+        Assert.Equal(60, policy.DelayForAttempt(20));
+    }
+
+    [Fact]
+    public void ABoundedPolicyStillGivesUp()
+    {
+        // Kept available: the tests below use it, and a player may set
+        // MaxRetries to a number if they would rather it stopped.
+        var policy = new RetryPolicy(maxAttempts: 2);
+
+        Assert.False(policy.IsUnlimited);
+        Assert.NotNull(policy.Failed("one"));
+        Assert.Null(policy.Failed("two"));
+        Assert.True(policy.GaveUp);
     }
 
     [Fact]

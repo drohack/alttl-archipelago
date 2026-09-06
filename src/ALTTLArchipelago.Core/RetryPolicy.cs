@@ -3,9 +3,14 @@ namespace ALTTLArchipelago.Core;
 /// <summary>
 /// How many times to retry a connection, and how long to wait between tries.
 ///
-/// A fixed number of attempts and then a stop, deliberately: a server that is
-/// genuinely gone should not be hammered, and a player staring at a menu should
-/// be told what happened rather than left watching an endless spinner.
+/// Unbounded by default, backing off. Archipelago's own reference client
+/// retries forever, and a bounded policy turned out to be worse than the
+/// endless spinner it was avoiding: three tries against a server that comes
+/// back a minute later leaves the player disconnected with no indication, and
+/// the fix - press Connect - was itself broken while an attempt was in flight.
+///
+/// A bounded policy is still available for tests and for anyone who wants one;
+/// pass a positive maxAttempts.
 ///
 /// No timer and no threads here - it answers "should I try again, and when?"
 /// and the caller supplies the clock. That is what makes the schedule testable
@@ -13,25 +18,29 @@ namespace ALTTLArchipelago.Core;
 /// </summary>
 public sealed class RetryPolicy
 {
-    public const int DefaultMaxAttempts = 3;
+    /// <summary>maxAttempts value meaning "keep going until told to stop".</summary>
+    public const int Unlimited = 0;
+
+    public const int DefaultMaxAttempts = Unlimited;
 
     private readonly int _maxAttempts;
     private readonly double _firstDelaySeconds;
     private readonly double _maxDelaySeconds;
 
     /// <summary>
-    /// Three attempts, first wait 3s, capped at 30s.
-    ///
-    /// Chosen from play rather than theory: five attempts starting a second
-    /// apart hammered a dead server and read as thrashing. Three tries with a
-    /// slower start looks like a considered reconnect and still covers a brief
-    /// network blip.
+    /// Unlimited attempts, first wait 5s, doubling to a 60s ceiling: 5, 10,
+    /// 20, 40, 60, 60, ... which is the schedule cw4-archipelago settled on
+    /// for the same reasons. Pure doubling without the cap reaches an hour by
+    /// the twelfth attempt, which is indistinguishable from having given up.
     /// </summary>
     public RetryPolicy(int maxAttempts = DefaultMaxAttempts,
-                       double firstDelaySeconds = 3.0,
-                       double maxDelaySeconds = 30.0)
+                       double firstDelaySeconds = 5.0,
+                       double maxDelaySeconds = 60.0)
     {
-        _maxAttempts = maxAttempts < 1 ? 1 : maxAttempts;
+        // 0 (Unlimited) is meaningful and must survive; only a negative is
+        // nonsense. This used to clamp anything below 1 up to 1, which would
+        // silently turn "forever" into "once".
+        _maxAttempts = maxAttempts < 0 ? 0 : maxAttempts;
         _firstDelaySeconds = firstDelaySeconds <= 0 ? 1.0 : firstDelaySeconds;
         // Clamped against the ALREADY-CLAMPED first delay, not the raw
         // argument: firstDelaySeconds of 0 becomes 1, and comparing against
@@ -47,8 +56,15 @@ public sealed class RetryPolicy
     /// <summary>Why the last attempt failed, for the connection pane to show.</summary>
     public string LastError { get; private set; } = "";
 
-    /// <summary>True once the attempts are spent and the caller should stop.</summary>
-    public bool GaveUp => Attempts >= _maxAttempts;
+    /// <summary>
+    /// True once the attempts are spent and the caller should stop. Never true
+    /// for an unlimited policy - only a deliberate cancel or disconnect stops
+    /// that one.
+    /// </summary>
+    public bool GaveUp => _maxAttempts != Unlimited && Attempts >= _maxAttempts;
+
+    /// <summary>True when this policy will keep trying indefinitely.</summary>
+    public bool IsUnlimited => _maxAttempts == Unlimited;
 
     public int MaxAttempts => _maxAttempts;
 
@@ -64,9 +80,9 @@ public sealed class RetryPolicy
     }
 
     /// <summary>
-    /// Doubling, capped. Capped rather than unbounded because a growing wait
-    /// eventually stops looking like "reconnecting" and starts looking like
-    /// "hung", and there are only a handful of attempts anyway.
+    /// Doubling, capped. The cap is what keeps an unlimited policy usable: a
+    /// wait that keeps growing eventually stops looking like "reconnecting"
+    /// and starts looking like "hung".
     /// </summary>
     public double DelayForAttempt(int attempt)
     {

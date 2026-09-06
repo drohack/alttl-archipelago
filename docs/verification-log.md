@@ -1801,3 +1801,130 @@ being nothing else. A default seed now reads:
 Lowered again after droha tried 0.12 and still found it slow: `hintUsedAtNormal`
 is now **0.05**, down from the game's own 0.25. Confirmed in the log as
 `taken-threshold 0.25 -> 0.05`.
+
+---
+
+## Measured against the CW4 mod, 2026-09-06
+
+`cw4-archipelago` is the same shape of project - a BepInEx IL2CPP mod owning
+both halves of an Archipelago integration - and further along. Reading its
+history as a list of mistakes already paid for turned up two live defects here
+and confirmed four things we do correctly.
+
+### We were violating the apworld specification
+
+Archipelago ships a generic compliance suite, `test/general`, that every world
+must pass. This project had never run it. Run for the first time: **322 tests,
+four minutes, one failure, and the failure was ours.**
+
+    archipelago.json for 'A Little to the Left' must not define 'version',
+    see apworld specification.md.
+
+`test_no_container_version` forbids both `version` and `compatible_version` in
+a world manifest - they describe the .apworld CONTAINER and belong to whatever
+builds it. Ours declared both, from the first commit, and nothing objected
+because nothing ran the test that exists to catch it. CW4's manifest carries
+exactly the four legal keys.
+
+Deleted; the suite is now green at 322/322 and runs in CI beside the other
+apworld jobs.
+
+**On its four-minute runtime.** It iterates every installed world, and there is
+no way to scope it at 0.6.7. `AP_TEST_WORLDS` - a comma-separated list that
+restricts world auto-loading, keeping only the named worlds plus the suite's
+own fixtures - was added in **0.6.8**
+(`worlds/__init__.py`, `_SUITE_FIXTURE_WORLDS`). droha suggested it existed and
+was right; a first look for it here concluded it did not, from grepping the
+pinned 0.6.7 tree and not upstream. When the minimum moves to 0.6.8 or later:
+
+    AP_TEST_WORLDS=alttl python -m unittest discover -s test/general -t .
+
+**Do not use `unittest -k "A Little to the Left"` as a substitute.** It appears
+to do the job - three seconds instead of four minutes - and does not. Only the
+manifest tests generate a class per world, so `-k` matches three tests and
+silently skips `test_fill`, `test_ids` and `test_reachability`, which loop over
+worlds inside the test body. Measured: 3 tests instead of 322. That is not a
+100x speedup, it is a 100x reduction in coverage wearing one.
+
+### The version was already wrong, and we broke it ourselves
+
+One number lives in three files. During the Hint Page work `world_version` was
+bumped twice for id-table changes and the other two were not touched:
+
+    csproj <Version>                 0.1.0
+    Plugin.cs [BepInPlugin]          0.1.0
+    archipelago.json world_version   0.3.0
+
+The comment beside the csproj version read *"in sync only by care"*. Care is not
+a mechanism. CW4 shipped this exact bug twice - once across twelve commits that
+included an item rename, leaving a player holding a mod and an apworld that
+agreed on a version and disagreed about what the items were called.
+
+All three are now 0.3.0, and `tools/check-version.py` fails the build when they
+disagree or when the manifest carries a container key. Verified both ways: it
+passes on the tree and fails when a version is edited out of step.
+
+### The connect button was dead exactly when it was needed
+
+Three defects, one family, all of which CW4 hit first:
+
+- **The click was swallowed.** `Plugin.Attempt` returned early while
+  `_connecting`, so pressing Connect during an attempt did nothing at all - one
+  log line and no status change. It now supersedes instead.
+- **There was no CANCEL.** The label was `IsConnected ? "Disconnect" :
+  "Connect"` - two states for three situations. During an attempt or a backoff
+  it read "Connect" and did nothing, and a retry countdown could only be
+  escaped by quitting the game. Three states now, with CANCEL clearing the
+  countdown.
+- **A superseded attempt could install itself.** The connect callback set
+  `_session` unconditionally on success, so a slow attempt landing after a
+  cancel would connect anyway - the one outcome the player had just declined.
+  Every attempt now carries a generation, bumped by each connect, cancel and
+  disconnect; a stale one closes its own socket and returns.
+
+### Retry now matches the reference client
+
+`RetryPolicy` allowed three attempts and stopped. Archipelago's own client is
+unbounded, and giving up quietly was worse than it sounded given the button to
+start again was itself broken. Now unlimited by default at 5, 10, 20, 40, 60
+seconds. `maxAttempts: 0` means unlimited; a positive value still bounds it.
+
+A refused login is still never retried - that check was already right and
+survives unchanged.
+
+Measured in game against a dead port: label reads **Cancel** while busy, the
+status line reads `attempt 2` with no denominator, the delays logged 5s then
+10s then 20s, and pressing Cancel produced `connection attempt cancelled`
+followed by **zero connect attempts in the next twelve seconds** - with a 20s
+retry pending that would otherwise have fired.
+
+### One consequence for existing installs
+
+BepInEx persists config, so an install that has already run keeps
+`MaxRetries = 3` and will still give up. The new default only reaches fresh
+installs. Not migrated automatically: silently rewriting a player's config is
+worse than the bounded policy. Worth a line in the release notes.
+
+### What we already do correctly - deliberately unchanged
+
+Two of these are places CW4 got it wrong first, so "fixing" ours would have
+introduced their bug:
+
+- **State cannot cross multiworlds.** CW4 guarded only on slot name, and
+  location names are identical across seeds, so a check earned in one seed was
+  accepted by the next joined under the same name. We key on (slot, seed) via
+  `SaveRedirect`, so it cannot happen by construction.
+- **A deliberate disconnect stays disconnected.** CW4's close handler consumed
+  its intentional flag and the close event arrives more than once. Ours guards
+  on `Connected`, which `Disconnect()` clears first.
+- A refused login is not retried; offline progress is queued and pushed, never
+  reverted.
+
+### And a lesson taken from their docs rather than from a bug
+
+CW4's `docs/in-game-testing.md` has a section called *"Put the player's
+environment back when the harness exits"*. Ours does not, and it showed: this
+session changed `TargetVirtualDesktop` in the DevTools config and repeatedly
+rewrote the player's `.run.json`, announcing both rather than restoring them.
+The config was snapshotted and restored by hand for the retry test above. That
+should be the harness's job, not a habit.

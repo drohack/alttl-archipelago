@@ -25,9 +25,15 @@
     <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>ALTTLArchipelago</AssemblyName>
     <RootNamespace>ALTTLArchipelago</RootNamespace>
-    <!-- Kept in step with [BepInPlugin] in Plugin.cs and world_version in
-         apworld/alttl/archipelago.json. Three places, in sync only by care. -->
-    <Version>0.1.0</Version>
+    <!-- One number in three files: here, [BepInPlugin] in Plugin.cs, and
+         world_version in apworld/alttl/archipelago.json. The mod and the
+         apworld ship together, so they carry the same version.
+         "In sync only by care" is what this comment used to say, and the care
+         ran out: world_version reached 0.3.0 while these two sat at 0.1.0,
+         which would have let a player hold a mod and an apworld agreeing on a
+         number and disagreeing about the item table. tools/check-version.py
+         now fails the build instead. -->
+    <Version>0.3.0</Version>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>annotations</Nullable>

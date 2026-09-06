@@ -40,6 +40,21 @@ jobs:
       - name: Core unit tests
         run: dotnet test src/ALTTLArchipelago.Core.Tests -c Release --nologo
 
+  version:
+    # One number lives in three files: the csproj, [BepInPlugin], and the
+    # world manifest. They drifted to 0.1.0 / 0.1.0 / 0.3.0 in a single
+    # session, which would have shipped a mod and an apworld that agreed on a
+    # version and disagreed about the item table.
+    name: Version is consistent
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check the version and the manifest
+        run: python tools/check-version.py
+
   ascii:
     # Non-ASCII characters break quietly on Windows: Python encodes redirected
     # stdout as cp1252, so a single em dash in a progress line kills a script.
@@ -119,6 +134,71 @@ jobs:
           find players -maxdepth 1 -name '*.yaml' ! -name 'A Little to the Left.yaml' -delete
           python Generate.py --player_files_path players --outputpath out --seed 20260902
           test -n "$(ls out/*.zip)"
+
+  compliance:
+    # Archipelago ships a generic suite that EVERY world must pass. This project
+    # never ran it, and when it finally was, it failed: archipelago.json
+    # declared 'version' and 'compatible_version', which describe the .apworld
+    # container and are forbidden in a world manifest. That sat in the tree
+    # through every commit until the suite that exists to catch it was finally
+    # run.
+    name: apworld compliance (Archipelago's own tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Read the minimum supported Archipelago version
+        id: ap
+        run: |
+          python3 -c "import json;print('ref=' + json.load(open('apworld/alttl/archipelago.json'))['minimum_ap_version'])" >> "$GITHUB_OUTPUT"
+      - name: Check out Archipelago at that version
+        uses: actions/checkout@v4
+        with:
+          repository: ArchipelagoMW/Archipelago
+          ref: ${{ steps.ap.outputs.ref }}
+          path: ap
+      - name: Install Archipelago's requirements
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ap/requirements.txt
+      - name: Install the world
+        run: cp -r apworld/alttl ap/worlds/alttl
+      - name: Keep only the worlds the suite needs
+        # The suite runs every test against every INSTALLED world, so a full
+        # checkout means testing a hundred other games to check ours - about
+        # four minutes, nearly all of it other people's.
+        #
+        # 0.6.8 added AP_TEST_WORLDS for exactly this, scoping world loading to
+        # a named list plus the suite's own fixtures. We are pinned to 0.6.7,
+        # which has no such switch, so the same thing is done by deleting the
+        # worlds instead. Safe here and ONLY here: this is a throwaway checkout
+        # in its own job, which is why the suite was moved out of the apworld
+        # job rather than pruning in place there.
+        #
+        # generic and apquest are the fixture worlds 0.6.8 names in
+        # _SUITE_FIXTURE_WORLDS - the suite needs them and does not test them.
+        # When the minimum reaches 0.6.8, delete this step and put
+        # AP_TEST_WORLDS=alttl on the one below.
+        run: |
+          cd ap/worlds
+          for d in */; do
+            name="${d%/}"
+            case "$name" in
+              alttl|generic|apquest|_*) continue ;;
+            esac
+            rm -rf "$name"
+          done
+          echo "worlds kept: $(ls -d */ | tr -d '/' | tr '\n' ' ')"
+      - name: Archipelago's world compliance tests
+        working-directory: ap
+        # Do NOT swap this for `unittest -k "A Little to the Left"`. It looks
+        # like the same thing and is not: only the manifest tests generate a
+        # class per world, so -k matches three tests out of 322 and silently
+        # skips test_fill, test_ids and test_reachability, which loop over
+        # worlds inside the test body. Measured.
+        run: python -m unittest discover -s test/general -t .
 
   apworld-package:
     # Tests the ARTIFACT, not the folder. A world runs from inside a zip once

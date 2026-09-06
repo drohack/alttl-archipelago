@@ -50,8 +50,20 @@ internal static class ConnectionPane
     /// without opening anything.</summary>
     private static TextMeshProUGUI? _menuIndicator;
 
+    /// <summary>
+    /// Three states, because there are three situations.
+    ///
+    /// This was `IsConnected ? "Disconnect" : "Connect"`, which named only two
+    /// of them: while an attempt was in flight or a retry was counting down it
+    /// read "Connect", and pressing it did nothing. There was no way to stop a
+    /// pending retry from the pane at all - the only escape was quitting the
+    /// game.
+    /// </summary>
     private static string ConfirmLabel()
-        => Plugin.IsConnected ? "Disconnect" : "Connect";
+    {
+        if (Plugin.IsConnected) return "Disconnect";
+        return Plugin.IsBusy ? "Cancel" : "Connect";
+    }
 
     /// <summary>
     /// Add our button to the title screen. Postfix on SetupTitleScreen because
@@ -657,11 +669,20 @@ internal static class ConnectionPane
         // then immediately reconnected - two of these lines per press would
         // mean that has come back.
         Plugin.Logger.LogInfo(
-            $"pane: action pressed (connected={Plugin.IsConnected})");
+            $"pane: action pressed (connected={Plugin.IsConnected}, "
+            + $"busy={Plugin.IsBusy})");
 
         if (Plugin.IsConnected)
         {
             Plugin.DisconnectNow();
+            return;
+        }
+
+        // Busy means connecting or waiting out a backoff. The press is a
+        // refusal, not a request: stop, and do not dial again.
+        if (Plugin.IsBusy)
+        {
+            Plugin.CancelConnect();
             return;
         }
 

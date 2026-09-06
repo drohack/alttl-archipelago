@@ -29,7 +29,7 @@ namespace ALTTLArchipelago;
 ///   thread through Hub. Unity is never touched off-thread.
 /// - The MonoBehaviour injected into IL2CPP holds no state and no logic.
 /// </summary>
-[BepInPlugin(Guid, "A Little To The Left Archipelago", "0.1.0")]
+[BepInPlugin(Guid, "A Little To The Left Archipelago", "0.3.0")]
 public sealed class Plugin : BasePlugin
 {
     internal const string Guid = "droha.alttl.archipelago";
@@ -111,8 +111,10 @@ public sealed class Plugin : BasePlugin
             + "dialog.");
         _maxAttempts = Config.Bind("Server", "MaxRetries",
             RetryPolicy.DefaultMaxAttempts,
-            "How many times to retry a lost or refused connection before "
-            + "giving up and waiting for you to press Connect.");
+            "How many times to retry a lost connection before giving up. 0 "
+            + "means keep trying until you press Cancel, which is the default "
+            + "and what Archipelago's own client does. A refused login - bad "
+            + "slot name or password - is never retried whatever this says.");
 
         _whyProbe = Config.Bind("Diagnostics", "BadgeWhyProbe", false,
             "Watch BepInEx/alttl-why.txt and explain the tracker badge for the "
@@ -196,25 +198,62 @@ public sealed class Plugin : BasePlugin
         // attempt already failed.
         _automatic = false;
 
-        // Ignore a repeat press while an attempt is already running. Spamming
-        // Connect otherwise started a second retry chain alongside the first,
-        // and the log showed two independent "attempt 2 of 5" sequences
-        // interleaving against the same dead server.
-        if (_connecting)
-        {
-            Logger.LogInfo("already connecting; ignoring");
-            return;
-        }
+        // A press during an attempt SUPERSEDES it. This used to return early
+        // instead, which stopped a second retry chain running alongside the
+        // first - two interleaved "attempt 2 of 5" sequences against the same
+        // dead server - but did it by making the button do nothing at all, with
+        // only a log line to show for the click. A button that ignores a press
+        // is worse than one that fails.
+        //
+        // Bumping the generation gets the same protection honestly: the older
+        // attempt is now stale and cannot schedule a retry or install itself,
+        // so there is still only ever one live chain.
+        _connectGen++;
 
         _retry.Reset();
         _retryIn = 0f;
         Attempt();
     }
 
+    /// <summary>
+    /// Stop trying, without tearing down a session there is not one of.
+    ///
+    /// This is what CANCEL does, and until now there was no way to do it: the
+    /// pane offered only Connect and Disconnect, so a retry countdown could
+    /// only be escaped by quitting the game.
+    /// </summary>
+    internal static void CancelConnect()
+    {
+        _connectGen++;              // any in-flight attempt is now stale
+        _connecting = false;
+        _retryIn = 0f;
+        _automatic = false;
+        _retry.Reset();
+        Logger.LogInfo("connection attempt cancelled");
+        ConnectionPane.RefreshStatus();
+    }
+
+    /// <summary>
+    /// Bumped by every connect, cancel and disconnect. An attempt whose
+    /// generation is stale must have no effect at all - it may not set the
+    /// session, schedule a retry, or report a status - because by the time it
+    /// returns the player has asked for something else.
+    ///
+    /// Without this a slow attempt that succeeded after CANCEL would quietly
+    /// connect anyway, which is the one outcome the player explicitly declined.
+    /// </summary>
+    private static int _connectGen;
+
     /// <summary>True while an attempt is in flight, for the status line.</summary>
     private static bool _connecting;
 
     internal static bool IsConnecting => _connecting;
+
+    /// <summary>
+    /// Trying, or about to try: an attempt in flight or a backoff counting
+    /// down. The pane offers CANCEL for exactly this state.
+    /// </summary>
+    internal static bool IsBusy => !IsConnected && (_connecting || _retryIn > 0f);
 
     /// <summary>
     /// The launch attempt. One try, no retries, and nothing alarming in the
@@ -236,7 +275,12 @@ public sealed class Plugin : BasePlugin
 
     private static void Attempt()
     {
-        if (IsConnected || _connecting) return;
+        // Still guarded on IsConnected - there is nothing to do when a session
+        // is up - but no longer on _connecting. Superseding is the generation's
+        // job now, and the old guard is what made the button look dead.
+        if (IsConnected) return;
+
+        var gen = _connectGen;
 
         if (string.IsNullOrWhiteSpace(_slotName.Value))
         {
@@ -317,6 +361,17 @@ public sealed class Plugin : BasePlugin
         connection.ConnectAsync(_host.Value, _port.Value, _slotName.Value,
             _password.Value, error =>
             {
+                if (gen != _connectGen)
+                {
+                    // A newer connect, a cancel or a disconnect happened while
+                    // this was negotiating. Close it rather than installing a
+                    // session nobody is asking for any more - and do not touch
+                    // _connecting, which now belongs to the newer attempt.
+                    Logger.LogInfo("discarding a superseded connection attempt");
+                    if (string.IsNullOrEmpty(error)) connection.Disconnect();
+                    return;
+                }
+
                 _connecting = false;
                 if (string.IsNullOrEmpty(error))
                 {
@@ -382,7 +437,7 @@ public sealed class Plugin : BasePlugin
         }
         var seconds = delay.Value;
         Logger.LogInfo($"retrying in {seconds:0.#}s "
-            + $"(attempt {_retry.Attempts + 1} of {_retry.MaxAttempts})");
+            + $"({AttemptLabel()})");
         _retryIn = (float)seconds;
     }
 
@@ -420,6 +475,7 @@ public sealed class Plugin : BasePlugin
     /// </summary>
     internal static void DisconnectNow()
     {
+        _connectGen++;              // any in-flight attempt is now stale
         _retryIn = 0f;
         _connecting = false;
         _retry.Reset();
@@ -439,6 +495,17 @@ public sealed class Plugin : BasePlugin
         ConnectionPane.RefreshStatus();
     }
 
+    /// <summary>
+    /// "attempt 3" or "attempt 3 of 5", depending on the policy. An unlimited
+    /// policy has no denominator, and printing MaxAttempts regardless would
+    /// have read "attempt 3 of 0".
+    /// </summary>
+    private static string AttemptLabel()
+        => _retry.IsUnlimited
+            ? $"attempt {_retry.Attempts + 1}"
+            : $"attempt {_retry.Attempts + 1} of {_retry.MaxAttempts}";
+
+
     /// <summary>One line describing the connection, for the pane.</summary>
     internal static string StatusLine()
     {
@@ -446,12 +513,12 @@ public sealed class Plugin : BasePlugin
         {
             return _retry.Attempts == 0
                 ? "Connecting..."
-                : $"Connecting... (attempt {_retry.Attempts + 1} of {_retry.MaxAttempts})";
+                : $"Connecting... ({AttemptLabel()})";
         }
         if (_retryIn > 0f && !IsConnected)
         {
             return $"Retrying in {Math.Ceiling(_retryIn):0}s "
-                + $"(attempt {_retry.Attempts + 1} of {_retry.MaxAttempts})";
+                + $"({AttemptLabel()})";
         }
         return _retry.Describe(IsConnected, _slotName.Value);
     }
