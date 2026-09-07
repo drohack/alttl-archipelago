@@ -146,6 +146,8 @@ Curated copies of the probe output are in [docs/data/](docs/data/).
 - `docs/in-game-testing.md` - how to test against the one real install without
   leaving a mess in it, and the harnesses that once measured nothing
 - `docs/installation.md` - what a player does with the three release files
+- `docs/release-testing.md` - checking a release actually works, automatically
+  or by hand, and the log lines that tell you it did
 - `docs/research-findings.md` - the modding surface: what was proven, and how
 - `docs/content-report.md` - the content: base game, daily, archive, DLC
 - `docs/data/` - the level table and controller survey the probe produced.

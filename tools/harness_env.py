@@ -52,6 +52,46 @@ import time
 GAME = r"G:/Games/Steam/steamapps/common/A Little To The Left"
 CONFIG_DIR = os.path.join(GAME, "BepInEx", "config")
 
+#: Steam's App ID for this game, from steamapps/appmanifest_1629520.acf.
+STEAM_APP_ID = "1629520"
+
+
+def ensure_no_steam_relaunch():
+    """Stop the game restarting itself through Steam on every launch.
+
+    Running the exe directly makes the Steam DRM stub call
+    SteamAPI_RestartAppIfNecessary, which relaunches the game through Steam and
+    exits the process you started. What you SEE is the window opening, closing
+    and opening again, which looks like a crash on startup; what a harness sees
+    is a process it can no longer track and a log written by a different one.
+
+    Measured: launching once produced PID 70840, replaced four seconds later by
+    PID 76964. With this file present, one PID and no relaunch.
+
+    steam_appid.txt is the documented way to say "this app is already running
+    as the right app" - Valve's own answer for developers, and the same thing
+    every modding guide reaches for. It changes nothing else: the Steam API
+    still initialises, so the overlay and cloud behave as before.
+
+    Written rather than snapshotted-and-restored on purpose. It fixes a real
+    annoyance for whoever plays this install next, and it is one line that
+    Steam itself ignores.
+    """
+    path = os.path.join(GAME, "steam_appid.txt")
+    try:
+        if os.path.isfile(path):
+            with open(path, encoding="utf-8") as f:
+                if f.read().strip() == STEAM_APP_ID:
+                    return False
+        with open(path, "w", encoding="utf-8", newline="") as f:
+            f.write(STEAM_APP_ID)
+        return True
+    except OSError as e:
+        print(f"WARNING: could not write steam_appid.txt ({e}); the game will "
+              f"restart itself through Steam on launch", flush=True)
+        return False
+
+
 def _find_save_dir():
     """Unity's save folder, found rather than spelled out.
 

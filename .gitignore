@@ -40,3 +40,6 @@ __pycache__/
 /testserver/
 /testseed/
 /smoke_alttl/
+
+# Scratch install used by tools/release-e2e.py
+/release-test/

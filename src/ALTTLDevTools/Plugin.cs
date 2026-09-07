@@ -2868,15 +2868,59 @@ public class DevToolsBehaviour : MonoBehaviour
         // NullReferenceException inside it and the solve was lost. The failure
         // surfaced two levels and several minutes away from the boot that
         // caused it, which is what makes it worth doing unconditionally.
-        try
+        // ActiveLevelInterface WAS NOT ENOUGH, and the gap is a level you have
+        // FINISHED. Completing a puzzle moves the game to RetryUI_GameState,
+        // at which point the level just beaten is no longer the active one -
+        // so this skipped it while its CheckWinCondition stayed subscribed,
+        // and every solve in the next level died inside the old level's
+        // handler. Measured before the fix: the first level booted after a
+        // launch solved cleanly, 21 solves and 0 throws, and every later one
+        // threw on all 48.
+        //
+        // activeInHierarchy is the discriminator and the alternatives are not.
+        // scene.IsValid() - the filter used elsewhere in this file - matches
+        // all 293 LevelInterface objects, and excluding the 186 prefabs by
+        // identity still leaves 107 pooled "<level> Interface(Clone)" objects
+        // the level select keeps, every one inactive. Destroying those breaks
+        // the levels they belong to: one of them is Bathroom Drawer's, and
+        // deleting it on the first boot is exactly why booting that level
+        // third came up unwired. Only a level being PLAYED is active.
+        var torn = 0;
+        foreach (var candidate in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<LevelInterface>()))
         {
-            var live = gm.levelManager.ActiveLevelInterface;
-            if (live != null) live.ReleaseAssetsAndDestroyLevel();
+            var live = candidate?.TryCast<LevelInterface>();
+            if (live == null) continue;
+            try
+            {
+                // activeInHierarchy. Known to be imperfect, and still the
+                // best rule found - see the note above and the writeup in
+                // docs/verification-log.md.
+                //
+                // It has one hole: leaving a finished puzzle through the MENUS
+                // deactivates it without destroying it, so this skips it and
+                // its CheckWinCondition stays subscribed. The log shows it -
+                // the boot after a menu exit prints no teardown line, and the
+                // solves in the next level throw.
+                //
+                // Widening to "any LevelInterface with a non-null Level" was
+                // tried and is WORSE: chapter headers are LevelInterfaces too,
+                // and destroying them left the run loading and "completing"
+                // 01__Chapter_HomeSweetHome. Do not reach for that again
+                // without a way to tell a chapter from a puzzle.
+                if (!live.gameObject.activeInHierarchy) continue;
+                DevToolsPlugin.Log.LogInfo(
+                    $"boot: tearing down '{Str(() => live.gameObject.name)}'");
+                live.ReleaseAssetsAndDestroyLevel();
+                torn++;
+            }
+            catch (Exception e)
+            {
+                // One level refusing to tear down must not stop the others.
+                DevToolsPlugin.Log.LogWarning($"boot: teardown threw: {e.Message}");
+            }
         }
-        catch (Exception e)
-        {
-            DevToolsPlugin.Log.LogWarning($"boot: teardown threw: {e.Message}");
-        }
+        DevToolsPlugin.Log.LogInfo($"boot: tore down {torn} live level(s)");
 
         gm.SetGameState<Gameplay_GameState>(null, false);
         gm.levelManager.StartLevel(index, true, true, seed);

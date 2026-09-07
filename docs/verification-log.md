@@ -2103,3 +2103,319 @@ Its first version failed by demanding a description for `plando_items`:
 `ALTTLOptions` inherits the whole of `PerGameCommonOptions`, and those belong
 to Archipelago, not to this template. Now scoped by subtracting
 `PerGameCommonOptions.type_hints`.
+
+### The release, installed and played the way a player would. PASS
+
+`tools/release-e2e.py`: clean the install to vanilla, install the mod from its
+zip, install the world from its `.apworld` with no loose copy, generate an
+8-puzzle two-pack seed, play it to the credits against a real MultiServer, and
+check the campaign save was never written.
+
+The `.apworld` was **downloaded from CI** (run 34039766248, sha256
+`91c29ce527a4c587`), not built locally. The mod zip cannot be: it needs the
+game's interop assemblies, which a public runner does not have and which must
+never be committed.
+
+**12/12.** 8 puzzles beaten, packs opened 4 -> 6 -> 8, credits unlocked,
+`save1.json` byte-identical before and after, and the run in its own
+`save_ap_droha_43809784604865360243.json`.
+
+The goal is asserted from BOTH ends, and the second end was missing at first.
+The original run checked only `goal: reported to the server` - the mod saying
+it had sent one, which is the mod grading its own work. MultiServer's stdout
+was going to /dev/null. It is now captured to
+`testserver/logs/e2e-server.log` and the server's own words are an assertion:
+
+    Notice (all): droha (Team #1) has completed their goal.
+    Notice (all): Team #1 has completed all of their games! Congratulations!
+
+Both match strings were taken from `MultiServer.on_goal_achieved` rather than
+guessed.
+
+The slot rotation earned its place twice over. In the first full run slot 1
+(`Mirror`) failed to open and completed five rounds later; in the second,
+`MerryMess_CandyCanes` was unfinishable in round 6 and completed in round 9.
+
+### The CI and local .apworld builds are not byte-identical
+
+Three JSON files differ, each by exactly its line count:
+`archipelago.json` 118 bytes from CI against 124 locally, on six lines. Git
+checks out CRLF on Windows and LF on the Linux runner, so the Windows build
+embeds CRLF.
+
+The parsed content is identical and both load and generate. But
+`build_apworld.py`'s docstring says a fixed timestamp and sorted order make
+the output byte-identical, "which makes 'did the world actually change?'
+answerable" - and that only holds per platform. Not fixed, recorded.
+
+### boot: is reliable exactly once per game launch
+
+The finding that cost the most, and it is not the mod.
+
+The first level booted after a launch solves cleanly. Every later one in the
+same session dies inside the GAME's own code:
+
+    System.NullReferenceException
+      at LevelInterface.CheckWinCondition (GameEventManager+GameEventData)
+      at GameEventManager.TryDispatchEvent
+
+The controller flags still flip to `solved=True` and the checks still fire, so
+it presents as the mod refusing to notice a finished puzzle.
+
+**Measured across two runs: booted first, 21 solves and 0 throws; booted
+later, 0 clean and 48 throws.** None of the mod's Harmony patches appear in
+that stack, and the same levels complete normally when they are the first one
+booted - `Workbench` did, in an earlier run that reached it another way.
+Escaping the completion screen with `replayselect` first does not help: the
+split is per LAUNCH, not per completion.
+
+So the harness plays one puzzle per game launch. Not pure cost - every puzzle
+now also exercises a reconnect, the item replay and the flush of anything
+owed, eight times over.
+
+Menu navigation was the alternative and all three routes failed. The Menu
+button in `RetryUI_GameState` opens the pause menu rather than leaving;
+`menu:title` sets the state without a title scene, so Play reports "no live
+TitleMenu"; and `clicktrack` resolved all ten card names correctly while
+starting nothing, which is the stale-icon no-op DevTools' own comment warns
+about.
+
+### Five harness bugs, and the one that matters
+
+Every failure in building this harness was in the harness. Recorded because
+the shapes recur:
+
+1. **A log offset taken before a launch.** BepInEx truncates `LogOutput.log`,
+   and resetting only when the file shrinks is not enough - the new log can
+   pass the old size before the first sample. It sat waiting for a
+   `connected.` line already on disk. Now the log is deleted before launching.
+2. **A log line's first bracket is the BepInEx prefix.** Parsing
+   `[3] ChalkPurple ... solved=False` by splitting on `[` yields
+   `Info   :ALTTL Dev Tools`, `int()` throws, every line is skipped, and the
+   caller concludes nothing is unsolved. **Two runs issued no solve command at
+   all.** That parser now has a self-test that runs before the game is
+   launched - the check that would have saved two four-minute round trips.
+3. **Waiting for a header is not waiting for the list.** `controllers:`
+   appears before the per-controller lines.
+4. **A line you care about consumed by an unrelated wait.** The pack
+   announcement arrives mid-puzzle, so the harness re-derives progress from
+   the whole transcript rather than the newest chunk.
+5. **One pass of solves is not enough.** A Cat Trap resets the puzzle
+   mid-level; the solver now re-reads what is unsolved, up to five times.
+   Traps are left at their default rate deliberately.
+
+### The game opening, closing and opening again. FIXED
+
+Not the harness, though the harness was making it worse.
+
+Running the exe directly makes Steam's DRM stub call
+`SteamAPI_RestartAppIfNecessary`, which relaunches the game through Steam and
+exits the process that was started. On screen that is the window appearing,
+vanishing and coming back. **Measured: PID 70840 at t+0, replaced by PID 76964
+at t+4s.**
+
+Fixed with `steam_appid.txt` containing `1629520` in the game folder - the App
+ID read from `steamapps/appmanifest_1629520.acf` rather than the store URL.
+Retested: one PID, no relaunch. `harness_env.ensure_no_steam_relaunch()`
+writes it before any launch and it is deliberately left in place.
+
+The harness was also launching twice on purpose: phase 5 opened the game to
+check the connection, closed it, and phase 6 opened it again immediately.
+That is gone - `play()` owns every launch and the first one it opens is what
+the connection assertions are made against.
+
+### One session plays the whole run. The "limit" was three attempts short
+
+**This section replaces an earlier conclusion that was wrong.** It said the
+game could only manage about two scripted puzzles per session and that
+relaunching was the workaround. droha asked why the harness could not simply
+go back to the level select or the main menu instead of tearing the level down
+by hand. It can, and that is the fix.
+
+The working exit is the FULL unwind, run after every puzzle:
+
+    replayselect  ->  menu:levels  ->  menu:title
+
+Measured, five levels per attempt:
+
+| Exit after each puzzle | Result |
+|---|---|
+| nothing, rely on boot:'s teardown | 2 clean, then 28 exceptions |
+| `leave` - the pause menu's Level Select | 2 clean, then 16. After a BEATEN level it does nothing at all: the state stays `RetryUI_GameState` |
+| `replayselect` alone | worse; a level that had been passing began failing |
+| **`replayselect` -> `menu:levels` -> `menu:title`** | **5 clean, 0** |
+
+The game wants the whole stack unwound, not merely the level destroyed. Every
+route tried before had stopped one screen short, and each partial result was
+read as evidence of a hard limit rather than of an incomplete attempt.
+
+Verified end to end afterwards: **13/13, one game launch, 8 puzzles beaten in
+8 rounds**, with the launch count now an assertion rather than a note.
+
+### The DevTools bug found on the way, which is the other half
+
+
+
+`boot:` tore down only `ActiveLevelInterface`. A level you have FINISHED is no
+longer the active one, so its `CheckWinCondition` stayed subscribed to the
+global event bus and the next level's solves died inside it. Fixed to tear
+down whatever is `activeInHierarchy`, which is exactly the running level.
+
+That fix is correct and necessary, and on its own it is not sufficient - it
+moved the failure from the second puzzle to the third and no further. Paired
+with the unwind above it holds for a whole run.
+
+### Two wrong teardown filters, and the second one was the bug
+
+Worth writing down because the failure imitated the thing it was meant to fix.
+
+- `gameObject.scene.IsValid()` - the filter used elsewhere in DevTools - matched
+  all 293 LevelInterface objects.
+- Excluding the 186 prefabs by identity still matched 107.
+
+Those 107 are `<level> Interface(Clone)` objects the level select keeps POOLED
+in MainScene, every one inactive. One of them is
+`NeatStreak_Bathroom Drawer Interface(Clone)`. Destroying it during the first
+boot is exactly why booting that level third came up unwired and threw on
+every solve - so for two rounds the half-fix WAS the third-level failure, and
+it looked like evidence that the fix was insufficient rather than harmful.
+
+`activeInHierarchy` is the right discriminator: prefabs and pooled clones are
+inactive, the level being played is not. It tears down exactly one.
+
+**Verified after all of it: 12/12, 9 launches for 9 rounds, and the server
+confirming the goal.**
+
+### Player-facing post-puzzle navigation. PASS
+
+Separate from anything the harness does, because the harness drives the game
+with `boot:` and `solve:` and a player uses neither.
+
+**The next-level arrow works.** Verified on a clean run: finishing slot 0 and
+pressing it gave
+
+    navigation: replay Next -> slot 1 (level 79), launching it
+    controllers: 8 registered on Mirror levelInstance=-29974
+
+Eight controllers registered is a real, loaded, interactive level - it is the
+next UNFINISHED slot in the run, and it is not the Daily Tidy page. That last
+part is the whole point of the patch: the game routes by level KIND, so a
+daily-pool level as the next slot would drop the player out of their run
+entirely.
+
+**The pause menu's Level Select works** - confirmed by droha in actual play on
+2026-09-06, which is the test that counts.
+
+### DevTools `replayselect` is not a reliable way to verify Level Select
+
+A probe of the COMPLETION screen's Level Select reported it stuck: the mod's
+handler fired (`navigation: post-level menu -> the run's track`) and the level
+select never came up.
+
+**Do not read that as a product finding.** `replayselect` locates its
+`ReplayMenu` with `Resources.FindObjectsOfTypeAll` filtered on
+`gameObject.scene.IsValid()`, and that filter is known-wrong in this game - it
+is the same one that matched 107 pooled `Interface(Clone)` objects in the boot
+teardown, and the same class of fault as `clicktrack` resolving every card name
+correctly while starting nothing. It is very likely calling `LevelSelect()` on
+a menu that is not the one on screen.
+
+The pause menu's Level Select and the completion screen's run through the SAME
+helper, `Navigation.GoToTrack`, which calls the game's own
+`GoToLevelSelectForLevel`. The pause menu route being confirmed in play is
+therefore evidence that the helper works, and that the probe was measuring its
+own stale object.
+
+If this ever needs settling properly, press the button by hand. Scripted
+menu-object lookup has been wrong about this game three times now.
+
+### Why mixing harness routes throws: SOLVED
+
+**One arrow press poisons the rest of the game session.** Measured as a
+controlled pair on a fresh multiworld, everything else identical:
+
+| Run | Result |
+|---|---|
+| with a single arrow press | 2 of 8 beaten, **103** exceptions, 9/15 |
+| without one | 8 of 8 beaten, **0** exceptions, 15/15 |
+
+The mechanism, from the log rather than from reasoning:
+
+1. The arrow launches through the mod's `GoToNext`, which calls `StartLevel`
+   without releasing the level just finished.
+2. Leaving a finished puzzle through the MENUS deactivates its GameObject
+   without destroying it.
+3. `boot:`'s teardown filters on `activeInHierarchy`, so it skips that level.
+   The log shows it plainly - the boot after a menu exit prints **no teardown
+   line at all**, where the boot after an arrow prints one.
+4. The skipped level's `CheckWinCondition` stays subscribed to the global
+   event bus, and the next level's synthetic solves die inside it.
+
+That is why neither route failed alone: the arrow leaves the old level ACTIVE
+so the teardown catches it, the menus leave it INACTIVE so it does not. Only
+the combination exposes the hole.
+
+**The fix is to not combine them in one session.** `check_arrow()` verifies
+the arrow in a throwaway game and closes it; the run then gets a clean one.
+Two launches, about ninety seconds, and the arrow - the route a player uses -
+stays asserted.
+
+Widening the teardown rule was tried instead and is WORSE. `Level != null`
+catches chapter headers, which are `LevelInterface`s too: the run began
+loading and "completing" `01__Chapter_HomeSweetHome`, and exceptions went from
+5 to 8. Do not reach for that again without a way to tell a chapter from a
+puzzle.
+
+**Verified after the fix: 15/15, 8 of 8 beaten, 0 exceptions, 2 launches, the
+server confirming the goal.**
+
+### Four hypotheses ruled out on the way there
+
+The symptom: a full eight-slot run that alternates the next-level arrow with
+the unwind-and-boot fallback stalls with NullReferenceExceptions inside
+`LevelInterface.CheckWinCondition` - 14 in one attempt, 5 by round four in
+another, both stuck around 2 of 8. Entering every level the same way does not
+do this: 13/13 and 8 of 8, repeatedly.
+
+Harness-only. It needs `boot:` and synthetic `ObjectControllerSolved`
+dispatches, and a player uses neither.
+
+**Ruled out, each by measurement rather than argument:**
+
+| Hypothesis | Test | Result |
+|---|---|---|
+| The arrow leaves the old level alive | 5 puzzles chained by the arrow alone | 5/5, **0 exceptions** |
+| `GoToNext` needs to release the current level | added the release to the mod | `GoToNext` ran 4 times, released **0** - the finished level is not `activeInHierarchy` then. Reverted rather than ship a no-op |
+| Leaving via the MENUS deactivates a level without destroying it, so the teardown skips it and it stays subscribed | probe counting inactive LevelInterfaces that still hold a loaded Level, across boot / arrow / menus / unfinished, six combinations | **0 leaked** and **0 exceptions** in all six |
+| Solving an ability-LOCKED controller is what throws | fresh multiworld, solved every controller of two genuinely gated levels (3 and 5 abilities locked) | 0 of 3 and 0 of 12 threw |
+
+None of these was it, and the reason none of the probes reproduced anything
+is that none of them pressed the arrow AND then used the menus - see above.
+The revisit probe in particular ran 20 visits with partial solves, real
+ability gating and menu exits, and stayed clean, because it never touched the
+arrow.
+
+### The probes were quietly testing a fully unlocked multiworld
+
+Found while chasing the above, and it invalidated two probe results before it
+was noticed.
+
+`clean()` removed the local save but not the `.apsave` beside the seed, which
+is **MultiServer's** record of what has been checked and sent. With it in
+place, connecting replays every item ever collected, so a run that looks fresh
+has every ability already unlocked. A probe written to ask about ability locks
+reported "0 locked" twice before the cause was spotted.
+
+`generate()` happens to clear it by emptying the output folder, so the full
+test was never affected - only probes calling `clean()` on its own.
+`clean()` now removes it too.
+
+### A verified fix deleted by a careless revert
+
+`git checkout src/ALTTLDevTools/Plugin.cs` was used to drop a temporary
+diagnostic and took the `activeInHierarchy` teardown fix with it - the file
+had both, and only one was wanted. Caught by grepping for the fix rather than
+trusting the checkout, restored, and confirmed present in the deployed DLL.
+
+Worth the note because the same command will do the same thing next time: a
+whole-file revert is not a way to remove one edit from a file that has two.

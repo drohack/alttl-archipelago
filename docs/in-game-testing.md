@@ -96,6 +96,29 @@ Not `steam://rungameid/...` - this copy is family-shared and Steam refuses it
 with a "no license" dialog. Not with Unity command-line arguments either: the
 game pops a dialog for unrecognised ones. Both failures look like a hang.
 
+### Why the game used to open, close and open again
+
+Running the exe directly makes Steam's DRM stub call
+`SteamAPI_RestartAppIfNecessary`, which relaunches the game through Steam and
+exits the process you started. On screen that is the window appearing,
+vanishing and coming back, which reads as a crash on startup. For a harness it
+is worse: the process it launched is gone and the log belongs to a different
+one.
+
+Measured: one launch produced PID 70840, replaced four seconds later by PID
+76964.
+
+**Fixed with `steam_appid.txt` in the game folder**, containing `1629520` -
+the App ID from `steamapps/appmanifest_1629520.acf`, not from the store URL.
+That is Valve's documented way to say "already running as the right app", and
+with it there is one PID and no relaunch. Nothing else changes: the Steam API
+still initialises.
+
+`harness_env.ensure_no_steam_relaunch()` writes it before any launch, and the
+file is deliberately left in place rather than restored - it is one line and
+it fixes a real annoyance for whoever plays this install next. Delete it if
+you ever want the Steam-relaunch behaviour back.
+
 ## Deploying a build
 
 `tools/deploy.sh` closes the game before copying, always. Windows will not
