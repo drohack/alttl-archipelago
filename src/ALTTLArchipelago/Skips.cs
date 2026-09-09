@@ -59,17 +59,22 @@ internal static class Skips
 
             RunState.SpendSkip();
 
-            // Tell the check side that the completion about to arrive is a
-            // skip, not a win.
+            // Tell the check side that the completion about to arrive came
+            // from a skip.
             //
             // The game fires LevelComplete for a skipped level exactly as for a
             // solved one - measured, the order is LevelComplete then
             // LevelSkipped - so the completion handler cannot tell them apart
-            // on its own, and was granting the Beaten token that the credits
-            // gate counts. Skipping was therefore a way to reach the goal
-            // without solving anything, which is the opposite of what
-            // Credits.cs documents. This prefix runs before the game's own skip
-            // work, so the flag is set before the completion fires.
+            // on its own. This prefix runs before the game's own skip work, so
+            // the flag is set before the completion fires.
+            //
+            // What the flag is FOR changed in 0.3.1. It used to suppress the
+            // Beaten token, so that Skips could not reach the credits without
+            // solving anything; the cost was a skipped card that could never
+            // complete, because the star needs every location on the slot. On
+            // droha's call a skip now finishes the puzzle outright and sends
+            // the whole slot, and the shortcut is bounded by skip_count rather
+            // than forbidden. See Checks.OnLevelComplete.
             Skipping = true;
 
             Plugin.Logger.LogInfo($"skip: spent one, {Available} left");

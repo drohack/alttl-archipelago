@@ -153,6 +153,18 @@ internal static class TitleScreen
     private static int _playSlot = -1;
 
     /// <summary>
+    /// Ask the next gameplay transition to load this slot.
+    ///
+    /// Shared with DailyGuard, which needs the same trick for the opposite
+    /// reason: Play has a state transition and needs to steer it, while the
+    /// daily rescue has a slot and needs a transition to carry it. Both fail
+    /// the same way without this - StartLevel loads a level UNDERNEATH the
+    /// screen that is already up, so the puzzle is running and the menu never
+    /// left.
+    /// </summary>
+    internal static void QueueSlotForGameplay(int slot) => _playSlot = slot;
+
+    /// <summary>
     /// Tell the gameplay state which level to load.
     ///
     /// This is the question Play's state transition asks, and answering it is
@@ -160,7 +172,7 @@ internal static class TitleScreen
     /// menu teardown and all - rather than a level being loaded underneath a
     /// title screen that never went away.
     ///
-    /// Only answers a request Play actually made: every other route into
+    /// Only answers a request that was actually queued: every other route into
     /// gameplay already knows its own level.
     /// </summary>
     [HarmonyPatch(typeof(Gameplay_GameState), nameof(Gameplay_GameState.GetLevelIndex))]
@@ -207,7 +219,11 @@ internal static class TitleScreen
             if (!Track.Active) return true;         // vanilla behaviour
 
             _playSlot = -1;
-            var slot = Track.FarthestPlayableSlot();
+            // The FIRST playable slot, not the farthest. Play opened the last
+            // of the four open puzzles on a fresh run, skipping three the
+            // player could have done - reported as "shouldn't it open the
+            // first level that has something doable?". It should.
+            var slot = Track.FirstPlayableSlot();
             if (slot < 0)
             {
                 // Nothing doable anywhere: show them the track rather than

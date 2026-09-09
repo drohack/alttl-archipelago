@@ -102,6 +102,16 @@ public static class Toasts
     /// </summary>
     public static Transform? OverlayRoot => _canvas == null ? null : _canvas.transform;
 
+    /// <summary>
+    /// Every toast, and every toast that did NOT make it, in the log.
+    ///
+    /// A run raises a few dozen of these, so the trail is cheap. It exists
+    /// because "the toast message doesn't always pop up" was reported with no
+    /// way to tell WHICH of four silences had happened: the overlay not up
+    /// yet, the pending queue full, an eviction off the top of the stack, or
+    /// the toast never being raised at all. Only the last is a bug in the
+    /// caller, and without a line here all four look identical.
+    /// </summary>
     public static void Show(string text, Color colour)
     {
         if (string.IsNullOrEmpty(text)) return;
@@ -109,9 +119,20 @@ public static class Toasts
         if (_stack == null)
         {
             // Bounded, so a long disconnected spell cannot grow without limit.
-            if (_pending.Count < 20) _pending.Enqueue((text, colour));
+            if (_pending.Count < 20)
+            {
+                _pending.Enqueue((text, colour));
+                OnInfo?.Invoke($"toast queued, overlay not up yet: {text}");
+            }
+            else
+            {
+                OnWarning?.Invoke($"toast DROPPED, {_pending.Count} already "
+                                  + $"waiting and the overlay is not up: {text}");
+            }
             return;
         }
+
+        OnInfo?.Invoke($"toast: {text}");
 
         try
         {
@@ -266,6 +287,15 @@ public static class Toasts
         while (_lines.Count > MaxVisible)
         {
             var oldest = _lines[0];
+
+            // Said out loud. A final placement can solve several controllers
+            // and the level in one frame, pushing six or more lines at once,
+            // and the earliest were being destroyed before they had rendered a
+            // single frame - indistinguishable, on screen, from never having
+            // been raised.
+            OnInfo?.Invoke("toast pushed off the top before it was read: "
+                           + (oldest.Label == null ? "(gone)" : oldest.Label.text));
+
             if (oldest.Label != null) UnityEngine.Object.Destroy(oldest.Label.gameObject);
             _lines.RemoveAt(0);
         }

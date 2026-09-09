@@ -13,10 +13,16 @@ namespace ALTTLArchipelago;
 ///   all. Until then the run has no ending in it.
 /// - enough puzzles have been BEATEN, which is what unlocks the card.
 ///
-/// Beaten means completed, not skipped. The count comes from Level Beaten
-/// tokens, which are granted by an event location for finishing a puzzle - so a
-/// skipped one contributes nothing, and the mod does not need its own rule to
-/// make that true. The generator's logic already assumes exactly this.
+/// The count comes from Level Beaten tokens, granted by an event location for
+/// finishing a puzzle. The mod needs no rule of its own for this: it simply
+/// counts what arrived.
+///
+/// A SKIP now finishes a puzzle and grants that token, so a skipped puzzle
+/// does count. That reversed in 0.3.1 - the token used to be withheld so Skips
+/// could not shortcut the goal, and the price was a skipped card that could
+/// never reach its star, because the star needs every location on the slot.
+/// The shortcut is now bounded by skip_count rather than forbidden. See
+/// Checks.OnLevelComplete and the SkipCount option text.
 /// </summary>
 internal static class Credits
 {

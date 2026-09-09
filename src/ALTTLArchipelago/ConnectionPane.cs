@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
@@ -43,6 +44,28 @@ internal static class ConnectionPane
     private static TMP_InputField? _password;
     private static TextMeshProUGUI? _status;
     private static GameObject? _confirm;
+
+    /// <summary>
+    /// How to put the game's own modal back the way we found it.
+    ///
+    /// This exists because the pane does NOT build its own dialog - it borrows
+    /// `gm.menuManager.modalWindow`, which is a SINGLETON shared with every
+    /// other modal in the game. ShowAndWire then replaced that shared confirm
+    /// button's whole ButtonClickedEvent, destroyed its LocalizeStringEvent and
+    /// overwrote its caption, and Closed() restored none of it.
+    ///
+    /// The consequence was reported as "the Exit button on the pause menu does
+    /// nothing": once the Archipelago pane had been opened even once, any later
+    /// modal's Confirm ran OnConfirm - an Archipelago connect - instead of
+    /// UIModal.Confirm, for the rest of the session. It looked intermittent
+    /// only because it depended on having visited the pane.
+    ///
+    /// Note the class comment above already comes close to this: "REPLACING the
+    /// event object, not calling RemoveAllListeners()" is what makes our wiring
+    /// stick past the game's persistent listeners. That property is exactly
+    /// what makes not restoring it a bug.
+    /// </summary>
+    private static readonly List<Action> _undo = new();
     private static GameObject? _pillOff;
     private static GameObject? _pillOn;
 
@@ -307,8 +330,25 @@ internal static class ConnectionPane
         foreach (var text in go.GetComponentsInChildren<TextMeshProUGUI>(true))
         {
             if (text == null) continue;
+
+            // DISABLED, not destroyed. Destroying it took the caption's
+            // localisation off the shared modal permanently, so every later
+            // dialog in the session lost its translated confirm label.
             var localiser = text.GetComponent<UnityEngine.Localization.Components.LocalizeStringEvent>();
-            if (localiser != null) UnityEngine.Object.Destroy(localiser);
+            var hadLocaliser = localiser != null && localiser.enabled;
+            if (localiser != null) localiser.enabled = false;
+
+            var caption = text;
+            var wasText = text.text;
+            var wasWrap = text.enableWordWrapping;
+            _undo.Add(() =>
+            {
+                if (caption == null) return;
+                caption.text = wasText;
+                caption.enableWordWrapping = wasWrap;
+                if (hadLocaliser && localiser != null) localiser.enabled = true;
+            });
+
             text.text = label;
             text.enableWordWrapping = false;
         }
@@ -326,6 +366,15 @@ internal static class ConnectionPane
 
         if (button != null)
         {
+            var original = button.onClick;
+            var wasInteractable = button.interactable;
+            _undo.Add(() =>
+            {
+                if (button == null) return;
+                button.onClick = original;
+                button.interactable = wasInteractable;
+            });
+
             button.onClick = new Button.ButtonClickedEvent();
             button.onClick.AddListener(action);
             button.interactable = true;
@@ -338,6 +387,13 @@ internal static class ConnectionPane
         var longPress = go.GetComponent<UILongPressButton>();
         if (longPress != null)
         {
+            var originalAction = longPress.m_btnAction;
+            _undo.Add(() =>
+            {
+                if (longPress == null) return;
+                longPress.m_btnAction = originalAction;
+            });
+
             longPress.m_btnAction = new UnityEngine.Events.UnityEvent();
             longPress.m_btnAction.AddListener(action);
             Plugin.Logger.LogInfo($"pane: '{go.name}' wired via long press");
@@ -357,12 +413,39 @@ internal static class ConnectionPane
     /// </summary>
     private static void RebindToLiveCopies(UIModal modal)
     {
-        var fields = modal.GetComponentsInChildren<TMP_InputField>(true);
+        // Include inactive children, because the content is built inactive -
+        // but then PREFER the live ones. ShowModal instantiates the content
+        // rather than reparenting it, and nothing destroys the previous open's
+        // clone, so a second visit can find six fields under the modal. Taking
+        // the first three off that list is a coin flip between this dialog's
+        // boxes and the last one's: bind the stale set and the boxes draw but
+        // refuse focus, isFocused never goes true, the typing guard never
+        // engages, and interactable is applied to objects nobody can see.
+        // That is the reported "sometimes can't click the text box".
+        var all = modal.GetComponentsInChildren<TMP_InputField>(true);
+
+        var live = new List<TMP_InputField>();
+        foreach (var f in all)
+        {
+            if (f != null && f.gameObject != null && f.gameObject.activeInHierarchy)
+                live.Add(f);
+        }
+
+        var fields = live.Count >= 3 ? live.ToArray() : all;
+        if (all.Length > 3)
+        {
+            Plugin.Logger.LogWarning(
+                $"pane: {all.Length} input fields under the modal, {live.Count} live - "
+                + "an earlier copy was left behind; binding the live ones");
+        }
+
         if (fields.Length >= 3)
         {
             _address = fields[0];
             _slot = fields[1];
             _password = fields[2];
+            Plugin.Logger.LogInfo(
+                $"pane: bound to the live fields ({all.Length} found, {live.Count} live)");
         }
         else
         {
@@ -674,7 +757,7 @@ internal static class ConnectionPane
 
         if (Plugin.IsConnected)
         {
-            Plugin.DisconnectNow();
+            Plugin.DisconnectNow("the player pressed the pane's button");
             return;
         }
 
@@ -742,6 +825,24 @@ internal static class ConnectionPane
     /// <summary>Called when the pane closes, so nothing stays suppressed.</summary>
     internal static void Closed()
     {
+        // Hand the shared modal back before dropping our references, newest
+        // change first. Without this the game's own dialogs stay hijacked -
+        // see the comment on _undo.
+        for (int i = _undo.Count - 1; i >= 0; i--)
+        {
+            try
+            {
+                _undo[i]();
+            }
+            catch (Exception e)
+            {
+                Plugin.Logger.LogWarning($"pane: could not restore the modal: {e.Message}");
+            }
+        }
+        if (_undo.Count > 0)
+            Plugin.Logger.LogInfo($"pane: restored {_undo.Count} change(s) to the game's modal");
+        _undo.Clear();
+
         _address = null;
         _slot = null;
         _password = null;
