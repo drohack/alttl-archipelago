@@ -54,13 +54,18 @@ def requirements(plan: List[slots.Slot], pack_size: int,
         if level.has_parts:
             for part in level.parts:
                 # A controller group's OWN requirement, from Core, not the
-                # level's. The difference is large and it is not cosmetic: over
-                # 106 part locations the level-wide set demands up to four
-                # abilities where no group anywhere needs more than one, and 32
+                # level's. The difference is large and it is not cosmetic:
+                # across the 200 groups the level-wide set demands up to four
+                # abilities where the widest single group needs two, and 57
                 # groups need none at all. Paper Plane Supplies asked for four
                 # abilities per part when its largest group needs one. That
                 # over-approximation was strangling the fill as well as lying
                 # to the tracker.
+                #
+                # Numbers re-measured 2026-09-09. They previously read "106
+                # part locations" and "no group anywhere needs more than one",
+                # both of which had gone stale as dependencies and restored
+                # phases pushed requirements up.
                 part_abilities = (sorted(level.part_abilities.get(part, ()))
                                   if ability_locks else [])
                 out[locations.part_name(level, slot.instance, part)] = {

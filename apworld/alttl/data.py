@@ -85,11 +85,20 @@ class Level:
         self.parts: List[str] = [p["display"] for p in parts_raw.values()]
 
         # What each group needs ON ITS OWN, which is far less than the level as
-        # a whole: measured across all 106 groups, 32 need nothing and 74 need
-        # exactly one ability - none needs two. Core computed these, including
-        # the transitive closure over one-way dependencies, so the requirement
-        # is not re-derived here. Keyed by display name because that is what
-        # the location name is built from; verified unique within a level.
+        # a whole. Re-measured 2026-09-09 across all 200 groups: 57 need
+        # nothing, 135 need exactly one ability and 8 need two.
+        #
+        # The old figures here - "106 groups, 32 nothing, 74 one, none needs
+        # two" - were true when written and had drifted badly by the time
+        # anyone looked. Both halves moved for real reasons: the drawer,
+        # assembly and phase dependencies each push a group's requirement up
+        # through the transitive closure, and the phase audit restored eleven
+        # groups the sweep had never seen.
+        #
+        # Core computes these, including the closure over one-way dependencies,
+        # so the requirement is not re-derived here. Keyed by display name
+        # because that is what the location name is built from; verified unique
+        # within a level.
         self.part_abilities: Dict[str, FrozenSet[str]] = {
             p["display"]: frozenset(p["abilities"]) for p in parts_raw.values()
         }
@@ -125,10 +134,23 @@ class Level:
         self.hint_images: int = max(raw.get("hintImages", 0),
                                     raw.get("randomizerHints", 0))
 
+        # Every ability the level needs to be FINISHED - the union over its
+        # registered controllers, PLUS anything the sweep could not see.
+        #
+        # A phased level registers only its first phase when the sweep boots
+        # it, so the union from `controllers` alone is short by whatever the
+        # later phases need. rules.py makes a solution location require this
+        # set, so a short union tells the generator a level is finishable
+        # without an ability it actually needs. See LevelInfo.ExtraAbilities
+        # in Core for why this is recorded as abilities rather than as extra
+        # controllers.
         self.abilities: FrozenSet[str] = frozenset(
-            _CLASS_TO_ABILITY[c["type"]]
-            for c in raw["controllers"]
-            if c["type"] in _CLASS_TO_ABILITY and c["type"] not in NOT_PUZZLES
+            [
+                _CLASS_TO_ABILITY[c["type"]]
+                for c in raw["controllers"]
+                if c["type"] in _CLASS_TO_ABILITY and c["type"] not in NOT_PUZZLES
+            ]
+            + list(raw.get("extraAbilities", []))
         )
 
     @property

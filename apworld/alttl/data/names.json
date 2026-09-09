@@ -161,7 +161,9 @@
         },
         "Interlocking": {
           "display": "Interlocking",
-          "abilities": [],
+          "abilities": [
+            "Tidying"
+          ],
           "members": [
             "Interlocking"
           ]
@@ -469,7 +471,9 @@
       "parts": {
         "Draggables": {
           "display": "Draggables",
-          "abilities": [],
+          "abilities": [
+            "Stacking"
+          ],
           "members": [
             "Draggables"
           ]
@@ -963,6 +967,7 @@
         "Ordered": {
           "display": "Ordered",
           "abilities": [
+            "Jigsaw",
             "Ordering"
           ],
           "members": [
@@ -976,7 +981,9 @@
       "parts": {
         "Build Train": {
           "display": "Build Train",
-          "abilities": [],
+          "abilities": [
+            "Swapping"
+          ],
           "members": [
             "Build Train"
           ]
@@ -1137,7 +1144,8 @@
         "Bottle Containables": {
           "display": "Bottle",
           "abilities": [
-            "Containers"
+            "Containers",
+            "Furniture"
           ],
           "members": [
             "Bottle Containables"
@@ -1145,7 +1153,9 @@
         },
         "Draggables": {
           "display": "Draggables",
-          "abilities": [],
+          "abilities": [
+            "Furniture"
+          ],
           "members": [
             "Draggables"
           ]
@@ -1162,6 +1172,7 @@
         "Indexable": {
           "display": "Indexable",
           "abilities": [
+            "Furniture",
             "Ordering"
           ],
           "members": [
@@ -1176,6 +1187,7 @@
         "Chalk DraggablesOrdered": {
           "display": "Chalk",
           "abilities": [
+            "Jigsaw",
             "Ordering"
           ],
           "members": [
@@ -1248,7 +1260,8 @@
         "Containables": {
           "display": "Containables",
           "abilities": [
-            "Containers"
+            "Containers",
+            "Furniture"
           ],
           "members": [
             "Containables"
@@ -1256,7 +1269,9 @@
         },
         "Draggables": {
           "display": "Draggables",
-          "abilities": [],
+          "abilities": [
+            "Furniture"
+          ],
           "members": [
             "Draggables"
           ]
@@ -1278,7 +1293,8 @@
         "Containables": {
           "display": "Containables",
           "abilities": [
-            "Containers"
+            "Containers",
+            "Furniture"
           ],
           "members": [
             "Containables"
@@ -1286,7 +1302,9 @@
         },
         "Draggables": {
           "display": "Draggables",
-          "abilities": [],
+          "abilities": [
+            "Furniture"
+          ],
           "members": [
             "Draggables"
           ]
@@ -1525,7 +1543,98 @@
     },
     "Radial Dance Party": {
       "display": "Radial Dance Party",
-      "parts": {}
+      "parts": {
+        "Radial Cat Food Cans 3": {
+          "display": "Radial Cat Food Cans 3",
+          "abilities": [
+            "Rotating"
+          ],
+          "members": [
+            "Radial Cat Food Cans 3"
+          ]
+        },
+        "Radial Cat Toys 1": {
+          "display": "Radial Cat Toys 1",
+          "abilities": [
+            "Rotating"
+          ],
+          "members": [
+            "Radial Cat Toys 1"
+          ]
+        },
+        "Radial Chess 9": {
+          "display": "Radial Chess 9",
+          "abilities": [
+            "Rotating"
+          ],
+          "members": [
+            "Radial Chess 9"
+          ]
+        },
+        "Radial Food 4": {
+          "display": "Radial Food 4",
+          "abilities": [
+            "Rotating"
+          ],
+          "members": [
+            "Radial Food 4"
+          ]
+        },
+        "Radial Ladybugs 8": {
+          "display": "Radial Ladybugs 8",
+          "abilities": [
+            "Rotating"
+          ],
+          "members": [
+            "Radial Ladybugs 8"
+          ]
+        },
+        "Radial Nuts \u0026 Bolts 6": {
+          "display": "Radial Nuts \u0026 Bolts 6",
+          "abilities": [
+            "Rotating"
+          ],
+          "members": [
+            "Radial Nuts \u0026 Bolts 6"
+          ]
+        },
+        "Radial Pencils 0": {
+          "display": "Radial Pencils 0",
+          "abilities": [
+            "Rotating"
+          ],
+          "members": [
+            "Radial Pencils 0"
+          ]
+        },
+        "Radial Soup Cans 5": {
+          "display": "Radial Soup Cans 5",
+          "abilities": [
+            "Rotating"
+          ],
+          "members": [
+            "Radial Soup Cans 5"
+          ]
+        },
+        "Radial Sticky Notes 2": {
+          "display": "Radial Sticky Notes 2",
+          "abilities": [
+            "Rotating"
+          ],
+          "members": [
+            "Radial Sticky Notes 2"
+          ]
+        },
+        "Radial Tools 7": {
+          "display": "Radial Tools 7",
+          "abilities": [
+            "Rotating"
+          ],
+          "members": [
+            "Radial Tools 7"
+          ]
+        }
+      }
     },
     "Record Player": {
       "display": "Record Player",
@@ -1724,7 +1833,9 @@
         },
         "StandardObjects": {
           "display": "Standard Objects",
-          "abilities": [],
+          "abilities": [
+            "Containers"
+          ],
           "members": [
             "StandardObjects"
           ]
@@ -1991,6 +2102,27 @@
     "TupperwareNesting": {
       "display": "Tupperware Nesting",
       "parts": {
+        "Draggables (Large Square)": {
+          "display": "(Large Square)",
+          "abilities": [
+            "Grids",
+            "Stacking"
+          ],
+          "members": [
+            "Draggables (Large Square)",
+            "Layout (Grid)"
+          ]
+        },
+        "Food": {
+          "display": "Food",
+          "abilities": [
+            "Grids",
+            "Stacking"
+          ],
+          "members": [
+            "Food"
+          ]
+        },
         "Lids": {
           "display": "Lids",
           "abilities": [
@@ -2008,30 +2140,39 @@
           "members": [
             "Stack 1"
           ]
+        },
+        "Stack 2": {
+          "display": "Stack 2",
+          "abilities": [
+            "Stacking"
+          ],
+          "members": [
+            "Stack 2"
+          ]
+        },
+        "Stack 3": {
+          "display": "Stack 3",
+          "abilities": [
+            "Stacking"
+          ],
+          "members": [
+            "Stack 3"
+          ]
+        },
+        "Tray": {
+          "display": "Tray",
+          "abilities": [
+            "Stacking"
+          ],
+          "members": [
+            "Tray"
+          ]
         }
       }
     },
     "TupperwareTower": {
       "display": "Tupperware Tower",
       "parts": {
-        "Falling Blocks": {
-          "display": "Falling Blocks",
-          "abilities": [
-            "Grids"
-          ],
-          "members": [
-            "Falling Blocks"
-          ]
-        },
-        "Foundation": {
-          "display": "Foundation",
-          "abilities": [
-            "Grids"
-          ],
-          "members": [
-            "Foundation"
-          ]
-        },
         "Tower": {
           "display": "Tower",
           "abilities": [
@@ -2083,7 +2224,9 @@
       "parts": {
         "DraggablesForTargets": {
           "display": "Draggables For Targets",
-          "abilities": [],
+          "abilities": [
+            "Furniture"
+          ],
           "members": [
             "DraggablesForTargets"
           ]

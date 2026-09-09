@@ -90,30 +90,33 @@ class TestTables(unittest.TestCase):
         """Pinned because our logic being LOOSER than the game is the one
         failure that generating seeds can never detect.
 
-        These three carry no puzzle controller at all, so every check on them
-        is unconditionally free in logic. That is correct only because the mod
-        dims objects BY controller class - a level the sweep saw no controllers
-        on has nothing to dim, so it stays fully playable and the check really
-        is free.
+        These two carry no puzzle controller at all, so every check on them is
+        unconditionally free in logic. That is correct only because the mod
+        dims objects BY controller class - a level with no controllers has
+        nothing to dim, so it stays fully playable and the check really is
+        free.
 
-        The danger is DIVERGENCE between the table and the running game. This
-        table came from a runtime sweep; if the game registers controllers at
-        play time that the sweep did not see, the mod would dim them while
-        logic still calls the check free, and the seed could be unwinnable in a
-        way no amount of generation testing reveals. Radial Dance Party is a
-        known bespoke Level subclass that reported zero controllers, so it is
-        exactly the shape of thing to distrust.
+        RADIAL DANCE PARTY USED TO BE IN THIS SET AND IT SHOULD NEVER HAVE
+        BEEN. It reported zero controllers because the sweep boots a level and
+        looks once, and that level reveals its ten rings one at a time as they
+        are solved. The docstring here warned about exactly that - "if the game
+        registers controllers at play time that the sweep did not see" - and
+        then listed the level as a member anyway, twice, across two
+        investigations. It declares its ten phases in
+        RadialDanceParty.dances; reading that declaration settled in one sweep
+        what two rounds of counting could not.
 
         Note this is NOT the same as "needs no ability" - 35 levels need none,
         because their controllers are Draggables, the free baseline verb. Those
-        are ordinary. These three are the ones we have no information about.
+        are ordinary. These two are the ones with no puzzle content at all.
 
         If this set changes, do not update the expectation - find out what the
-        game actually does with the new member.
+        game actually does with the new member, and start with whether it
+        declares phases.
         """
         ungrouped = {level.level_id for level in data.LEVELS if not level.parts}
         self.assertEqual(
-            {"Drink Glasses", "Radial Dance Party", "MerryMess_Presents"},
+            {"Drink Glasses", "MerryMess_Presents"},
             ungrouped,
             "the set of levels with no controller groups moved; see the docstring")
 

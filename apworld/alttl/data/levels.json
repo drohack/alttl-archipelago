@@ -1,3420 +1,3856 @@
 {
- "generatedBy": "ALTTLDevTools levelsweep",
- "gameVersion": "3.6.1",
- "sweepSeed": 20260901,
- "levels": [
-  {
-   "levelIndex": 14,
-   "levelId": "Angled Image Frame",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Angled",
-     "type": "Rotateables",
-     "objects": 5,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 40,
-   "levelId": "Batteries",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Sort Batteries",
-     "type": "Draggables",
-     "objects": 23,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 56,
-   "levelId": "Broken Vase",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Objects",
-     "type": "Pannables",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "Draggables",
-     "type": "Draggables",
-     "objects": 13,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 46,
-   "levelId": "Buttons",
-   "source": "generator",
-   "solutionCount": 2,
-   "isRandomizable": true,
-   "isArchived": false,
-   "isDailyTidy": true,
-   "controllers": [
-    {
-     "name": "SortingItems Draggables",
-     "type": "SortingItems_Draggables",
-     "objects": 25,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 2,
-   "cats": [],
-   "randomizerHintPool": 2,
-   "randomizerHints": 2
-  },
-  {
-   "levelIndex": 7,
-   "levelId": "Books",
-   "source": "base",
-   "solutionCount": 2,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Shuffle",
-     "type": "Shuffleables",
-     "objects": 9,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 2,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 18,
-   "levelId": "Books 2",
-   "source": "base",
-   "solutionCount": 2,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Shuffle",
-     "type": "Shuffleables",
-     "objects": 18,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 2,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 13,
-   "levelId": "Books 3",
-   "source": "base",
-   "solutionCount": 2,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Design (Shuffle)",
-     "type": "Shuffleables",
-     "objects": 17,
-     "dependsOn": []
-    },
-    {
-     "name": "Height (Draggables)",
-     "type": "Draggables",
-     "objects": 17,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 2,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 25,
-   "levelId": "Bowls",
-   "source": "base",
-   "solutionCount": 2,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Pattern",
-     "type": "Draggables",
-     "objects": 4,
-     "dependsOn": []
-    },
-    {
-     "name": "Crack",
-     "type": "Draggables",
-     "objects": 4,
-     "dependsOn": []
-    },
-    {
-     "name": "Pannables (Action Only)",
-     "type": "Pannables",
-     "objects": 4,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 2,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 53,
-   "levelId": "Boxes (Stacked)",
-   "source": "base",
-   "solutionCount": 2,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Stacked Boxes",
-     "type": "StackableGrid",
-     "objects": 13,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 2,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 28,
-   "levelId": "Breadtags",
-   "source": "generator",
-   "solutionCount": 1,
-   "isRandomizable": true,
-   "isArchived": false,
-   "isDailyTidy": true,
-   "controllers": [
-    {
-     "name": "Interlocking",
-     "type": "Draggables",
-     "objects": 9,
-     "dependsOn": []
-    },
-    {
-     "name": "Crumbs",
-     "type": "Removables",
-     "objects": 9,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 1,
-   "randomizerHints": 1
-  },
-  {
-   "levelIndex": 12,
-   "levelId": "Calendar",
-   "source": "generator",
-   "solutionCount": 1,
-   "isRandomizable": true,
-   "isArchived": false,
-   "isDailyTidy": true,
-   "controllers": [
-    {
-     "name": "Repeating Sequence",
-     "type": "Stickables",
-     "objects": 25,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 1,
-   "randomizerHints": 1
-  },
-  {
-   "levelIndex": 78,
-   "levelId": "Candles",
-   "source": "base",
-   "solutionCount": 2,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "CandlesObjectController",
-     "type": "CandlesObjectController",
-     "objects": 6,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 2,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 34,
-   "levelId": "Cat Food Cans",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Matching Stacks",
-     "type": "StackablesY",
-     "objects": 6,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1,
-   "levelId": "Cat Frame",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Straighten",
-     "type": "Rotateables",
-     "objects": 1,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 2,
-   "levelId": "Cat Toys",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Tidy Up",
-     "type": "Draggables",
-     "objects": 8,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 74,
-   "levelId": "Chess Shadows",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Shuffleables Pieces",
-     "type": "ShuffleablesRelative",
-     "objects": 6,
-     "dependsOn": [
-      "Shuffleables Shadows"
-     ]
-    },
-    {
-     "name": "Shuffleables Shadows",
-     "type": "ShuffleablesRelative",
-     "objects": 6,
-     "dependsOn": [
-      "Shuffleables Pieces"
-     ]
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 39,
-   "levelId": "Cleaning Supplies",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Supplies Order",
-     "type": "Shuffleables",
-     "objects": 9,
-     "dependsOn": []
-    },
-    {
-     "name": "Sponge",
-     "type": "Draggables",
-     "objects": 1,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 73,
-   "levelId": "Clock",
-   "source": "generator",
-   "solutionCount": 1,
-   "isRandomizable": true,
-   "isArchived": false,
-   "isDailyTidy": true,
-   "controllers": [
-    {
-     "name": "Match Shadows",
-     "type": "Rotateables",
-     "objects": 2,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 1,
-   "randomizerHints": 1
-  },
-  {
-   "levelIndex": 68,
-   "levelId": "Clover",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Symmetrical Placeables",
-     "type": "SymmetricalPlaceables",
-     "objects": 19,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [
-    {
-     "type": "CatSwipe",
-     "name": "Tail Swish",
-     "active": true
-    }
-   ],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 41,
-   "levelId": "Coins 1 (Shape)",
-   "source": "base",
-   "solutionCount": 3,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Ordered",
-     "type": "DraggablesOrdered",
-     "objects": 6,
-     "dependsOn": []
-    },
-    {
-     "name": "Stacked",
-     "type": "StackablesZ",
-     "objects": 6,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 3,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 51,
-   "levelId": "Coins 2 (Dirtyness)",
-   "source": "base",
-   "solutionCount": 3,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Dirtyables",
-     "type": "Dirtyables",
-     "objects": 1,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 3,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 3,
-   "levelId": "Colored Pencils",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Gradient",
-     "type": "Draggables",
-     "objects": 5,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 76,
-   "levelId": "Desktop Computer",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Computer Desktop",
-     "type": "Draggables",
-     "objects": 8,
-     "dependsOn": []
-    },
-    {
-     "name": "Pannables",
-     "type": "Pannables",
-     "objects": 2,
-     "dependsOn": []
-    },
-    {
-     "name": "Shuffleables - Notes",
-     "type": "Shuffleables",
-     "objects": 3,
-     "dependsOn": []
-    },
-    {
-     "name": "Rotateables - Clock hands",
-     "type": "Rotateables",
-     "objects": 2,
-     "dependsOn": []
-    },
-    {
-     "name": "Containables - Paintbrushes",
-     "type": "Containables",
-     "objects": 3,
-     "dependsOn": []
-    },
-    {
-     "name": "Containables - Keys",
-     "type": "Containables",
-     "objects": 2,
-     "dependsOn": []
-    },
-    {
-     "name": "Computer Errors",
-     "type": "ComputerErrorsController",
-     "objects": 0,
-     "dependsOn": [
-      "Computer Desktop"
-     ]
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 31,
-   "levelId": "Drink Glasses",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Backface Aligned",
-     "type": "Pannables",
-     "objects": 3,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 27,
-   "levelId": "Eggs",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Eggs Pattern",
-     "type": "DraggablesOrdered",
-     "objects": 6,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 72,
-   "levelId": "Frame Maze",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Frames",
-     "type": "Frame_Rotateables",
-     "objects": 8,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [
-    {
-     "type": "CatchNet",
-     "name": "CatchNet",
-     "active": true
-    }
-   ],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 36,
-   "levelId": "Fridge Inside",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Draggables",
-     "type": "Draggables",
-     "objects": 4,
-     "dependsOn": []
-    },
-    {
-     "name": "Stackables Yogurt / Jam Controller",
-     "type": "StackablesY",
-     "objects": 2,
-     "dependsOn": []
-    },
-    {
-     "name": "Stackables Tupperware Controller ",
-     "type": "StackablesY",
-     "objects": 2,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 29,
-   "levelId": "Fruit Stickers",
-   "source": "base",
-   "solutionCount": 2,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Objects",
-     "type": "Pannables",
-     "objects": 3,
-     "dependsOn": []
-    },
-    {
-     "name": "Remove Stickers",
-     "type": "Pluckables",
-     "objects": 12,
-     "dependsOn": []
-    },
-    {
-     "name": "Match Stickers",
-     "type": "Stickables",
-     "objects": 12,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 2,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 35,
-   "levelId": "Front of Fridge 1 (Postcards)",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Match Edges",
-     "type": "Draggables",
-     "objects": 7,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 37,
-   "levelId": "Front of Fridge 2 (Polaroids)",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Fit Rect",
-     "type": "Draggables",
-     "objects": 5,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 67,
-   "levelId": "Gems (Jigsaw)",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "GemsDrawer",
-     "type": "Draggables",
-     "objects": 17,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 61,
-   "levelId": "Gems (Simple)",
-   "source": "base",
-   "solutionCount": 3,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Ordered",
-     "type": "Shuffleables",
-     "objects": 6,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 3,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 23,
-   "levelId": "Jars",
-   "source": "base",
-   "solutionCount": 3,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Order",
-     "type": "Shuffleables",
-     "objects": 7,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 3,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 44,
-   "levelId": "Junk Drawer",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Organizer",
-     "type": "Draggables",
-     "objects": 47,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 47,
-   "levelId": "Keys",
-   "source": "base",
-   "solutionCount": 3,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Ordered",
-     "type": "DraggablesOrdered",
-     "objects": 7,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 3,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 80,
-   "levelId": "Lamp",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Switches Toggleables",
-     "type": "Toggleables",
-     "objects": 20,
-     "dependsOn": []
-    },
-    {
-     "name": "Light Rotatable",
-     "type": "Rotateables",
-     "objects": 1,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 59,
-   "levelId": "Leaves",
-   "source": "base",
-   "solutionCount": 3,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "LeavesShuffleables",
-     "type": "Shuffleables",
-     "objects": 12,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 3,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 43,
-   "levelId": "Light Bulbs",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "BulbsBox",
-     "type": "Draggables",
-     "objects": 15,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 77,
-   "levelId": "Matchboxes",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "MatchboxesObjectController",
-     "type": "MatchboxesObjectController",
-     "objects": 6,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 49,
-   "levelId": "MedicineCabinet",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Jar Lid Draggable",
-     "type": "Draggables",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "Swabs Containables",
-     "type": "Containables",
-     "objects": 6,
-     "dependsOn": []
-    },
-    {
-     "name": "Oral Containables",
-     "type": "Containables",
-     "objects": 2,
-     "dependsOn": []
-    },
-    {
-     "name": "Trinkets Draggables",
-     "type": "Draggables",
-     "objects": 2,
-     "dependsOn": []
-    },
-    {
-     "name": "Green Bottles Draggables",
-     "type": "DraggablesOrdered",
-     "objects": 2,
-     "dependsOn": []
-    },
-    {
-     "name": "Blue Bottles Draggables",
-     "type": "DraggablesOrdered",
-     "objects": 3,
-     "dependsOn": []
-    },
-    {
-     "name": "Cup Draggables",
-     "type": "Draggables",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "Brush Draggables",
-     "type": "Draggables",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "Contact Lenses Draggables",
-     "type": "Draggables",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "Creams Draggables Stacked",
-     "type": "DraggablesStacked",
-     "objects": 4,
-     "dependsOn": []
-    },
-    {
-     "name": "Tube Draggables",
-     "type": "Draggables",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "Pump Bottle Draggables",
-     "type": "Draggables",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "Pick Draggables",
-     "type": "Draggables",
-     "objects": 1,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 69,
-   "levelId": "Microscope",
-   "source": "generator",
-   "solutionCount": 1,
-   "isRandomizable": true,
-   "isArchived": false,
-   "isDailyTidy": true,
-   "controllers": [
-    {
-     "name": "Build Snowflakes",
-     "type": "ScrollFieldGroupsController",
-     "objects": 3,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 1,
-   "randomizerHints": 1
-  },
-  {
-   "levelIndex": 79,
-   "levelId": "Mirror",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Books + Box StackablesY ",
-     "type": "StackablesY",
-     "objects": 8,
-     "dependsOn": []
-    },
-    {
-     "name": "CandleStateController",
-     "type": "CandlesObjectController",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "ContainablesController",
-     "type": "Containables",
-     "objects": 4,
-     "dependsOn": []
-    },
-    {
-     "name": "JugPositionController",
-     "type": "Draggables",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "DishPositionController",
-     "type": "Draggables",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "BottlePositionController",
-     "type": "Draggables",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "CandlePositionController",
-     "type": "Draggables",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "LemonWedgePositionController",
-     "type": "Draggables",
-     "objects": 1,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 5,
-   "levelId": "Multiple Frames",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Straighten",
-     "type": "Rotateables",
-     "objects": 4,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 8,
-   "levelId": "NES Games",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Stack Aligned",
-     "type": "StackablesY",
-     "objects": 10,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 45,
-   "levelId": "PaintCans",
-   "source": "base",
-   "solutionCount": 2,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Match (Draggables)",
-     "type": "Draggables",
-     "objects": 6,
-     "dependsOn": []
-    },
-    {
-     "name": "Pannables (Action Only)",
-     "type": "Pannables",
-     "objects": 6,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 2,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 48,
-   "levelId": "PartsOrganizer",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Organizer",
-     "type": "Draggables",
-     "objects": 37,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 30,
-   "levelId": "Pasta",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Ordered",
-     "type": "Shuffleables",
-     "objects": 12,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [
-    {
-     "type": "CatSwipe",
-     "name": "CatSwipe",
-     "active": true
-    }
-   ],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 57,
-   "levelId": "PawPrints",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Clearables 01",
-     "type": "Clearables",
-     "objects": 18,
-     "dependsOn": []
-    },
-    {
-     "name": "Clearables 02",
-     "type": "Clearables",
-     "objects": 18,
-     "dependsOn": []
-    },
-    {
-     "name": "Clearables 03",
-     "type": "Clearables",
-     "objects": 3,
-     "dependsOn": []
-    },
-    {
-     "name": "Free Leaves",
-     "type": "Removables",
-     "objects": 5,
-     "dependsOn": []
-    },
-    {
-     "name": "Coffee Spill",
-     "type": "Clearables",
-     "objects": 1,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [
-    {
-     "type": "PawPrintsPhaseLevel",
-     "name": "PawPrints(Clone)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsSectionView",
-     "name": "View 1",
-     "active": true
-    },
-    {
-     "type": "PawPrintsCloth",
-     "name": "Cloth",
-     "active": true
-    },
-    {
-     "type": "PawPrintsRugObstructor",
-     "name": "Bottom",
-     "active": true
-    },
-    {
-     "type": "PawPrintsRug",
-     "name": "Bottom",
-     "active": true
-    },
-    {
-     "type": "PawPrintsRugObstructor",
-     "name": "Corner Mask",
-     "active": true
-    },
-    {
-     "type": "PawPrintsObstructor",
-     "name": "Newspaper 1",
-     "active": true
-    },
-    {
-     "type": "PawPrintsObstructor",
-     "name": "Newspaper 2",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 01 (Table)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 02 (Table)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 03 (Table)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 04 (Table)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 05 (On Rug)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 06 (On Rug)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 07 (On Rug)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 08 (On Rug)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 09 (Floor)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 10 (Floor)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 11 (Floor)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 12 (Floor)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 13 (Floor)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 14 (Floor)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 15 (Floor)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 16 (Floor)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 17 (Floor)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 18 (Floor)",
-     "active": true
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Coffee Spill",
-     "active": true
-    },
-    {
-     "type": "PawPrintsSectionView",
-     "name": "View 2",
-     "active": false
-    },
-    {
-     "type": "PawPrintsCloth",
-     "name": "Cloth",
-     "active": false
-    },
-    {
-     "type": "PawPrintsLeafObstructor",
-     "name": "Leaf 01",
-     "active": false
-    },
-    {
-     "type": "PawPrintsLeafObstructor",
-     "name": "Leaf 02",
-     "active": false
-    },
-    {
-     "type": "PawPrintsLeafObstructor",
-     "name": "Leaf 03",
-     "active": false
-    },
-    {
-     "type": "PawPrintsLeafObstructor",
-     "name": "Leaf 04",
-     "active": false
-    },
-    {
-     "type": "PawPrintsLeafObstructor",
-     "name": "Leaf 05",
-     "active": false
-    },
-    {
-     "type": "PawPrintsLeafObstructor",
-     "name": "Leaf 06",
-     "active": false
-    },
-    {
-     "type": "PawPrintsLeafObstructor",
-     "name": "Leaf 07",
-     "active": false
-    },
-    {
-     "type": "PawPrintsLeafObstructor",
-     "name": "Leaf 08",
-     "active": false
-    },
-    {
-     "type": "PawPrintsObstructor",
-     "name": "Free Leaf 01",
-     "active": false
-    },
-    {
-     "type": "PawPrintsObstructor",
-     "name": "Free Leaf 02",
-     "active": false
-    },
-    {
-     "type": "PawPrintsObstructor",
-     "name": "Free Leaf 03",
-     "active": false
-    },
-    {
-     "type": "PawPrintsObstructor",
-     "name": "Free Leaf 04",
-     "active": false
-    },
-    {
-     "type": "PawPrintsObstructor",
-     "name": "Free Leaf 05",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 01",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 02",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 03",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 04",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 05",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 06",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 07",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 08",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 09",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 10",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 11",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 12",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 13",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 14",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 15",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 16",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 17",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 18",
-     "active": false
-    },
-    {
-     "type": "PawPrintsCloth",
-     "name": "Cloth",
-     "active": false
-    },
-    {
-     "type": "PawPrintsDoor",
-     "name": "Door",
-     "active": false
-    },
-    {
-     "type": "PawPrintsCatBehaviour",
-     "name": "Cat Behaviour",
-     "active": false
-    },
-    {
-     "type": "PawAnimatorEvents",
-     "name": "Grabbing Paw",
-     "active": false
-    },
-    {
-     "type": "PawPrintsPrintingPaw",
-     "name": "Printing Paw",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 01",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 02",
-     "active": false
-    },
-    {
-     "type": "PawPrintsClearable",
-     "name": "Paw Print 03",
-     "active": false
-    },
-    {
-     "type": "PawPrintsCatDoorInterlude",
-     "name": "ThirdPhaseEntranceTranslation",
-     "active": true
-    }
-   ],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 16,
-   "levelId": "Pencils 3",
-   "source": "base",
-   "solutionCount": 3,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Ordered",
-     "type": "DraggablesOrdered",
-     "objects": 5,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 3,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 32,
-   "levelId": "Place Setting",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Placemat",
-     "type": "Draggables",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "Utensils",
-     "type": "Draggables",
-     "objects": 3,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [
-    {
-     "type": "CatGrab",
-     "name": "Cat Grab",
-     "active": true
-    }
-   ],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 60,
-   "levelId": "Plant Pots",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Interlocking",
-     "type": "Draggables",
-     "objects": 3,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 33,
-   "levelId": "Plate",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Placement",
-     "type": "Draggables",
-     "objects": 15,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 4,
-   "levelId": "Post-It Notes Scribble #1 (Simple Line)",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Arranged",
-     "type": "Draggables",
-     "objects": 5,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 10,
-   "levelId": "Post-It Notes Scribble #2 (3x3 Grid)",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Arranged",
-     "type": "Draggables",
-     "objects": 9,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 15,
-   "levelId": "Post-It Notes Scribble #3 (5x3 Grid)",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Arranged",
-     "type": "Draggables",
-     "objects": 12,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 81,
-   "levelId": "Radial Dance Party",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [
-    {
-     "type": "RadialCatIntro",
-     "name": "Cat Intro",
-     "active": true
-    }
-   ],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 20,
-   "levelId": "Record Player",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Needle & Knobs",
-     "type": "Rotateables",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "Needle & Knobs",
-     "type": "GenericLevelObjects",
-     "objects": 2,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 64,
-   "levelId": "Rock Collection",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Match-Lines",
-     "type": "GridPuzzle",
-     "objects": 18,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 66,
-   "levelId": "Rock Gradient",
-   "source": "base",
-   "solutionCount": 2,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Gradient",
-     "type": "GridPuzzle",
-     "objects": 9,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 2,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 65,
-   "levelId": "Seed Pods",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Symmetrical Placeables",
-     "type": "SymmetricalPlaceables",
-     "objects": 24,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 19,
-   "levelId": "Sharp Pencils",
-   "source": "base",
-   "solutionCount": 2,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Pencil Order",
-     "type": "DraggablesOrdered",
-     "objects": 7,
-     "dependsOn": []
-    },
-    {
-     "name": "Shavings Removed",
-     "type": "Removables",
-     "objects": 6,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 2,
-   "cats": [
-    {
-     "type": "CatSwipe_RecordPlayer",
-     "name": "CatSwipe",
-     "active": true
-    }
-   ],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 62,
-   "levelId": "Shells",
-   "source": "generator",
-   "solutionCount": 1,
-   "isRandomizable": true,
-   "isArchived": false,
-   "isDailyTidy": true,
-   "controllers": [
-    {
-     "name": "Symmetrical Placeables",
-     "type": "SymmetricalPlaceables",
-     "objects": 20,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [
-    {
-     "type": "CatGrab",
-     "name": "CatGrab",
-     "active": true
-    }
-   ],
-   "randomizerHintPool": 1,
-   "randomizerHints": 1
-  },
-  {
-   "levelIndex": 22,
-   "levelId": "Soup Cans",
-   "source": "base",
-   "solutionCount": 2,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Match Label (Draggables)",
-     "type": "Draggables",
-     "objects": 3,
-     "dependsOn": []
-    },
-    {
-     "name": "Pannables (Action Only)",
-     "type": "Pannables",
-     "objects": 3,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 2,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 26,
-   "levelId": "Spice Jars",
-   "source": "generator",
-   "solutionCount": 2,
-   "isRandomizable": true,
-   "isArchived": false,
-   "isDailyTidy": true,
-   "controllers": [
-    {
-     "name": "SpiceJarShuffleables",
-     "type": "Shuffleables",
-     "objects": 6,
-     "dependsOn": [
-      "SpiceJarShuffleables_BottomShelf"
-     ]
-    },
-    {
-     "name": "SpiceJarShuffleables_BottomShelf",
-     "type": "Shuffleables",
-     "objects": 6,
-     "dependsOn": [
-      "SpiceJarShuffleables"
-     ]
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 2,
-   "cats": [],
-   "randomizerHintPool": 2,
-   "randomizerHints": 2
-  },
-  {
-   "levelIndex": 70,
-   "levelId": "SpiderWeb",
-   "source": "generator",
-   "solutionCount": 1,
-   "isRandomizable": true,
-   "isArchived": false,
-   "isDailyTidy": true,
-   "controllers": [
-    {
-     "name": "Web Symmetry",
-     "type": "Draggables",
-     "objects": 7,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 1,
-   "randomizerHints": 1
-  },
-  {
-   "levelIndex": 24,
-   "levelId": "Spoons",
-   "source": "base",
-   "solutionCount": 2,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Stacked",
-     "type": "StackablesZ",
-     "objects": 7,
-     "dependsOn": []
-    },
-    {
-     "name": "Size (Elastic)",
-     "type": "DraggablesOrdered",
-     "objects": 7,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 2,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 6,
-   "levelId": "Stacked Papers",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Stack Papers",
-     "type": "StackablesZ",
-     "objects": 7,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 9,
-   "levelId": "Stamps",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Stamps Pattern",
-     "type": "Draggables",
-     "objects": 6,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [
-    {
-     "type": "CatGrab",
-     "name": "CatGrab",
-     "active": true
-    }
-   ],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 52,
-   "levelId": "Storage Boxes",
-   "source": "base",
-   "solutionCount": 2,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "SortingItems Draggables",
-     "type": "SortingItems_Draggables",
-     "objects": 32,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 2,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 11,
-   "levelId": "Tacks",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Colour & Count Sort",
-     "type": "Draggables",
-     "objects": 15,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 75,
-   "levelId": "Telescope",
-   "source": "generator",
-   "solutionCount": 1,
-   "isRandomizable": true,
-   "isArchived": false,
-   "isDailyTidy": true,
-   "controllers": [
-    {
-     "name": "Constellations",
-     "type": "TelescopeDraggables",
-     "objects": 5,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 1,
-   "randomizerHints": 1
-  },
-  {
-   "levelIndex": 58,
-   "levelId": "Trim Plant",
-   "source": "generator",
-   "solutionCount": 1,
-   "isRandomizable": true,
-   "isArchived": false,
-   "isDailyTidy": true,
-   "controllers": [
-    {
-     "name": "Pluckables",
-     "type": "Pluckables",
-     "objects": 20,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 1,
-   "randomizerHints": 1
-  },
-  {
-   "levelIndex": 63,
-   "levelId": "Trim Plant (Vines)",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Pluckables",
-     "type": "Pluckables",
-     "objects": 91,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [
-    {
-     "type": "CatSwipe_DropObjects",
-     "name": "Cat Scratch",
-     "active": true
-    }
-   ],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 82,
-   "levelId": "TupperwareNesting",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Lids",
-     "type": "TupperwareLids",
-     "objects": 4,
-     "dependsOn": []
-    },
-    {
-     "name": "Stack 1",
-     "type": "StackablesZ",
-     "objects": 3,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 83,
-   "levelId": "TupperwareTower",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Foundation",
-     "type": "StackableGrid",
-     "objects": 10,
-     "dependsOn": []
-    },
-    {
-     "name": "Tower",
-     "type": "TupperwareTower",
-     "objects": 9,
-     "dependsOn": []
-    },
-    {
-     "name": "Falling Blocks",
-     "type": "StackableGrid",
-     "objects": 22,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [
-    {
-     "type": "CatClimb",
-     "name": "Cat Climb",
-     "active": true
-    }
-   ],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 42,
-   "levelId": "UtensilsDrawer",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Utensils Drawer",
-     "type": "Draggables",
-     "objects": 22,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 54,
-   "levelId": "Wilting Flowers",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Upright",
-     "type": "AnimScrubbables",
-     "objects": 3,
-     "dependsOn": []
-    },
-    {
-     "name": "Cleanable",
-     "type": "CleanablesController",
-     "objects": 2,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 50,
-   "levelId": "Workbench",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "ToolsController",
-     "type": "HangingToolsController",
-     "objects": 21,
-     "dependsOn": []
-    },
-    {
-     "name": "DraggablesForTargets",
-     "type": "Draggables",
-     "objects": 21,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 17,
-   "levelId": "Wrong Aspect Papers",
-   "source": "base",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": false,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Fit Rect",
-     "type": "Draggables",
-     "objects": 9,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [
-    {
-     "type": "CatSwipe",
-     "name": "Tail Swish",
-     "active": true
-    }
-   ],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1000,
-   "levelId": "Procedural Grid Puzzle",
-   "source": "generator",
-   "solutionCount": 1,
-   "isRandomizable": true,
-   "isArchived": false,
-   "isDailyTidy": true,
-   "controllers": [
-    {
-     "name": "Grid Puzzle",
-     "type": "GridPuzzle",
-     "objects": 9,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 0,
-   "cats": [],
-   "randomizerHintPool": 1,
-   "randomizerHints": 1
-  },
-  {
-   "levelIndex": 999,
-   "levelId": "Pencils (Randomized)",
-   "source": "generator",
-   "solutionCount": 2,
-   "isRandomizable": true,
-   "isArchived": false,
-   "isDailyTidy": true,
-   "controllers": [
-    {
-     "name": "Ordered",
-     "type": "DraggablesOrdered",
-     "objects": 7,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 0,
-   "cats": [],
-   "randomizerHintPool": 5,
-   "randomizerHints": 2
-  },
-  {
-   "levelIndex": 998,
-   "levelId": "Post-It Notes (Randomized)",
-   "source": "generator",
-   "solutionCount": 1,
-   "isRandomizable": true,
-   "isArchived": false,
-   "isDailyTidy": true,
-   "controllers": [
-    {
-     "name": "Draggable",
-     "type": "Draggables",
-     "objects": 15,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 0,
-   "cats": [],
-   "randomizerHintPool": 1,
-   "randomizerHints": 1
-  },
-  {
-   "levelIndex": 997,
-   "levelId": "Stamps (Randomized)",
-   "source": "generator",
-   "solutionCount": 1,
-   "isRandomizable": true,
-   "isArchived": false,
-   "isDailyTidy": true,
-   "controllers": [
-    {
-     "name": "Stamps Pattern",
-     "type": "Draggables",
-     "objects": 9,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 0,
-   "cats": [],
-   "randomizerHintPool": 1,
-   "randomizerHints": 1
-  },
-  {
-   "levelIndex": 996,
-   "levelId": "Batteries (Randomized)",
-   "source": "generator",
-   "solutionCount": 1,
-   "isRandomizable": true,
-   "isArchived": false,
-   "isDailyTidy": true,
-   "controllers": [
-    {
-     "name": "Controller",
-     "type": "Draggables",
-     "objects": 24,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 0,
-   "cats": [],
-   "randomizerHintPool": 1,
-   "randomizerHints": 1
-  },
-  {
-   "levelIndex": 995,
-   "levelId": "Books (Randomized)",
-   "source": "generator",
-   "solutionCount": 2,
-   "isRandomizable": true,
-   "isArchived": false,
-   "isDailyTidy": true,
-   "controllers": [
-    {
-     "name": "Shuffle",
-     "type": "Shuffleables",
-     "objects": 11,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 0,
-   "cats": [],
-   "randomizerHintPool": 7,
-   "randomizerHints": 2
-  },
-  {
-   "levelIndex": 1001,
-   "levelId": "GoodTidings_Cookies",
-   "source": "archive",
-   "solutionCount": 3,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "RowColSets",
-     "type": "GridPuzzle",
-     "objects": 15,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 3,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1002,
-   "levelId": "GoodTidings_Popcorn",
-   "source": "archive",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "TopRow",
-     "type": "ShuffleablesRepeatingPattern",
-     "objects": 11,
-     "dependsOn": []
-    },
-    {
-     "name": "MidRow",
-     "type": "ShuffleablesRepeatingPattern",
-     "objects": 11,
-     "dependsOn": []
-    },
-    {
-     "name": "BotRow",
-     "type": "ShuffleablesRepeatingPattern",
-     "objects": 11,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1003,
-   "levelId": "GoodTidings_Wreath",
-   "source": "archive",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Symmetrical Placeables",
-     "type": "SymmetricalPlaceables",
-     "objects": 14,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1004,
-   "levelId": "GoodTidings_Presents (Stacked)",
-   "source": "archive",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Stacked Boxes",
-     "type": "StackableGrid",
-     "objects": 12,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1005,
-   "levelId": "GoodTidings_Cookies (Jigsaw)",
-   "source": "archive",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Match Candy Cane",
-     "type": "DraggablesJigsaw",
-     "objects": 6,
-     "dependsOn": []
-    },
-    {
-     "name": "Match Reindeer",
-     "type": "DraggablesJigsaw",
-     "objects": 4,
-     "dependsOn": []
-    },
-    {
-     "name": "Match Gingerbread Man",
-     "type": "DraggablesJigsaw",
-     "objects": 5,
-     "dependsOn": []
-    },
-    {
-     "name": "Match Snowflake",
-     "type": "DraggablesJigsaw",
-     "objects": 5,
-     "dependsOn": []
-    },
-    {
-     "name": "Match Tree",
-     "type": "DraggablesJigsaw",
-     "objects": 5,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1006,
-   "levelId": "GoodTidings_Ornament Box",
-   "source": "archive",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "BulbsBox",
-     "type": "Draggables",
-     "objects": 23,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 107,
-   "levelId": "SomethingEggstra PaintedEggs",
-   "source": "archive",
-   "solutionCount": 2,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "RowColSets",
-     "type": "GridPuzzle",
-     "objects": 15,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 2,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 108,
-   "levelId": "SomethingEggstra Egg Cups",
-   "source": "archive",
-   "solutionCount": 3,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Shuffleables Cups",
-     "type": "ShuffleablesRelative",
-     "objects": 6,
-     "dependsOn": [
-      "Shuffleables Eggs"
-     ]
-    },
-    {
-     "name": "Shuffleables Eggs",
-     "type": "ShuffleablesRelative",
-     "objects": 6,
-     "dependsOn": [
-      "Shuffleables Cups"
-     ]
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 3,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 109,
-   "levelId": "SomethingEggstra Fridge",
-   "source": "archive",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "StandardObjects",
-     "type": "Draggables",
-     "objects": 24,
-     "dependsOn": []
-    },
-    {
-     "name": "Stackables (Tupperware)",
-     "type": "StackablesY",
-     "objects": 2,
-     "dependsOn": []
-    },
-    {
-     "name": "EggsContainable",
-     "type": "Containables",
-     "objects": 6,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 110,
-   "levelId": "SomethingEggstra Broken Eggs",
-   "source": "archive",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Egg #1 Shards",
-     "type": "Pannables",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "Egg #2 Shards",
-     "type": "Pannables",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "Egg #3 Shards",
-     "type": "Pannables",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "Egg #1 (Center) Draggables",
-     "type": "Draggables",
-     "objects": 8,
-     "dependsOn": []
-    },
-    {
-     "name": "Egg #2 (Left) Draggables",
-     "type": "Draggables",
-     "objects": 7,
-     "dependsOn": []
-    },
-    {
-     "name": "Egg #3 (Right) Draggables",
-     "type": "Draggables",
-     "objects": 8,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1010,
-   "levelId": "TrickOrTidy_Bats",
-   "source": "archive",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Interlocking",
-     "type": "Draggables",
-     "objects": 10,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1011,
-   "levelId": "TrickOrTidy_Bones",
-   "source": "archive",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Match Bones",
-     "type": "DraggablesJigsaw",
-     "objects": 18,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1012,
-   "levelId": "TrickOrTidy_Candy",
-   "source": "archive",
-   "solutionCount": 2,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Grouped",
-     "type": "Groupables",
-     "objects": 36,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 2,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1013,
-   "levelId": "TrickOrTidy_ChocolateBars",
-   "source": "archive",
-   "solutionCount": 4,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Design (Shuffle)",
-     "type": "Shuffleables",
-     "objects": 9,
-     "dependsOn": []
-    },
-    {
-     "name": "Height (Draggables)",
-     "type": "Draggables",
-     "objects": 9,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 4,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1014,
-   "levelId": "TrickOrTidy_JackOLanterns",
-   "source": "archive",
-   "solutionCount": 4,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Ordered",
-     "type": "Shuffleables",
-     "objects": 5,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 4,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1015,
-   "levelId": "MerryMess_CandyCanes",
-   "source": "archive",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Match Candy Cane (1)",
-     "type": "DraggablesJigsaw",
-     "objects": 4,
-     "dependsOn": []
-    },
-    {
-     "name": "Match Candy Cane (2)",
-     "type": "DraggablesJigsaw",
-     "objects": 4,
-     "dependsOn": []
-    },
-    {
-     "name": "Match Candy Cane (3)",
-     "type": "DraggablesJigsaw",
-     "objects": 4,
-     "dependsOn": []
-    },
-    {
-     "name": "Match Candy Cane (4)",
-     "type": "DraggablesJigsaw",
-     "objects": 4,
-     "dependsOn": []
-    },
-    {
-     "name": "Match Candy Cane (5)",
-     "type": "DraggablesJigsaw",
-     "objects": 4,
-     "dependsOn": []
-    },
-    {
-     "name": "Ordered",
-     "type": "DraggablesOrdered",
-     "objects": 5,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1016,
-   "levelId": "MerryMess_Crackers",
-   "source": "archive",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Build Train",
-     "type": "Draggables",
-     "objects": 5,
-     "dependsOn": []
-    },
-    {
-     "name": "CrackerShuffleables",
-     "type": "CrackersShuffleables",
-     "objects": 5,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [
-    {
-     "type": "CatGrab",
-     "name": "CatGrab",
-     "active": true
-    }
-   ],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1017,
-   "levelId": "MerryMess_SnowGlobes",
-   "source": "archive",
-   "solutionCount": 3,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Match Pan (Draggables)",
-     "type": "Draggables",
-     "objects": 3,
-     "dependsOn": []
-    },
-    {
-     "name": "Pannables (Action Only)",
-     "type": "Pannables",
-     "objects": 3,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 3,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1018,
-   "levelId": "MerryMess_Presents",
-   "source": "archive",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Presents Aligned",
-     "type": "Pannables",
-     "objects": 4,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1019,
-   "levelId": "MerryMess_NutCrackers",
-   "source": "archive",
-   "solutionCount": 5,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Shuffle",
-     "type": "Shuffleables",
-     "objects": 5,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 5,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1020,
-   "levelId": "NeatStreak_Paper Plane Supplies",
-   "source": "archive",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Draggables",
-     "type": "Draggables",
-     "objects": 25,
-     "dependsOn": []
-    },
-    {
-     "name": "Containables",
-     "type": "Containables",
-     "objects": 14,
-     "dependsOn": []
-    },
-    {
-     "name": "Drawer Controller",
-     "type": "DrawerController",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "ChalkPurple Jigsaw",
-     "type": "DraggablesJigsaw",
-     "objects": 2,
-     "dependsOn": []
-    },
-    {
-     "name": "ChalkBlue Jigsaw",
-     "type": "DraggablesJigsaw",
-     "objects": 2,
-     "dependsOn": []
-    },
-    {
-     "name": "ChalkGreen Jigsaw",
-     "type": "DraggablesJigsaw",
-     "objects": 2,
-     "dependsOn": []
-    },
-    {
-     "name": "ChalkMint Jigsaw",
-     "type": "DraggablesJigsaw",
-     "objects": 2,
-     "dependsOn": []
-    },
-    {
-     "name": "ChalkYellow Jigsaw",
-     "type": "DraggablesJigsaw",
-     "objects": 2,
-     "dependsOn": []
-    },
-    {
-     "name": "ChalkPink Jigsaw",
-     "type": "DraggablesJigsaw",
-     "objects": 2,
-     "dependsOn": []
-    },
-    {
-     "name": "ChalkRed Jigsaw",
-     "type": "DraggablesJigsaw",
-     "objects": 2,
-     "dependsOn": []
-    },
-    {
-     "name": "Chalk DraggablesOrdered",
-     "type": "DraggablesOrdered",
-     "objects": 7,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1021,
-   "levelId": "NeatStreak_Tool Drawer",
-   "source": "archive",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Draggables",
-     "type": "Draggables",
-     "objects": 47,
-     "dependsOn": []
-    },
-    {
-     "name": "Containables",
-     "type": "Containables",
-     "objects": 8,
-     "dependsOn": []
-    },
-    {
-     "name": "Drawer Controller",
-     "type": "DrawerController",
-     "objects": 1,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1022,
-   "levelId": "NeatStreak_Bathroom Drawer",
-   "source": "archive",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Draggables",
-     "type": "Draggables",
-     "objects": 40,
-     "dependsOn": []
-    },
-    {
-     "name": "Bottle Containables",
-     "type": "Containables",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "Drawer Controller",
-     "type": "DrawerController",
-     "objects": 1,
-     "dependsOn": []
-    },
-    {
-     "name": "Indexable",
-     "type": "Indexables",
-     "objects": 0,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1007,
-   "levelId": "SnackPack Sandwich",
-   "source": "archive",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Stack Ingredients",
-     "type": "StackablesZ",
-     "objects": 10,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1008,
-   "levelId": "SnackPack Pretzels",
-   "source": "archive",
-   "solutionCount": 3,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Ordered",
-     "type": "Shuffleables",
-     "objects": 5,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 3,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  },
-  {
-   "levelIndex": 1009,
-   "levelId": "SnackPack Cereal",
-   "source": "archive",
-   "solutionCount": 1,
-   "isRandomizable": false,
-   "isArchived": true,
-   "isDailyTidy": false,
-   "controllers": [
-    {
-     "name": "Draggables Controller",
-     "type": "Draggables",
-     "objects": 50,
-     "dependsOn": []
-    }
-   ],
-   "hintAvailable": true,
-   "hintImages": 1,
-   "cats": [],
-   "randomizerHintPool": 0,
-   "randomizerHints": 0
-  }
- ]
+  "generatedBy": "ALTTLDevTools levelsweep",
+  "gameVersion": "3.6.1",
+  "sweepSeed": 20260901,
+  "levels": [
+    {
+      "levelIndex": 14,
+      "levelId": "Angled Image Frame",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Angled",
+          "type": "Rotateables",
+          "objects": 5,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 40,
+      "levelId": "Batteries",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Sort Batteries",
+          "type": "Draggables",
+          "objects": 23,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 56,
+      "levelId": "Broken Vase",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Objects",
+          "type": "Pannables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Draggables",
+          "type": "Draggables",
+          "objects": 13,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 46,
+      "levelId": "Buttons",
+      "source": "generator",
+      "solutionCount": 2,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": true,
+      "controllers": [
+        {
+          "name": "SortingItems Draggables",
+          "type": "SortingItems_Draggables",
+          "objects": 25,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 2,
+      "randomizerHints": 2,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 7,
+      "levelId": "Books",
+      "source": "base",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Shuffle",
+          "type": "Shuffleables",
+          "objects": 9,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 18,
+      "levelId": "Books 2",
+      "source": "base",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Shuffle",
+          "type": "Shuffleables",
+          "objects": 18,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 13,
+      "levelId": "Books 3",
+      "source": "base",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Design (Shuffle)",
+          "type": "Shuffleables",
+          "objects": 17,
+          "dependsOn": []
+        },
+        {
+          "name": "Height (Draggables)",
+          "type": "Draggables",
+          "objects": 17,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 25,
+      "levelId": "Bowls",
+      "source": "base",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Pattern",
+          "type": "Draggables",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "Crack",
+          "type": "Draggables",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "Pannables (Action Only)",
+          "type": "Pannables",
+          "objects": 4,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 53,
+      "levelId": "Boxes (Stacked)",
+      "source": "base",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Stacked Boxes",
+          "type": "StackableGrid",
+          "objects": 13,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 28,
+      "levelId": "Breadtags",
+      "source": "generator",
+      "solutionCount": 1,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": true,
+      "controllers": [
+        {
+          "name": "Interlocking",
+          "type": "Draggables",
+          "objects": 9,
+          "dependsOn": [
+            "Crumbs"
+          ]
+        },
+        {
+          "name": "Crumbs",
+          "type": "Removables",
+          "objects": 9,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 1,
+      "randomizerHints": 1,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 12,
+      "levelId": "Calendar",
+      "source": "generator",
+      "solutionCount": 1,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": true,
+      "controllers": [
+        {
+          "name": "Repeating Sequence",
+          "type": "Stickables",
+          "objects": 25,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 1,
+      "randomizerHints": 1,
+      "isHolidayDaily": false,
+      "levelClass": "CalendarLevel"
+    },
+    {
+      "levelIndex": 78,
+      "levelId": "Candles",
+      "source": "base",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "CandlesObjectController",
+          "type": "CandlesObjectController",
+          "objects": 6,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "CandlesLevel"
+    },
+    {
+      "levelIndex": 34,
+      "levelId": "Cat Food Cans",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Matching Stacks",
+          "type": "StackablesY",
+          "objects": 6,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1,
+      "levelId": "Cat Frame",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Straighten",
+          "type": "Rotateables",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 2,
+      "levelId": "Cat Toys",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Tidy Up",
+          "type": "Draggables",
+          "objects": 8,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 74,
+      "levelId": "Chess Shadows",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Shuffleables Pieces",
+          "type": "ShuffleablesRelative",
+          "objects": 6,
+          "dependsOn": [
+            "Shuffleables Shadows"
+          ]
+        },
+        {
+          "name": "Shuffleables Shadows",
+          "type": "ShuffleablesRelative",
+          "objects": 6,
+          "dependsOn": [
+            "Shuffleables Pieces"
+          ]
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 39,
+      "levelId": "Cleaning Supplies",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Supplies Order",
+          "type": "Shuffleables",
+          "objects": 9,
+          "dependsOn": []
+        },
+        {
+          "name": "Sponge",
+          "type": "Draggables",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 73,
+      "levelId": "Clock",
+      "source": "generator",
+      "solutionCount": 1,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": true,
+      "controllers": [
+        {
+          "name": "Match Shadows",
+          "type": "Rotateables",
+          "objects": 2,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 1,
+      "randomizerHints": 1,
+      "isHolidayDaily": false,
+      "levelClass": "ClockLevel"
+    },
+    {
+      "levelIndex": 68,
+      "levelId": "Clover",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Symmetrical Placeables",
+          "type": "SymmetricalPlaceables",
+          "objects": 19,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [
+        {
+          "type": "CatSwipe",
+          "name": "Tail Swish",
+          "active": true
+        }
+      ],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 41,
+      "levelId": "Coins 1 (Shape)",
+      "source": "base",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Ordered",
+          "type": "DraggablesOrdered",
+          "objects": 6,
+          "dependsOn": []
+        },
+        {
+          "name": "Stacked",
+          "type": "StackablesZ",
+          "objects": 6,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 51,
+      "levelId": "Coins 2 (Dirtyness)",
+      "source": "base",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Dirtyables",
+          "type": "Dirtyables",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 3,
+      "levelId": "Colored Pencils",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Gradient",
+          "type": "Draggables",
+          "objects": 5,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 76,
+      "levelId": "Desktop Computer",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Computer Desktop",
+          "type": "Draggables",
+          "objects": 8,
+          "dependsOn": []
+        },
+        {
+          "name": "Pannables",
+          "type": "Pannables",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "Shuffleables - Notes",
+          "type": "Shuffleables",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Rotateables - Clock hands",
+          "type": "Rotateables",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "Containables - Paintbrushes",
+          "type": "Containables",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Containables - Keys",
+          "type": "Containables",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "Computer Errors",
+          "type": "ComputerErrorsController",
+          "objects": 0,
+          "dependsOn": [
+            "Computer Desktop"
+          ]
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "DesktopComputer"
+    },
+    {
+      "levelIndex": 31,
+      "levelId": "Drink Glasses",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Backface Aligned",
+          "type": "Pannables",
+          "objects": 3,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 27,
+      "levelId": "Eggs",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Eggs Pattern",
+          "type": "DraggablesOrdered",
+          "objects": 6,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 72,
+      "levelId": "Frame Maze",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Frames",
+          "type": "Frame_Rotateables",
+          "objects": 8,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [
+        {
+          "type": "CatchNet",
+          "name": "CatchNet",
+          "active": true
+        }
+      ],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 36,
+      "levelId": "Fridge Inside",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Draggables",
+          "type": "Draggables",
+          "objects": 4,
+          "dependsOn": [
+            "Stackables Yogurt / Jam Controller",
+            "Stackables Tupperware Controller "
+          ]
+        },
+        {
+          "name": "Stackables Yogurt / Jam Controller",
+          "type": "StackablesY",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "Stackables Tupperware Controller ",
+          "type": "StackablesY",
+          "objects": 2,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 29,
+      "levelId": "Fruit Stickers",
+      "source": "base",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Objects",
+          "type": "Pannables",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Remove Stickers",
+          "type": "Pluckables",
+          "objects": 12,
+          "dependsOn": []
+        },
+        {
+          "name": "Match Stickers",
+          "type": "Stickables",
+          "objects": 12,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 35,
+      "levelId": "Front of Fridge 1 (Postcards)",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Match Edges",
+          "type": "Draggables",
+          "objects": 7,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 37,
+      "levelId": "Front of Fridge 2 (Polaroids)",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Fit Rect",
+          "type": "Draggables",
+          "objects": 5,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 67,
+      "levelId": "Gems (Jigsaw)",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "GemsDrawer",
+          "type": "Draggables",
+          "objects": 17,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 61,
+      "levelId": "Gems (Simple)",
+      "source": "base",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Ordered",
+          "type": "Shuffleables",
+          "objects": 6,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 23,
+      "levelId": "Jars",
+      "source": "base",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Order",
+          "type": "Shuffleables",
+          "objects": 7,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 44,
+      "levelId": "Junk Drawer",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Organizer",
+          "type": "Draggables",
+          "objects": 47,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 47,
+      "levelId": "Keys",
+      "source": "base",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Ordered",
+          "type": "DraggablesOrdered",
+          "objects": 7,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 80,
+      "levelId": "Lamp",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Switches Toggleables",
+          "type": "Toggleables",
+          "objects": 20,
+          "dependsOn": []
+        },
+        {
+          "name": "Light Rotatable",
+          "type": "Rotateables",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 59,
+      "levelId": "Leaves",
+      "source": "base",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "LeavesShuffleables",
+          "type": "Shuffleables",
+          "objects": 12,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 43,
+      "levelId": "Light Bulbs",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "BulbsBox",
+          "type": "Draggables",
+          "objects": 15,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 77,
+      "levelId": "Matchboxes",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "MatchboxesObjectController",
+          "type": "MatchboxesObjectController",
+          "objects": 6,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "MatchboxesLevel"
+    },
+    {
+      "levelIndex": 49,
+      "levelId": "MedicineCabinet",
+      "extraAbilities": [
+        "Furniture"
+      ],
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Jar Lid Draggable",
+          "type": "Draggables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Swabs Containables",
+          "type": "Containables",
+          "objects": 6,
+          "dependsOn": []
+        },
+        {
+          "name": "Oral Containables",
+          "type": "Containables",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "Trinkets Draggables",
+          "type": "Draggables",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "Green Bottles Draggables",
+          "type": "DraggablesOrdered",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "Blue Bottles Draggables",
+          "type": "DraggablesOrdered",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Cup Draggables",
+          "type": "Draggables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Brush Draggables",
+          "type": "Draggables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Contact Lenses Draggables",
+          "type": "Draggables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Creams Draggables Stacked",
+          "type": "DraggablesStacked",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "Tube Draggables",
+          "type": "Draggables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Pump Bottle Draggables",
+          "type": "Draggables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Pick Draggables",
+          "type": "Draggables",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 69,
+      "levelId": "Microscope",
+      "source": "generator",
+      "solutionCount": 1,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": true,
+      "controllers": [
+        {
+          "name": "Build Snowflakes",
+          "type": "ScrollFieldGroupsController",
+          "objects": 3,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 1,
+      "randomizerHints": 1,
+      "isHolidayDaily": false,
+      "levelClass": "MicroscopeLevel"
+    },
+    {
+      "levelIndex": 79,
+      "levelId": "Mirror",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Books + Box StackablesY ",
+          "type": "StackablesY",
+          "objects": 8,
+          "dependsOn": []
+        },
+        {
+          "name": "CandleStateController",
+          "type": "CandlesObjectController",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "ContainablesController",
+          "type": "Containables",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "JugPositionController",
+          "type": "Draggables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "DishPositionController",
+          "type": "Draggables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "BottlePositionController",
+          "type": "Draggables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "CandlePositionController",
+          "type": "Draggables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "LemonWedgePositionController",
+          "type": "Draggables",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 5,
+      "levelId": "Multiple Frames",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Straighten",
+          "type": "Rotateables",
+          "objects": 4,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 8,
+      "levelId": "NES Games",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Stack Aligned",
+          "type": "StackablesY",
+          "objects": 10,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 45,
+      "levelId": "PaintCans",
+      "source": "base",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Match (Draggables)",
+          "type": "Draggables",
+          "objects": 6,
+          "dependsOn": []
+        },
+        {
+          "name": "Pannables (Action Only)",
+          "type": "Pannables",
+          "objects": 6,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 48,
+      "levelId": "PartsOrganizer",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Organizer",
+          "type": "Draggables",
+          "objects": 37,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 30,
+      "levelId": "Pasta",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Ordered",
+          "type": "Shuffleables",
+          "objects": 12,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [
+        {
+          "type": "CatSwipe",
+          "name": "CatSwipe",
+          "active": true
+        }
+      ],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 57,
+      "levelId": "PawPrints",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Clearables 01",
+          "type": "Clearables",
+          "objects": 18,
+          "dependsOn": []
+        },
+        {
+          "name": "Clearables 02",
+          "type": "Clearables",
+          "objects": 18,
+          "dependsOn": [
+            "Clearables 01"
+          ]
+        },
+        {
+          "name": "Clearables 03",
+          "type": "Clearables",
+          "objects": 3,
+          "dependsOn": [
+            "Clearables 02"
+          ]
+        },
+        {
+          "name": "Free Leaves",
+          "type": "Removables",
+          "objects": 5,
+          "dependsOn": []
+        },
+        {
+          "name": "Coffee Spill",
+          "type": "Clearables",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [
+        {
+          "type": "PawPrintsPhaseLevel",
+          "name": "PawPrints(Clone)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsSectionView",
+          "name": "View 1",
+          "active": true
+        },
+        {
+          "type": "PawPrintsCloth",
+          "name": "Cloth",
+          "active": true
+        },
+        {
+          "type": "PawPrintsRugObstructor",
+          "name": "Bottom",
+          "active": true
+        },
+        {
+          "type": "PawPrintsRug",
+          "name": "Bottom",
+          "active": true
+        },
+        {
+          "type": "PawPrintsRugObstructor",
+          "name": "Corner Mask",
+          "active": true
+        },
+        {
+          "type": "PawPrintsObstructor",
+          "name": "Newspaper 1",
+          "active": true
+        },
+        {
+          "type": "PawPrintsObstructor",
+          "name": "Newspaper 2",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 01 (Table)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 02 (Table)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 03 (Table)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 04 (Table)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 05 (On Rug)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 06 (On Rug)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 07 (On Rug)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 08 (On Rug)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 09 (Floor)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 10 (Floor)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 11 (Floor)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 12 (Floor)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 13 (Floor)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 14 (Floor)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 15 (Floor)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 16 (Floor)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 17 (Floor)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 18 (Floor)",
+          "active": true
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Coffee Spill",
+          "active": true
+        },
+        {
+          "type": "PawPrintsSectionView",
+          "name": "View 2",
+          "active": false
+        },
+        {
+          "type": "PawPrintsCloth",
+          "name": "Cloth",
+          "active": false
+        },
+        {
+          "type": "PawPrintsLeafObstructor",
+          "name": "Leaf 01",
+          "active": false
+        },
+        {
+          "type": "PawPrintsLeafObstructor",
+          "name": "Leaf 02",
+          "active": false
+        },
+        {
+          "type": "PawPrintsLeafObstructor",
+          "name": "Leaf 03",
+          "active": false
+        },
+        {
+          "type": "PawPrintsLeafObstructor",
+          "name": "Leaf 04",
+          "active": false
+        },
+        {
+          "type": "PawPrintsLeafObstructor",
+          "name": "Leaf 05",
+          "active": false
+        },
+        {
+          "type": "PawPrintsLeafObstructor",
+          "name": "Leaf 06",
+          "active": false
+        },
+        {
+          "type": "PawPrintsLeafObstructor",
+          "name": "Leaf 07",
+          "active": false
+        },
+        {
+          "type": "PawPrintsLeafObstructor",
+          "name": "Leaf 08",
+          "active": false
+        },
+        {
+          "type": "PawPrintsObstructor",
+          "name": "Free Leaf 01",
+          "active": false
+        },
+        {
+          "type": "PawPrintsObstructor",
+          "name": "Free Leaf 02",
+          "active": false
+        },
+        {
+          "type": "PawPrintsObstructor",
+          "name": "Free Leaf 03",
+          "active": false
+        },
+        {
+          "type": "PawPrintsObstructor",
+          "name": "Free Leaf 04",
+          "active": false
+        },
+        {
+          "type": "PawPrintsObstructor",
+          "name": "Free Leaf 05",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 01",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 02",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 03",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 04",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 05",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 06",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 07",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 08",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 09",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 10",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 11",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 12",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 13",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 14",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 15",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 16",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 17",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 18",
+          "active": false
+        },
+        {
+          "type": "PawPrintsCloth",
+          "name": "Cloth",
+          "active": false
+        },
+        {
+          "type": "PawPrintsDoor",
+          "name": "Door",
+          "active": false
+        },
+        {
+          "type": "PawPrintsCatBehaviour",
+          "name": "Cat Behaviour",
+          "active": false
+        },
+        {
+          "type": "PawAnimatorEvents",
+          "name": "Grabbing Paw",
+          "active": false
+        },
+        {
+          "type": "PawPrintsPrintingPaw",
+          "name": "Printing Paw",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 01",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 02",
+          "active": false
+        },
+        {
+          "type": "PawPrintsClearable",
+          "name": "Paw Print 03",
+          "active": false
+        },
+        {
+          "type": "PawPrintsCatDoorInterlude",
+          "name": "ThirdPhaseEntranceTranslation",
+          "active": true
+        }
+      ],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "phases": [
+        "Clearables 01",
+        "Clearables 02",
+        "Clearables 03"
+      ],
+      "levelClass": "PawPrintsPhaseLevel"
+    },
+    {
+      "levelIndex": 16,
+      "levelId": "Pencils 3",
+      "source": "base",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Ordered",
+          "type": "DraggablesOrdered",
+          "objects": 5,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 32,
+      "levelId": "Place Setting",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Placemat",
+          "type": "Draggables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Utensils",
+          "type": "Draggables",
+          "objects": 3,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [
+        {
+          "type": "CatGrab",
+          "name": "Cat Grab",
+          "active": true
+        }
+      ],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 60,
+      "levelId": "Plant Pots",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Interlocking",
+          "type": "Draggables",
+          "objects": 3,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 33,
+      "levelId": "Plate",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Placement",
+          "type": "Draggables",
+          "objects": 15,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 4,
+      "levelId": "Post-It Notes Scribble #1 (Simple Line)",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Arranged",
+          "type": "Draggables",
+          "objects": 5,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 10,
+      "levelId": "Post-It Notes Scribble #2 (3x3 Grid)",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Arranged",
+          "type": "Draggables",
+          "objects": 9,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 15,
+      "levelId": "Post-It Notes Scribble #3 (5x3 Grid)",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Arranged",
+          "type": "Draggables",
+          "objects": 12,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 81,
+      "levelId": "Radial Dance Party",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Radial Pencils 0",
+          "type": "RadialDance",
+          "objects": 0,
+          "dependsOn": []
+        },
+        {
+          "name": "Radial Cat Toys 1",
+          "type": "RadialDance",
+          "objects": 0,
+          "dependsOn": [
+            "Radial Pencils 0"
+          ]
+        },
+        {
+          "name": "Radial Cat Toys 1",
+          "type": "Draggables",
+          "objects": 0,
+          "dependsOn": [
+            "Radial Pencils 0"
+          ]
+        },
+        {
+          "name": "Radial Sticky Notes 2",
+          "type": "RadialDance",
+          "objects": 0,
+          "dependsOn": [
+            "Radial Cat Toys 1"
+          ]
+        },
+        {
+          "name": "Radial Cat Food Cans 3",
+          "type": "RadialDance",
+          "objects": 0,
+          "dependsOn": [
+            "Radial Sticky Notes 2"
+          ]
+        },
+        {
+          "name": "Radial Food 4",
+          "type": "RadialDance",
+          "objects": 0,
+          "dependsOn": [
+            "Radial Cat Food Cans 3"
+          ]
+        },
+        {
+          "name": "Radial Soup Cans 5",
+          "type": "RadialDance",
+          "objects": 0,
+          "dependsOn": [
+            "Radial Food 4"
+          ]
+        },
+        {
+          "name": "Radial Nuts & Bolts 6",
+          "type": "RadialDance",
+          "objects": 0,
+          "dependsOn": [
+            "Radial Soup Cans 5"
+          ]
+        },
+        {
+          "name": "Radial Nuts & Bolts 6",
+          "type": "Draggables",
+          "objects": 0,
+          "dependsOn": [
+            "Radial Soup Cans 5"
+          ]
+        },
+        {
+          "name": "Radial Tools 7",
+          "type": "RadialDance",
+          "objects": 0,
+          "dependsOn": [
+            "Radial Nuts & Bolts 6"
+          ]
+        },
+        {
+          "name": "Radial Ladybugs 8",
+          "type": "RadialDance",
+          "objects": 0,
+          "dependsOn": [
+            "Radial Tools 7"
+          ]
+        },
+        {
+          "name": "Radial Chess 9",
+          "type": "RadialDance",
+          "objects": 0,
+          "dependsOn": [
+            "Radial Ladybugs 8"
+          ]
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [
+        {
+          "type": "RadialCatIntro",
+          "name": "Cat Intro",
+          "active": true
+        }
+      ],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "phases": [
+        "Radial Pencils 0",
+        "Radial Cat Toys 1",
+        "Radial Sticky Notes 2",
+        "Radial Cat Food Cans 3",
+        "Radial Food 4",
+        "Radial Soup Cans 5",
+        "Radial Nuts & Bolts 6",
+        "Radial Tools 7",
+        "Radial Ladybugs 8",
+        "Radial Chess 9"
+      ],
+      "levelClass": "RadialDanceParty"
+    },
+    {
+      "levelIndex": 20,
+      "levelId": "Record Player",
+      "extraAbilities": [
+        "Gadgets"
+      ],
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Needle & Knobs",
+          "type": "Rotateables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Needle & Knobs",
+          "type": "GenericLevelObjects",
+          "objects": 2,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 64,
+      "levelId": "Rock Collection",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Match-Lines",
+          "type": "GridPuzzle",
+          "objects": 18,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 66,
+      "levelId": "Rock Gradient",
+      "source": "base",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Gradient",
+          "type": "GridPuzzle",
+          "objects": 9,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 65,
+      "levelId": "Seed Pods",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Symmetrical Placeables",
+          "type": "SymmetricalPlaceables",
+          "objects": 24,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 19,
+      "levelId": "Sharp Pencils",
+      "source": "base",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Pencil Order",
+          "type": "DraggablesOrdered",
+          "objects": 7,
+          "dependsOn": []
+        },
+        {
+          "name": "Shavings Removed",
+          "type": "Removables",
+          "objects": 6,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [
+        {
+          "type": "CatSwipe_RecordPlayer",
+          "name": "CatSwipe",
+          "active": true
+        }
+      ],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 62,
+      "levelId": "Shells",
+      "source": "generator",
+      "solutionCount": 1,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": true,
+      "controllers": [
+        {
+          "name": "Symmetrical Placeables",
+          "type": "SymmetricalPlaceables",
+          "objects": 20,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [
+        {
+          "type": "CatGrab",
+          "name": "CatGrab",
+          "active": true
+        }
+      ],
+      "randomizerHintPool": 1,
+      "randomizerHints": 1,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 22,
+      "levelId": "Soup Cans",
+      "source": "base",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Match Label (Draggables)",
+          "type": "Draggables",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Pannables (Action Only)",
+          "type": "Pannables",
+          "objects": 3,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 26,
+      "levelId": "Spice Jars",
+      "source": "generator",
+      "solutionCount": 2,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": true,
+      "controllers": [
+        {
+          "name": "SpiceJarShuffleables",
+          "type": "Shuffleables",
+          "objects": 6,
+          "dependsOn": [
+            "SpiceJarShuffleables_BottomShelf"
+          ]
+        },
+        {
+          "name": "SpiceJarShuffleables_BottomShelf",
+          "type": "Shuffleables",
+          "objects": 6,
+          "dependsOn": [
+            "SpiceJarShuffleables"
+          ]
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 2,
+      "randomizerHints": 2,
+      "isHolidayDaily": false,
+      "levelClass": "SpiceJarsLevel"
+    },
+    {
+      "levelIndex": 70,
+      "levelId": "SpiderWeb",
+      "source": "generator",
+      "solutionCount": 1,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": true,
+      "controllers": [
+        {
+          "name": "Web Symmetry",
+          "type": "Draggables",
+          "objects": 7,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 1,
+      "randomizerHints": 1,
+      "isHolidayDaily": false,
+      "levelClass": "SpiderWebLevel"
+    },
+    {
+      "levelIndex": 24,
+      "levelId": "Spoons",
+      "source": "base",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Stacked",
+          "type": "StackablesZ",
+          "objects": 7,
+          "dependsOn": []
+        },
+        {
+          "name": "Size (Elastic)",
+          "type": "DraggablesOrdered",
+          "objects": 7,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 6,
+      "levelId": "Stacked Papers",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Stack Papers",
+          "type": "StackablesZ",
+          "objects": 7,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 9,
+      "levelId": "Stamps",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Stamps Pattern",
+          "type": "Draggables",
+          "objects": 6,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [
+        {
+          "type": "CatGrab",
+          "name": "CatGrab",
+          "active": true
+        }
+      ],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 52,
+      "levelId": "Storage Boxes",
+      "source": "base",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "SortingItems Draggables",
+          "type": "SortingItems_Draggables",
+          "objects": 32,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 11,
+      "levelId": "Tacks",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Colour & Count Sort",
+          "type": "Draggables",
+          "objects": 15,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 75,
+      "levelId": "Telescope",
+      "source": "generator",
+      "solutionCount": 1,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": true,
+      "controllers": [
+        {
+          "name": "Constellations",
+          "type": "TelescopeDraggables",
+          "objects": 5,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 1,
+      "randomizerHints": 1,
+      "isHolidayDaily": false,
+      "levelClass": "TelescopeLevel"
+    },
+    {
+      "levelIndex": 58,
+      "levelId": "Trim Plant",
+      "source": "generator",
+      "solutionCount": 1,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": true,
+      "controllers": [
+        {
+          "name": "Pluckables",
+          "type": "Pluckables",
+          "objects": 20,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 1,
+      "randomizerHints": 1,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 63,
+      "levelId": "Trim Plant (Vines)",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Pluckables",
+          "type": "Pluckables",
+          "objects": 91,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [
+        {
+          "type": "CatSwipe_DropObjects",
+          "name": "Cat Scratch",
+          "active": true
+        }
+      ],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 82,
+      "levelId": "TupperwareNesting",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Lids",
+          "type": "TupperwareLids",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "Stack 1",
+          "type": "StackablesZ",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Stack 2",
+          "type": "StackablesZ",
+          "objects": 0,
+          "dependsOn": [
+            "Stack 1"
+          ]
+        },
+        {
+          "name": "Stack 3",
+          "type": "StackablesZ",
+          "objects": 0,
+          "dependsOn": [
+            "Tray"
+          ]
+        },
+        {
+          "name": "Tray",
+          "type": "Draggables",
+          "objects": 1,
+          "dependsOn": [
+            "Stack 2"
+          ]
+        },
+        {
+          "name": "Draggables (Large Square)",
+          "type": "Draggables",
+          "objects": 0,
+          "dependsOn": [
+            "Layout (Grid)"
+          ]
+        },
+        {
+          "name": "Layout (Grid)",
+          "type": "GridPuzzle",
+          "objects": 0,
+          "dependsOn": [
+            "Stack 3",
+            "Draggables (Large Square)"
+          ]
+        },
+        {
+          "name": "Food",
+          "type": "Draggables",
+          "objects": 0,
+          "dependsOn": [
+            "Layout (Grid)"
+          ]
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "phases": [
+        "Stack 1",
+        "Stack 2",
+        "Tray",
+        "Stack 3",
+        "Layout (Grid)",
+        "Food"
+      ],
+      "levelClass": "TupperwareNestingLevel"
+    },
+    {
+      "levelIndex": 83,
+      "levelId": "TupperwareTower",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Tower",
+          "type": "TupperwareTower",
+          "objects": 9,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [
+        {
+          "type": "CatClimb",
+          "name": "Cat Climb",
+          "active": true
+        }
+      ],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level",
+      "extraAbilities": [
+        "Grids"
+      ]
+    },
+    {
+      "levelIndex": 42,
+      "levelId": "UtensilsDrawer",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Utensils Drawer",
+          "type": "Draggables",
+          "objects": 22,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 54,
+      "levelId": "Wilting Flowers",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Upright",
+          "type": "AnimScrubbables",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Cleanable",
+          "type": "CleanablesController",
+          "objects": 2,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 50,
+      "levelId": "Workbench",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "ToolsController",
+          "type": "HangingToolsController",
+          "objects": 21,
+          "dependsOn": []
+        },
+        {
+          "name": "DraggablesForTargets",
+          "type": "Draggables",
+          "objects": 21,
+          "dependsOn": [
+            "ToolsController"
+          ]
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 17,
+      "levelId": "Wrong Aspect Papers",
+      "source": "base",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Fit Rect",
+          "type": "Draggables",
+          "objects": 9,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [
+        {
+          "type": "CatSwipe",
+          "name": "Tail Swish",
+          "active": true
+        }
+      ],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1000,
+      "levelId": "Procedural Grid Puzzle",
+      "source": "generator",
+      "solutionCount": 1,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": true,
+      "controllers": [
+        {
+          "name": "Grid Puzzle",
+          "type": "GridPuzzle",
+          "objects": 9,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 0,
+      "cats": [],
+      "randomizerHintPool": 1,
+      "randomizerHints": 1,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 999,
+      "levelId": "Pencils (Randomized)",
+      "source": "generator",
+      "solutionCount": 2,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": true,
+      "controllers": [
+        {
+          "name": "Ordered",
+          "type": "DraggablesOrdered",
+          "objects": 7,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 0,
+      "cats": [],
+      "randomizerHintPool": 5,
+      "randomizerHints": 2,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 998,
+      "levelId": "Post-It Notes (Randomized)",
+      "source": "generator",
+      "solutionCount": 1,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": true,
+      "controllers": [
+        {
+          "name": "Draggable",
+          "type": "Draggables",
+          "objects": 15,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 0,
+      "cats": [],
+      "randomizerHintPool": 1,
+      "randomizerHints": 1,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 997,
+      "levelId": "Stamps (Randomized)",
+      "source": "generator",
+      "solutionCount": 1,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": true,
+      "controllers": [
+        {
+          "name": "Stamps Pattern",
+          "type": "Draggables",
+          "objects": 9,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 0,
+      "cats": [],
+      "randomizerHintPool": 1,
+      "randomizerHints": 1,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 996,
+      "levelId": "Batteries (Randomized)",
+      "source": "generator",
+      "solutionCount": 1,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": true,
+      "controllers": [
+        {
+          "name": "Controller",
+          "type": "Draggables",
+          "objects": 24,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 0,
+      "cats": [],
+      "randomizerHintPool": 1,
+      "randomizerHints": 1,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 995,
+      "levelId": "Books (Randomized)",
+      "source": "generator",
+      "solutionCount": 2,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": true,
+      "controllers": [
+        {
+          "name": "Shuffle",
+          "type": "Shuffleables",
+          "objects": 11,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 0,
+      "cats": [],
+      "randomizerHintPool": 7,
+      "randomizerHints": 2,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1001,
+      "levelId": "GoodTidings_Cookies",
+      "source": "archive",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "RowColSets",
+          "type": "GridPuzzle",
+          "objects": 15,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1002,
+      "levelId": "GoodTidings_Popcorn",
+      "source": "archive",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "TopRow",
+          "type": "ShuffleablesRepeatingPattern",
+          "objects": 11,
+          "dependsOn": []
+        },
+        {
+          "name": "MidRow",
+          "type": "ShuffleablesRepeatingPattern",
+          "objects": 11,
+          "dependsOn": []
+        },
+        {
+          "name": "BotRow",
+          "type": "ShuffleablesRepeatingPattern",
+          "objects": 11,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1003,
+      "levelId": "GoodTidings_Wreath",
+      "source": "archive",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Symmetrical Placeables",
+          "type": "SymmetricalPlaceables",
+          "objects": 14,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1004,
+      "levelId": "GoodTidings_Presents (Stacked)",
+      "source": "archive",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Stacked Boxes",
+          "type": "StackableGrid",
+          "objects": 12,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1005,
+      "levelId": "GoodTidings_Cookies (Jigsaw)",
+      "source": "archive",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Match Candy Cane",
+          "type": "DraggablesJigsaw",
+          "objects": 6,
+          "dependsOn": []
+        },
+        {
+          "name": "Match Reindeer",
+          "type": "DraggablesJigsaw",
+          "objects": 4,
+          "dependsOn": [
+            "Match Candy Cane",
+            "Match Gingerbread Man",
+            "Match Snowflake",
+            "Match Tree"
+          ]
+        },
+        {
+          "name": "Match Gingerbread Man",
+          "type": "DraggablesJigsaw",
+          "objects": 5,
+          "dependsOn": []
+        },
+        {
+          "name": "Match Snowflake",
+          "type": "DraggablesJigsaw",
+          "objects": 5,
+          "dependsOn": []
+        },
+        {
+          "name": "Match Tree",
+          "type": "DraggablesJigsaw",
+          "objects": 5,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1006,
+      "levelId": "GoodTidings_Ornament Box",
+      "source": "archive",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "BulbsBox",
+          "type": "Draggables",
+          "objects": 23,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 107,
+      "levelId": "SomethingEggstra PaintedEggs",
+      "source": "archive",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "RowColSets",
+          "type": "GridPuzzle",
+          "objects": 15,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 108,
+      "levelId": "SomethingEggstra Egg Cups",
+      "source": "archive",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Shuffleables Cups",
+          "type": "ShuffleablesRelative",
+          "objects": 6,
+          "dependsOn": [
+            "Shuffleables Eggs"
+          ]
+        },
+        {
+          "name": "Shuffleables Eggs",
+          "type": "ShuffleablesRelative",
+          "objects": 6,
+          "dependsOn": [
+            "Shuffleables Cups"
+          ]
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 109,
+      "levelId": "SomethingEggstra Fridge",
+      "source": "archive",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "StandardObjects",
+          "type": "Draggables",
+          "objects": 24,
+          "dependsOn": [
+            "EggsContainable"
+          ]
+        },
+        {
+          "name": "Stackables (Tupperware)",
+          "type": "StackablesY",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "EggsContainable",
+          "type": "Containables",
+          "objects": 6,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 110,
+      "levelId": "SomethingEggstra Broken Eggs",
+      "source": "archive",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Egg #1 Shards",
+          "type": "Pannables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Egg #2 Shards",
+          "type": "Pannables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Egg #3 Shards",
+          "type": "Pannables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Egg #1 (Center) Draggables",
+          "type": "Draggables",
+          "objects": 8,
+          "dependsOn": []
+        },
+        {
+          "name": "Egg #2 (Left) Draggables",
+          "type": "Draggables",
+          "objects": 7,
+          "dependsOn": []
+        },
+        {
+          "name": "Egg #3 (Right) Draggables",
+          "type": "Draggables",
+          "objects": 8,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1010,
+      "levelId": "TrickOrTidy_Bats",
+      "source": "archive",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Interlocking",
+          "type": "Draggables",
+          "objects": 10,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1011,
+      "levelId": "TrickOrTidy_Bones",
+      "source": "archive",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Match Bones",
+          "type": "DraggablesJigsaw",
+          "objects": 18,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1012,
+      "levelId": "TrickOrTidy_Candy",
+      "source": "archive",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Grouped",
+          "type": "Groupables",
+          "objects": 36,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1013,
+      "levelId": "TrickOrTidy_ChocolateBars",
+      "source": "archive",
+      "solutionCount": 4,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Design (Shuffle)",
+          "type": "Shuffleables",
+          "objects": 9,
+          "dependsOn": []
+        },
+        {
+          "name": "Height (Draggables)",
+          "type": "Draggables",
+          "objects": 9,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 4,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1014,
+      "levelId": "TrickOrTidy_JackOLanterns",
+      "source": "archive",
+      "solutionCount": 4,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Ordered",
+          "type": "Shuffleables",
+          "objects": 5,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 4,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1015,
+      "levelId": "MerryMess_CandyCanes",
+      "source": "archive",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Match Candy Cane (1)",
+          "type": "DraggablesJigsaw",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "Match Candy Cane (2)",
+          "type": "DraggablesJigsaw",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "Match Candy Cane (3)",
+          "type": "DraggablesJigsaw",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "Match Candy Cane (4)",
+          "type": "DraggablesJigsaw",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "Match Candy Cane (5)",
+          "type": "DraggablesJigsaw",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "Ordered",
+          "type": "DraggablesOrdered",
+          "objects": 5,
+          "dependsOn": [
+            "Match Candy Cane (1)",
+            "Match Candy Cane (2)",
+            "Match Candy Cane (3)",
+            "Match Candy Cane (4)",
+            "Match Candy Cane (5)"
+          ]
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1016,
+      "levelId": "MerryMess_Crackers",
+      "source": "archive",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Build Train",
+          "type": "Draggables",
+          "objects": 5,
+          "dependsOn": [
+            "CrackerShuffleables"
+          ]
+        },
+        {
+          "name": "CrackerShuffleables",
+          "type": "CrackersShuffleables",
+          "objects": 5,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [
+        {
+          "type": "CatGrab",
+          "name": "CatGrab",
+          "active": true
+        }
+      ],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1017,
+      "levelId": "MerryMess_SnowGlobes",
+      "source": "archive",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Match Pan (Draggables)",
+          "type": "Draggables",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Pannables (Action Only)",
+          "type": "Pannables",
+          "objects": 3,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1018,
+      "levelId": "MerryMess_Presents",
+      "source": "archive",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Presents Aligned",
+          "type": "Pannables",
+          "objects": 4,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1019,
+      "levelId": "MerryMess_NutCrackers",
+      "source": "archive",
+      "solutionCount": 5,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Shuffle",
+          "type": "Shuffleables",
+          "objects": 5,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 5,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": true,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1020,
+      "levelId": "NeatStreak_Paper Plane Supplies",
+      "source": "archive",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Draggables",
+          "type": "Draggables",
+          "objects": 25,
+          "dependsOn": [
+            "Drawer Controller"
+          ]
+        },
+        {
+          "name": "Containables",
+          "type": "Containables",
+          "objects": 14,
+          "dependsOn": [
+            "Drawer Controller"
+          ]
+        },
+        {
+          "name": "Drawer Controller",
+          "type": "DrawerController",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "ChalkPurple Jigsaw",
+          "type": "DraggablesJigsaw",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "ChalkBlue Jigsaw",
+          "type": "DraggablesJigsaw",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "ChalkGreen Jigsaw",
+          "type": "DraggablesJigsaw",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "ChalkMint Jigsaw",
+          "type": "DraggablesJigsaw",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "ChalkYellow Jigsaw",
+          "type": "DraggablesJigsaw",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "ChalkPink Jigsaw",
+          "type": "DraggablesJigsaw",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "ChalkRed Jigsaw",
+          "type": "DraggablesJigsaw",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "Chalk DraggablesOrdered",
+          "type": "DraggablesOrdered",
+          "objects": 7,
+          "dependsOn": [
+            "ChalkPurple Jigsaw",
+            "ChalkBlue Jigsaw",
+            "ChalkGreen Jigsaw",
+            "ChalkMint Jigsaw",
+            "ChalkYellow Jigsaw",
+            "ChalkPink Jigsaw",
+            "ChalkRed Jigsaw"
+          ]
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1021,
+      "levelId": "NeatStreak_Tool Drawer",
+      "source": "archive",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Draggables",
+          "type": "Draggables",
+          "objects": 47,
+          "dependsOn": [
+            "Drawer Controller"
+          ]
+        },
+        {
+          "name": "Containables",
+          "type": "Containables",
+          "objects": 8,
+          "dependsOn": [
+            "Drawer Controller"
+          ]
+        },
+        {
+          "name": "Drawer Controller",
+          "type": "DrawerController",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1022,
+      "levelId": "NeatStreak_Bathroom Drawer",
+      "source": "archive",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Draggables",
+          "type": "Draggables",
+          "objects": 40,
+          "dependsOn": [
+            "Drawer Controller"
+          ]
+        },
+        {
+          "name": "Bottle Containables",
+          "type": "Containables",
+          "objects": 1,
+          "dependsOn": [
+            "Drawer Controller"
+          ]
+        },
+        {
+          "name": "Drawer Controller",
+          "type": "DrawerController",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Indexable",
+          "type": "Indexables",
+          "objects": 0,
+          "dependsOn": [
+            "Drawer Controller"
+          ]
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1007,
+      "levelId": "SnackPack Sandwich",
+      "source": "archive",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Stack Ingredients",
+          "type": "StackablesZ",
+          "objects": 10,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1008,
+      "levelId": "SnackPack Pretzels",
+      "source": "archive",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Ordered",
+          "type": "Shuffleables",
+          "objects": 5,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1009,
+      "levelId": "SnackPack Cereal",
+      "source": "archive",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": true,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Draggables Controller",
+          "type": "Draggables",
+          "objects": 50,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    }
+  ]
 }

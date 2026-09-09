@@ -32,6 +32,13 @@
     <None Include="..\..\apworld\alttl\data\abilities.json"
           Link="abilities.json"
           CopyToOutputDirectory="PreserveNewest" />
+    <!-- The prefab survey, so SurveyCrossCheckTests can hold the runtime table
+         up against the authored structure. It sees inactive children, which is
+         the only static way to know what a PHASED level will eventually need
+         of the player. -->
+    <None Include="..\..\docs\data\controller-survey.tsv"
+          Link="controller-survey.tsv"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

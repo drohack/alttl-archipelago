@@ -52,16 +52,45 @@ public class LevelTableTests
     /// (RadialDanceParty) registers none of its ten rings; TupperwareNesting
     /// registers 2 of the 9 groups the prefab shows.
     ///
-    /// This is not a sweep bug - it reproduces through the normal gameplay
-    /// path, with transitions, from Gameplay_GameState. It is simply how those
-    /// levels are built.
+    /// IT IS A SWEEP LIMITATION AFTER ALL. This comment used to say "this is
+    /// not a sweep bug - it reproduces through the normal gameplay path", and
+    /// that reproduction was done by BOOTING the level and waiting, which is
+    /// the same measurement the sweep makes. These levels reveal controllers
+    /// as the player SOLVES them, so no amount of waiting reveals anything:
+    /// TupperwareNesting was watched registering 7 during real play, against
+    /// the 2 recorded here.
     ///
-    /// The consequence is benign and self-correcting: they contribute solution
-    /// checks and few or no controller checks, and because nothing there is
-    /// ability-gated they stay fully playable. Listed explicitly so a NEW
-    /// zero-controller level still fails the test below.
+    /// The second claim was worse. "Nothing there is ability-gated so they
+    /// stay fully playable" followed from the empty controller list, and the
+    /// empty list was the artefact. A level whose later phases need an ability
+    /// the table never saw is one the generator believes is finishable without
+    /// it - which is how progression ends up behind a puzzle that cannot be
+    /// finished. That is what LevelInfo.ExtraAbilities now records.
+    ///
+    /// Still listed explicitly so a NEW zero-controller level fails the test
+    /// below. What has changed is that being on this list is a known GAP, not
+    /// a benign quirk.
     /// </summary>
-    private static readonly HashSet<string> BespokeLevels = new() { "Radial Dance Party" };
+    /// <summary>
+    /// Levels whose puzzle pieces are not ordinary registered ObjectControllers
+    /// at boot.
+    ///
+    /// EMPTY NOW, AND THAT IS THE POINT. This set used to hold Radial Dance
+    /// Party, which reported zero controllers and was therefore excused from
+    /// the "every level registers something" rule. Two separate investigations
+    /// concluded its ten rings simply were not controllers.
+    ///
+    /// They are. RadialDanceParty declares ten phases - Radial Pencils 0
+    /// through Radial Chess 9 - and they are in the table. The level was never
+    /// bespoke in the way this list assumed; the sweep just could not see past
+    /// phase one, and an exception list let it not have to.
+    ///
+    /// Kept as an empty set rather than deleted so the test below still reads
+    /// as a rule with a carve-out, and so a future level that genuinely needs
+    /// one has somewhere to go - with the warning above about what happened
+    /// last time attached.
+    /// </summary>
+    private static readonly HashSet<string> BespokeLevels = new();
 
     [Fact]
     public void EveryLevelHasSolutionsAndControllersExceptTheKnownBespokeOnes()
@@ -77,17 +106,25 @@ public class LevelTableTests
     }
 
     [Fact]
-    public void ABespokeLevelStillContributesItsSolutionChecks()
+    public void RadialDancePartyContributesAllTenOfItsDances()
     {
         var radial = Table().ById("Radial Dance Party")!;
 
-        Assert.Empty(radial.Controllers);
-        // No controller groups means no controller locations, but the solution
-        // location must still exist or the slot would be unreachable.
-        Assert.Empty(ControllerGroups.For(radial));
-        Assert.Single(LocationNames.ForInstance(radial, 1));   // its one solution
-        // And nothing is gated, so it is always playable.
-        Assert.Empty(ControllerGroups.AbilitiesForLevel(radial));
+        // Ten dances, two of which carry a Draggables alongside their
+        // RadialDance, so twelve controller entries collapse to ten groups.
+        Assert.Equal(10, ControllerGroups.For(radial).Count);
+        Assert.Equal(1, radial.SolutionCount);
+        Assert.Equal(11, LocationNames.ForInstance(radial, 1).Count);
+
+        // The order the game declares, which is also the dependency chain.
+        Assert.Equal(10, radial.Phases.Count);
+        Assert.Equal("Radial Pencils 0", radial.Phases[0]);
+        Assert.Equal("Radial Chess 9", radial.Phases[9]);
+
+        // It teaches Rotating through the dances themselves now, rather than
+        // through an extraAbilities override.
+        Assert.Contains("Rotating", ControllerGroups.AbilitiesForLevel(radial));
+        Assert.Empty(radial.ExtraAbilities);
     }
 
     [Fact]

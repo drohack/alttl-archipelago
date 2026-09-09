@@ -34,12 +34,23 @@ public sealed class ControllerGroup
 /// <summary>
 /// Turns a level's controllers into checkable groups.
 ///
-/// The rule comes from measurement, not taste. Only 9 of 380 controllers
-/// declare a dependency, across 5 levels - and 4 of those 5 are MUTUAL pairs
-/// (matchDependencySolutions: two controllers whose solutions must agree, like
-/// the pieces and shadows in Chess Shadows). A mutual pair is one puzzle
+/// The rule comes from measurement, not taste. Dependencies fall into two
+/// shapes, and the difference decides whether they merge.
+///
+/// A MUTUAL pair (matchDependencySolutions: two controllers whose solutions
+/// must agree, like the pieces and shadows in Chess Shadows) is one puzzle
 /// wearing two hats, so minting two locations for it would create two checks
-/// that can only ever be collected together.
+/// that can only ever be collected together. Four such pairs exist.
+///
+/// THIS COMMENT USED TO SAY "only 9 of 380 controllers declare a dependency,
+/// across 5 levels", and someone reading it to decide whether the dependency
+/// graph mattered would have concluded it barely does. Those figures describe
+/// docs/data/controller-survey.tsv - a PREFAB walk. This class reads
+/// levels.json, which is a RUNTIME sweep, and dependencies are wired up at
+/// registration rather than serialised on the prefab: the survey sees 9 edges
+/// where the runtime sees 23, and hand-authored containment and phase edges
+/// push it further still. The graph is not a curiosity; it is the difference
+/// between a finishable seed and a dead card.
 ///
 /// A one-way dependency is different. Desktop Computer's "Computer Errors"
 /// waits on "Computer Desktop", but they are genuinely solved one after the
@@ -103,6 +114,27 @@ public static class ControllerGroups
                 .Where(a => a != null)!
                 .Cast<string>();
 
+        // EVERY controller by name, puzzles and non-puzzles alike, so a chain
+        // can be followed THROUGH something that carries no ability of its own.
+        //
+        // The traversal below used to `continue` on any name missing from the
+        // filtered map, which dropped the onward edges as well as the
+        // abilities. A chain A -> Pannables -> B would therefore lose B
+        // entirely, and lose it silently: the group would simply require less
+        // than it should, which is the one direction that makes a seed
+        // unfinishable. No level has that shape today - this is a trap being
+        // closed before something walks into it, not a bug being fixed.
+        var allByName = new Dictionary<string, List<ControllerInfo>>(StringComparer.Ordinal);
+        foreach (var c in level.Controllers)
+        {
+            if (!allByName.TryGetValue(c.Name, out var list))
+            {
+                list = new List<ControllerInfo>();
+                allByName[c.Name] = list;
+            }
+            list.Add(c);
+        }
+
         // Plus everything reachable through dependencies, transitively.
         IReadOnlySet<string> WithDependencies(IEnumerable<string> members)
         {
@@ -112,9 +144,16 @@ public static class ControllerGroups
             while (queue.Count > 0)
             {
                 var n = queue.Dequeue();
-                if (!byName.ContainsKey(n)) continue;   // a dependency we filtered out
-                foreach (var a in Own(n)) need.Add(a);
-                foreach (var c in byName[n])
+
+                // Abilities only from puzzle controllers...
+                if (byName.ContainsKey(n))
+                {
+                    foreach (var a in Own(n)) need.Add(a);
+                }
+
+                // ...but keep walking regardless of what this one was.
+                if (!allByName.TryGetValue(n, out var cs)) continue;
+                foreach (var c in cs)
                 {
                     foreach (var d in c.DependsOn)
                     {
@@ -150,6 +189,38 @@ public static class ControllerGroups
     /// solution is an arrangement of the whole level.
     /// </summary>
     public static IReadOnlySet<string> AbilitiesForLevel(LevelInfo level)
+    {
+        var all = new HashSet<string>(AbilitiesTaughtBy(level), StringComparer.Ordinal);
+
+        // Plus what the registered controllers cannot reveal - see
+        // LevelInfo.ExtraAbilities. Deliberately NOT folded into the groups:
+        // these abilities belong to the level as a whole, and giving them to a
+        // group would put them on a part location that does not need them.
+        foreach (var a in level.ExtraAbilities) all.Add(a);
+
+        return all;
+    }
+
+    /// <summary>
+    /// The abilities this level demonstrably EXERCISES, from its registered
+    /// controllers alone.
+    ///
+    /// Separate from AbilitiesForLevel, and the difference matters in exactly
+    /// one place. Requirements should err towards demanding too much: an extra
+    /// ability makes a seed tighter, a missing one can make it unwinnable, so
+    /// AbilitiesForLevel includes ExtraAbilities.
+    ///
+    /// Mechanic COVERAGE is the opposite. It exists to guarantee a run
+    /// contains real puzzles for the mechanics no generator can make, and it
+    /// should err towards demanding too little - counting a level that might
+    /// only need an ability in a phase nobody has confirmed would let coverage
+    /// tick a box with a puzzle that never teaches the thing.
+    ///
+    /// Measured when this split was made: folding ExtraAbilities into coverage
+    /// took Furniture from 4 levels to 5, the fifth being MedicineCabinet on
+    /// the strength of a prefab Cupboard that does not register at load.
+    /// </summary>
+    public static IReadOnlySet<string> AbilitiesTaughtBy(LevelInfo level)
     {
         var all = new HashSet<string>(StringComparer.Ordinal);
         foreach (var g in For(level))
