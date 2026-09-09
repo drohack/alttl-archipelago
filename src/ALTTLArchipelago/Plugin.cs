@@ -1068,6 +1068,7 @@ public sealed class Ticker : MonoBehaviour
         Step("credits card", () => Track.TickCreditsCard());
         Step("track scroll", () => Track.TickScroll(dt));
         Step("daily rescue", () => DailyGuard.TickRescue(dt));
+        Step("prompt memory", () => PromptMemory.Tick(dt));
         Step("connected tag", () => Badges.TickConnectedTag());
         Step("overview dots", () => Badges.TickOverviewDots());
         Step("typing guard",

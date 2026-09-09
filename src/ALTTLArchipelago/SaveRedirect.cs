@@ -47,6 +47,10 @@ internal static class SaveRedirect
 
         BackUpCampaignSaveOnce();
 
+        // Read BEFORE the redirect, while SaveSystem.data is still the
+        // player's own save. See CarryPromptsOver.
+        var prompts = ReadPrompts();
+
         _active = name;
         Plugin.Logger.LogInfo($"save redirected to {name}");
 
@@ -69,7 +73,115 @@ internal static class SaveRedirect
             Plugin.Logger.LogWarning($"LoadGame threw: {e}");
         }
 
+        CarryPromptsOver(prompts);
         ReportLoadedSave();
+    }
+
+    /// <summary>
+    /// The one-off prompts the game shows until you answer them.
+    ///
+    /// Colour assist, the "puzzles have more than one solution" tutorial, and
+    /// the daily-tidy ones. The game records each as a bool in the SAVE, which
+    /// is fine in vanilla where there is one save - and wrong here, because a
+    /// run gets its own file. Every new run therefore looked like a fresh
+    /// install and asked again.
+    /// </summary>
+    private readonly struct Prompts
+    {
+        internal Prompts(bool colour, bool solutions, bool dtSelector,
+                         bool dtStreak, bool dtBadges)
+        {
+            Colour = colour;
+            Solutions = solutions;
+            DtSelector = dtSelector;
+            DtStreak = dtStreak;
+            DtBadges = dtBadges;
+        }
+
+        internal bool Colour { get; }
+        internal bool Solutions { get; }
+        internal bool DtSelector { get; }
+        internal bool DtStreak { get; }
+        internal bool DtBadges { get; }
+    }
+
+    private static Prompts ReadPrompts()
+    {
+        try
+        {
+            var d = SaveSystem.data;
+            if (d == null) return default;
+            return new Prompts(
+                d.seenColourAssistPrompt,
+                d.seenMultipleSolutionTutorial,
+                d.seenDTSelectorPrompt,
+                d.seenDTStreakTutorial,
+                d.seenDTAllBadgesEarnedPrompt);
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"could not read the prompt flags: {e.Message}");
+            return default;
+        }
+    }
+
+    /// <summary>
+    /// Tell the run's save what the player has already been asked.
+    ///
+    /// Copied ONE WAY and only where the campaign says true. A player who has
+    /// answered the colour-assist prompt should not be asked again just
+    /// because a run has its own file; a player who has never seen it still
+    /// gets it, once, which is the point of the prompt.
+    ///
+    /// Never written back the other way. These are trivial UI flags, but the
+    /// campaign save is not opened by a run for anything, and carving out an
+    /// exception for "harmless" writes is how that guarantee stops meaning
+    /// something.
+    ///
+    /// That used to mean answering a prompt inside a run did not stick for the
+    /// NEXT run, recorded here as "a smaller problem than the one being
+    /// solved". It was not small enough: droha's campaign save has every flag
+    /// false, so nothing was ever carried and every new seed asked again. The
+    /// mod now keeps its own note in PromptMemory, which is unioned in below -
+    /// still without writing a byte to the campaign save.
+    /// </summary>
+    private static void CarryPromptsOver(Prompts p)
+    {
+        try
+        {
+            var d = SaveSystem.data;
+            if (d == null) return;
+
+            // Anything answered in a PREVIOUS run counts too.
+            var remembered = PromptMemory.Load();
+            p = new Prompts(
+                p.Colour || remembered.Colour,
+                p.Solutions || remembered.Solutions,
+                p.DtSelector || remembered.DtSelector,
+                p.DtStreak || remembered.DtStreak,
+                p.DtBadges || remembered.DtBadges);
+
+            var carried = 0;
+            if (p.Colour && !d.seenColourAssistPrompt)
+            { d.seenColourAssistPrompt = true; carried++; }
+            if (p.Solutions && !d.seenMultipleSolutionTutorial)
+            { d.seenMultipleSolutionTutorial = true; carried++; }
+            if (p.DtSelector && !d.seenDTSelectorPrompt)
+            { d.seenDTSelectorPrompt = true; carried++; }
+            if (p.DtStreak && !d.seenDTStreakTutorial)
+            { d.seenDTStreakTutorial = true; carried++; }
+            if (p.DtBadges && !d.seenDTAllBadgesEarnedPrompt)
+            { d.seenDTAllBadgesEarnedPrompt = true; carried++; }
+
+            Plugin.Logger.LogInfo(carried > 0
+                ? $"carried {carried} already-answered prompt(s) into the run"
+                : "no answered prompts to carry over - the run will ask as a "
+                  + "fresh install would, and will remember the answers");
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"could not carry the prompt flags: {e.Message}");
+        }
     }
 
     /// <summary>
