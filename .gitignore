@@ -16,6 +16,10 @@ obj/
 # Release artifacts
 /dist/
 
+# Hand-assembled release bundles - the three files a release ships, staged for
+# upload. Built output, same as /dist/, and the zip is 400KB of it.
+/release-final/
+
 # Editors / OS
 *.user
 *.suo
