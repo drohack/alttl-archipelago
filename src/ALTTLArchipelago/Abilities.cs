@@ -91,8 +91,26 @@ internal static class Abilities
                 return;
             }
 
-            int locked = 0, unlocked = 0, objects = 0;
+            int locked = 0, unlocked = 0;
             var missing = new SortedSet<string>(StringComparer.Ordinal);
+
+            // TWO PASSES, BECAUSE ONE OBJECT CAN BELONG TO TWO CONTROLLERS.
+            //
+            // This used to lock objects inside the controller loop, so the LAST
+            // controller to touch a shared object decided its fate. Coins 1
+            // (Shape) has an Ordered group of six and a Stacked group of six
+            // over the same six coins: holding Ordering but not Stacking, the
+            // ordering group freed the coins and the stacking group immediately
+            // re-locked them. droha reported the card offering work while the
+            // level had nothing to interact with, and that is this - not the
+            // dependency bug that produced the same symptom on Candy Canes.
+            //
+            // An object is locked only if EVERY controller that owns it is
+            // locked. Anything else takes work away from a player who has
+            // earned it, and the failure is invisible: the card is honest, the
+            // logic is right, and the level is simply dead.
+            var wanted = new Dictionary<int, bool>();        // objectId -> unlocked
+            var byId = new Dictionary<int, LevelObject>();
 
             for (int i = 0; i < controllers.Count; i++)
             {
@@ -113,8 +131,10 @@ internal static class Abilities
                     unlocked++;
                 }
 
-                objects += SetControllerLocked(controller, isLocked);
+                Collect(controller, isLocked, wanted, byId);
             }
+
+            var objects = ApplyWanted(wanted, byId);
 
             var summary = $"{locked} locked, {unlocked} open, {objects} objects"
                 + (missing.Count > 0 ? $", waiting on {string.Join(", ", missing)}" : "");
@@ -129,17 +149,51 @@ internal static class Abilities
         }
     }
 
-    /// <summary>Apply one controller's state to every object it manages.</summary>
-    private static int SetControllerLocked(ObjectController controller, bool isLocked)
+    /// <summary>
+    /// Note what one controller wants for each object it manages.
+    ///
+    /// Unlocked wins. A second controller that is locked must not take back
+    /// what the first one released - see the two-pass note in Apply.
+    /// </summary>
+    private static void Collect(ObjectController controller, bool isLocked,
+                                Dictionary<int, bool> wanted,
+                                Dictionary<int, LevelObject> byId)
     {
         var managed = controller.ManagedObjects;
-        if (managed == null) return 0;
+        if (managed == null) return;
 
-        int touched = 0;
         for (int i = 0; i < managed.Count; i++)
         {
             var obj = managed[i];
             if (obj == null) continue;
+            try
+            {
+                var id = obj.GetInstanceID();
+                byId[id] = obj;
+                wanted[id] = (wanted.TryGetValue(id, out var already) && already) || !isLocked;
+            }
+            catch
+            {
+                // One awkward object must not abandon the rest of the level.
+            }
+        }
+    }
+
+    /// <summary>
+    /// Apply the settled state, once per object. Returns how many were touched.
+    ///
+    /// The count is now DISTINCT objects rather than controller-object pairs,
+    /// so a level with shared objects stops over-reporting. It reads lower than
+    /// it used to on exactly the levels this fix is about.
+    /// </summary>
+    private static int ApplyWanted(Dictionary<int, bool> wanted,
+                                   Dictionary<int, LevelObject> byId)
+    {
+        int touched = 0;
+        foreach (var pair in wanted)
+        {
+            if (!byId.TryGetValue(pair.Key, out var obj) || obj == null) continue;
+            var isLocked = !pair.Value;
             try
             {
                 obj.SetInteractable(!isLocked);
