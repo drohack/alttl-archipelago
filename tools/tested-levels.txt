@@ -1,0 +1,39 @@
+# Levels a human has actually played in a randomizer run.
+#
+# Used by tools/make-playtest-seed.py to bias a new seed towards content nobody
+# has looked at yet. Append a line when a level gets played; the seed picker
+# scores on the CONTROLLER TYPES these levels contain, so adding one here also
+# retires every puzzle type it covers.
+#
+# Blank lines and # comments are ignored.
+
+# --- the 0.3.0 / 0.3.1 playtests ---
+SnackPack Cereal
+SpiderWeb
+MerryMess_SnowGlobes
+MerryMess_Presents
+TupperwareNesting
+NeatStreak_Bathroom Drawer
+Coins 1 (Shape)
+TrickOrTidy_Bones
+MerryMess_CandyCanes
+Spoons
+
+# --- earlier hand-play, recorded in docs/verification-log.md ---
+MedicineCabinet
+Angled Image Frame
+Cleaning Supplies
+Clock
+
+# --- 2026-09-09, seed AP_06703571453807397093 ---
+Frame Maze
+Junk Drawer
+# Mirror is the valuable one here. It pairs five no-ability Draggables groups
+# with gated Containers/Gadgets/Stacking groups - the same shape as the
+# SomethingEggstra Fridge softlock - and droha earned all five free part checks
+# while the gated groups were locked. That is positive proof the free groups are
+# independent, so Mirror does NOT carry the Fridge trap.
+Mirror
+# Played as far as it can be. Its Standard Objects group turned out to need
+# Containers after all, which is the softlock recorded in the CHANGELOG.
+SomethingEggstra Fridge
