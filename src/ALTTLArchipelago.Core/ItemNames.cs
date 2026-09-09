@@ -28,11 +28,15 @@ public static class ItemNames
     /// <summary>Uncovers one page of one puzzle's hint notepad.</summary>
     public const string HintPage = "Hint Page";
 
-    /// <summary>Recolours the puzzle backdrop.</summary>
-    public const string LevelBackground = "Level Background";
-
-    /// <summary>Recolours the pause screen.</summary>
-    public const string MenuBackground = "Menu Background";
+    /// <summary>
+    /// Recolours every backdrop - puzzle, pause screen and level select.
+    ///
+    /// Was two items, "Level Background" and "Menu Background". Merged because
+    /// they did nearly the same thing and neither touched the level select,
+    /// and named a trap because the puzzle backdrop can land close to the
+    /// pieces and swallow them.
+    /// </summary>
+    public const string BackgroundTrap = "Background Change Trap";
 
     /// <summary>
     /// Granted by an event location for beating a puzzle. It is an item the
@@ -48,5 +52,5 @@ public static class ItemNames
     public static bool IsSpecial(string name)
         => name == Pack || name == Credits || name == Skip
            || name == CatTrap || name == BeatenToken || name == HintPage
-           || name == LevelBackground || name == MenuBackground;
+           || name == BackgroundTrap;
 }

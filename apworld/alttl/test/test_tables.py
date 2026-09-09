@@ -162,8 +162,7 @@ class TestItemNamesAgreeAcrossLanguages(unittest.TestCase):
                 "catTrap": items.CAT_TRAP,
                 "beatenToken": items.BEATEN_TOKEN,
                 "hintPage": items.HINT_PAGE,
-                "levelBackground": items.LEVEL_BACKGROUND,
-                "menuBackground": items.MENU_BACKGROUND,
+                "backgroundTrap": items.BACKGROUND_TRAP,
             },
             exported,
             "ALTTLArchipelago.Core.ItemNames and items.py disagree; regenerate "

@@ -31,8 +31,7 @@ internal static class Inventory
     internal static int TrapsReceived { get; private set; }
     internal static int LevelsBeaten { get; private set; }
     internal static int HintPagesHeld { get; private set; }
-    internal static int LevelBackgrounds { get; private set; }
-    internal static int MenuBackgrounds { get; private set; }
+    internal static int BackgroundTraps { get; private set; }
 
 
     /// <summary>
@@ -123,8 +122,7 @@ internal static class Inventory
         TrapsReceived = 0;
         LevelsBeaten = 0;
         HintPagesHeld = 0;
-        LevelBackgrounds = 0;
-        MenuBackgrounds = 0;
+        BackgroundTraps = 0;
         Apply();
     }
 
@@ -163,8 +161,7 @@ internal static class Inventory
         TrapsReceived = counts.Traps;
         LevelsBeaten = counts.Beaten;
         HintPagesHeld = counts.HintPages;
-        LevelBackgrounds = counts.LevelBackgrounds;
-        MenuBackgrounds = counts.MenuBackgrounds;
+        BackgroundTraps = counts.BackgroundTraps;
         HasCredits = counts.HasCredits;
 
         // Only the abilities that arrived as ITEMS. AbilityState holds the
@@ -174,12 +171,16 @@ internal static class Inventory
 
         Track.SetPacksHeld(counts.Packs);
 
-        // Repaint now, not at the next level load. A Level Background is meant
-        // to be a visible reward, and a player who receives one mid-puzzle
+        // Repaint now, not at the next level load. A Background Change Trap is
+        // meant to land visibly, and a player who receives one mid-puzzle
         // should see it land rather than find out later. Safe to call on every
         // recount, replay included: the colour is derived from the count, so
         // re-applying it writes the same value.
         Backgrounds.ApplyToLevel();
+
+        // And the level select, which is the third backdrop the trap owns.
+        // Cheap: it returns immediately unless the count actually moved.
+        Track.RepaintSections();
 
         // The offline cache is now out of date. Only marked, not written: a
         // reconnect replays hundreds of items one at a time, and writing per

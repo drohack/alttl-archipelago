@@ -20,8 +20,8 @@ public class InventoryCountsTests
             ItemNames.CatTrap, ItemNames.CatTrap, ItemNames.CatTrap,
             ItemNames.BeatenToken, ItemNames.Credits,
             ItemNames.HintPage, ItemNames.HintPage,
-            ItemNames.LevelBackground, ItemNames.MenuBackground,
-            ItemNames.MenuBackground,
+            ItemNames.BackgroundTrap, ItemNames.BackgroundTrap,
+            ItemNames.BackgroundTrap,
             "Swapping",
         }, IsAbility);
 
@@ -30,8 +30,7 @@ public class InventoryCountsTests
         Assert.Equal(3, counts.Traps);
         Assert.Equal(1, counts.Beaten);
         Assert.Equal(2, counts.HintPages);
-        Assert.Equal(1, counts.LevelBackgrounds);
-        Assert.Equal(2, counts.MenuBackgrounds);
+        Assert.Equal(3, counts.BackgroundTraps);
         Assert.True(counts.HasCredits);
         Assert.Equal(new[] { "Swapping" }, counts.Abilities);
     }
@@ -91,30 +90,41 @@ public class InventoryCountsTests
         // each arrival would put the player on a different colour every login.
         var list = new[]
         {
-            ItemNames.LevelBackground, ItemNames.LevelBackground,
-            ItemNames.MenuBackground,
+            ItemNames.BackgroundTrap, ItemNames.BackgroundTrap,
+            ItemNames.BackgroundTrap,
         };
 
         var first = InventoryCounts.From(list, IsAbility);
         var second = InventoryCounts.From(list, IsAbility);
 
-        Assert.Equal(2, first.LevelBackgrounds);
-        Assert.Equal(1, first.MenuBackgrounds);
-        Assert.Equal(first.LevelBackgrounds, second.LevelBackgrounds);
-        Assert.Equal(first.MenuBackgrounds, second.MenuBackgrounds);
+        Assert.Equal(3, first.BackgroundTraps);
+        Assert.Equal(first.BackgroundTraps, second.BackgroundTraps);
     }
 
     [Fact]
-    public void TheTwoBackgroundsAreCountedSeparately()
+    public void EveryBackdropReadsTheOneBackgroundCounter()
     {
-        // They recolour different surfaces, so sharing a counter would move
-        // the pause screen every time a puzzle backdrop changed.
+        // There used to be two items and two counters, and the pause screen
+        // could sit several colours behind the puzzle. One item, one counter:
+        // the puzzle, the pause screen and the level select all step together.
         var counts = InventoryCounts.From(
-            new[] { ItemNames.LevelBackground, ItemNames.LevelBackground,
-                    ItemNames.LevelBackground }, IsAbility);
+            new[] { ItemNames.BackgroundTrap, ItemNames.BackgroundTrap,
+                    ItemNames.BackgroundTrap }, IsAbility);
 
-        Assert.Equal(3, counts.LevelBackgrounds);
-        Assert.Equal(0, counts.MenuBackgrounds);
+        Assert.Equal(3, counts.BackgroundTraps);
+    }
+
+    [Fact]
+    public void ABackgroundChangeTrapIsNotMistakenForAnAbility()
+    {
+        // The rename is exactly the kind of change that drops an item out of
+        // IsSpecial and leaves it landing in the held-ability set instead,
+        // where it would silently unlock nothing and gate nothing.
+        var counts = InventoryCounts.From(
+            new[] { ItemNames.BackgroundTrap }, IsAbility);
+
+        Assert.Equal(1, counts.BackgroundTraps);
+        Assert.Empty(counts.Abilities);
     }
 
     [Fact]

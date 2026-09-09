@@ -103,8 +103,7 @@ public class NamesExportTests
                 ["catTrap"] = ItemNames.CatTrap,
                 ["beatenToken"] = ItemNames.BeatenToken,
                 ["hintPage"] = ItemNames.HintPage,
-                ["levelBackground"] = ItemNames.LevelBackground,
-                ["menuBackground"] = ItemNames.MenuBackground,
+                ["backgroundTrap"] = ItemNames.BackgroundTrap,
             },
             ["levels"] = byLevel,
         };

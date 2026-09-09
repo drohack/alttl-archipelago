@@ -162,8 +162,8 @@ internal static class Navigation
     }
 
     /// <summary>
-    /// Recolour the pause screen, if the player has been sent a Menu
-    /// Background.
+    /// Recolour the pause screen, if the player has been sent a Background
+    /// Change Trap.
     ///
     /// Two things about finding it are not obvious, and both were got wrong
     /// first:

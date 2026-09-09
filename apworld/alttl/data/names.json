@@ -3,12 +3,11 @@
   "maxGeneratorInstances": 8,
   "credits": "Credits",
   "items": {
+    "backgroundTrap": "Background Change Trap",
     "beatenToken": "Level Beaten",
     "catTrap": "Cat Trap",
     "credits": "Credits",
     "hintPage": "Hint Page",
-    "levelBackground": "Level Background",
-    "menuBackground": "Menu Background",
     "pack": "Progressive Puzzle Pack",
     "skip": "Skip"
   },

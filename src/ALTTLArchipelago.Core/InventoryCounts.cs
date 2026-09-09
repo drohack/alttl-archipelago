@@ -38,8 +38,8 @@ public sealed class InventoryCounts
     /// on each arrival would walk it forward again on every login, landing the
     /// player on a different colour every time they started the game.
     /// </summary>
-    public int LevelBackgrounds { get; }
-    public int MenuBackgrounds { get; }
+    /// <summary>Background Change Traps received. One counter, one item.</summary>
+    public int BackgroundTraps { get; }
 
     public bool HasCredits { get; }
 
@@ -52,11 +52,10 @@ public sealed class InventoryCounts
 
     private InventoryCounts(
         int packs, int skips, int traps, int beaten, int hintPages,
-        int levelBackgrounds, int menuBackgrounds,
+        int backgrounds,
         bool credits, IReadOnlyList<string> abilities)
     {
-        LevelBackgrounds = levelBackgrounds;
-        MenuBackgrounds = menuBackgrounds;
+        BackgroundTraps = backgrounds;
         Packs = packs;
         Skips = skips;
         Traps = traps;
@@ -79,7 +78,7 @@ public sealed class InventoryCounts
         IEnumerable<string> received, Func<string, bool>? isAbility = null)
     {
         int packs = 0, skips = 0, traps = 0, beaten = 0, hintPages = 0;
-        int levelBackgrounds = 0, menuBackgrounds = 0;
+        int backgrounds = 0;
         var credits = false;
         var abilities = new List<string>();
 
@@ -96,13 +95,12 @@ public sealed class InventoryCounts
             else if (name == ItemNames.CatTrap) traps++;
             else if (name == ItemNames.BeatenToken) beaten++;
             else if (name == ItemNames.HintPage) hintPages++;
-            else if (name == ItemNames.LevelBackground) levelBackgrounds++;
-            else if (name == ItemNames.MenuBackground) menuBackgrounds++;
+            else if (name == ItemNames.BackgroundTrap) backgrounds++;
             else if (isAbility != null && isAbility(name)) abilities.Add(name);
         }
 
         return new InventoryCounts(
             packs, skips, traps, beaten, hintPages,
-            levelBackgrounds, menuBackgrounds, credits, abilities);
+            backgrounds, credits, abilities);
     }
 }

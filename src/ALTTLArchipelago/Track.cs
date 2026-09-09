@@ -169,6 +169,7 @@ internal static class Track
         _credits = null;
         _chapters = null;
         _creditsShown = false;
+        _paintedBackgrounds = -1;
         _plan.Clear();
         _order.Clear();
         Rebuild();
@@ -427,6 +428,64 @@ internal static class Track
         catch (Exception e)
         {
             Plugin.Logger.LogWarning($"track: integrity check failed: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// How many Background Change Traps the level select was last painted for.
+    ///
+    /// -1 so the first call after a run starts always paints, even at zero
+    /// traps: the menu may have been built before the item list arrived.
+    /// </summary>
+    private static int _paintedBackgrounds = -1;
+
+    /// <summary>
+    /// True while RepaintSections is driving SetupSections, so the postfix
+    /// knows this rebuild is about colour and must not arm the opening scroll.
+    /// </summary>
+    private static bool _recolouring;
+
+    /// <summary>
+    /// Re-tint the level select when a Background Change Trap lands.
+    ///
+    /// SetupSections rather than Rebuild. Rebuild re-lays-out the whole track
+    /// and resets the scroll, which for a colour change would yank the player
+    /// away from the card they were looking at; SetupSections re-runs only the
+    /// postfix that chooses the colours, and SetSectionBackgroundColor pushes
+    /// the focused section's new colour to the screen.
+    ///
+    /// A no-op when the menu is not built. The colour is a function of the
+    /// count, so the next open picks it up from AfterSetupSections anyway -
+    /// this exists purely so a trap that arrives while the player is STANDING
+    /// in the level select is visible immediately rather than on the next
+    /// visit.
+    /// </summary>
+    internal static void RepaintSections()
+    {
+        if (_state == null || _plan.Count == 0) return;
+        if (Inventory.BackgroundTraps == _paintedBackgrounds) return;
+        _paintedBackgrounds = Inventory.BackgroundTraps;
+
+        try
+        {
+            var select = FindCampaignSelect();
+            if (select == null) return;      // not built; the patch will catch it
+
+            _recolouring = true;
+            try
+            {
+                select.SetupSections();
+                select.SetSectionBackgroundColor();
+            }
+            finally
+            {
+                _recolouring = false;
+            }
+        }
+        catch (Exception e)
+        {
+            // Cosmetic. A failed recolour must never disturb the menu.
+            Plugin.Logger.LogWarning($"track: section recolour failed: {e.Message}");
         }
     }
 
@@ -810,14 +869,21 @@ internal static class Track
                     // Color - transparent - so the track kept whatever the
                     // puzzle you just left had painted, which looked exactly
                     // like the level was still open behind the menu.
-                    BackgroundColor = SectionColour(sections.Count),
+                    BackgroundColor = SectionColour(
+                        sections.Count + Inventory.BackgroundTraps),
                 });
             }
 
             if (sections.Count > 0) __instance.Sections = sections;
 
             // ASKED FOR HERE, APPLIED LATER. See TickScroll.
-            _scrollPending = 0.35f;
+            //
+            // NOT when the rebuild was ours and only about colour. A recolour
+            // that also scrolled would move the player off the card they were
+            // looking at, which is the exact thing RepaintSections was written
+            // to avoid - and it would have done it, because this line does not
+            // care who called SetupSections.
+            if (!_recolouring) _scrollPending = 0.35f;
 
             // The menu is being built right now, so every poll that decorates
             // it is due immediately. Without this the badges, dots and tag
@@ -909,6 +975,19 @@ internal static class Track
     /// Taken from the game's own chapter colours where there are enough of
     /// them, so the track looks like the game rather than like a mod, and
     /// cycling after that. Any opaque colour beats the transparent default.
+    ///
+    /// THE CALLER ADDS Inventory.BackgroundTraps TO THE INDEX, which is how a
+    /// Background Change Trap reaches the level select. Rotating the palette
+    /// rather than painting every section one colour keeps the sections
+    /// telling apart from each other, which is the only job they had.
+    ///
+    /// Derived from the COUNT, never stepped on arrival - the same rule as
+    /// Backgrounds.ColourFor, and for the same reason: Archipelago replays the
+    /// whole item list on every connect, so anything that advanced per arrival
+    /// would land somewhere new each login.
+    ///
+    /// Six colours means a player holding six traps sees the level select they
+    /// started with. That wraparound is already true of the puzzle backdrop.
     /// </summary>
     private static UnityEngine.Color SectionColour(int index)
     {

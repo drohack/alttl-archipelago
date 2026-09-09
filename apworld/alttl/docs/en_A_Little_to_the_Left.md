@@ -33,10 +33,13 @@ Puzzle Packs, the twelve mechanic abilities, the Credits, Skips, Hint Pages and
 background colours. The cat trap is also shuffled out - it knocks your
 arrangement over, costing you time but never progress.
 
-**Level Background** and **Menu Background** recolour the puzzle backdrop and
-the pause screen, drawing from the ten background colours the game itself
-uses. They are the run's filler, and unlike most filler they do something you
-can see the moment they arrive.
+**Background Change Trap** recolours every backdrop at once - the puzzle, the
+pause screen and the level select track - drawing from the ten background
+colours the game itself uses. It is the run's filler, and unlike most filler it
+does something you can see the moment it arrives. It is called a trap because
+the colour it lands on is chosen by how many you hold rather than by what is on
+screen, so a puzzle can end up with pieces that are hard to pick out against
+their own background.
 
 Every puzzle in the game has a hint, and a default seed holds about 110 pages
 across them. **Hint Coverage** decides how many get an item, and defaults to

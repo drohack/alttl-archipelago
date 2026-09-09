@@ -43,23 +43,31 @@ HINT_PAGE = "Hint Page"
 
 ABILITY_ITEMS: List[str] = list(data.ABILITIES)
 
-#: Recolours the puzzle backdrop, using the game's own palette of background
-#: colours so the result never looks foreign.
-LEVEL_BACKGROUND = "Level Background"
-
-#: The same, for the pause screen.
-MENU_BACKGROUND = "Menu Background"
+#: Recolours every backdrop in the game - the puzzle, the pause screen and the
+#: level select - using the game's own palette so the result never looks
+#: foreign.
+#:
+#: ONE ITEM, NOT TWO. This was "Level Background" and "Menu Background", two
+#: filler items doing almost the same thing, and the level select was not
+#: covered at all. droha asked for them merged and named as what they actually
+#: are: the puzzle backdrop can land on a colour close to the pieces and hide
+#: them, which is a trap and, in droha's words, "still funny".
+BACKGROUND_TRAP = "Background Change Trap"
 
 #: Filler that actually does something.
 #:
 #: This list used to read Title Theme, Colour Scheme and Daily Badge, and all
 #: three were names with no code behind them - about three quarters of a
 #: default seed paid out in items that did nothing at all. They are deleted
-#: rather than kept alongside these two, because filler that does nothing
+#: rather than kept alongside this one, because filler that does nothing
 #: dilutes filler that does.
+#:
+#: A list of one is fine and filler_sequence handles it - random.choice over a
+#: single name is that name. It is a LIST rather than a bare constant because
+#: the shape is the extension point, and because every id after it is
+#: positional in _ALL_NAMES (see the note there).
 FILLER_ITEMS: List[str] = [
-    LEVEL_BACKGROUND,
-    MENU_BACKGROUND,
+    BACKGROUND_TRAP,
 ]
 
 TRAP_ITEMS: List[str] = [CAT_TRAP]
@@ -120,30 +128,17 @@ def classification(name: str) -> ItemClassification:
 #: pacing. At the default pack size of 4 this changes nothing.
 MIN_OPENING = 4
 
-#: Candidate ramps, gentlest first: "every N packs, the next one is a puzzle
-#: wider". Packs widen as the run goes on because that is the pacing the game
-#: wants - slow while you have few abilities, quick once you have many.
-PACK_ACCELERATIONS = (3, 2, 1)
+#: Packs used to WIDEN as the run went on - "every N packs, the next one is a
+#: puzzle wider" - so a 40-puzzle run unlocked 4, 4, 4, 5, 5, 6, 6, 6. That was
+#: chosen to fit the cap below while starting gently, and it was the wrong
+#: trade: a pack is supposed to be a guarantee, and "four puzzles, usually"
+#: is not one. droha put it plainly - packs should be uniform, and if the size
+#: has to change for generation to work then change the SIZE, not the shape.
+#:
+#: So the ramp is gone. When the requested size needs more packs than the cap
+#: allows, every pack grows by the same amount instead, and only the last one
+#: is short because a run rarely divides evenly.
 
-#: Ceiling on how many pack items a run may contain, PROPORTIONAL to its
-#: length, and the reason the ramp is chosen rather than fixed.
-#:
-#: Every pack is a progression item, and progression DENSITY is what decides
-#: whether a seed can be filled. Flat packs at pack_size 1 meant 75 of them
-#: against about 110 locations in a generators-only run - roughly a third of
-#: the pool blocking its own placement - and generation failed outright.
-#:
-#: A FLAT cap of 14 was the first attempt and was wrong in a way a 79-puzzle
-#: run never shows: it is a sensible number of packs for 79 puzzles and far too
-#: many for 35, because a shorter run has proportionally fewer locations to
-#: absorb them. Measured 2026-09-03, pack_size 1 with no starting abilities:
-#: a 50-puzzle run filled 56/60 and a 35-puzzle run only 44/60. Scaling the cap
-#: with the length took both to 60/60 and left the 79-puzzle default on the
-#: same 14 packs it had before.
-#:
-#: 0.18 is where the two working points already sat - 14 packs across 79
-#: puzzles is 0.177 - so this generalises what the long run was doing rather
-#: than inventing a number.
 PACKS_PER_PUZZLE = 0.18
 MAX_PACKS = 14
 
@@ -152,14 +147,16 @@ def _pack_cap(puzzle_count: int) -> int:
     return max(1, min(MAX_PACKS, round(puzzle_count * PACKS_PER_PUZZLE)))
 
 
-def _schedule(puzzle_count: int, pack_size: int, acceleration: int) -> List[int]:
-    opening = min(max(pack_size, MIN_OPENING), puzzle_count)
-    out = [opening]
-    step_index = 1
+def _schedule(puzzle_count: int, pack_size: int, opening: int) -> List[int]:
+    """Cumulative boundaries for uniform packs of `pack_size` after `opening`.
+
+    The opening is passed in rather than derived, because widening the packs
+    to fit the cap must not also widen the free start - a player who asked for
+    packs of 4 and got 6 should still begin with 4 open, not 6.
+    """
+    out = [min(opening, puzzle_count)]
     while out[-1] < puzzle_count:
-        step = pack_size + (step_index - 1) // acceleration
-        out.append(min(out[-1] + step, puzzle_count))
-        step_index += 1
+        out.append(min(out[-1] + pack_size, puzzle_count))
     return out
 
 
@@ -170,27 +167,32 @@ def pack_boundaries(puzzle_count: int, pack_size: int) -> List[int]:
     k packs are held. packs_needed and pack_count both read this, so "which
     slot does this pack open" and "how many packs exist" cannot drift apart.
 
-    Takes the gentlest ramp that stays under MAX_PACKS. Small pack sizes
-    therefore widen faster - which is what the player asked for anyway, since
-    they asked to start slow rather than to stay slow for eighty puzzles.
+    EVERY PACK IS THE SAME SIZE. That is the whole point of a pack - it is a
+    guarantee about how much the run opens up, and a guarantee that varies is
+    not one. The only short pack is the last, because a run rarely divides
+    evenly, and that one is the remainder rather than a choice.
+
+    The cap below is real and has to be respected, so when the requested size
+    would need more packs than the run can carry, the SIZE grows - uniformly,
+    for every pack - until it fits. A player who asks for packs of 2 in a
+    40-puzzle run gets packs of 6, not packs of 2, 4, 6, 8, 10.
     """
     cap = _pack_cap(puzzle_count)
-    schedule = _schedule(puzzle_count, pack_size, PACK_ACCELERATIONS[-1])
-    for acceleration in PACK_ACCELERATIONS:
-        candidate = _schedule(puzzle_count, pack_size, acceleration)
-        if len(candidate) - 1 <= cap:
-            return candidate
-    # Even the steepest ramp overflows the cap, which a short run at pack_size
-    # 1 really can do. Widen the step itself rather than shipping a run with
-    # far more pack items than it has room for.
+
+    size = max(1, pack_size)
+    opening = min(max(size, MIN_OPENING), puzzle_count)
+
+    schedule = _schedule(puzzle_count, size, opening)
+
+    # Widen uniformly until the pack count fits. Solved directly rather than
+    # by search: after the opening there are (puzzle_count - opening) puzzles
+    # to hand out over at most `cap` packs. The opening does not move.
     if len(schedule) - 1 > cap:
-        widened = [min(max(pack_size, MIN_OPENING), puzzle_count)]
-        step_index = 1
-        while widened[-1] < puzzle_count:
-            widened.append(min(widened[-1] + pack_size + (step_index - 1) * 2,
-                               puzzle_count))
-            step_index += 1
-        return widened
+        remaining = puzzle_count - opening
+        if remaining > 0 and cap > 0:
+            size = max(size, -(-remaining // cap))      # ceil
+        schedule = _schedule(puzzle_count, size, opening)
+
     return schedule
 
 
