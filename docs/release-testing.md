@@ -26,6 +26,7 @@ What to reach for instead:
 | Did the logic change? | `dotnet test src/ALTTLArchipelago.Core.Tests` | ~1s |
 | Did generation or the id tables change? | the apworld suite | ~7s |
 | Does the option surface still fill? | `ALTTL_STRESS_SEEDS=25` fill stress | ~30s |
+| Can the harness get past a phased level? | `tools/probe-skip-path.py` | ~2 min |
 | Did I break the run or add errors? | a small reproducer, see below | minutes |
 | Is the release good? | this, in full | ~15 min |
 
@@ -39,6 +40,44 @@ Three false negatives in a row is what drove the twelve full runs.
 A `--quick` mode - two puzzles, no arrow session, keeping the error census and
 the mod-vs-harness reconciliation - would answer the common question in three
 or four minutes. It has not been built.
+
+### The gate runs a self-test first
+
+`self_test()` runs before anything is installed and exits on the first
+disagreement. It costs milliseconds and it exists because every expensive
+failure this harness has had was its own parsing, not the mod: a listing read
+before it finished printing, a name left behind by a splice, a hard-coded pack
+count no seed could satisfy, and two string literals that were supposed to
+match and did not. Add a case here whenever a run fails for a reason that was
+knowable without launching the game.
+
+### Proving the skip path without a full run
+
+`tools/probe-skip-path.py` answers one question in about two minutes:
+can the harness get past a level it cannot force-solve?
+
+`solve:` sets a controller's solved flag. That finishes most levels and does
+not finish a PHASED one - PawPrints registers five controllers, all five
+solve, all five checks fire, and `PawPrintsPhaseLevel` still never raises
+`LevelComplete`, because its phase machine wants the real solve path. The mod
+is right to bank no Beaten token. Phased campaign levels became drawable in
+0.3.1, so a run that draws one used to stall for nineteen rounds and then fail
+six assertions that had nothing wrong with them. The gate spends a Skip
+instead, which since 0.3.1 finishes the slot and counts toward the credits.
+
+It loads `release-e2e.py` and calls the real `solve_level`, deliberately: the
+bug it guards against WAS a copy that had drifted out of step. Expect
+
+    solve_level: done=False exhausted=True
+    skip spent=True  mod banked a Beaten token=True
+
+It needs a seed in `testserver/out-e2e`, which the gate leaves behind, and the
+release installed. It cheat-sends the Skip rather than hoping the seed placed
+one early, so it measures the path and not the placement.
+
+This is the exception to "a short reproducer must do REAL solves" above, and
+only because a forced solve failing to complete the level IS the condition
+under test.
 
 ## The automatic route
 

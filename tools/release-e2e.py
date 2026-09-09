@@ -80,6 +80,17 @@ PUZZLES = 8
 #: generator's boundaries is what made 'the run has 2 packs' fail on every
 #: run for as long as the cap has existed.
 PACK_SIZE = 2
+
+#: solve_level writes this into the text it returns when a level has no
+#: unsolved controllers left and the game still will not complete it.
+#:
+#: A CONSTANT because the first version of this was two string literals,
+#: and they did not match: play() grepped for "waiting for the completion",
+#: which is a say() to stdout, while the text it searched is the game log.
+#: The skip path could never fire and nothing said so - the run just
+#: stalled the way it had before the fix. One name removes the whole bug
+#: class; self_test asserts it is used on both sides.
+EXHAUSTED_MARK = "harness: level exhausted, no completion"
 MAX_ROUNDS = 60
 QUICK = False
 
@@ -839,7 +850,7 @@ def solve_level(log):
                 # that text is the only channel back to the caller - the
                 # say() above goes to stdout, and a first attempt at this
                 # grepped for that message and so never matched anything.
-                text += "\nharness: level exhausted, no completion\n"
+                text += "\n" + EXHAUSTED_MARK + "\n"
             return finished, text
 
         if attempt:
@@ -1370,7 +1381,7 @@ def play(log, plan):
         # Only the truly exhausted case. A level with controllers still
         # unsolved is a level the harness gave up on, and skipping that
         # would hide a real routing or gating bug behind a green run.
-        exhausted = "harness: level exhausted" in chunk
+        exhausted = EXHAUSTED_MARK in chunk
         if not done and exhausted and current not in skipped:
             skipped.add(current)
             log.new()
@@ -1701,6 +1712,37 @@ def self_test():
         sys.exit(f"self-test: unsolved_controllers gave {got}, expected [0, 1, 10]")
     if unsolved_controllers("") != []:
         sys.exit("self-test: an empty listing should give no work")
+
+    # THE EXHAUSTION MARKER MUST BE PRODUCED AND CONSUMED. Both sides go
+    # through EXHAUSTED_MARK now, so this only has to prove the constant
+    # is actually reached from both - a splice that reintroduced a literal
+    # on either side would drop the count below two.
+    src = open(__file__, encoding="utf-8").read()
+    if src.count("EXHAUSTED_MARK") < 3:
+        sys.exit("self-test: EXHAUSTED_MARK is no longer used on both sides")
+
+    # The display fix. Unity keeps the mode and the boolean separately and
+    # the game reads the boolean; setting only the mode let a run play at
+    # 1920 borderless while printing "not fullscreen".
+    if "Screenmanager Is Fullscreen mode_h3981298716" not in SCREEN_VALUES:
+        sys.exit("self-test: force_windowed would not actually leave fullscreen")
+    if SCREEN_VALUES["Screenmanager Is Fullscreen mode_h3981298716"] != 0:
+        sys.exit("self-test: the fullscreen boolean must be 0")
+
+    # campaign_diff names the fields that moved. The bare FAIL it replaced
+    # read as "the run wrote the player's campaign save" when what had
+    # actually changed was a display setting.
+    before = json.dumps({"levelCompletionData": [1], "playerPrefs": {"a": 1}},
+                        sort_keys=True)
+    after = json.dumps({"levelCompletionData": [1], "playerPrefs": {"a": 2}},
+                       sort_keys=True)
+    if campaign_diff(before, after) != "playerPrefs":
+        sys.exit(f"self-test: campaign_diff named "
+                 f"{campaign_diff(before, after)!r}, expected 'playerPrefs'")
+    if campaign_diff(before, before) != "nothing":
+        sys.exit("self-test: campaign_diff should say nothing moved")
+    if "could not be read" not in campaign_diff(None, after):
+        sys.exit("self-test: campaign_diff should cope with an unreadable save")
 
     # Every helper play() reaches for must exist. Splicing this file has twice
     # replaced a region that happened to contain one - boot_level went missing
