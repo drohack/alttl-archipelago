@@ -44,9 +44,21 @@ CONFIGURATIONS = {
     "no archive": {"archive_weight": 0, "archive_packs": []},
     "one pack only": {"archive_packs": ["good_tidings"]},
     "generators only": {"mechanic_coverage": 0, "archive_weight": 0,
-                        "archive_packs": []},
-    "both weights zero": {"generator_weight": 0, "archive_weight": 0},
-    "archive heavy": {"generator_weight": 10, "archive_weight": 90},
+                        "base_weight": 0, "archive_packs": []},
+    # All three, since the campaign became a rollable source. With only two
+    # zeroed this stopped exercising the fallback it was written for.
+    "all weights zero": {"generator_weight": 0, "archive_weight": 0,
+                         "base_weight": 0},
+    "archive heavy": {"generator_weight": 10, "archive_weight": 90,
+                      "base_weight": 0},
+    # The campaign as the dominant source. 69 one-shot levels is the largest
+    # pool in the game, so this is the configuration most likely to exhaust a
+    # source and fall through to the repeatable-generator backstop.
+    "campaign heavy": {"generator_weight": 10, "archive_weight": 0,
+                       "base_weight": 90, "archive_packs": []},
+    # And the old behaviour, which must keep generating: no campaign except
+    # what mechanic coverage drags in.
+    "no campaign": {"base_weight": 0},
     "no ability locks": {"ability_locks": False},
     "no starting abilities": {"starting_abilities": 0},
     "many starting abilities": {"starting_abilities": 6},
@@ -74,7 +86,7 @@ CONFIGURATIONS = {
     # of nearly nothing must still fill.
     "every hint page, generators only": {
         "hint_coverage": 100, "mechanic_coverage": 0,
-        "archive_weight": 0, "archive_packs": []},
+        "archive_weight": 0, "base_weight": 0, "archive_packs": []},
     # And the other end: every dial that competes for the same residual turned
     # up at once. Hints are taken before traps, so this is the configuration
     # where traps could be squeezed to nothing.
@@ -85,7 +97,8 @@ CONFIGURATIONS = {
     # Deliberately hostile: the thinnest content with the tightest gates.
     "worst case": {"pack_size": 1, "starting_abilities": 0,
                    "guaranteed_open_slots": 0, "mechanic_coverage": 0,
-                   "archive_weight": 0, "archive_packs": [], "skip_count": 0},
+                   "archive_weight": 0, "base_weight": 0,
+                   "archive_packs": [], "skip_count": 0},
 }
 
 
@@ -316,14 +329,78 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
     the expectation needs updating.
     """
 
-    def test_no_group_needs_more_than_one_ability(self):
+    #: The groups that legitimately need two abilities. Two shapes, both real,
+    #: both found the same way - a playtester sat on a card that logic said had
+    #: work available and the game gave them nothing to touch.
+    #:
+    #: CONTAINED: something inside a container inside a closed drawer. You
+    #: cannot reach the container until the drawer opens. Added in 0.3.1 after
+    #: Tool Drawer showed as completable while the game kept the drawer shut
+    #: until Furniture arrived.
+    #:
+    #: ASSEMBLED: a group that ARRANGES what other groups BUILD. Its objects are
+    #: their outputs, so it cannot begin until they are finished. droha hit this
+    #: on Candy Canes: holding Ordering but not Jigsaw, the card offered work and
+    #: the level had nothing on screen to interact with - the five canes to order
+    #: do not exist until the five jigsaw pairs are matched.
+    #:
+    #: The assembled ones are detectable structurally: the arranging group's
+    #: object count equals the number of assembling groups, because it acts on
+    #: one output from each. Three levels have that shape; the third,
+    #: GoodTidings_Cookies (Jigsaw), needs Jigsaw on both sides and so does not
+    #: appear here.
+    TWO_ABILITY_GROUPS = {
+        # contained
+        ("NeatStreak_Tool Drawer", "Containables"),
+        ("NeatStreak_Bathroom Drawer", "Bottle"),
+        ("NeatStreak_Bathroom Drawer", "Indexable"),
+        ("NeatStreak_Paper Plane Supplies", "Containables"),
+        # assembled
+        ("MerryMess_CandyCanes", "Ordered"),
+        ("NeatStreak_Paper Plane Supplies", "Chalk"),
+        # PHASED: TupperwareNesting reveals its later groups only as the
+        # earlier ones are solved, so a group late in the chain needs
+        # everything earlier in it.
+        #
+        # The chain is READ FROM THE GAME - TupperwareNesting.GetPhaseControllers()
+        # declares Stack 1 -> Stack 2 -> Tray -> Stack 3 -> Layout (Grid) ->
+        # Food. An earlier version of this set was larger because the chain had
+        # been GUESSED as "every later group depends on Lids and Stack 1", the
+        # two that happen to register at boot. That guess was wrong twice over:
+        # Lids gates nothing at all, and the shape is a chain rather than a fan.
+        # It invented a Containers requirement on Stack 2, Stack 3 and Tray that
+        # the game does not have, and pushed the grid group to three abilities.
+        # Reading the declaration instead of inferring it took all of that back.
+        ("TupperwareNesting", "(Large Square)"),
+        # Phase six, the last link in the chain. Food is a plain Draggables and
+        # needs nothing of its own; it carries Grids and Stacking because it
+        # cannot be reached until Layout (Grid) is done.
+        ("TupperwareNesting", "Food"),
+    }
+
+    def test_only_the_known_groups_need_two_abilities(self):
+        """Pinned as an exact set, not as a bound.
+
+        This used to assert no group needed more than one ability. Relaxing
+        that to "no more than two" would have stopped catching the thing it
+        exists to catch, so the four that legitimately need two are listed and
+        anything else still fails - in either direction, since an entry
+        disappearing from the set means an edge was lost.
+        """
+        found = set()
         for level in data.LEVELS:
             for part, abilities in level.part_abilities.items():
                 self.assertLessEqual(
-                    len(abilities), 1,
+                    len(abilities), 2,
                     f"{level.level_id} / {part} needs {sorted(abilities)}. "
                     f"If this is real, the fill assumptions in items.py and "
                     f"the narrow-requirement design need re-measuring.")
+                if len(abilities) >= 2:
+                    found.add((level.level_id, part))
+
+        self.assertEqual(self.TWO_ABILITY_GROUPS, found,
+                         "the set of multi-ability groups moved; re-measure "
+                         "before accepting")
 
     def test_the_measured_split_holds(self):
         free = need_one = 0
@@ -335,7 +412,49 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
                     need_one += 1
                 else:
                     free += 1
-        self.assertEqual((32, 74), (free, need_one),
+        # Was (32, 74) before 0.3.1, then (28, 78). Four groups that needed
+        # nothing at all - the loose contents of the three drawer levels and
+        # Workbench's draggables - now inherit Furniture from the container
+        # they live in, so they moved from free to needing something.
+        #
+        # Now (28, 82): TupperwareNesting gained four groups, all of which
+        # need at least one ability, so only need_one moves. Those four are the
+        # phased reveals the boot-time sweep never saw - the level went from 3
+        # locations to 7 once droha's playtest proved they register.
+        #
+        # Reading the real phase chain later changed WHICH abilities several of
+        # those groups need, but not whether they need any, so this split did
+        # not move again.
+        #
+        # need_one counts "at least one", so a group going from one ability to
+        # two or three does not move between these buckets; those are pinned
+        # separately above.
+        # Now (28, 93). Restoring the eleven locations the audit proved real -
+        # Radial Dance Party's ten declared dances and TupperwareNesting's Food
+        # - added eleven groups, every one of which needs at least one ability,
+        # so only need_one moved. The dances need Rotating through their own
+        # RadialDance components, which is also why Radial Dance Party no
+        # longer carries an extraAbilities override.
+        # Now (27, 94). SomethingEggstra Fridge's StandardObjects moved from
+        # free to needing Containers: the level is an egg hunt, its six eggs
+        # are scattered among the 24 shelf items, and the shelf cannot be made
+        # tidy until they are cleared into the carton. Logic had it as a plain
+        # Draggables group needing nothing, which left droha with that check as
+        # the ONLY reachable one in the run and no way to earn it.
+        # Now (24, 97). Three more free groups turned out to be gated in
+        # practice, all the same shape as the SomethingEggstra Fridge: a
+        # no-ability Draggables group with a locked group's objects scattered
+        # through it, so the arrangement cannot be completed while those are
+        # frozen. Breadtags (crumbs over the tags), Fridge Inside (tupperware
+        # among the shelf items) and MerryMess_Crackers (crackers in the train).
+        # Found by measuring object positions, after droha hit two of them.
+        # Now (24, 94). TupperwareTower lost three groups and gained one back:
+        # its Foundation and Falling Blocks StackableGrids are the tower's
+        # mechanism, not objectives, and never raise a solved event, so they
+        # were dead locations. Removing them takes their two Grids entries out
+        # of need_one; the level keeps requiring Grids through extraAbilities,
+        # because the falling blocks are dimmed without it.
+        self.assertEqual((24, 94), (free, need_one),
                          "part requirement split changed; regenerate "
                          "names.json and re-measure before accepting")
 

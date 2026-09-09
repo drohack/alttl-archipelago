@@ -7,27 +7,51 @@ Two passes, in this order and for this reason:
      the draw does not go looking for them they arrive by luck or not at all.
      Ties are broken at random so the same levels do not turn up every seed.
 
-  2. Fill the rest by source, generator 70 / archive 30, preferring the
-     least-used generator so no one puzzle type dominates.
+  2. Fill the rest by source, generator 80 / archive 10 / base 10 by default,
+     preferring the least-used generator so no one puzzle type dominates.
 
-Base-campaign levels are NOT a rollable source. They enter through pass 1
-alone, and only when they are the only way to supply a mechanic. That is the
-whole point of the split: a base level is in the run because it brings
-something no generator can, never because a percentage said so.
+ALL THREE SOURCES ARE ROLLABLE. This text used to say the opposite - that
+base-campaign levels enter through pass 1 alone, "because it brings something
+no generator can, never because a percentage said so" - and that was a real
+design position, held deliberately. It had a consequence nobody had counted:
+because pass 2 fills by source and base was not a source, a campaign level
+could appear ONLY if it taught one of the four gap abilities. Twelve qualify.
+**The other 57 could never be drawn at all**, which is most of the game.
 
-Measured over 10 seeds at 79 slots with mechanic_coverage 3:
-51 generator / 24 archive / 3 base, zero base levels serving no gap ability,
-gap coverage 5/3/4/4, no generator repeating more than 4 times, 43 distinct
-levels, about 181 checks.
+It came to light trying to playtest Radial Dance Party: eighteen rolls failed
+to place it, and no scoring weight could have helped.
 
-Two earlier designs were measured and rejected, recorded so they are not
-retried. A flat 10% base weight put 9-12 base levels in of which only 3 served
-a gap ability - and the same 3 every seed, because the reserve was greedy
-without random tie-breaks. Giving every ability an equal share was worse
-still: four abilities have exactly one generator each (Grids only has
-Procedural Grid Puzzle, Ordering only Pencils, Rotating only Clock, Symmetry
-only Shells), so equal shares forced those four to repeat about eight times,
-roughly 32 of 79 slots being four puzzle types.
+A flat base weight was tried once before and rejected, and the rejection note
+is kept because half of it still stands. It read: "9-12 base levels in of which
+only 3 served a gap ability - and the same 3 every seed, because the reserve
+was greedy without random tie-breaks." The second half was a BUG, not a
+property of the design, and pass 1 has done random.choice over tied candidates
+since. The first half is just what a base weight does, and is now the point.
+
+The other rejected design still stands entirely: giving every ability an equal
+share is worse than a source split, because four abilities have exactly one
+generator each (Grids only has Procedural Grid Puzzle, Ordering only Pencils,
+Rotating only Clock, Symmetry only Shells), so equal shares forced those four
+to repeat about eight times - roughly 32 of 79 slots being four puzzle types.
+
+Base is drawn uniformly, like the other two. Twenty-four of the 69 campaign
+puzzles use only dragging and so add no mechanic; weighting the draw towards
+the other 45 was considered and dropped as not worth the special case at a 10%
+share.
+
+Base is also much the largest one-shot pool - 69, against 26 archive and 16
+repeatable generators - so a non-zero base weight is what keeps a long run from
+leaning on the same generator over and over.
+
+Measured over 5 seeds at 79 slots with the defaults, 2026-09-09:
+60.2 generator / 10.0 archive / 8.8 base per seed, of which 4.0 base come from
+the coverage reserve and 4.8 are ordinary campaign puzzles that could not
+appear at all before. 28 distinct base levels across the five seeds.
+
+The same measurement with base_weight 0 reproduces the old behaviour exactly:
+66.6 generator / 9.0 archive / 3.4 base, every base level gap-serving, and only
+7 distinct ones across five seeds. Note the generator count: the campaign
+weight takes six slots a seed away from generator repeats.
 """
 
 from typing import Dict, List, NamedTuple, Set
@@ -132,11 +156,31 @@ def draw(random, slots: int, coverage: int, source_weights: Dict[str, int],
         take(random.choice(candidates))
 
     # --- number the instances and pick generator seeds ----------------------
+    #
+    # The seeds are drawn WITHOUT REPLACEMENT per level. Two instances of one
+    # generator that shared a seed would be the same puzzle twice, which is
+    # exactly what a repeat is supposed not to be. At a range of 2e9 a natural
+    # collision is vanishingly unlikely, so this is a correctness guarantee
+    # rather than a fix for something seen in the wild - the duplicate levels
+    # reported from the 0.3.0 playtest came from the MOD dropping the baked
+    # seed at launch and falling back to the generator's stock layout, not from
+    # generation handing out the same number (see Track.ResolveSlotFor).
+    # Closing it anyway means the two halves cannot be confused again.
     seen: Dict[str, int] = {}
+    used: Dict[str, Set[int]] = {}
     result: List[Slot] = []
     for level in picked:
         seen[level.level_id] = seen.get(level.level_id, 0) + 1
-        seed = random.randrange(1, 2_000_000_000) if level.repeatable else -1
+
+        seed = -1
+        if level.repeatable:
+            taken = used.setdefault(level.level_id, set())
+            while True:
+                seed = random.randrange(1, 2_000_000_000)
+                if seed not in taken:
+                    break
+            taken.add(seed)
+
         result.append(Slot(level, seen[level.level_id], seed))
     return result
 

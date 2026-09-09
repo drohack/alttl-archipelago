@@ -10,7 +10,7 @@ namespace ALTTLArchipelago.Core;
 ///     Furniture    0 generators, 3 archive,  1 base
 ///     Jigsaw       0 generators, 4 archive,  0 base
 ///
-/// That matters because the default draw is 60% generators. Left to the
+/// That matters because the default draw is 80% generators. Left to the
 /// weights, a run can end up with one token Jigsaw level or - if someone sets
 /// archive to zero - none at all, at which point the ability is pruned and an
 /// entire family of puzzle disappears from the game.
@@ -34,7 +34,7 @@ public static class MechanicCoverage
         var fromGenerators = new HashSet<string>(StringComparer.Ordinal);
         foreach (var level in table.Levels.Where(l => l.Source == "generator"))
         {
-            foreach (var a in ControllerGroups.AbilitiesForLevel(level)) fromGenerators.Add(a);
+            foreach (var a in ControllerGroups.AbilitiesTaughtBy(level)) fromGenerators.Add(a);
         }
 
         return Abilities.All
@@ -44,7 +44,7 @@ public static class MechanicCoverage
 
     /// <summary>How many levels in the table exercise an ability at all.</summary>
     public static int CountFor(LevelTable table, string ability)
-        => table.Levels.Count(l => ControllerGroups.AbilitiesForLevel(l).Contains(ability));
+        => table.Levels.Count(l => ControllerGroups.AbilitiesTaughtBy(l).Contains(ability));
 
     /// <summary>
     /// A small set of levels covering each named ability at least
@@ -68,19 +68,19 @@ public static class MechanicCoverage
             var wanted = need.Where(kv => kv.Value > 0).Select(kv => kv.Key).ToHashSet(StringComparer.Ordinal);
 
             var best = remaining
-                .Select(l => (Level: l, Gain: ControllerGroups.AbilitiesForLevel(l).Intersect(wanted).Count()))
+                .Select(l => (Level: l, Gain: ControllerGroups.AbilitiesTaughtBy(l).Intersect(wanted).Count()))
                 .Where(x => x.Gain > 0)
                 // Most gap-abilities covered first; ties broken by fewest total
                 // abilities, so a focused level is preferred over a sprawling
                 // one that would over-serve things already covered.
                 .OrderByDescending(x => x.Gain)
-                .ThenBy(x => ControllerGroups.AbilitiesForLevel(x.Level).Count)
+                .ThenBy(x => ControllerGroups.AbilitiesTaughtBy(x.Level).Count)
                 .ThenBy(x => x.Level.LevelIndex)
                 .FirstOrDefault();
 
             if (best.Level == null) break;   // nothing left can help
 
-            foreach (var a in ControllerGroups.AbilitiesForLevel(best.Level).Intersect(wanted))
+            foreach (var a in ControllerGroups.AbilitiesTaughtBy(best.Level).Intersect(wanted))
             {
                 need[a]--;
             }

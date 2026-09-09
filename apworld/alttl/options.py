@@ -54,12 +54,12 @@ class GeneratorWeight(Range):
 
     Sixteen of the game's puzzles are generators that build a fresh layout from
     a seed, so they are new even if you have finished the game. Weighed against
-    the archive weight below.
+    the event and campaign weights below.
     """
     display_name = "Generated Puzzle Weight"
     range_start = 0
     range_end = 100
-    default = 70
+    default = 80
 
 
 class ArchiveWeight(Range):
@@ -72,7 +72,25 @@ class ArchiveWeight(Range):
     display_name = "Event Puzzle Weight"
     range_start = 0
     range_end = 100
-    default = 30
+    default = 10
+
+
+class BaseWeight(Range):
+    """How strongly to favour puzzles from the main campaign.
+
+    The 69 hand-made campaign puzzles. Sixty-nine is by far the largest pool of
+    one-shot levels in the game - more than the events and generators together
+    - so this is what stops a long run repeating the same generator over and
+    over.
+
+    Set it to 0 and the campaign is invisible except where Mechanic Coverage
+    below drags a level in, which is how every run worked before this option
+    existed: 57 of the 69 could not appear at all.
+    """
+    display_name = "Campaign Puzzle Weight"
+    range_start = 0
+    range_end = 100
+    default = 10
 
 
 class MechanicCoverage(Range):
@@ -83,9 +101,9 @@ class MechanicCoverage(Range):
     mechanics more even and brings in more base-game puzzles; 4 uses up every
     drawer puzzle in the game, so every run would contain all of them.
 
-    Base-game puzzles enter the run ONLY through this setting. Set it to 0 and
-    a run is generated and event puzzles only, at the cost of losing four
-    mechanics entirely.
+    This is a floor, not the only door. Campaign puzzles are also drawn by the
+    campaign weight above - and before that option existed this setting really
+    was the only way in, which left 57 of the 69 unreachable.
     """
     display_name = "Mechanic Coverage"
     range_start = 0
@@ -154,7 +172,7 @@ class GuaranteedOpenSlots(Range):
 class LevelsToBeat(Range):
     """How many puzzles to beat before the credits unlock.
 
-    A puzzle counts once you have solved it any one way. Skipped puzzles do not
+    A puzzle counts once you have solved it any one way, or skipped it. Skips do
     count. Clamped to the puzzle count.
     """
     display_name = "Puzzles To Beat"
@@ -199,8 +217,15 @@ class HintCoverage(Range):
 class SkipCount(Range):
     """How many Skip items are shuffled in.
 
-    A Skip clears a puzzle you are stuck on. Skipped puzzles do not count
-    towards the credits requirement.
+    A Skip clears a puzzle you are stuck on outright: every solution, every
+    controller group and the "beaten" credit are all sent, so a skipped puzzle
+    is finished and its card completes.
+
+    Skipped puzzles DO count towards the credits requirement, so a large number
+    of Skips is a shortcut to the goal. That is the trade for a skipped card
+    being able to complete at all - withholding the credit left the card one
+    location short for the rest of the run. Lower this if the shortcut bothers
+    you.
     """
     display_name = "Skips"
     range_start = 0
@@ -214,6 +239,7 @@ class ALTTLOptions(PerGameCommonOptions):
     pack_size: PackSize
     generator_weight: GeneratorWeight
     archive_weight: ArchiveWeight
+    base_weight: BaseWeight
     mechanic_coverage: MechanicCoverage
     generator_repeat_limit: GeneratorRepeatLimit
     archive_packs: ArchivePacks
@@ -235,6 +261,7 @@ option_groups = [
     OptionGroup("What Goes In The Run", [
         GeneratorWeight,
         ArchiveWeight,
+        BaseWeight,
         MechanicCoverage,
         GeneratorRepeatLimit,
         ArchivePacks,

@@ -31,9 +31,21 @@ class TestDefaults(bases.ALTTLTestBase):
     def test_the_run_is_the_full_length(self):
         world = self.multiworld.worlds[self.player]
         self.assertEqual(79, len(world.plan))
-        # 14, not 79/4: packs widen as the run goes on, so the default run is
-        # covered by fewer of them. See items.pack_boundaries.
-        self.assertEqual(14, world.pack_total)
+        # 13, not 79/4 and no longer 14. Packs are UNIFORM now - the ramp that
+        # widened them as the run went on is gone, because a pack that varies
+        # is not the guarantee a pack is supposed to be. The size grows instead
+        # when the cap demands it: 4 open free, then thirteen packs of 6 with a
+        # short last one. See items.pack_boundaries.
+        self.assertEqual(13, world.pack_total)
+
+        # And uniform means uniform: every pack the same but the remainder.
+        from .. import items
+        bounds = items.pack_boundaries(79, 4)
+        sizes = [bounds[i] - bounds[i - 1] for i in range(1, len(bounds))]
+        self.assertEqual(1, len(set(sizes[:-1])),
+                         f"packs are not uniform: {sizes}")
+        self.assertLessEqual(sizes[-1], sizes[0],
+                             f"the last pack is not a remainder: {sizes}")
 
     def test_every_ability_in_the_pool_gates_something(self):
         world = self.multiworld.worlds[self.player]
@@ -54,15 +66,27 @@ class TestDefaults(bases.ALTTLTestBase):
                     ability, held,
                     f"{slot.level.level_id} needs {ability}, not in the pool")
 
-    def test_base_levels_only_appear_to_supply_a_mechanic(self):
-        """The whole point of the two-pass draw."""
+    def test_the_campaign_is_actually_reachable(self):
+        """The defaults must be able to draw an ordinary campaign puzzle.
+
+        THIS TEST REPLACES ITS OWN OPPOSITE. It used to assert that a base
+        level appears ONLY when it supplies a gap ability, which was true and
+        was the documented design - and the consequence, uncounted for months,
+        was that 57 of the 69 campaign puzzles could never be drawn at all.
+        Pass 2 fills by source, base was not a source, so the mechanic-coverage
+        reserve was the only door and it only ever opens for four abilities.
+
+        Now base_weight defaults to 10 and this asserts the opposite: at least
+        one campaign puzzle that serves no gap ability is in a default run.
+        """
         world = self.multiworld.worlds[self.player]
         gaps = set(data.GAP_ABILITIES)
-        for slot in world.plan:
-            if slot.level.source == "base":
-                self.assertTrue(
-                    slot.level.abilities & gaps,
-                    f"{slot.level.level_id} is base and serves no gap ability")
+        ordinary = [s.level.level_id for s in world.plan
+                    if s.level.source == "base" and not (s.level.abilities & gaps)]
+        self.assertTrue(
+            ordinary,
+            "no campaign puzzle outside the gap abilities was drawn; "
+            "base_weight may have stopped reaching pass 2")
 
     def test_no_one_shot_level_repeats(self):
         world = self.multiworld.worlds[self.player]
@@ -88,6 +112,73 @@ class TestDefaults(bases.ALTTLTestBase):
                 self.assertGreater(slot.seed, 0, slot.level.level_id)
             else:
                 self.assertEqual(-1, slot.seed, slot.level.level_id)
+
+    def test_repeated_generators_get_different_seeds(self):
+        """Two instances of one generator must be two different puzzles.
+
+        A shared seed would build the same layout twice, which is the one thing
+        a repeat is not supposed to be. Drawn without replacement per level in
+        slots.draw, so this is a guarantee rather than a probability.
+
+        Note this is NOT the bug that produced identical envelope levels in the
+        0.3.0 playtest: there the generation was fine and the MOD dropped the
+        baked seed at launch, falling back to the generator's stock layout.
+        Pinning it here keeps the two halves from being confused again.
+        """
+        world = self.multiworld.worlds[self.player]
+        by_level = {}
+        for slot in world.plan:
+            if not slot.level.repeatable:
+                continue
+            by_level.setdefault(slot.level.level_id, []).append(slot.seed)
+
+        for level_id, seeds in by_level.items():
+            self.assertEqual(len(seeds), len(set(seeds)),
+                             "%s reused a seed across instances: %r"
+                             % (level_id, seeds))
+
+    def test_a_drawer_cannot_be_emptied_before_it_opens(self):
+        """Contents of a drawer must inherit the drawer's ability.
+
+        The 0.3.0 logic said Tool Drawer's 47 draggables needed no items at all,
+        while the game disabled the DrawerController until Furniture arrived -
+        so the card read as playable and the drawer would not open. The sweep
+        had recorded dependsOn: [] on every controller.
+
+        Asserted on the derived requirements rather than on levels.json, because
+        the edge only matters once it has propagated through names.json into the
+        part locations. If this fails with the JSON already fixed, names.json
+        needs regenerating: ALTTL_WRITE_GOLDEN=1 dotnet test.
+        """
+        # The groups whose objects live IN the drawer. Deliberately not every
+        # group in these levels: the chalk jigsaws in Paper Plane Supplies are
+        # assembled on the desk, so requiring Furniture for them would mark a
+        # card blocked when it is playable. A missing edge makes a seed
+        # unwinnable and a spurious one only makes a card look busier, so the
+        # ambiguous cases are listed rather than swept in.
+        contents = {
+            ("NeatStreak_Tool Drawer", "Draggables"),
+            ("NeatStreak_Tool Drawer", "Containables"),
+            ("NeatStreak_Bathroom Drawer", "Draggables"),
+            ("NeatStreak_Bathroom Drawer", "Bottle"),
+            ("NeatStreak_Bathroom Drawer", "Indexable"),
+            ("NeatStreak_Paper Plane Supplies", "Draggables"),
+            ("NeatStreak_Paper Plane Supplies", "Containables"),
+            ("Workbench", "Draggables For Targets"),
+        }
+
+        seen = set()
+        for level in data.LEVELS:
+            for part, abilities in level.part_abilities.items():
+                if (level.level_id, part) not in contents:
+                    continue
+                seen.add((level.level_id, part))
+                self.assertIn("Furniture", abilities,
+                              "%s / %s can be done without opening the drawer"
+                              % (level.level_id, part))
+
+        self.assertEqual(contents, seen,
+                         "a drawer-contents group is missing from the table")
 
     def test_slot_data_matches_the_rules(self):
         """The contract: the mod's marker cannot disagree with the generator,
@@ -128,7 +219,10 @@ class TestNoArchive(bases.ALTTLTestBase):
 class TestGeneratorsOnly(bases.ALTTLTestBase):
     """The thinnest legal run: no archive, no mechanic coverage."""
 
-    options = {"mechanic_coverage": 0, "archive_weight": 0, "archive_packs": []}
+    # base_weight too, or the name stops being true - the campaign became a
+    # rollable source in 2026-09-09 and this run is meant to have exactly one.
+    options = {"mechanic_coverage": 0, "archive_weight": 0, "base_weight": 0,
+               "archive_packs": []}
 
     def test_pool_is_zero_sum(self):
         self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
@@ -145,9 +239,14 @@ class TestGeneratorsOnly(bases.ALTTLTestBase):
 
 
 class TestBothSourceWeightsZero(bases.ALTTLTestBase):
-    """A yaml that asks for nothing must still generate."""
+    """A yaml that asks for nothing must still generate.
 
-    options = {"generator_weight": 0, "archive_weight": 0}
+    All THREE weights, since the campaign became a source. With only two
+    zeroed this stopped exercising the fallback it was written for and quietly
+    became an ordinary base-weighted run.
+    """
+
+    options = {"generator_weight": 0, "archive_weight": 0, "base_weight": 0}
 
     def test_pool_is_zero_sum(self):
         self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))

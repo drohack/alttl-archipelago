@@ -19,7 +19,7 @@ A Little to the Left:
   # ---- Goal -----------------------------------------------------------
 
   # Puzzles to beat before the credits unlock. A puzzle counts once solved
-  # any one way; skipped puzzles do not count. Clamped to puzzle_count.
+  # any one way, or skipped it. Clamped to puzzle_count.
   levels_to_beat: 40
 
   # How many puzzles the run contains. The full game is 79, laid out over
@@ -36,17 +36,23 @@ A Little to the Left:
 
   # How strongly to favour procedurally generated puzzles - the sixteen that
   # build a fresh layout from a seed, so they are new even if you have
-  # finished the game. Weighed against archive_weight. 0 to 100.
-  generator_weight: 70
+  # finished the game. Weighed against archive_weight and base_weight.
+  # 0 to 100.
+  generator_weight: 80
 
   # How strongly to favour the seasonal event puzzles. Most players have
   # never seen them, and they are the richest levels for checks. 0 to 100.
-  archive_weight: 30
+  archive_weight: 10
+
+  # How strongly to favour the 69 main-campaign puzzles. This is the largest
+  # pool of one-shot levels in the game, so it is what stops a long run
+  # repeating the same generator. Set it to 0 and the campaign is invisible
+  # except where mechanic_coverage drags a level in. 0 to 100.
+  base_weight: 10
 
   # Puzzles guaranteed for each mechanic no generator can make - stacking,
-  # containers, drawers and jigsaws. Base-game puzzles enter the run ONLY
-  # through this setting; 0 means generated and event puzzles only, at the
-  # cost of losing those four mechanics entirely. 0 to 6.
+  # containers, drawers and jigsaws. A floor, not the only way campaign
+  # puzzles get in - see base_weight above. 0 to 6.
   mechanic_coverage: 3
 
   # Most times any one generated puzzle may appear. 0 uses the maximum.
@@ -82,7 +88,7 @@ A Little to the Left:
   # ---- Items -----------------------------------------------------------
 
   # How many Skip items are shuffled in. A Skip clears a puzzle you are
-  # stuck on; skipped puzzles do not count towards the credits. 0 to 20.
+  # stuck on. A skip finishes it, and DOES count towards the credits. 0 to 20.
   skip_count: 5
 
   # Percentage of this seed's hint pages that get a Hint Page item. A

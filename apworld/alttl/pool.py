@@ -64,10 +64,16 @@ def decide(world) -> None:
     source_weights = {
         "generator": o.generator_weight.value,
         "archive": o.archive_weight.value,
+        # The campaign. Absent from this dict until 2026-09-09, which meant 57
+        # of the 69 campaign puzzles could never be drawn at all: pass 2 fills
+        # by source, so a source with no weight is a source that never appears,
+        # and the only other door was the mechanic-coverage reserve in pass 1.
+        "base": o.base_weight.value,
     }
     if not any(source_weights.values()):
-        # Both zeroed. Generators are the only source that can always supply a
-        # slot, so fall back to them rather than failing.
+        # ALL of them zeroed. Generators are the only source that can always
+        # supply a slot - they repeat, the other two are one-shot - so fall
+        # back to them rather than failing.
         source_weights = {"generator": 1}
 
     world.plan = slots.draw(
