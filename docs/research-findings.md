@@ -230,7 +230,65 @@ one):
 | Set-piece / bespoke | 4 | 6 | `RecordPlayer`, `HourglassController`, `ComputerErrorsController`, ... |
 
 Raw data: [docs/data/controller-survey.tsv](data/controller-survey.tsv) and
-[docs/data/level-table.json](data/level-table.json).
+[docs/data/level-table.json](data/level-table.json). Both are PREFAB walks and
+describe what a level was authored to contain, which is not the same as what it
+does at runtime - see the classification below before drawing a conclusion from
+either.
+
+### Which controllers are real, and which are gated - the classification
+
+The table above says what exists. It does not say whether a controller ever
+registers, or whether the player can reach it. Those questions were answered
+one playtest bug at a time until 2026-09-09, when it turned out **the game
+declares the answers** and nothing here had read them.
+
+`tools/classify-controllers.py` writes one row per controller to
+[docs/data/controller-classes.tsv](data/controller-classes.tsv), classified as:
+
+| Class | Count | Meaning |
+|---|---:|---|
+| `always-on` | 167 | registers at boot, nothing gates it |
+| `phase-revealed` | 20 | named in the level's declared phase list |
+| `non-puzzle` | 13 | `Pannables` and friends, filtered before grouping |
+| `gated` | 12 | carries a `dependsOn` edge |
+| `mutual` | 8 | engine-declared bidirectional pair; merges into one group |
+| `ghost` | 3 | in the prefab, in no phase list, never registers |
+| `phase-driver` | 1 | advances phases; not a puzzle group |
+| `seed-varying` | 1 | present in only some generator seeds |
+
+**Mini solutions - exactly three levels declare phases**, and the declaration
+gives the order:
+
+| Level | Class | Order |
+|---|---|---|
+| PawPrints | `PawPrintsPhaseLevel` | Clearables 01 -> 02 -> 03 |
+| TupperwareNesting | `TupperwareNestingLevel` | Stack 1 -> Stack 2 -> Tray -> Stack 3 -> Layout (Grid) -> Food |
+| Radial Dance Party | `RadialDanceParty` | Radial Pencils 0 ... Radial Chess 9 (10 phases) |
+
+Read from `PhasedLevel.phases`, `TupperwareNesting.GetPhaseControllers()` and
+`RadialDanceParty.dances`. A controller that is in the prefab, absent at boot,
+and named in no phase list is therefore a ghost by deduction rather than by
+judgement - which is what shrank the ghost list to three.
+
+**Ability dependencies** come in four shapes, 51 edges across 13 levels:
+
+- **mutual** - two controllers naming each other, merged into one group
+  (Chess Shadows, Spice Jars, Egg Cups, and the Tupperware grid pair)
+- **containment** - contents of a closed drawer, which need `Furniture` on top
+  of their own ability (the three NeatStreak drawer levels)
+- **assembly** - a group that arranges what other groups build, so it needs
+  their ability first (Candy Canes' `Ordered` over five jigsaw pairs, Paper
+  Plane Supplies' chalk)
+- **phase** - a group late in a declared chain needs everything earlier in it
+
+Only the 16 levels with more than one group and two or more differing abilities
+can have a dependency that changes logic; 78 levels have 0-1 groups and cannot.
+
+**`Books (Randomized)` is seed-varying**, and the reason is in the code rather
+than in a sample: `Books_LevelRandomizer` holds the controller in a field named
+`DraggablesForSymmetricSolutions`, and two of the seven solution types are
+symmetric. It appears when one is rolled. Every other generator's controller
+fields are unconditional.
 
 This is the taxonomy to hang "group puzzles by type and those are the unlock"
 on - it is real authored structure, not a hand-made guess. Note the long tail:

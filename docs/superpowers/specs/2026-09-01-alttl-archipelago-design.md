@@ -82,14 +82,23 @@ way to have them in the run. The draw picks levels covering each of those
 random so it varies between seeds. It is cheap because these levels overlap:
 NeatStreak_Paper Plane Supplies alone covers Containers, Furniture and Jigsaw.
 
-**Pass 2 - fill the rest by source**, generator 70 / archive 30. Generators
-repeat with a fresh seed each time, preferring the least-used one so no single
-puzzle type dominates; archive draws without replacement.
+**Pass 2 - fill the rest by source**, generator 80 / archive 10 / base 10.
+Generators repeat with a fresh seed each time, preferring the least-used one so
+no single puzzle type dominates; archive and campaign draw without replacement.
 
-**Base-campaign levels are not a rollable source.** They enter *only* through
-pass 1, and only when they are the sole way to supply a mechanic. That is the
-whole point: a base level in the run is there because it brings something no
-generator can, never because a percentage said so.
+> **SUPERSEDED 2026-09-09.** This section used to read: "Base-campaign levels
+> are not a rollable source. They enter only through pass 1, and only when they
+> are the sole way to supply a mechanic... never because a percentage said so."
+>
+> That was a deliberate design position with a consequence nobody had counted.
+> Because pass 2 fills by source and base was not one, a campaign level could
+> appear only if it taught one of the four gap abilities. Twelve qualify.
+> **The other 57 could never be drawn at all** - most of the game was dead
+> content. It came to light trying to playtest Radial Dance Party: eighteen
+> rolls failed to place it, and no scoring weight could have helped.
+>
+> `base_weight` makes the campaign a rollable source, defaulting to 10.
+> Setting it to 0 restores exactly the behaviour described above.
 
 Measured over 10 seeds at 79 slots, `mechanic_coverage: 3`:
 
@@ -118,9 +127,15 @@ dragged 20-28 base levels in, of which 12-15 served no mechanic a generator
 could not. Both problems come from the same place: equal shares ignore how
 much variety a source can actually supply.
 
-A **flat 10% base weight** was the original design and was also wrong, for the
-reason above: of 9-12 base levels only 3 served a gap ability, and those 3
-were the same 3 every seed because the greedy reserve was deterministic.
+A **flat 10% base weight** was the original design and was rejected for the
+reason above: of 9-12 base levels only 3 served a gap ability, and those 3 were
+the same 3 every seed because the greedy reserve was deterministic.
+
+> **Half of that reason was a bug, and it has been fixed.** The "same 3 every
+> seed" came from the reserve having no random tie-break, which pass 1 has had
+> since. The other half - that a flat weight brings in campaign levels which do
+> not serve a gap - is simply what a base weight does, and as of 2026-09-09
+> that is the point rather than the objection. The 10% is back, deliberately.
 
 ### Ability presence
 
@@ -385,9 +400,10 @@ A Little to the Left:
   puzzle_count: 79              # slots on the track (excludes chapter markers + credits)
   pack_size: 4                  # slots per pack at the start; packs widen later
 
-  source_weights:               # pass 2 only. Base is deliberately absent:
-    generator: 70               # it enters through mechanic coverage alone.
-    archive: 30
+  source_weights:               # pass 2. All three sources are rollable;
+    generator: 80               # base was added 2026-09-09, before which 57
+    archive: 10                 # of the 69 campaign levels were unreachable.
+    base: 10
 
   mechanic_coverage: 3          # levels guaranteed per generator-less ability
                                 # (Stacking, Containers, Furniture, Jigsaw).

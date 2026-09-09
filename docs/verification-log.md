@@ -14,6 +14,401 @@ Game build 24060652, version 3.6.1. Probe commands used are in
 
 ---
 
+## 2026-09-09 - the phase audit, and the campaign nobody could reach
+
+Three playtests in a row had hit the same shape of bug - a card offering work
+the level would not give - and each was patched by hand from the report.
+droha called it: "I really need you to go through every single puzzle type,
+every iteration, figure out which puzzles have dependencies on abilities, and
+which ones have mini solutions. Double check all of your current work."
+
+### The game declares all of it
+
+A metadata read of Assembly-CSharp found authored, ordered, DIRECTED data for
+the three things that had been inferred:
+
+| Question | The game's answer |
+|---|---|
+| Which levels are phased | `PhasedLevel.phases`, each naming its `PhaseController` |
+| TupperwareNesting's order | `TupperwareNesting.GetPhaseControllers()` |
+| Radial Dance Party's order | `RadialDanceParty.dances` / `RadialDance.nextDance` |
+| What a drawer gates | `Drawer.UnlockOnSolvedControllers` (with a solution id) |
+| Assemble-before-arrange | `LevelObject.dependenciesPlacedFirst` |
+
+The levelsweep now records `levelClass`, `phases`, `drawers`, per-controller
+`objectIds` and `objectsGatedFirst`. **Exactly three levels in the game declare
+phases**: PawPrints (3), TupperwareNesting (6), Radial Dance Party (10). That
+is the complete answer to "which puzzles have mini solutions", measured.
+
+### Three of my own conclusions were wrong
+
+- **The TupperwareNesting phase order.** Guessed as "every later group depends
+  on Lids and Stack 1", the two that register at boot. The game declares a
+  CHAIN that does not involve Lids at all: Stack 1 -> Stack 2 -> Tray ->
+  Stack 3 -> Layout (Grid) -> Food. The guess invented a Containers
+  requirement on three groups and pushed a fourth to needing three abilities.
+- **`Food` is not a ghost.** Written off because it never appeared in play; it
+  is the sixth and last phase. The run never got that far.
+- **Radial Dance Party's ten rings are real.** Registering nothing at boot had
+  been read as "no puzzle content" for weeks, and the level was excused from
+  the every-level-has-a-controller test on that basis.
+
+Eleven locations restored: Radial's ten and Tupperware's Food. 427 -> 438.
+
+### Shared objects were locked by whichever controller ran last
+
+Recording managed-object instance ids exposed a second, unrelated bug. The
+ability pass walked controllers in order and wrote each one's objects, so where
+two groups own the SAME objects a locked group re-locked what an unlocked one
+had freed. Five levels: Coins 1 (Shape) 6 shared, Spoons 7, Books 3 17,
+TrickOrTidy_ChocolateBars 9, Workbench 21.
+
+This is what droha actually hit on Coins - "nothing I can do in the level" -
+and it is NOT the dependency bug that produced the identical symptom on Candy
+Canes. An object is now locked only if every owner is locked. Verified in game:
+with Swapping locked, Books 3's seventeen books stay full-colour and movable.
+
+### 57 of 69 campaign levels could never appear
+
+`slots.py` fills by source and `source_weights` held only generator and
+archive, so a campaign level entered only through the mechanic-coverage
+reserve, which opens for four abilities. Twelve qualified; the rest were dead
+content. Found by trying to playtest Radial Dance Party: eighteen rolls could
+not place it, and no scoring weight could have.
+
+`base_weight` added, defaults now 80/10/10. Measured over 5 seeds at 79 slots:
+60.2 generator / 10.0 archive / 8.8 base, of which 4.8 are ordinary campaign
+puzzles that previously could not appear; 28 distinct campaign levels against
+7. Proven reachable at 95% campaign weight: all 69 drawn every seed.
+
+### Two process traps
+
+- **Renaming a plugin folder does not disable it.** BepInEx loads any DLL under
+  `plugins/`, so `_ALTTLArchipelago.off` loaded as normal. A sweep run that way
+  came back with all 36 daily flags false - contamination produced by following
+  the very warning meant to prevent it. `check-game-facts.py` now says to move
+  the folder out of the tree and to check for zero mod lines in the log.
+- **RETRACTED: "`Level.RegisterObjectController` is not the funnel".** The patch
+  that "recorded zero events across 111 levels" was never applied. DevTools
+  registers Harmony classes one at a time with `PatchAll(Type)`, and
+  `RegistrationLog` was not on the list - so the silence was the patch missing,
+  not the method going uncalled. Found on 2026-09-09 when a second tracer class
+  was equally silent for the same reason. Which method is the real funnel is
+  once again unknown, and the tracer now actually runs.
+
+### A suspected bug that was not one
+
+Vanilla creates a completion row whenever a level is beaten - "finish N, create
+N+1" - and `ApplyUnlocks` skips rows it did not create, so those keep
+`unlockedOnLevelSelect` false. That looked like the replayed-unlock-animation
+bug returning once campaign levels became common.
+
+Measured instead: reading the save either side of opening the level select
+shows the flags unchanged, 8 true and 1 false both times. Nothing clears or
+re-sets them, and a replay needs a re-set. A vanilla row also cannot make a
+locked card playable - `IsRefused` gates on the run's pack state and never
+reads the save. **No change made.** Recorded because the reasoning nearly
+produced one, and because the comment in Track.cs that prompted it - "the track
+plays its unlock animation and then CLEARS it" - is wrong and has been
+corrected.
+
+### Two background items became one, and it reaches the level select
+
+droha: "I think we can change the name of the menu background item to just
+Background Change Trap (as there's sometimes it can hide items which is still
+funny)", then "and it should change the level select menu background as well".
+Asked which of the two to rename, droha chose both, merged.
+
+`Level Background` and `Menu Background` were separate items with separate
+counters doing the same job on different screens, which meant the pause screen
+was routinely several palette entries behind the puzzle behind it. They are now
+one item, `Background Change Trap`, and one counter, and it paints three
+surfaces:
+
+| surface | where | colour |
+|---|---|---|
+| the puzzle backdrop | `Backgrounds.ForLevel`, held per frame against the camera | game palette, `Legible` steps past a colour the pieces would vanish into |
+| the pause screen | `Navigation.TintMenuBackground` | game palette, same index |
+| the level select track | `Track.SectionColour(section + count)` | the six chapter colours, ROTATED by the count |
+
+The level select is the new one, and it rotates rather than flooding: sections
+exist to be told apart, so painting them all one colour would cost more than
+the trap gains. `Track.RepaintSections` re-runs `SetupSections` and
+`SetSectionBackgroundColor` when the count moves - deliberately NOT `Rebuild`,
+which re-lays-out the track and would yank the scroll away from whatever card
+the player was looking at for the sake of a colour.
+
+Every index is still a function of the received COUNT, never stepped on
+arrival. That is the rule the original two items were built on and it survives
+the merge intact: Archipelago replays the whole item list on every connect, so
+anything that advanced per arrival would put the player on a different colour
+every login.
+
+**The measured filler table above, dated to when it was taken, still lists the
+two old rows.** It is left as measured; the shares it records now belong to one
+item rather than two.
+
+Caught by the compiler rather than by review: `Inventory.Backgrounds` shadowed
+the `Backgrounds` CLASS inside `Inventory.cs`, so `Backgrounds.ApplyToLevel()`
+stopped resolving. The counter is `Inventory.BackgroundTraps` now, which says
+what it counts.
+
+**This changes item ids and invalidates seeds in flight** - one fewer name in
+the table, and `Hint Page` sits after the filler list, so its id moved from
+4050018 to 4050017. `items.py` already carried the warning that shortening
+FILLER_ITEMS does exactly this. No version bump: 0.3.1 is unreleased, so the
+shift is contained inside a version nobody has generated against.
+
+**Verified in the running game**, not from the build. A probe connected to a
+real seed, opened the level select, read the seven section colours, cheat-sent
+one `Background Change Trap` and read them again:
+
+    before  Opening 59546b  Pack1 3d5c57  Pack2 66524d  Pack3 4d4f66  ...
+    after   Opening 3d5c57  Pack1 66524d  Pack2 4d4f66  Pack3 42574d  ...
+
+Every section moved exactly one place along the palette and Pack 6 wrapped back
+to the Opening's old colour, which is the six-entry cycle behaving. Section
+titles, counts and track starts unchanged; no scroll armed; no exceptions.
+
+Two things this caught that a build could not:
+
+- `AfterSetupSections` arms the opening scroll unconditionally, so the recolour
+  would have thrown the player off whatever card they were looking at - the
+  exact yank RepaintSections exists to avoid. Guarded with `_recolouring`.
+- The new `sections` dump printed `bg=<err:IndexOutOfRangeException>` on all
+  seven rows. **`ColorUtility.ToHtmlStringRGB` again**, the same interop trap
+  already written up in `Backgrounds.Palette` a fortnight earlier, and it reads
+  as the section lookup failing rather than the formatter. DevTools formats the
+  hex by hand now.
+
+---
+
+## 2026-09-08 - the controller table under-records phased levels
+
+### RETRACTION: "Radial Dance Party has 0 controllers and TupperwareNesting 2"
+
+Two entries below say this, and both are wrong. They are left in place rather
+than edited away, because how the wrong answer was reached is the useful part.
+
+While playtesting the 40-puzzle 0.3.1 seed droha reached `TupperwareNesting`,
+solved several groups and got no checks for them. The mod said why:
+
+    CONTROLLER MISMATCH on TupperwareNesting: 7 registered, 2 in the table,
+    not recognised: Stack 2, Tray, Stack 3, Draggables (Large Square),
+    Layout (Grid)
+
+Seven controllers registered where the table records two. The prefab survey
+had said nine all along.
+
+**Why the earlier measurements agreed with each other and were both wrong.**
+The first claim (13 and 9) came from the prefab. It was "refuted" by booting
+each level with the sweep's own flags and waiting 25 seconds, which gave 0 and
+2 - so 0 and 2 were written down as the true registered counts. But booting a
+level and waiting IS what the sweep does. The re-measurement was the same
+measurement, and its agreement was mistaken for confirmation.
+
+These levels reveal controllers as the player SOLVES the previous group. No
+delay reveals anything: 20 frames and 25 seconds observe the identical state.
+Only play, or the prefab, can see the rest.
+
+### Scope, measured across all 111 levels
+
+The table is a strict subset of the survey everywhere - it never has a
+controller the survey lacks. Six levels are short, 24 controllers in total
+(**all but three resolved on 2026-09-09** - see the entry above):
+
+| Level | table | survey | missing |
+|---|---:|---:|---:|
+| Radial Dance Party | 0 | 13 | 13 |
+| TupperwareNesting | 2 | 9 | 7 |
+| Record Player | 1 | 3 | 2 |
+| MedicineCabinet | 13 | 14 | 1 |
+| Desktop Computer | 7 | 8 | 1 |
+| Books (Randomized) | 1 | 2 | 1 |
+
+### Two separate problems, and only one of them was worth breaking seeds over
+
+- **Lost part locations.** Those 24 controllers mint no checks. Annoying, and
+  it strands a level card on a green/red split, but nothing becomes
+  unwinnable.
+- **Lost ABILITY requirements.** A level whose hidden phase needs Grids, and
+  whose table never saw the grid controller, is a level the generator believes
+  is finishable without Grids - so it will happily put progression behind it.
+  That is a seed that cannot be completed.
+
+Only the second can lock a player out, and the two have very different costs
+to fix. Location ids are positional, so ADDING controllers shifts every id
+after the first changed level - measured at ~91% of the table, which breaks
+every seed in flight. Recording an ABILITY changes only logic gating and moves
+no ids at all.
+
+So the ability half was fixed now and the location half deliberately was not.
+
+### The fix: extraAbilities, on exactly four levels
+
+`LevelInfo.ExtraAbilities` records an ability a level needs that its registered
+controllers do not reveal. Classifying every survey controller into its ability
+and differencing against the table found four levels short:
+
+| Level | ability added |
+|---|---|
+| TupperwareNesting | Grids |
+| Record Player | Gadgets |
+| Radial Dance Party | Rotating |
+| MedicineCabinet | Furniture |
+
+The scan now reports zero levels under-recording an ability.
+
+**Requirements and coverage had to be split.** The first attempt fed
+`extraAbilities` into the single `AbilitiesForLevel` accessor and broke the
+mechanic-coverage tests - it made MedicineCabinet count as a place to LEARN
+Furniture. It is not: a phase-only controller is unreachable until the player
+already has the ability, so guaranteeing coverage through it would guarantee
+nothing. `ControllerGroups` now has two accessors, `AbilitiesForLevel` for what
+a level requires and `AbilitiesTaughtBy` for what it can teach, and
+`MechanicCoverage` uses the second.
+
+**MedicineCabinet is the interesting one.** Its `Cupboard` is a documented
+prefab GHOST that never registers, so it must never be given a location - but
+the ability entry is still correct, because requiring one ability too many can
+only make logic more conservative. Requirements can be safe where locations
+cannot.
+
+### Three tripwires, so this cannot come back quietly
+
+- **`SurveyCrossCheckTests`** (new) pins the six known table-vs-survey
+  disagreements controller by controller, and separately asserts that no level
+  can need an ability it does not declare. Verified by stripping
+  `extraAbilities` from the table and watching it fail.
+- **The e2e now fails on an unexplained audit complaint.** `CONTROLLER
+  MISMATCH` and `UNEARNABLE LOCATIONS` were warnings, and the census only
+  counts errors, so a run could go green with the table wrong - which is how
+  six levels survived every previous release gate. `table_audit()` allows the
+  six known levels and fails on any other.
+- **`Checks.TickAudit` re-audits as a level grows.** It latched after the first
+  successful pass, so on a phased level it looked exactly once, before anything
+  had been revealed. `_audited` is now `_auditedCount`.
+
+`DataTable.cs` now states plainly that the sweep is lossy on phased levels and
+that the prefab survey is the authority for what a level contains.
+
+### Still open
+
+The 24 part locations. Restoring them needs runtime evidence per controller -
+the survey cannot distinguish a phased controller from a ghost, and restoring
+a ghost mints a location nobody can ever check, which is the same defect in
+reverse. It also shifts ~91% of location ids, so it is a breaking change that
+should ride with a version bump rather than a patch.
+
+---
+
+## 2026-09-07 - the 0.3.1 playtest fixes
+
+droha played 0.3.0 to 79 puzzles on another machine and reported 13 bugs and 3
+improvements. The BepInEx log survived, and it is the reason most of what
+follows is measured rather than argued.
+
+### Three reports, one defect - CONFIRMED FROM THE LOG
+
+    track: ignoring a pending slot 22 set 9 frames ago
+    track: ignoring a pending slot 39 set 8 frames ago
+
+Both lines sit between `received item: Cat Trap` and `trap: 1 cat(s) reset the
+puzzle`. `Navigation.AfterGetNextLevelIndex` is a postfix on
+`GetNextLevelIndex`, which the game also calls while building the post-level
+UI, so finishing a puzzle armed a slot speculatively; `BeforeStartLevel` then
+cleared the arm BEFORE testing its age, so the trap's restart consumed it and
+rebuilt with `randomSeed = -1` - the generator's stock layout.
+
+That one defect produced the duplicate "envelope" levels, the single-colour
+soft lock, and a Cat Trap silently swapping the puzzle mid-solve. The third was
+never reported; only the log shows it.
+
+Replaced by `Track.ResolveSlotFor`, which accepts an arm on either of two
+independent proofs - the level index matching, or the arm being fresh. Two
+proofs rather than one because the index route rests on
+`ActiveLevelInterface` already pointing at the new level when a click reaches
+`StartLevel`, which the surrounding code implies but nothing measured.
+
+### The mod was writing to the player's real Daily Tidy save
+
+Not reported, and worse than what was. Six of the levels a seed can draw are
+the game's daily generators, and completing one routed into
+`DailyTidy_GameState`, which runs the return-from-daily sequence: completion
+count, streak, badge award. `SaveRedirect` scopes level data, not the profile's
+daily counters. `DailyGuard` now answers false to
+`LevelInterface.ReactToDailyCompleting` while a run is active.
+
+### The connection pane broke every other modal in the game
+
+`ConnectionPane` borrows `gm.menuManager.modalWindow` - a SINGLETON - and
+replaced its confirm button's whole `ButtonClickedEvent`, destroyed its
+`LocalizeStringEvent` and overwrote its caption, restoring none of it. After
+one visit to the pane, any later dialog's Confirm ran `OnConfirm`. Now recorded
+and undone on close.
+
+### The campaign-save check was a once-per-day false positive - CONTROLLED
+
+The first e2e run reported 14/15: "the campaign save is byte-identical" FAILED.
+It was not a regression. Decoding the save (UTF-8 BOM, every codepoint shifted
+up by 11) and diffing it showed `levelCompletionData` **identical**, with only
+`saveTimestamp` and `dailyTidyProgress` moved - the latter having gained one
+history entry per calendar day since the last write (09-03 to 09-07). The game
+rolls its daily calendar at LAUNCH, before a session exists and therefore
+before the redirect is armed; vanilla does it with or without the mod.
+`CompleteCount` was 0 in both, and the 09-07 entry read
+`opened: False, complete: False`, so nothing had credited a daily.
+
+Predicted that a second run the same day would pass, because 09-07 was now
+already in the history. It did: **15/15**. So the check was green except on the
+first run after midnight - the pattern that teaches people to ignore a red
+result.
+
+Rewritten to compare campaign progress with `saveTimestamp` and
+`dailyTidyProgress` excluded, plus a separate check that the daily
+`CompleteCount` did not move - that one IS ours to protect. Four negative
+controls, because green alone is not evidence here and this project has already
+shipped one check that would have passed forever:
+
+| Control | Result |
+|---|---|
+| round trip is stable | PASS |
+| a new day does not trip it | PASS |
+| a leak into `levelCompletionData` trips it | PASS |
+| a credited daily trips the count check (0 -> 1) | PASS |
+
+### What the suites said
+
+| Gate | Result |
+|---|---|
+| Mod build, Release | 0 warnings, 0 errors |
+| Core tests | 224 pass |
+| apworld tests | 98 pass (96 + 2 new) |
+| Fill stress, 25 seeds (5x default) | pass |
+| Version consistency | 0.3.1 across 3 files |
+| ASCII | clean |
+| Release e2e, in game | 8/8 puzzles, 0 solve exceptions, no stale-slot warning |
+
+### The invariant the drawer fix broke, and why it was widened rather than dropped
+
+`test_no_group_needs_more_than_one_ability` asserted no controller group needs
+two abilities. The eight new `dependsOn` edges create four that do - a bottle
+inside a container inside a closed drawer genuinely needs `Containers` and
+`Furniture`. Relaxing the bound to "no more than two" would have stopped it
+catching what it exists to catch, so it now pins the exact set of four and
+fails in either direction, including an edge being lost.
+
+Checked first that nothing depended on the old bound: `items.py` has no
+max-one assumption and `rules.py` uses `HasAll`. Then widened the fill sweep to
+25 seeds as evidence rather than trusting that reading.
+
+Also: the drawer test written alongside the fix was wrong - it asserted every
+group in Paper Plane Supplies needs `Furniture`, but the chalk jigsaws were
+deliberately excluded (assembled on the desk, not stored in the drawer). The
+test was corrected to match the implementation, not the other way round.
+
+---
+
 ## 2026-09-01
 
 ### S4 - how common are controller dependencies? PASS
@@ -23,6 +418,15 @@ Folded into the solution survey as a `dependsOn` column
 
 **Only 9 of 380 controllers have any dependency, across 5 levels** - and most
 are *mutual* pairs, which is more interesting than a dependency chain:
+
+> **SUPERSEDED 2026-09-09.** True of the PREFAB survey, which is what this
+> section measured, and misleading about the shipped table. Dependencies are
+> wired at registration rather than serialised on the prefab, so the runtime
+> sweep sees more than the prefab walk does; and containment, assembly and
+> phase edges have since been authored on top. The table now carries **51
+> edges across 13 levels**. The same wrong figure was quoted in
+> ControllerGroups.cs, where it would have told a reader the dependency graph
+> barely mattered.
 
 | Level | Controllers | Shape |
 |---|---|---|
@@ -280,6 +684,12 @@ transition exactly as a player does, produce the same 0 and 2. These levels
 are bespoke `Level` subclasses (`RadialDanceParty`, `TupperwareNestingLevel`)
 whose puzzle pieces are simply not registered `ObjectController`s.
 
+**RETRACTED 2026-09-08 - see the entry at the top of this file.** These
+counts are what the sweep SEES, not what the levels have; both reveal
+controllers as the player solves them, and TupperwareNesting was watched
+registering 7 in real play. The paragraph below is kept for the record and is
+wrong.
+
 **The consequence is benign and self-correcting.** They contribute their
 solution checks and few or no controller checks, and since nothing on them is
 ability-gated they stay fully playable. `LevelTableTests` names Radial Dance
@@ -293,7 +703,9 @@ line named a level ten before the culprit.
 ### The runtime set is much smaller than the prefab set
 
 201 registered controllers across 111 levels, against 334 found by walking the
-prefabs. Most of the difference is legitimate - unregistered components,
+prefabs. (**219 as of 2026-09-09** - eleven restored by the phase audit, plus
+earlier restorations. The 334 also spans 186 levels including DLC; the
+in-scope survey rows are 225.) Most of the difference is legitimate - unregistered components,
 camera-pan helpers, duplicates on one GameObject - but it is a reminder that
 `docs/data/controller-survey.tsv` is reference data and
 `apworld/alttl/data/levels.json` is the source of truth.
@@ -582,11 +994,11 @@ its item. Our own log saying "sent" would not have been evidence.
   `MainMenu.ShowHideMenuItems(null)` directly and the game dereferences the null
   `GameEventData`. Testing a trap "with the pause menu open" still needs a real
   input path.
-- **Radial Dance Party has 0 controllers and TupperwareNesting has 2** - the
-  true registered counts, re-measured by booting each with the sweep's own flags
-  and waiting 25 seconds. The comment in `DataTable.cs` claiming 13 and 9 was
-  wrong and has been corrected. The table matches the running game and the
-  runtime-vs-table guard stays quiet.
+- **Radial Dance Party has 0 controllers and TupperwareNesting has 2** -
+  **RETRACTED 2026-09-08, see the entry at the top of this file.** Waiting 25
+  seconds is the same measurement the sweep makes, so its agreement proved
+  nothing. Both levels reveal controllers as the player solves them; the
+  prefab counts of 13 and 9 were right.
 - **Only one level has no controllers**, not the three the plan flagged. Drink
   Glasses and MerryMess_Presents each have a single `Pannables` controller,
   which `abilities.json` lists under `notPuzzles`.
