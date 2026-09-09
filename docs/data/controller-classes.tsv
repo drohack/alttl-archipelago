@@ -1,0 +1,226 @@
+levelId	levelType	controller	controllerType	ability	class	dependsOn	phaseIndex
+Angled Image Frame	Level	Angled	Rotateables	Rotating	always-on		
+Batteries	Level	Sort Batteries	Draggables		always-on		
+Broken Vase	Level	Objects	Pannables	?	non-puzzle		
+Broken Vase	Level	Draggables	Draggables		always-on		
+Buttons	Level	SortingItems Draggables	SortingItems_Draggables	Sticking	always-on		
+Books	Level	Shuffle	Shuffleables	Swapping	always-on		
+Books 2	Level	Shuffle	Shuffleables	Swapping	always-on		
+Books 3	Level	Design (Shuffle)	Shuffleables	Swapping	always-on		
+Books 3	Level	Height (Draggables)	Draggables		always-on		
+Bowls	Level	Pattern	Draggables		always-on		
+Bowls	Level	Crack	Draggables		always-on		
+Bowls	Level	Pannables (Action Only)	Pannables	?	non-puzzle		
+Boxes (Stacked)	Level	Stacked Boxes	StackableGrid	Grids	always-on		
+Breadtags	Level	Interlocking	Draggables		gated	Crumbs	
+Breadtags	Level	Crumbs	Removables	Tidying	always-on		
+Calendar	CalendarLevel	Repeating Sequence	Stickables	Sticking	always-on		
+Candles	CandlesLevel	CandlesObjectController	CandlesObjectController	Gadgets	always-on		
+Cat Food Cans	Level	Matching Stacks	StackablesY	Stacking	always-on		
+Cat Frame	Level	Straighten	Rotateables	Rotating	always-on		
+Cat Toys	Level	Tidy Up	Draggables		always-on		
+Chess Shadows	Level	Shuffleables Pieces	ShuffleablesRelative	Swapping	mutual	Shuffleables Shadows	
+Chess Shadows	Level	Shuffleables Shadows	ShuffleablesRelative	Swapping	mutual	Shuffleables Pieces	
+Cleaning Supplies	Level	Supplies Order	Shuffleables	Swapping	always-on		
+Cleaning Supplies	Level	Sponge	Draggables		always-on		
+Clock	ClockLevel	Match Shadows	Rotateables	Rotating	always-on		
+Clover	Level	Symmetrical Placeables	SymmetricalPlaceables	Symmetry	always-on		
+Coins 1 (Shape)	Level	Ordered	DraggablesOrdered	Ordering	always-on		
+Coins 1 (Shape)	Level	Stacked	StackablesZ	Stacking	always-on		
+Coins 2 (Dirtyness)	Level	Dirtyables	Dirtyables	Tidying	always-on		
+Colored Pencils	Level	Gradient	Draggables		always-on		
+Desktop Computer	DesktopComputer	Computer Desktop	Draggables		always-on		
+Desktop Computer	DesktopComputer	Pannables	Pannables	?	non-puzzle		
+Desktop Computer	DesktopComputer	Shuffleables - Notes	Shuffleables	Swapping	always-on		
+Desktop Computer	DesktopComputer	Rotateables - Clock hands	Rotateables	Rotating	always-on		
+Desktop Computer	DesktopComputer	Containables - Paintbrushes	Containables	Containers	always-on		
+Desktop Computer	DesktopComputer	Containables - Keys	Containables	Containers	always-on		
+Desktop Computer	DesktopComputer	Computer Errors	ComputerErrorsController	Gadgets	gated	Computer Desktop	
+Desktop Computer	DesktopComputer	Hourglass	HourglassController	Gadgets	ghost		
+Drink Glasses	Level	Backface Aligned	Pannables	?	non-puzzle		
+Eggs	Level	Eggs Pattern	DraggablesOrdered	Ordering	always-on		
+Frame Maze	Level	Frames	Frame_Rotateables	Rotating	always-on		
+Fridge Inside	Level	Draggables	Draggables		gated	Stackables Yogurt / Jam Controller;Stackables Tupperware Controller 	
+Fridge Inside	Level	Stackables Yogurt / Jam Controller	StackablesY	Stacking	always-on		
+Fridge Inside	Level	Stackables Tupperware Controller 	StackablesY	Stacking	always-on		
+Fruit Stickers	Level	Objects	Pannables	?	non-puzzle		
+Fruit Stickers	Level	Remove Stickers	Pluckables	Tidying	always-on		
+Fruit Stickers	Level	Match Stickers	Stickables	Sticking	always-on		
+Front of Fridge 1 (Postcards)	Level	Match Edges	Draggables		always-on		
+Front of Fridge 2 (Polaroids)	Level	Fit Rect	Draggables		always-on		
+Gems (Jigsaw)	Level	GemsDrawer	Draggables		always-on		
+Gems (Simple)	Level	Ordered	Shuffleables	Swapping	always-on		
+Jars	Level	Order	Shuffleables	Swapping	always-on		
+Junk Drawer	Level	Organizer	Draggables		always-on		
+Keys	Level	Ordered	DraggablesOrdered	Ordering	always-on		
+Lamp	Level	Switches Toggleables	Toggleables	Gadgets	always-on		
+Lamp	Level	Light Rotatable	Rotateables	Rotating	always-on		
+Leaves	Level	LeavesShuffleables	Shuffleables	Swapping	always-on		
+Light Bulbs	Level	BulbsBox	Draggables		always-on		
+Matchboxes	MatchboxesLevel	MatchboxesObjectController	MatchboxesObjectController	Gadgets	always-on		
+MedicineCabinet	Level	Jar Lid Draggable	Draggables		always-on		
+MedicineCabinet	Level	Swabs Containables	Containables	Containers	always-on		
+MedicineCabinet	Level	Oral Containables	Containables	Containers	always-on		
+MedicineCabinet	Level	Trinkets Draggables	Draggables		always-on		
+MedicineCabinet	Level	Green Bottles Draggables	DraggablesOrdered	Ordering	always-on		
+MedicineCabinet	Level	Blue Bottles Draggables	DraggablesOrdered	Ordering	always-on		
+MedicineCabinet	Level	Cup Draggables	Draggables		always-on		
+MedicineCabinet	Level	Brush Draggables	Draggables		always-on		
+MedicineCabinet	Level	Contact Lenses Draggables	Draggables		always-on		
+MedicineCabinet	Level	Creams Draggables Stacked	DraggablesStacked	Stacking	always-on		
+MedicineCabinet	Level	Tube Draggables	Draggables		always-on		
+MedicineCabinet	Level	Pump Bottle Draggables	Draggables		always-on		
+MedicineCabinet	Level	Pick Draggables	Draggables		always-on		
+MedicineCabinet	Level	Cupboard	Cupboard	Furniture	ghost		
+Microscope	MicroscopeLevel	Build Snowflakes	ScrollFieldGroupsController	Gadgets	always-on		
+Mirror	Level	Books + Box StackablesY 	StackablesY	Stacking	always-on		
+Mirror	Level	CandleStateController	CandlesObjectController	Gadgets	always-on		
+Mirror	Level	ContainablesController	Containables	Containers	always-on		
+Mirror	Level	JugPositionController	Draggables		always-on		
+Mirror	Level	DishPositionController	Draggables		always-on		
+Mirror	Level	BottlePositionController	Draggables		always-on		
+Mirror	Level	CandlePositionController	Draggables		always-on		
+Mirror	Level	LemonWedgePositionController	Draggables		always-on		
+Multiple Frames	Level	Straighten	Rotateables	Rotating	always-on		
+NES Games	Level	Stack Aligned	StackablesY	Stacking	always-on		
+PaintCans	Level	Match (Draggables)	Draggables		always-on		
+PaintCans	Level	Pannables (Action Only)	Pannables	?	non-puzzle		
+PartsOrganizer	Level	Organizer	Draggables		always-on		
+Pasta	Level	Ordered	Shuffleables	Swapping	always-on		
+PawPrints	PawPrintsPhaseLevel	Clearables 01	Clearables	Tidying	phase-revealed		1
+PawPrints	PawPrintsPhaseLevel	Clearables 02	Clearables	Tidying	phase-revealed	Clearables 01	2
+PawPrints	PawPrintsPhaseLevel	Clearables 03	Clearables	Tidying	phase-revealed	Clearables 02	3
+PawPrints	PawPrintsPhaseLevel	Free Leaves	Removables	Tidying	always-on		
+PawPrints	PawPrintsPhaseLevel	Coffee Spill	Clearables	Tidying	always-on		
+Pencils 3	Level	Ordered	DraggablesOrdered	Ordering	always-on		
+Place Setting	Level	Placemat	Draggables		always-on		
+Place Setting	Level	Utensils	Draggables		always-on		
+Plant Pots	Level	Interlocking	Draggables		always-on		
+Plate	Level	Placement	Draggables		always-on		
+Post-It Notes Scribble #1 (Simple Line)	Level	Arranged	Draggables		always-on		
+Post-It Notes Scribble #2 (3x3 Grid)	Level	Arranged	Draggables		always-on		
+Post-It Notes Scribble #3 (5x3 Grid)	Level	Arranged	Draggables		always-on		
+Radial Dance Party	RadialDanceParty	Radial Pencils 0	RadialDance	Rotating	phase-revealed		1
+Radial Dance Party	RadialDanceParty	Radial Cat Toys 1	RadialDance	Rotating	phase-revealed	Radial Pencils 0	2
+Radial Dance Party	RadialDanceParty	Radial Cat Toys 1	Draggables		phase-revealed	Radial Pencils 0	2
+Radial Dance Party	RadialDanceParty	Radial Sticky Notes 2	RadialDance	Rotating	phase-revealed	Radial Cat Toys 1	3
+Radial Dance Party	RadialDanceParty	Radial Cat Food Cans 3	RadialDance	Rotating	phase-revealed	Radial Sticky Notes 2	4
+Radial Dance Party	RadialDanceParty	Radial Food 4	RadialDance	Rotating	phase-revealed	Radial Cat Food Cans 3	5
+Radial Dance Party	RadialDanceParty	Radial Soup Cans 5	RadialDance	Rotating	phase-revealed	Radial Food 4	6
+Radial Dance Party	RadialDanceParty	Radial Nuts & Bolts 6	RadialDance	Rotating	phase-revealed	Radial Soup Cans 5	7
+Radial Dance Party	RadialDanceParty	Radial Nuts & Bolts 6	Draggables		phase-revealed	Radial Soup Cans 5	7
+Radial Dance Party	RadialDanceParty	Radial Tools 7	RadialDance	Rotating	phase-revealed	Radial Nuts & Bolts 6	8
+Radial Dance Party	RadialDanceParty	Radial Ladybugs 8	RadialDance	Rotating	phase-revealed	Radial Tools 7	9
+Radial Dance Party	RadialDanceParty	Radial Chess 9	RadialDance	Rotating	phase-revealed	Radial Ladybugs 8	10
+Radial Dance Party	RadialDanceParty	Manager	Pannables	?	non-puzzle		
+Record Player	Level	Needle & Knobs	Rotateables	Rotating	always-on		
+Record Player	Level	Needle & Knobs	GenericLevelObjects		always-on		
+Record Player	Level	Record Player	RecordPlayer	Gadgets	ghost		
+Rock Collection	Level	Match-Lines	GridPuzzle	Grids	always-on		
+Rock Gradient	Level	Gradient	GridPuzzle	Grids	always-on		
+Seed Pods	Level	Symmetrical Placeables	SymmetricalPlaceables	Symmetry	always-on		
+Sharp Pencils	Level	Pencil Order	DraggablesOrdered	Ordering	always-on		
+Sharp Pencils	Level	Shavings Removed	Removables	Tidying	always-on		
+Shells	Level	Symmetrical Placeables	SymmetricalPlaceables	Symmetry	always-on		
+Soup Cans	Level	Match Label (Draggables)	Draggables		always-on		
+Soup Cans	Level	Pannables (Action Only)	Pannables	?	non-puzzle		
+Spice Jars	SpiceJarsLevel	SpiceJarShuffleables	Shuffleables	Swapping	mutual	SpiceJarShuffleables_BottomShelf	
+Spice Jars	SpiceJarsLevel	SpiceJarShuffleables_BottomShelf	Shuffleables	Swapping	mutual	SpiceJarShuffleables	
+SpiderWeb	SpiderWebLevel	Web Symmetry	Draggables		always-on		
+Spoons	Level	Stacked	StackablesZ	Stacking	always-on		
+Spoons	Level	Size (Elastic)	DraggablesOrdered	Ordering	always-on		
+Stacked Papers	Level	Stack Papers	StackablesZ	Stacking	always-on		
+Stamps	Level	Stamps Pattern	Draggables		always-on		
+Storage Boxes	Level	SortingItems Draggables	SortingItems_Draggables	Sticking	always-on		
+Tacks	Level	Colour & Count Sort	Draggables		always-on		
+Telescope	TelescopeLevel	Constellations	TelescopeDraggables	Gadgets	always-on		
+Trim Plant	Level	Pluckables	Pluckables	Tidying	always-on		
+Trim Plant (Vines)	Level	Pluckables	Pluckables	Tidying	always-on		
+TupperwareNesting	TupperwareNestingLevel	Lids	TupperwareLids	Containers	always-on		
+TupperwareNesting	TupperwareNestingLevel	Stack 1	StackablesZ	Stacking	phase-revealed		1
+TupperwareNesting	TupperwareNestingLevel	Stack 2	StackablesZ	Stacking	phase-revealed	Stack 1	2
+TupperwareNesting	TupperwareNestingLevel	Stack 3	StackablesZ	Stacking	phase-revealed	Tray	4
+TupperwareNesting	TupperwareNestingLevel	Tray	Draggables		phase-revealed	Stack 2	3
+TupperwareNesting	TupperwareNestingLevel	Draggables (Large Square)	Draggables		mutual	Layout (Grid)	
+TupperwareNesting	TupperwareNestingLevel	Layout (Grid)	GridPuzzle	Grids	mutual	Stack 3;Draggables (Large Square)	5
+TupperwareNesting	TupperwareNestingLevel	Food	Draggables		phase-revealed	Layout (Grid)	6
+TupperwareNesting	TupperwareNestingLevel	Nested Tupperware	TupperwareNesting	Containers	phase-driver		
+TupperwareTower	Level	Tower	TupperwareTower	Stacking	always-on		
+TupperwareTower	Level	Falling Blocks	StackableGrid	Grids	ghost		
+TupperwareTower	Level	Foundation	StackableGrid	Grids	ghost		
+UtensilsDrawer	Level	Utensils Drawer	Draggables		always-on		
+Wilting Flowers	Level	Upright	AnimScrubbables	Gadgets	always-on		
+Wilting Flowers	Level	Cleanable	CleanablesController	Tidying	always-on		
+Workbench	Level	ToolsController	HangingToolsController	Furniture	always-on		
+Workbench	Level	DraggablesForTargets	Draggables		gated	ToolsController	
+Wrong Aspect Papers	Level	Fit Rect	Draggables		always-on		
+Procedural Grid Puzzle	Level	Grid Puzzle	GridPuzzle	Grids	always-on		
+Pencils (Randomized)	Level	Ordered	DraggablesOrdered	Ordering	always-on		
+Post-It Notes (Randomized)	Level	Draggable	Draggables		always-on		
+Stamps (Randomized)	Level	Stamps Pattern	Draggables		always-on		
+Batteries (Randomized)	Level	Controller	Draggables		always-on		
+Books (Randomized)	Level	Shuffle	Shuffleables	Swapping	always-on		
+Books (Randomized)	Level	Draggables	Draggables		seed-varying		
+GoodTidings_Cookies	Level	RowColSets	GridPuzzle	Grids	always-on		
+GoodTidings_Popcorn	Level	TopRow	ShuffleablesRepeatingPattern	Swapping	always-on		
+GoodTidings_Popcorn	Level	MidRow	ShuffleablesRepeatingPattern	Swapping	always-on		
+GoodTidings_Popcorn	Level	BotRow	ShuffleablesRepeatingPattern	Swapping	always-on		
+GoodTidings_Wreath	Level	Symmetrical Placeables	SymmetricalPlaceables	Symmetry	always-on		
+GoodTidings_Presents (Stacked)	Level	Stacked Boxes	StackableGrid	Grids	always-on		
+GoodTidings_Cookies (Jigsaw)	Level	Match Candy Cane	DraggablesJigsaw	Jigsaw	always-on		
+GoodTidings_Cookies (Jigsaw)	Level	Match Reindeer	DraggablesJigsaw	Jigsaw	gated	Match Candy Cane;Match Gingerbread Man;Match Snowflake;Match Tree	
+GoodTidings_Cookies (Jigsaw)	Level	Match Gingerbread Man	DraggablesJigsaw	Jigsaw	always-on		
+GoodTidings_Cookies (Jigsaw)	Level	Match Snowflake	DraggablesJigsaw	Jigsaw	always-on		
+GoodTidings_Cookies (Jigsaw)	Level	Match Tree	DraggablesJigsaw	Jigsaw	always-on		
+GoodTidings_Ornament Box	Level	BulbsBox	Draggables		always-on		
+SomethingEggstra PaintedEggs	Level	RowColSets	GridPuzzle	Grids	always-on		
+SomethingEggstra Egg Cups	Level	Shuffleables Cups	ShuffleablesRelative	Swapping	mutual	Shuffleables Eggs	
+SomethingEggstra Egg Cups	Level	Shuffleables Eggs	ShuffleablesRelative	Swapping	mutual	Shuffleables Cups	
+SomethingEggstra Fridge	Level	StandardObjects	Draggables		gated	EggsContainable	
+SomethingEggstra Fridge	Level	Stackables (Tupperware)	StackablesY	Stacking	always-on		
+SomethingEggstra Fridge	Level	EggsContainable	Containables	Containers	always-on		
+SomethingEggstra Broken Eggs	Level	Egg #1 Shards	Pannables	?	non-puzzle		
+SomethingEggstra Broken Eggs	Level	Egg #2 Shards	Pannables	?	non-puzzle		
+SomethingEggstra Broken Eggs	Level	Egg #3 Shards	Pannables	?	non-puzzle		
+SomethingEggstra Broken Eggs	Level	Egg #1 (Center) Draggables	Draggables		always-on		
+SomethingEggstra Broken Eggs	Level	Egg #2 (Left) Draggables	Draggables		always-on		
+SomethingEggstra Broken Eggs	Level	Egg #3 (Right) Draggables	Draggables		always-on		
+TrickOrTidy_Bats	Level	Interlocking	Draggables		always-on		
+TrickOrTidy_Bones	Level	Match Bones	DraggablesJigsaw	Jigsaw	always-on		
+TrickOrTidy_Candy	Level	Grouped	Groupables	Gadgets	always-on		
+TrickOrTidy_ChocolateBars	Level	Design (Shuffle)	Shuffleables	Swapping	always-on		
+TrickOrTidy_ChocolateBars	Level	Height (Draggables)	Draggables		always-on		
+TrickOrTidy_JackOLanterns	Level	Ordered	Shuffleables	Swapping	always-on		
+MerryMess_CandyCanes	Level	Match Candy Cane (1)	DraggablesJigsaw	Jigsaw	always-on		
+MerryMess_CandyCanes	Level	Match Candy Cane (2)	DraggablesJigsaw	Jigsaw	always-on		
+MerryMess_CandyCanes	Level	Match Candy Cane (3)	DraggablesJigsaw	Jigsaw	always-on		
+MerryMess_CandyCanes	Level	Match Candy Cane (4)	DraggablesJigsaw	Jigsaw	always-on		
+MerryMess_CandyCanes	Level	Match Candy Cane (5)	DraggablesJigsaw	Jigsaw	always-on		
+MerryMess_CandyCanes	Level	Ordered	DraggablesOrdered	Ordering	gated	Match Candy Cane (1);Match Candy Cane (2);Match Candy Cane (3);Match Candy Cane (4);Match Candy Cane (5)	
+MerryMess_Crackers	Level	Build Train	Draggables		gated	CrackerShuffleables	
+MerryMess_Crackers	Level	CrackerShuffleables	CrackersShuffleables	Swapping	always-on		
+MerryMess_SnowGlobes	Level	Match Pan (Draggables)	Draggables		always-on		
+MerryMess_SnowGlobes	Level	Pannables (Action Only)	Pannables	?	non-puzzle		
+MerryMess_Presents	Level	Presents Aligned	Pannables	?	non-puzzle		
+MerryMess_NutCrackers	Level	Shuffle	Shuffleables	Swapping	always-on		
+NeatStreak_Paper Plane Supplies	Level	Draggables	Draggables		gated	Drawer Controller	
+NeatStreak_Paper Plane Supplies	Level	Containables	Containables	Containers	gated	Drawer Controller	
+NeatStreak_Paper Plane Supplies	Level	Drawer Controller	DrawerController	Furniture	always-on		
+NeatStreak_Paper Plane Supplies	Level	ChalkPurple Jigsaw	DraggablesJigsaw	Jigsaw	always-on		
+NeatStreak_Paper Plane Supplies	Level	ChalkBlue Jigsaw	DraggablesJigsaw	Jigsaw	always-on		
+NeatStreak_Paper Plane Supplies	Level	ChalkGreen Jigsaw	DraggablesJigsaw	Jigsaw	always-on		
+NeatStreak_Paper Plane Supplies	Level	ChalkMint Jigsaw	DraggablesJigsaw	Jigsaw	always-on		
+NeatStreak_Paper Plane Supplies	Level	ChalkYellow Jigsaw	DraggablesJigsaw	Jigsaw	always-on		
+NeatStreak_Paper Plane Supplies	Level	ChalkPink Jigsaw	DraggablesJigsaw	Jigsaw	always-on		
+NeatStreak_Paper Plane Supplies	Level	ChalkRed Jigsaw	DraggablesJigsaw	Jigsaw	always-on		
+NeatStreak_Paper Plane Supplies	Level	Chalk DraggablesOrdered	DraggablesOrdered	Ordering	gated	ChalkPurple Jigsaw;ChalkBlue Jigsaw;ChalkGreen Jigsaw;ChalkMint Jigsaw;ChalkYellow Jigsaw;ChalkPink Jigsaw;ChalkRed Jigsaw	
+NeatStreak_Tool Drawer	Level	Draggables	Draggables		gated	Drawer Controller	
+NeatStreak_Tool Drawer	Level	Containables	Containables	Containers	gated	Drawer Controller	
+NeatStreak_Tool Drawer	Level	Drawer Controller	DrawerController	Furniture	always-on		
+NeatStreak_Bathroom Drawer	Level	Draggables	Draggables		gated	Drawer Controller	
+NeatStreak_Bathroom Drawer	Level	Bottle Containables	Containables	Containers	gated	Drawer Controller	
+NeatStreak_Bathroom Drawer	Level	Drawer Controller	DrawerController	Furniture	always-on		
+NeatStreak_Bathroom Drawer	Level	Indexable	Indexables	Ordering	gated	Drawer Controller	
+SnackPack Sandwich	Level	Stack Ingredients	StackablesZ	Stacking	always-on		
+SnackPack Pretzels	Level	Ordered	Shuffleables	Swapping	always-on		
+SnackPack Cereal	Level	Draggables Controller	Draggables		always-on		

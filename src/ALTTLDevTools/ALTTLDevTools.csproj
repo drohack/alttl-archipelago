@@ -89,6 +89,12 @@
       <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.ScreenCaptureModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- For ReInput.configuration. ModKit references this too, but a
+         transitive reference is not something to rely on for a compile. -->
+    <Reference Include="Rewired_Core">
+      <HintPath>$(GameDir)\BepInEx\interop\Rewired_Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="Unity.Localization">
       <HintPath>$(GameDir)\BepInEx\interop\Unity.Localization.dll</HintPath>
       <Private>false</Private>

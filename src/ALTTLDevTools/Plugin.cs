@@ -96,6 +96,7 @@ public class DevToolsPlugin : BasePlugin
     /// to someone working alongside it. Turn it on only for a session where
     /// the game is meant to be the foreground window.
     /// </summary>
+    internal static bool IgnoreInputUnfocused;
     internal static bool RaiseWindow;
 
     /// <summary>
@@ -117,6 +118,18 @@ public class DevToolsPlugin : BasePlugin
             + "Windows otherwise puts a new window on whichever desktop was active "
             + "when it was created, which for a scripted launch is arbitrary.").Value;
 
+        IgnoreInputUnfocused = Config.Bind(
+            "Window",
+            "IgnoreInputWhenUnfocused",
+            true,
+            "Stop the game acting on the keyboard and mouse while its window "
+            + "does not have focus. The game keeps RUNNING - a scripted run "
+            + "must not stall just because the window is in the background - "
+            + "it simply stops treating a keystroke meant for another window "
+            + "as gameplay input. Without this, typing elsewhere during a test "
+            + "run lands in the game: menus open, levels get reset, and the "
+            + "run fails for a reason that is nowhere in the log.").Value;
+
         RaiseWindow = Config.Bind(
             "Window",
             "RaiseWindowAtStartup",
@@ -136,6 +149,14 @@ public class DevToolsPlugin : BasePlugin
         var harmony = new Harmony(Guid);
         harmony.PatchAll(typeof(LevelSelectOverride));
         harmony.PatchAll(typeof(CardLock));
+        // PatchAll(Type) registers ONE class. A new [HarmonyPatch] class that
+        // nobody adds here is silently never applied - which is not a
+        // hypothetical: RegistrationLog was written, shipped, and reported
+        // "zero registrations across 111 levels", and that was read as
+        // evidence about the game when it was really evidence that the patch
+        // did not exist at runtime.
+        harmony.PatchAll(typeof(RegistrationLog));
+        harmony.PatchAll(typeof(LaunchTrace));
         foreach (var m in harmony.GetPatchedMethods())
         {
             Log.LogInfo($"patched {m.DeclaringType?.Name}.{m.Name}");
@@ -220,6 +241,8 @@ public class DevToolsBehaviour : MonoBehaviour
             _dumped = true;
             SafeRun("auto dump", Dump);
         }
+
+        ApplyFocusRule();
 
         if (_surveying)
         {
@@ -1116,6 +1139,18 @@ public class DevToolsBehaviour : MonoBehaviour
                     }
                 });
             }
+            else if (cmd.Equals("launchtrace", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("launchtrace", LaunchTrace.Toggle);
+            }
+            else if (cmd.Equals("regstart", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("regstart", RegistrationLog.Start);
+            }
+            else if (cmd.Equals("regstop", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("regstop", RegistrationLog.Stop);
+            }
             else if (cmd.Equals("resetlevels", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("resetlevels", () =>
@@ -1137,6 +1172,70 @@ public class DevToolsBehaviour : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Whether the game is already in this state, so the transition is a no-op.
+    ///
+    /// Forcing a state the game is already in is not harmless. SetGameState
+    /// closes the active menu on the way, so "menu:levels" while already in
+    /// Levels_GameState leaves NOTHING open - and the next menu: command then
+    /// calls CloseActiveMenu with no active menu, where the game's own
+    /// TransitionMenuOut dereferences null. Measured: 7 failures in 7 attempts,
+    /// every one preceded by the game logging
+    /// "SetGameState: Levels_GameState already active".
+    /// </summary>
+    private static bool AlreadyIn(GameManager gm, string stateTypeName)
+    {
+        try
+        {
+            var current = gm.GameState == null
+                ? null : gm.GameState.GetIl2CppType().Name;
+            if (current != stateTypeName) return false;
+
+            DevToolsPlugin.Log.LogInfo($"menu: already in {stateTypeName}, nothing to do");
+            return true;
+        }
+        catch
+        {
+            return false;      // on doubt, do what was asked
+        }
+    }
+
+    private static bool _focusRuleApplied;
+
+    /// <summary>
+    /// Tell Rewired to ignore input while the window is not focused.
+    ///
+    /// Applied from the update loop rather than at startup because Rewired is
+    /// not ready when the plugin loads, and setting it early is silently lost.
+    /// One-shot, and it deliberately does NOT touch Application.runInBackground:
+    /// the game must keep ticking while unfocused or a scripted run stalls the
+    /// moment attention moves elsewhere. Running and listening are separate
+    /// things, and only the second is unwanted here.
+    ///
+    /// The harness is unaffected: DevTools drives the game through its command
+    /// file and by invoking handlers directly - clickbutton: calls the Button's
+    /// onClick - so nothing it does arrives as Rewired input.
+    /// </summary>
+    private static void ApplyFocusRule()
+    {
+        if (_focusRuleApplied || !DevToolsPlugin.IgnoreInputUnfocused) return;
+
+        try
+        {
+            if (!Rewired.ReInput.isReady) return;      // not up yet; try again
+            Rewired.ReInput.configuration.ignoreInputWhenAppNotInFocus = true;
+            _focusRuleApplied = true;
+            DevToolsPlugin.Log.LogInfo(
+                "input: the game will ignore the keyboard and mouse while unfocused");
+        }
+        catch (Exception e)
+        {
+            _focusRuleApplied = true;                  // do not retry every frame
+            DevToolsPlugin.Log.LogWarning(
+                $"input: could not set the focus rule: {e.Message}");
+        }
+    }
+
     private static void GoToMenu(string arg)
     {
         var gm = GameManager.Instance;
@@ -1144,17 +1243,21 @@ public class DevToolsBehaviour : MonoBehaviour
         switch (parts[0].ToLowerInvariant())
         {
             case "title":
+                if (AlreadyIn(gm, "Title_GameState")) return;
                 gm.SetGameState<Title_GameState>(null, false);
                 break;
             case "levels":
+                if (AlreadyIn(gm, "Levels_GameState")) return;
                 // Levels_GameState builds its own LevelsTrack_MenuData; the
                 // state data slot only carries a transition delay.
                 gm.SetGameState<Levels_GameState>(null, false);
                 break;
             case "archive":
+                if (AlreadyIn(gm, "Archive_GameState")) return;
                 gm.SetGameState<Archive_GameState>(null, false);
                 break;
             case "daily":
+                if (AlreadyIn(gm, "DailyTidy_GameState")) return;
                 gm.SetGameState<DailyTidy_GameState>(null, false);
                 break;
             default:
@@ -2092,7 +2195,7 @@ public class DevToolsBehaviour : MonoBehaviour
     /// <summary>
     /// The game's own palette of level background colours.
     ///
-    /// This is the catalogue a Level Background item indexes into, so its SIZE
+    /// This is the catalogue a Background Change Trap indexes into, so its SIZE
     /// decides where the modulo wraps. Worth reading rather than assuming.
     /// </summary>
     private static void ReportBackgroundCatalogue()
@@ -2786,6 +2889,17 @@ public class DevToolsBehaviour : MonoBehaviour
     }
 
     /// <summary>Level-select sections, readable only while that menu is open.</summary>
+    /// <summary>
+    /// A colour as rrggbb, without ColorUtility - see DumpSections.
+    /// </summary>
+    private static string Hex(UnityEngine.Color c)
+    {
+        int r = UnityEngine.Mathf.Clamp((int)(c.r * 255f + 0.5f), 0, 255);
+        int g = UnityEngine.Mathf.Clamp((int)(c.g * 255f + 0.5f), 0, 255);
+        int b = UnityEngine.Mathf.Clamp((int)(c.b * 255f + 0.5f), 0, 255);
+        return r.ToString("x2") + g.ToString("x2") + b.ToString("x2");
+    }
+
     private static void DumpSections()
     {
         var menu = UnityEngine.Object.FindObjectOfType<LevelSelect>();
@@ -2805,7 +2919,16 @@ public class DevToolsBehaviour : MonoBehaviour
                 $"  section {Str(() => s.SectionIndex.ToString())} \"{Str(() => s.SectionTitle)}\""
                 + $" trackStart={Str(() => s.TrackStartIndex.ToString())}"
                 + $" levels={Str(() => s.SectionLevels == null ? "0" : s.SectionLevels.Count.ToString())}"
-                + $" completion={Str(() => s.CompletionInfo == null ? "-" : s.CompletionInfo.CompletionPercentageString)}");
+                + $" completion={Str(() => s.CompletionInfo == null ? "-" : s.CompletionInfo.CompletionPercentageString)}"
+                // The colour is what a Background Change Trap moves, and it is
+                // the only way to check that without eyeballing a screenshot.
+                //
+                // Formatted BY HAND. ColorUtility.ToHtmlStringRGB throws
+                // IndexOutOfRangeException through interop - the same trap
+                // already written up in Backgrounds.Palette, walked into again
+                // here, and it reads as the SECTION lookup failing rather than
+                // as the formatter failing.
+                + $" bg={Str(() => Hex(s.BackgroundColor))}");
         }
 
         var track = UnityEngine.Object.FindObjectOfType<LevelsTrack>();
