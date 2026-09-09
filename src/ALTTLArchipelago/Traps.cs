@@ -152,11 +152,26 @@ internal static class Traps
     {
         try
         {
-            if (!_catSoundSearched)
+            // RE-SEARCH WHILE THE CLIP IS STILL NULL. The latch used to be
+            // set on the first attempt whatever the outcome, so the whole
+            // session's cat sound was decided by whichever level happened to
+            // be open when the first trap sprang - and a level with no cat in
+            // it settled the question permanently.
+            //
+            // That was nearly invisible until 2026-09-09, because 11 of the 13
+            // levels carrying a CatSwipe are campaign levels and campaign
+            // levels almost never appeared in a run. With base_weight they do.
+            //
+            // Still latched once found: the clip is shared, so a successful
+            // search never needs repeating.
+            if (!_catSoundSearched || _catSound == null)
             {
-                _catSoundSearched = true;
                 var swipe = UnityEngine.Object.FindObjectOfType<CatSwipe>();
-                if (swipe != null) _catSound = swipe.catSound;
+                if (swipe != null)
+                {
+                    _catSound = swipe.catSound;
+                    _catSoundSearched = true;
+                }
             }
 
             if (_catSound == null) return;

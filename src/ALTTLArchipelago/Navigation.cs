@@ -25,9 +25,29 @@ internal static class Navigation
 
     private static LevelInterface? _home;
 
+    /// <summary>Forget the cached home level. Called when a run ends.</summary>
+    internal static void Reset() => _home = null;
+
     /// <summary>
     /// Any ordinary campaign level, used only as the level we claim to be
     /// leaving so the game routes us to the campaign track.
+    ///
+    /// PREFERABLY ONE THE RUN DOES NOT CONTAIN. This used to take the first
+    /// campaign level it found - index 1, Cat Frame - and that was safe only
+    /// by accident: campaign levels were almost never in a seed, because 57 of
+    /// the 69 could not be drawn at all. Now that the campaign is a rollable
+    /// source, the first one found is quite often one of the run's own cards.
+    ///
+    /// That matters because this level is handed to GoToLevelSelectForLevel on
+    /// every pause-menu Levels press, which can leave it as the active level
+    /// interface. A later StartLevel that arrives with no index of its own
+    /// resolves through ActiveLevelInterface (Track.BeforeStartLevel), so it
+    /// would resolve to THIS level's slot and file its checks there - a check
+    /// credited to a puzzle the player never opened.
+    ///
+    /// A level outside the run cannot be mistaken for a slot, so prefer one.
+    /// Falling back to any campaign level if the run somehow holds them all is
+    /// fine: the old behaviour is still better than no route to the track.
     /// </summary>
     private static LevelInterface? CampaignLevel(LevelManager? manager)
     {
@@ -36,15 +56,21 @@ internal static class Navigation
 
         try
         {
+            LevelInterface? fallback = null;
             var all = manager.LevelInterfaces;
             for (int i = 0; i < (all == null ? 0 : all.Count); i++)
             {
                 var level = all![i];
                 if (level == null || level.IsArchived || level.IsCredits) continue;
                 if (level.LevelType == LevelType.Chapter) continue;
+
+                fallback ??= level;
+                if (Track.SlotForLevelIndex(level.LevelIndex) >= 0) continue;
+
                 _home = level;
                 break;
             }
+            _home ??= fallback;
         }
         catch (Exception e)
         {
@@ -366,70 +392,44 @@ internal static class Navigation
 
 
     /// <summary>
-    /// Send Continue to the run's next puzzle, launching it ourselves.
+    /// Let the GAME advance to the next puzzle.
     ///
-    /// Answering GetNextLevelIndex is not enough, and the reason is the bug
-    /// this fixes. The index we hand back is correct; the game then routes by
-    /// the level's KIND, and a daily-pool level (995-1000, isDailyTidy) is
-    /// routed to the Daily Tidy page rather than loaded into the run. So
-    /// finishing a puzzle whose next slot happened to be one of those dropped
-    /// the player out of their run entirely. It looked intermittent because it
-    /// depends on what the next slot is.
+    /// These used to call GoToNext, which launched the level itself with
+    /// StartLevel. That is why a playtester saw the puzzle they had just
+    /// finished still sitting behind the new one: StartLevel with forceReload
+    /// does NOT release the level being left, and nothing else did either.
+    /// DevTools has known this for a while and says so in its own boot
+    /// command - "forceReload alone leaves the previous level ALIVE, and its
+    /// listeners stay subscribed" - which is also why one arrow press used to
+    /// poison a whole test session and why the e2e gives the arrow a throwaway
+    /// game of its own.
     ///
-    /// Launching it ourselves is the same thing clicking the card does, and
-    /// that path has never had this problem: StartLevel loads a level rather
-    /// than asking where a level of that kind belongs. ArmSlot sets the pending
-    /// slot for this frame, so the seed and forceReload are filled in by
-    /// Track.BeforeStartLevel exactly as they are for a click.
+    /// GoToNext existed because vanilla routes by the level's KIND and a
+    /// daily-pool level (995-1000) went to the Daily Tidy page instead of the
+    /// run. DailyGuard now answers false to
+    /// LevelInterface.ReactToDailyCompleting while a run is active, so that
+    /// reason is gone - the same obsolete workaround that was removed from
+    /// ReplayMenu.LevelSelect for the same reason on the same day.
     ///
-    /// The state is set BEFORE the load. Skipping that is what once left a
-    /// level running underneath a title screen that never went away - and here
-    /// the screen in question is the post-level retry UI.
+    /// What still has to be ours is WHICH level is next: AfterGetNextLevelIndex
+    /// answers the game's own question with the run's next open slot. The game
+    /// then does the transition, and releases what it is leaving, because that
+    /// is its job and it is better at it.
     /// </summary>
-    private static bool GoToNext(string which)
-    {
-        try
-        {
-            if (!Track.Active) return true;              // not a run; vanilla
-
-            var next = Track.NextUnfinishedSlot();
-            if (next < 0)
-            {
-                // Nothing left to play. The game's own answer is as good as
-                // ours, and better than inventing one.
-                Plugin.Logger.LogInfo($"navigation: {which}, nothing unfinished left");
-                return true;
-            }
-
-            var gm = GameManager.Instance;
-            var manager = gm?.levelManager;
-            if (gm == null || manager == null) return true;
-
-            var index = Track.ArmSlot(next);
-            if (index < 0) return true;
-
-            Plugin.Logger.LogInfo(
-                $"navigation: {which} -> slot {next} (level {index}), launching it");
-
-            gm.SetGameState<Gameplay_GameState>(null, false);
-            manager.StartLevel(index, true, true, -1);
-            return false;
-        }
-        catch (Exception e)
-        {
-            // Fail open: the game's own Continue is better than none.
-            Plugin.Logger.LogWarning($"navigation: {which} failed, using the game's: {e.Message}");
-            return true;
-        }
-    }
-
     [HarmonyPatch(typeof(RetryMenu), nameof(RetryMenu.NextLevel))]
     [HarmonyPrefix]
-    private static bool BeforeRetryNext() => GoToNext("post-level Continue");
+    private static bool BeforeRetryNext() => LetTheGameAdvance("post-level Continue");
 
     [HarmonyPatch(typeof(ReplayMenu), nameof(ReplayMenu.NextLevel))]
     [HarmonyPrefix]
-    private static bool BeforeReplayNext() => GoToNext("replay Next");
+    private static bool BeforeReplayNext() => LetTheGameAdvance("replay Next");
+
+    private static bool LetTheGameAdvance(string which)
+    {
+        if (!Track.Active) return true;
+        Plugin.Logger.LogInfo($"navigation: {which}, letting the game advance");
+        return true;
+    }
 
     /// <summary>
     /// Send an exit to the run's track, using the game's own routine.
@@ -477,9 +477,168 @@ internal static class Navigation
     [HarmonyPrefix]
     private static bool BeforePauseLevelSelect() => GoToTrack("pause menu");
 
+    /// <summary>
+    /// Let the GAME open the level select after a puzzle.
+    ///
+    /// This used to redirect to GoToTrack, because vanilla routes by the
+    /// level's KIND and a daily-pool level sent the player to the Daily Tidy
+    /// page instead of the run. DailyGuard now answers false to
+    /// LevelInterface.ReactToDailyCompleting while a run is active, so that
+    /// reason is gone - the game's own routing lands on the campaign track,
+    /// which is what the run has replaced.
+    ///
+    /// Why it matters that the game opens it: GoToLevelSelectForLevel produces
+    /// a level select WITHOUT its own Close button - measured, "no active
+    /// control named Close Button" on every attempt - and the same
+    /// half-opened menu is what MenuManager.TransitionMenuOut then cannot tear
+    /// down, which is the NullReferenceException this harness has been logging
+    /// all along. One cause, both symptoms.
+    ///
+    /// The pause menu's LevelSelect keeps its redirect: it fires mid-level,
+    /// where there is no completion to route from and the kind-based routing
+    /// never applied.
+    /// </summary>
     [HarmonyPatch(typeof(ReplayMenu), nameof(ReplayMenu.LevelSelect))]
     [HarmonyPrefix]
-    private static bool BeforeReplayLevelSelect() => GoToTrack("post-level menu");
+    private static bool BeforeReplayLevelSelect()
+    {
+        if (!Track.Active) return true;
+        Plugin.Logger.LogInfo(
+            "navigation: post-level Level Select, letting the game open it");
+
+        // A FINALIZER TO SWALLOW VANILLA'S EXCEPTION WAS TRIED HERE AND MUST
+        // NOT BE TRIED AGAIN.
+        //
+        // ReplayMenu.LevelSelect raises a NullReferenceException on roughly
+        // one call in eight against a run's state, and absorbing it looked
+        // free: the menu is already open when it lands, so the log went clean
+        // and nothing visible changed. It was not free. The exception is the
+        // game ABORTING a routine partway; letting it return normally instead
+        // carries on from a state the game never intended to reach, and the
+        // run collapsed - 1 puzzle beaten instead of 8, with slots cycling
+        // "not finishable yet" forever and no blocking reason.
+        //
+        // One logged exception per run is the cheaper half of that trade.
+        return true;
+    }
+
+
+    /// <summary>
+    /// The first live instance of a component, including inactive ones.
+    ///
+    /// FindObjectOfType only sees active objects, and the pieces of the menu
+    /// system are switched off most of the time - which is exactly when this
+    /// is asked for. Resources.FindObjectsOfTypeAll also returns prefabs, so
+    /// the scene check is what keeps this to real objects.
+    /// </summary>
+    private static T? FindEvenIfInactive<T>() where T : UnityEngine.Component
+    {
+        try
+        {
+            foreach (var obj in Resources.FindObjectsOfTypeAll(
+                         Il2CppInterop.Runtime.Il2CppType.Of<T>()))
+            {
+                var found = obj == null ? null : obj.TryCast<T>();
+                if (found == null || found.gameObject == null) continue;
+                if (!found.gameObject.scene.IsValid()) continue;   // a prefab
+                return found;
+            }
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"navigation: could not look for a {typeof(T).Name}: {e.Message}");
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Make the pause menu's Exit leave the level.
+    ///
+    /// MEASURED, not guessed. A probe on MainMenu.ExitGame was shipped first
+    /// precisely because two different causes were possible and the repairs
+    /// differ; the probe answered it:
+    ///
+    ///     navigation: Exit pressed (run active: True)
+    ///     clickbutton: invoking Exit Button (Button on Exit Button)
+    ///     after the press, 12 button(s) are active
+    ///
+    /// So the click lands, the handler runs, and nothing happens - the same 12
+    /// buttons are still on screen afterwards. That rules out the other
+    /// candidate, which was ConnectionPane having permanently hijacked the
+    /// game's shared modal confirm button (a real defect, fixed separately in
+    /// 0.3.1, but not this one).
+    ///
+    /// This is the failure class already recorded for LevelSelect in
+    /// docs/verification-log.md:300-345: the vanilla route decides where to go
+    /// from the level's KIND, and a run's levels are reached in a way that
+    /// leaves it with no answer, so it goes nowhere at all.
+    ///
+    /// The title screen rather than the run's track, because Levels already
+    /// goes to the track and two buttons doing the same thing would be worse
+    /// than one doing nothing. The run is untouched by leaving: progress lives
+    /// in the session save, and the title screen's Archipelago entry reports
+    /// the connection, so Play or Levels comes straight back to it.
+    /// </summary>
+    [HarmonyPatch(typeof(MainMenu), nameof(MainMenu.ExitGame))]
+    [HarmonyPrefix]
+    private static bool BeforePauseExit()
+    {
+        try
+        {
+            if (!Track.Active) return true;              // vanilla behaviour
+
+            var gm = GameManager.Instance;
+            if (gm == null) return true;
+
+            // The game's OWN route out, not a forced state change.
+            //
+            // The first version of this fix called
+            // SetGameState<Title_GameState> directly. That works, but it is
+            // the same thing DevTools' menu: command does, and watching that
+            // command fail seven times out of seven with a
+            // NullReferenceException inside MenuManager.TransitionMenuOut is
+            // not a foundation to build a player-facing button on: forcing the
+            // state slams past whatever the menu system was doing, and whether
+            // it survives depends on what happened to be open.
+            //
+            // ExitGameToTitle.BackToTitle() is the routine the game itself uses
+            // to leave a game for the title screen, so the menu system unwinds
+            // the way it expects to. Same principle as the Levels button, which
+            // goes through GoToLevelSelectForLevel rather than forcing
+            // Levels_GameState.
+            var exit = FindEvenIfInactive<ExitGameToTitle>();
+            if (exit != null)
+            {
+                Plugin.Logger.LogInfo(
+                    "navigation: pause menu Exit -> the title screen (BackToTitle)");
+                exit.BackToTitle();
+                return false;
+            }
+
+            // Only if the game has no such component. Kept because a working
+            // Exit through a blunt route beats the button doing nothing, which
+            // is the bug being fixed.
+            // The SAME marker as the route above, plus how it got there.
+            //
+            // These logged different things, and the e2e asserted on the first
+            // one - so a run where the component was missing reported "the
+            // pause menu Exit leaves the level: FAIL" while Exit was in fact
+            // working perfectly through this branch. An assertion that depends
+            // on WHICH branch ran is testing the implementation, not the
+            // behaviour.
+            Plugin.Logger.LogInfo(
+                "navigation: pause menu Exit -> the title screen (forced; "
+                + "no ExitGameToTitle in the scene)");
+            gm.SetGameState<Title_GameState>(null, false);
+            return false;
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"navigation: Exit could not reach the title: {e.Message}");
+            return true;
+        }
+    }
+
 
     /// <summary>
     /// Make "next" mean the next puzzle in the RUN.
