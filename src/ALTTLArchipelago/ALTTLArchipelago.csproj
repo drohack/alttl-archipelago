@@ -33,7 +33,7 @@
          which would have let a player hold a mod and an apworld agreeing on a
          number and disagreeing about the item table. tools/check-version.py
          now fails the build instead. -->
-    <Version>0.3.0</Version>
+    <Version>0.3.1</Version>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>annotations</Nullable>

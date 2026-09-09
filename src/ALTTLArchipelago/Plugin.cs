@@ -29,7 +29,7 @@ namespace ALTTLArchipelago;
 ///   thread through Hub. Unity is never touched off-thread.
 /// - The MonoBehaviour injected into IL2CPP holds no state and no logic.
 /// </summary>
-[BepInPlugin(Guid, "A Little To The Left Archipelago", "0.3.0")]
+[BepInPlugin(Guid, "A Little To The Left Archipelago", "0.3.1")]
 public sealed class Plugin : BasePlugin
 {
     internal const string Guid = "droha.alttl.archipelago";
