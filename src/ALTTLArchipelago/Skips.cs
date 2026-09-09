@@ -11,10 +11,13 @@ namespace ALTTLArchipelago;
 /// in a randomizer would let anyone walk past every gate in the seed. Here it
 /// costs an item, and each one is spent when used.
 ///
-/// Note what a skipped puzzle does NOT do: it does not count toward the credits
-/// goal. The generator's logic already assumes that - the "beat N levels" gate
-/// counts Level Beaten tokens, which come from completing a puzzle, not from
-/// leaving it. So no extra bookkeeping is needed here to keep the two in step.
+/// A SKIP FINISHES THE PUZZLE, and that changed in 0.3.1. This used to say the
+/// opposite - that a skipped puzzle does not count toward the credits, because
+/// the goal counts Level Beaten tokens and a skip suppressed the token. The
+/// cost was a skipped card that could never complete, since its star needs
+/// every location on the slot. On droha's call a skip now sends the whole slot
+/// and banks the token, and the shortcut is bounded by skip_count rather than
+/// forbidden. See the note on Skipping below and Checks.OnLevelComplete.
 /// </summary>
 internal static class Skips
 {
