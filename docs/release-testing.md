@@ -6,6 +6,40 @@ hand. Both routes install the same three files the same way.
 Do this before tagging anything. Every other test in this project tests the
 working tree; this is the only one that tests the artifacts.
 
+## When to run it, and when not to
+
+**This is a release gate, not an iteration loop.** A full run is about fifteen
+minutes: a real game, a real MultiServer, eight puzzles played to the credits.
+
+On 2026-09-08 it was run roughly twelve times to land one set of playtest
+fixes. In about ten of those the question was only "did this small change break
+progression or add an error", which needs none of the eight puzzles, the
+throwaway arrow session, or the goal report. It also reads badly at that size:
+cat traps and a live server make every run vary, so a flaky arrow session cost
+one run outright and muddied two others - noise mistaken for signal, because
+the instrument was much larger than the question.
+
+What to reach for instead:
+
+| Question | Tool | Cost |
+|---|---|---|
+| Did the logic change? | `dotnet test src/ALTTLArchipelago.Core.Tests` | ~1s |
+| Did generation or the id tables change? | the apworld suite | ~7s |
+| Does the option surface still fill? | `ALTTL_STRESS_SEEDS=25` fill stress | ~30s |
+| Did I break the run or add errors? | a small reproducer, see below | minutes |
+| Is the release good? | this, in full | ~15 min |
+
+**A short reproducer must do REAL solves.** Three were written during that
+session and all three used DevTools' `complete` instead of solving the
+controllers. `complete` does not produce the post-level state a real solve
+does, so `replayselect` did not land where it lands in a real run, and all
+three came back clean while the bug reproduced every time in the full e2e.
+Three false negatives in a row is what drove the twelve full runs.
+
+A `--quick` mode - two puzzles, no arrow session, keeping the error census and
+the mod-vs-harness reconciliation - would answer the common question in three
+or four minutes. It has not been built.
+
 ## The automatic route
 
 ```

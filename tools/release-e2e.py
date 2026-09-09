@@ -60,9 +60,22 @@ AP = os.path.join(REPO, "Archipelago")
 PORT = 38281
 SLOT = "droha"
 
+#: Run size. --quick lowers these; see main().
+#:
+#: The full run is a RELEASE GATE - a real game, a real MultiServer, eight
+#: puzzles played to the credits, about fifteen minutes. It is the wrong tool
+#: for "did this edit break anything", and using it that way once cost twelve
+#: runs and about three hours to land one set of fixes.
+#:
+#: --quick answers that question instead: three puzzles, no throwaway arrow
+#: session, every correctness check kept - the error census, the
+#: mod-versus-harness reconciliation, the campaign-save isolation. What it
+#: gives up is coverage of the arrow, the pause-menu Exit, and the launch
+#: count, which are the parts that need a second session.
 PUZZLES = 8
 PACKS = 2
 MAX_ROUNDS = 60
+QUICK = False
 
 TOTAL = 7
 
@@ -75,6 +88,61 @@ def sha(path):
     if not os.path.isfile(path):
         return None
     return hashlib.sha256(open(path, "rb").read()).hexdigest()
+
+
+def read_save(path):
+    """Decode one of the game's save files.
+
+    They are UTF-8 with a BOM and every codepoint shifted up by 11, which is
+    obfuscation rather than encryption - the first bytes decode to {"guid".
+    """
+    if not os.path.isfile(path):
+        return None
+    try:
+        text = open(path, encoding="utf-8-sig").read()
+        return json.loads("".join(chr(ord(c) - 11) for c in text))
+    except Exception:
+        return None
+
+
+#: Campaign fields a run is allowed to move, and why.
+#:
+#: saveTimestamp changes on any write at all. dailyTidyProgress rolls its own
+#: calendar forward: the game appends one history entry per day it has not seen
+#: yet, at LAUNCH, before an Archipelago session exists and therefore before
+#: SaveRedirect is armed. Vanilla does this whether the mod is installed or not.
+IGNORED_CAMPAIGN_FIELDS = ("saveTimestamp", "dailyTidyProgress")
+
+
+def campaign_progress(path):
+    """What a run must never touch, as a comparable value.
+
+    NOT a hash of the file, and that distinction cost a full run to diagnose.
+    A sha caught the daily calendar rolling over on 2026-09-07 and reported it
+    as the run writing to the campaign save - the run had written nothing, and
+    levelCompletionData was identical. Worse, it was a once-per-day failure:
+    the same build passed on a second run the same day, so the check was
+    green except for the first run after midnight, which is exactly the
+    pattern that teaches people to ignore a red result.
+
+    So compare the fields that carry actual campaign progress, and pin the
+    daily completion count separately - that one IS ours to protect, since a
+    run finishing a 995-1000 puzzle used to credit a real daily.
+    """
+    data = read_save(path)
+    if data is None:
+        return None
+    kept = {k: v for k, v in data.items() if k not in IGNORED_CAMPAIGN_FIELDS}
+    return json.dumps(kept, sort_keys=True)
+
+
+def daily_completions(path):
+    """The player's real daily-tidy completion count."""
+    data = read_save(path)
+    if data is None:
+        return None
+    progress = data.get("dailyTidyProgress") or {}
+    return progress.get("CompleteCount")
 
 
 def port_open(timeout=0.5):
@@ -111,11 +179,50 @@ class Log:
             return 0
 
     def before_launch(self):
-        """Call with the game CLOSED, immediately before starting it."""
-        try:
-            os.remove(LOG)
-        except OSError:
-            pass                     # never existed, or is held open; pos=0 anyway
+        """Call with the game CLOSED, immediately before starting it.
+
+        The delete is RETRIED and then insisted on, which is the third face of
+        the offset trap above. It used to be a bare try/except that swallowed
+        the failure and set pos = 0 anyway:
+
+            try:
+                os.remove(LOG)
+            except OSError:
+                pass         # never existed, or is held open; pos=0 anyway
+
+        On Windows a process that has just exited can hold the handle for a
+        moment longer, and then the remove fails, the file still holds the
+        PREVIOUS session, and pos = 0 makes the reader consume all of it again
+        as if it were new. Every count taken from the transcript is then wrong
+        by one session - which is exactly what happened on 2026-09-07: two real
+        launches counted as three and failed "two game launches, no more" on a
+        build whose launch behaviour had not changed.
+
+        Setting pos to the current size instead would be worse, not better: it
+        is the same mistake the class docstring already warns about, because
+        the new log can grow past the old size before the first sample and the
+        shrink is then never observed.
+
+        So the only safe outcomes are "deleted" or "stop". A harness that
+        cannot trust its own transcript should say so rather than produce
+        numbers.
+        """
+        for attempt in range(30):
+            try:
+                os.remove(LOG)
+                break
+            except FileNotFoundError:
+                break                # never existed; nothing to reset past
+            except OSError:
+                if attempt == 0:
+                    print("      waiting for the game to release the log",
+                          flush=True)
+                time.sleep(0.5)
+        else:
+            raise RuntimeError(
+                f"could not delete {LOG} after 15s - the game still holds it. "
+                "Refusing to continue: the transcript would replay the "
+                "previous session and every count taken from it would be wrong.")
         self.pos = 0
 
     def new(self):
@@ -157,6 +264,136 @@ def dev(cmd, settle=0.0):
         time.sleep(0.25)
     if settle:
         time.sleep(settle)
+
+
+#: Errors the run is allowed to log. EMPTY, and it should stay that way.
+#:
+#: It briefly held the DevTools menu: NullReferenceException, on the reasoning
+#: that it was test-only and caught. That reasoning was wrong in the way
+#: comfortable reasoning usually is: the error was real, it was the mod's, and
+#: tolerating it would have hidden the fact that the mod opened the level
+#: select without its Close button - a half-built menu handed to players.
+#:
+#: The cause was Navigation redirecting ReplayMenu.LevelSelect to
+#: GoToLevelSelectForLevel. Letting the game open its own screen fixed the
+#: missing control and the exception together, because they were one bug.
+#:
+#: Before adding anything here, find the cause. This list existing at all is a
+#: standing invitation not to.
+KNOWN_ERRORS = (
+    # Vanilla's own ReplayMenu.LevelSelect, about once per run.
+    #
+    # Not ours and not avoidable from here. Letting the game open its own level
+    # select is what gives the screen its Close button and what stopped
+    # MenuManager.TransitionMenuOut throwing six or seven times a run; the cost
+    # is that the game itself raises a NullReferenceException on roughly one
+    # call in eight against a run state it was never written for.
+    #
+    # Swallowing it with a Harmony finalizer was tried and is WORSE - see
+    # Navigation.BeforeReplayLevelSelect. The exception is the game aborting a
+    # routine; forcing it to return normally carried on from a state the game
+    # never meant to reach and cost seven of eight puzzles.
+    "Il2CppInterop: During invoking native->managed trampoline",
+)
+
+
+def error_census(text, limit=15):
+    """Every distinct error in the transcript, with counts, most frequent first.
+
+    Grouped by signature rather than listed raw: one stale listener produces a
+    hundred identical stack traces, and a hundred lines of the same thing is
+    how a report gets skimmed instead of read. The signature is the message
+    line, trimmed of the BepInEx prefix and of anything that varies per
+    occurrence.
+    """
+    counts = {}
+    context = {}
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped.startswith("[Error") and not stripped.startswith("[Fatal"):
+            continue
+
+        # "[Error  :     Unity] message" -> "Unity: message"
+        source, _, message = stripped.partition("] ")
+        source = source.split(":", 1)[-1].strip() if ":" in source else "?"
+        message = message.strip()
+
+        # Stack traces arrive as their own lines; the first line is the claim.
+        signature = f"{source}: {message}"[:150]
+        counts[signature] = counts.get(signature, 0) + 1
+
+        # WHAT LED UP TO IT, once per signature.
+        #
+        # The count alone sent three separate investigations down the wrong
+        # path: the error was blamed on a redundant menu transition, then on
+        # the mod's level-select rewrite, and controlled probes refuted both.
+        # Neither guess would have survived five seconds of looking at the
+        # lines immediately before it, which the harness had all along and
+        # never showed.
+        if signature not in context:
+            before = [l.strip() for l in lines[max(0, i - 6):i] if l.strip()]
+            context[signature] = before[-4:]
+
+    ordered = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:limit]
+    return [(sig, n, context.get(sig, [])) for sig, n in ordered]
+
+
+def unexplained(errors):
+    """The errors that are NOT on the known list - the ones that fail a run."""
+    return [e for e in errors
+            if not any(known in e[0] for known in KNOWN_ERRORS)]
+
+
+#: Levels whose runtime controllers are KNOWN to differ from the shipped
+#: table, so the mod's audit is expected to complain about them.
+#:
+#: Kept in step with SurveyCrossCheckTests.KnownGaps by hand. That is a small
+#: duplication and worth it: the C# test compares two FILES and can prove the
+#: gap statically, while this one watches what a level does when a player is
+#: actually in it, and the whole point of the pair is that the second can find
+#: something the first cannot.
+KNOWN_TABLE_GAPS = (
+    "Books (Randomized)",
+    "Desktop Computer",
+    "MedicineCabinet",
+    "Radial Dance Party",
+    "Record Player",
+    "TupperwareNesting",
+)
+
+
+def table_audit(text):
+    """Audit complaints about levels we have NOT already written down.
+
+    The mod compares the shipped controller table against what the level in
+    front of the player actually registered, and says so:
+
+        CONTROLLER MISMATCH on TupperwareNesting: 7 registered, 2 in the table
+        UNEARNABLE LOCATIONS on <level>: the table expects <names>
+
+    Both were WARNINGS, and the census counts only errors, so a run could go
+    green with the table wrong - which is exactly how six levels stayed
+    under-captured through every previous release gate. The first one droha
+    ever saw was found by reading a log, not by the harness.
+
+    They are not promoted to errors in the mod, because a phased level raises
+    a mismatch legitimately while it is still revealing itself. Deciding here
+    keeps that nuance: a complaint about a level on the known list is data, a
+    complaint about any OTHER level is a new gap and fails the run.
+    """
+    out = []
+    for line in text.splitlines():
+        if "CONTROLLER MISMATCH on " not in line and \
+           "UNEARNABLE LOCATIONS on " not in line:
+            continue
+        marker = "CONTROLLER MISMATCH on " if "CONTROLLER MISMATCH on " in line \
+            else "UNEARNABLE LOCATIONS on "
+        level = line.split(marker, 1)[1].split(":", 1)[0].strip()
+        if level in KNOWN_TABLE_GAPS:
+            continue
+        out.append(line.split("] ")[-1].strip())
+    return out
 
 
 def line_with(text, marker):
@@ -281,9 +518,22 @@ def generate():
             # free, then two packs of two. Measured, not guessed - pack_size 4
             # would give ONE pack and test half of what this is for.
             "  pack_size: 2\n"
-            "  ability_locks: true\n"
-            "  starting_abilities: 1\n"
-            "  cat_trap_chance: 25\n"
+            # QUICK trades the two things that make a run long and variable,
+            # not its size: puzzle_count has a floor of 8, so there is nothing
+            # to shrink there.
+            #
+            # ability_locks off - gating is what stalls a run. Twice in a row
+            # the full run sat at 2 of 8 waiting on Containers, which is
+            # correct behaviour and useless feedback when the question is "did
+            # my edit break check routing".
+            #
+            # cat traps off - a trap resets a puzzle mid-solve, so the same
+            # change can pass one run and fail the next. Deliberately ON in the
+            # full run, because a run where the cat never interferes is not the
+            # run players get.
+            f"  ability_locks: {'false' if QUICK else 'true'}\n"
+            f"  starting_abilities: {6 if QUICK else 1}\n"
+            f"  cat_trap_chance: {0 if QUICK else 25}\n"
             "  hint_coverage: 50\n"
             "  skip_count: 2\n"
             "  progression_balancing: 0\n"
@@ -343,6 +593,29 @@ class Server:
         self.outpath = None
 
     def __enter__(self):
+        # NOBODY ELSE ON THE PORT. This is a pre-condition, not a nicety.
+        #
+        # Readiness below is "the port answers", which cannot tell OUR server
+        # from someone else's. On 2026-09-07 a MultiServer left over from an
+        # earlier run still held 38281: this run's server printed its usual
+        # "Hosting game at ...:38281" line, then failed to bind with
+        # errno 10048 - and the message comes BEFORE the bind, so the log
+        # looked healthy. port_open() saw the stale server, returned true at
+        # once, and the harness went on to point the game at a multiworld from
+        # a different seed. What reached the log was
+        #
+        #     login refused: The slot name did not match any slot on the server
+        #
+        # which reads like a bug in the mod's connection handling and is
+        # nothing of the kind. The traceback that explained it sat unread in
+        # testserver/logs/e2e-server.err, because nothing had failed loudly.
+        if port_open():
+            raise SystemExit(
+                f"port {PORT} is already in use - something else is serving "
+                "there, and this run would silently test against ITS "
+                "multiworld. Stop it and try again (the previous run's "
+                "MultiServer is the usual culprit).")
+
         os.makedirs(os.path.join(REPO, "testserver", "logs"), exist_ok=True)
         self.err = open(os.path.join(REPO, "testserver", "logs", "e2e-server.err"),
                         "w")
@@ -370,6 +643,19 @@ class Server:
                                  "testserver/logs/e2e-server.err")
             time.sleep(1)
         raise SystemExit("MultiServer never opened the port")
+
+    def stderr_tail(self, lines=12):
+        """The server's own complaint, for a failure that mentions the server."""
+        try:
+            self.err.flush()
+        except Exception:
+            pass
+        try:
+            with open(os.path.join(REPO, "testserver", "logs", "e2e-server.err"),
+                      encoding="utf-8", errors="replace") as fh:
+                return "".join(fh.readlines()[-lines:])
+        except OSError:
+            return ""
 
     def __exit__(self, *exc):
         if self.proc:
@@ -436,7 +722,32 @@ def solve_level(log):
     a run where the cat never interferes is not the run players get.
     """
     text = ""
-    for attempt in range(5):
+
+    # A CAT TRAP MUST NOT COST A PASS.
+    #
+    # The trap is an Archipelago ITEM, not a property of the level - the mod
+    # applies it to whatever puzzle is running, so no list of "levels with
+    # cats" can predict it. What it does is knock the puzzle over mid-solve,
+    # and a fixed budget of five passes then runs out on exactly the levels
+    # that were unluckiest rather than the ones that are actually stuck.
+    #
+    # That is what made the full run a coin flip: identical code and seed beat
+    # 8 of 8 three times and stalled at 2 of 8 twice. A stalled run then misses
+    # the checks behind those levels, so the abilities never arrive and the
+    # rest of the run is starved - one trap at the wrong moment costs six
+    # puzzles.
+    #
+    # So a pass that a trap interrupted is refunded. The budget still exists
+    # for a level that genuinely will not finish; it is just no longer spent on
+    # the game doing what the game is supposed to do.
+    budget = 5
+    refunds = 0
+    MAX_REFUNDS = 6
+    attempt = -1
+    while True:
+        attempt += 1
+        if attempt >= budget:
+            break
         log.new()
         dev("controllers", 1.0)
         out = log.wait(["controllers: "], 8, 6, "the controller list")
@@ -450,8 +761,22 @@ def solve_level(log):
         time.sleep(1.5)
         out += log.new()
         text += out
-        if "LevelComplete " in out or "no level running" in out:
+        # "no level running" is NOT proof of completion, and treating it as
+        # such is how a run reported 8 of 8 beaten while the mod had banked 7.
+        # DevTools says it whenever ActiveLevelInterface is null, which covers
+        # a finished level torn down, a level that never loaded, and one we
+        # navigated away from. Mirror solved all its controller groups, filed
+        # seven part checks, never triggered its win condition, and was counted
+        # as beaten anyway - so the credits gate sat one token short with every
+        # visible check green.
+        #
+        # Kept as an EXIT from the solve loop, because there is nothing left to
+        # solve either way, but reported honestly: the caller decides, and it
+        # decides by asking the mod.
+        if "LevelComplete " in out:
             return True, text
+        if "no level running" in out:
+            return "LevelComplete " in text, text
 
         todo = unsolved_controllers(out)
 
@@ -472,20 +797,85 @@ def solve_level(log):
             say(6, f"pass {attempt + 1}: {len(todo)} controller(s) still unsolved "
                    f"(a cat trap resets the puzzle)")
 
+        trapped = False
         for i in todo:
             dev(f"solve:{i}", 0.9)
             chunk = log.new()
             text += chunk
+            if "cat(s) reset the puzzle" in chunk:
+                trapped = True
             if "LevelComplete " in chunk or "no level running" in chunk:
                 return True, text
 
+        # The puzzle was knocked over while we were solving it. That is the
+        # game working, not the level being unfinishable, so give the pass
+        # back - bounded, so a trap arriving every pass still terminates.
+        if trapped and refunds < MAX_REFUNDS:
+            refunds += 1
+            budget += 1
+            say(6, f"a cat trap reset the puzzle mid-solve; "
+                   f"refunding the pass ({refunds}/{MAX_REFUNDS})")
+
+    if refunds:
+        say(6, f"gave up after {budget} passes, {refunds} of them refunded "
+               f"for cat traps")
     return False, text
+
+
+#: Unity FullScreenMode. 0 exclusive, 1 borderless, 2 maximised, 3 windowed.
+WINDOWED = 3
+WINDOW_SIZE = (1280, 720)
+
+#: Where Unity keeps the player's screen choice.
+SCREEN_KEY = r"HKCU\Software\maxinferno\A Little To The Left"
+
+#: The hashed value names Unity generates. They are stable for a given build.
+SCREEN_VALUES = {
+    "Screenmanager Fullscreen mode_h3630240806": WINDOWED,
+    "Screenmanager Fullscreen mode Default_h401710285": WINDOWED,
+    "Screenmanager Resolution Use Native_h1405027254": 0,
+    "Screenmanager Resolution Width_h182942802": WINDOW_SIZE[0],
+    "Screenmanager Resolution Height_h2627697771": WINDOW_SIZE[1],
+}
+
+
+def force_windowed():
+    """Never take over the whole screen.
+
+    A test run should not be able to seize the display. droha asked for this
+    directly - a fullscreen game is disruptive to sit next to, and it makes
+    every screenshot the size of the monitor.
+
+    Done through the registry rather than the command line on purpose: this
+    game shows a configuration dialog when it is given Unity's -screen-*
+    arguments, which reads as a hang to anything waiting on the log. The exe
+    must be launched with NO arguments.
+
+    Best effort. A missing key means a different game build or a different
+    machine, and that is not a reason to fail a run.
+    """
+    try:
+        import winreg
+    except ImportError:
+        return False
+
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                            r"Software\maxinferno\A Little To The Left", 0,
+                            winreg.KEY_SET_VALUE) as key:
+            for name, value in SCREEN_VALUES.items():
+                winreg.SetValueEx(key, name, 0, winreg.REG_DWORD, value)
+        return True
+    except OSError:
+        return False
 
 
 def launch_and_connect(log, phase, what):
     """Start the game and wait for the run to be up. Returns the log text."""
     if ensure_no_steam_relaunch():
         say(phase, "wrote steam_appid.txt so the game stops restarting itself")
+    if force_windowed():
+        say(phase, f"windowed {WINDOW_SIZE[0]}x{WINDOW_SIZE[1]}, not fullscreen")
     log.before_launch()
     subprocess.Popen([EXE], cwd=GAME)
     return log.wait(["connected. ", "Archipelago refused"], 150, phase, what)
@@ -536,6 +926,27 @@ def loaded_level(log, seconds=30, not_this=""):
     return "", text
 
 
+def game_is_running():
+    """Is the game still there at all?
+
+    Nothing asked this, and the harness could therefore spend the rest of its
+    life driving a process that had exited: a run on 2026-09-08 sat printing
+    "waiting for the level (7s left)" for minutes after the game was gone,
+    because a dead game and a slow one look identical through a log file.
+    Every wait in here is really "wait for the game to say something", which a
+    closed game never will.
+    """
+    try:
+        out = subprocess.run(
+            ["powershell", "-NoProfile", "-Command",
+             "@(Get-Process | Where-Object {$_.ProcessName -like '*Little*'})"
+             ".Count"],
+            capture_output=True, text=True, check=False, timeout=20)
+        return not out.stdout.strip().startswith("0")
+    except Exception:
+        return True          # on doubt, carry on; this must never stop a run
+
+
 def boot_level(log, index):
     """Open a level by index and wait until it is actually running.
 
@@ -573,11 +984,46 @@ def to_title(log):
     (after a BEATEN level it does nothing, the state stays RetryUI), and
     replayselect alone made a passing level start failing.
     """
-    dev("replayselect", 3.0)
+    dev("replayselect", 4.0)
     dev("press:Confirm Button", 1.0)
-    dev("menu:levels", 3.0)
+
+    # A click at the Close button first, then the forced transition.
+    #
+    # BE HONEST ABOUT WHAT THIS STEP DOES: measured over one run, 8 unwinds,
+    # the click was handled 7 times but only ONCE actually reached the title.
+    # The other 7 fell through to menu:title below. So this is not what made
+    # the run clean.
+    #
+    # What made the run clean was a change in the MOD: Navigation no longer
+    # redirects ReplayMenu.LevelSelect to GoToLevelSelectForLevel, so the game
+    # opens its own level select. The identical menu:title that used to throw a
+    # NullReferenceException in MenuManager.TransitionMenuOut 6-7 times a run
+    # now runs 7 times with zero errors, because it is tearing down a properly
+    # opened menu instead of a half-built one.
+    #
+    # The click is kept because it is free and occasionally saves the forced
+    # transition, and press: is used rather than clickbutton: because only
+    # press: sends real pointer events - clickbutton: fires onClick.Invoke()
+    # and silently does nothing to a control wired through IPointerClickHandler,
+    # which is how this button was written off as dead once already.
+    # log.new() CONSUMES the buffer, so every read has to be kept - a retry
+    # loop that drops what it read would quietly starve the error census of
+    # the lines it exists to inspect.
+    text = log.new()
+    for attempt in range(3):
+        dev("press:Close Button", 2.5)
+        chunk = log.new()
+        text += chunk
+        if "no active control named Close Button" not in chunk:
+            break
+        time.sleep(1.5)
+
+    # Only if every click missed. DevTools skips a transition to a state the
+    # game is already in, so this is a no-op when Close worked - and the log
+    # says which, because a fallback that is silent is a fallback nobody knows
+    # they are relying on.
     dev("menu:title", 3.0)
-    return log.new()
+    return text + log.new()
 
 
 def check_arrow(log, plan):
@@ -633,9 +1079,64 @@ def check_arrow(log, plan):
     say(5, f"      the arrow opened "
            f"{('slot ' + str(got) + ' ' + name) if got is not None else (name or 'nothing')}"
            f", expected slot 1")
+
+    text += check_pause_exit(log)
+
     close_game()
     time.sleep(2)
     return got, 1, text
+
+
+def check_pause_exit(log):
+    """Press the pause menu's Exit, with a real run up.
+
+    Done HERE, inside the throwaway arrow session, because the two things this
+    needs are a genuine connected run and a genuinely running level - and this
+    session already has both. A standalone probe had neither reliably: the
+    offline run takes a moment to come up after launch, so pressing Exit too
+    early measured the UNPATCHED path and passed for behaviour the fix never
+    touched, and forcing the pause menu open with DevTools while the game sat
+    on a level select drew both screens at once, which is not a state a player
+    can reach.
+
+    What the fix is: vanilla ExitGame decides where to go from the level's
+    KIND, and a run's levels leave it with no answer, so it went nowhere - the
+    same failure already recorded for LevelSelect. Measured before the fix, the
+    click landed and the handler ran and the same twelve buttons were still on
+    screen afterwards.
+
+    The assertion is the mod's own line plus the pause menu being gone. Either
+    alone is too weak: the line without the menu closing would mean the
+    redirect ran and did not work, and the menu closing without the line would
+    mean vanilla handled it and the fix never engaged.
+    """
+    log.new()
+    dev("pause", 2.5)
+    dev("buttons", 1.5)
+    before = log.new()
+    if "Resume Button" not in before:
+        say(5, "      could not open the pause menu; Exit not checked")
+        return before
+
+    # press:, not clickbutton:. The question this check answers is "does Exit
+    # work for a user", and a user generates pointerDown / pointerUp /
+    # pointerClick - which is what press: sends. clickbutton: calls
+    # onClick.Invoke() and reaches only serialised listeners, so it can pass
+    # for a control a real click would never reach.
+    dev("press:Exit Button", 3.0)
+    dev("buttons", 1.5)
+    after = log.new()
+
+    redirected = "Exit -> the title screen" in after
+    closed = "Resume Button" not in after
+    say(5, f"      Exit: redirect ran={redirected}, pause menu closed={closed}")
+
+    # A line the assertion can read. Both halves matter and only one was being
+    # checked: the marker alone would pass for a redirect that ran and left the
+    # player staring at the pause menu, which is the original bug wearing a
+    # log line.
+    verdict = (f"harness: exit check redirect={redirected} closed={closed}\n")
+    return before + after + verdict
 
 
 def play(log, plan):
@@ -665,6 +1166,25 @@ def play(log, plan):
     attempts = collections.Counter()
     credits = False
     idle = 0
+    last_done = True   # nothing is running yet; see the boot site
+
+    # STUCK IS NOT THE SAME AS SLOW, and the loop used to treat them alike.
+    #
+    # idle counts rounds that finished nothing, and stops after 2 per slot.
+    # That is right for a run waiting on abilities: a slot that cannot be
+    # finished yet is normal, and the next item may unblock it. It is quite
+    # wrong for a level that will not LOAD - that never recovers, and at about
+    # 45 seconds a round the harness spent ten minutes re-proving it before
+    # anyone looked. A run that has broken should say so while it is still
+    # worth reading, not eventually.
+    unopened = 0            # boots that produced no level, in a row
+    MAX_UNOPENED = 3
+    last_progress = time.time()
+    STALL_SECONDS = 420     # nothing beaten for seven minutes
+
+    # Slots the mod already had a Beaten token for when this session connected -
+    # the arrow session beats one, and it will never file a second token for it.
+    restored = set()
 
     first = launch_and_connect(log, 5, "the connection")
     if "connected. " not in first:
@@ -674,6 +1194,17 @@ def play(log, plan):
 
     say(6, f"{len(slots)} slots, boundaries {plan['boundaries']}, "
            f"{open_slots} open")
+
+    # "run state: ... N puzzle(s) beaten" is the mod saying how many it
+    # brought with it. Which ones is not logged, so the harness cannot know
+    # WHICH slots - but it can stop demanding a fresh token for that many.
+    for line in transcript.splitlines():
+        if "run state:" in line and "puzzle(s) beaten" in line:
+            try:
+                n = int(line.split("hint page(s) opened, ")[1].split(" puzzle")[0])
+            except (IndexError, ValueError):
+                n = 0
+            restored = set(range(n))
 
     current = None          # slot index of the puzzle now open, or None
     for step in range(1, MAX_ROUNDS + 1):
@@ -697,15 +1228,46 @@ def play(log, plan):
                 break
             current = min(candidates, key=lambda i: (attempts[i], i))
             index, level_id = slots[current]
-            transcript += to_title(log)
+
+            # Only unwind through the menus after a level was FINISHED.
+            #
+            # to_title exists to get off the completion screen, and it does
+            # that by navigating - which DEACTIVATES the level it leaves.
+            # boot:'s teardown destroys active levels only, so a deactivated
+            # one survives with its CheckWinCondition still subscribed, and
+            # every later synthetic solve dies inside the old level's handler.
+            #
+            # That hole was harmless while every round ended in a completion.
+            # Once ability locks started gating the early slots, "boot a level,
+            # fail to finish it, try another" became the common path and the
+            # leak compounded: one run threw 144 times and beat 1 of 8, all of
+            # them NullReferenceException in LevelInterface.CheckWinCondition.
+            #
+            # An unfinished level is still ACTIVE, so booting straight over it
+            # lets the teardown do its job. Nothing to unwind, nothing to leak.
+            if last_done:
+                transcript += to_title(log)
             opened, out = boot_level(log, index)
             transcript += out
             if not opened:
-                say(6, f"round {step}: slot {current} {level_id} did not open")
+                if not game_is_running():
+                    say(6, "STOPPING: the game is no longer running. Everything "
+                           "after this would be the harness talking to itself.")
+                    break
+                unopened += 1
+                say(6, f"round {step}: slot {current} {level_id} did not open "
+                       f"({unopened} in a row)")
                 current, idle = None, idle + 1
+                if unopened >= MAX_UNOPENED:
+                    say(6, f"STOPPING: {unopened} boots in a row produced no "
+                           f"level. That is a broken harness or a broken build, "
+                           f"not a run waiting on items - the remaining rounds "
+                           f"would only repeat it.")
+                    break
                 if idle >= len(slots) * 2:
                     break
                 continue
+            unopened = 0
 
         index, level_id = slots[current]
         attempts[current] += 1
@@ -720,9 +1282,19 @@ def play(log, plan):
             if "waiting on " in line:
                 blocked = " - waiting on " + line.split("waiting on ", 1)[1].strip()
 
+        # The mod's word is final. A level is beaten when the mod banks its
+        # Beaten token, not when the harness runs out of controllers to solve.
+        # A level already beaten in the arrow session files no new token, so a
+        # slot the mod restored at connect counts too.
+        if done and "beaten:" not in (chunk + tail) and current not in restored:
+            done = False
+            blocked = blocked or " - solved, but the mod banked no Beaten token"
+
+        last_done = done
         if done:
             beaten[current] = level_id
             idle = 0
+            last_progress = time.time()
         else:
             idle += 1
         if "credits: unlocked" in transcript:
@@ -736,6 +1308,15 @@ def play(log, plan):
             break
         if idle >= len(slots) * 2:
             say(6, f"nothing finished in {idle} attempts; stopping")
+            break
+
+        # The wall clock, as a backstop to the round counters. Rounds can be
+        # slow for legitimate reasons, so this is generous - but a run that has
+        # beaten nothing for seven minutes is not going to.
+        stalled = time.time() - last_progress
+        if stalled > STALL_SECONDS:
+            say(6, f"STOPPING: nothing has been beaten for {int(stalled)}s. "
+                   f"{len(beaten)}/{len(slots)} done, {open_slots} open.")
             break
 
         current = None
@@ -757,10 +1338,26 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--assets", default="release-test")
     parser.add_argument("--clean-only", action="store_true")
+    parser.add_argument("--quick", action="store_true",
+                        help="three puzzles, no arrow session - for iterating. "
+                             "The full run is the release gate.")
     args = parser.parse_args()
     assets = os.path.join(REPO, args.assets)
 
-    campaign_before = sha(CAMPAIGN)
+    global QUICK
+    if args.quick:
+        QUICK = True
+        print("QUICK MODE: no arrow session, ability locks off, no cat traps. "
+              "Run without --quick before a release.", flush=True)
+
+    if port_open():
+        print(f"port {PORT} is already in use. A leftover MultiServer there "
+              "would be silently tested against instead of this run's - stop "
+              "it first.", flush=True)
+        return 1
+
+    campaign_before = campaign_progress(CAMPAIGN)
+    dailies_before = daily_completions(CAMPAIGN)
 
     say(1, "cleaning the install back to vanilla")
     for item in clean():
@@ -792,8 +1389,15 @@ def main():
         # an open/close/open that read as the game crashing on startup and was
         # pure waste. The first session play() opens is the one these
         # assertions are made against.
-        say(5, "checking the next-level arrow in a session of its own")
-        got, expected, arrow_text = check_arrow(log, plan)
+        if QUICK:
+            # Skipped, and the assertions that depend on it are skipped with
+            # it rather than silently passing on an empty transcript - a check
+            # that cannot fail is worse than one that is absent.
+            say(5, "quick mode: skipping the arrow session")
+            got, expected, arrow_text = None, None, ""
+        else:
+            say(5, "checking the next-level arrow in a session of its own")
+            got, expected, arrow_text = check_arrow(log, plan)
 
         say(5, "launching a clean game and playing the run")
         beaten, credits, transcript, open_slots, text = play(log, plan)
@@ -824,22 +1428,93 @@ def main():
         launches = whole.count("A Little To The Left Archipelago loaded")
         arrows = whole.count("navigation: replay Next") +                  whole.count("navigation: post-level Continue")
         threw = whole.count("solve failed")
+        errors = error_census(whole)
         print(f"      launches: {launches}; arrow presses: {arrows}; "
               f"solve exceptions: {threw}", flush=True)
         # Two: one throwaway for the arrow, one for the run. See check_arrow.
-        results.append(("two game launches, no more", launches == 2))
+        # Quick mode runs only one session, so the expected count changes with
+        # it rather than the check being dropped.
+        results.append(("two game launches, no more" if not QUICK
+                        else "one game launch, no more",
+                        launches == (1 if QUICK else 2)))
         # The arrow is the route a player uses, so the harness uses it too -
         # a run that quietly fell back to opening every level itself would
         # still pass everything else while testing none of that navigation.
         # The player's route, asserted: the arrow opened the slot the run says
         # is next. Pressed once - see play() for why it is not how the harness
         # advances.
-        results.append(("the next-level arrow opens the run's next puzzle",
-                        got is not None and got == expected))
+        # Both live in the arrow session. In quick mode they are OMITTED, not
+        # passed - a skipped check must not look like a green one, or the
+        # cheap run starts getting mistaken for the full one.
+        if not QUICK:
+            results.append(("the pause menu Exit leaves the level",
+                            "harness: exit check redirect=True closed=True" in whole))
+            results.append(("the next-level arrow opens the run's next puzzle",
+                            got is not None and got == expected))
 
         results.append(("no solve threw inside the game", threw == 0))
 
+        # EVERY error, not just the one kind this harness happened to grep for.
+        #
+        # Until 2026-09-07 the only failure counted was "solve failed", so a
+        # run could report "solve exceptions: 0" while the game logged dozens
+        # of others and the harness called it green. droha spotted it in a log:
+        # to_title's unwind was failing at every step -
+        #
+        #     SetGameState for Type Levels_GameState failed
+        #     press: no active control named Confirm Button
+        #     SetGameState: Levels_GameState already active
+        #     menu failed: NullReferenceException at
+        #         MenuManager.TransitionMenuOut / CloseActiveMenu
+        #
+        # - and none of it was counted, reported, or assertible. A harness that
+        # greps for one string is not measuring the game's health; it is
+        # measuring its own vocabulary.
+        new_errors = unexplained(errors)
+        if errors:
+            print("      errors logged during the run:", flush=True)
+            for signature, n, before in errors:
+                tag = "" if (signature, n, before) in new_errors else "  [known]"
+                print(f"         {n:4d}  {signature}{tag}", flush=True)
+                if (signature, n, before) in new_errors:
+                    for prior in before:
+                        print(f"               after: {prior[:120]}", flush=True)
+        results.append(("the game logged no unexplained errors", not new_errors))
+
+        # The location table against the running game, asserted rather than
+        # logged. See table_audit.
+        gaps = table_audit(whole)
+        if gaps:
+            print("      the shipped table disagrees with the running game:",
+                  flush=True)
+            for line in gaps[:10]:
+                print(f"         {line[:160]}", flush=True)
+        results.append(("the controller table matches every level played",
+                        not gaps))
+
         results.append((f"all {PUZZLES} puzzles beaten", len(beaten) >= PUZZLES))
+
+        # The mod's tally, beside the harness's. These measure the same thing
+        # from opposite sides, and when they disagree the harness is wrong -
+        # it counts what it did, the mod counts what was banked.
+        banked = len(set(l.split("beaten: ")[1].strip()
+                         for l in whole.splitlines() if "beaten: " in l))
+        print(f"      the mod banked {banked} Beaten token(s) this session",
+              flush=True)
+        # Restored is read from the transcript here rather than passed out of
+        # play(): the mod states it at connect, and main() has the whole log.
+        carried = 0
+        for line in whole.splitlines():
+            if "run state:" in line and "puzzle(s) beaten" in line:
+                try:
+                    carried = max(carried, int(
+                        line.split("hint page(s) opened, ")[1].split(" puzzle")[0]))
+                except (IndexError, ValueError):
+                    pass
+        print(f"      the mod carried {carried} in and banked {banked} here",
+              flush=True)
+        results.append(("the mod agrees every puzzle was beaten",
+                        banked + carried >= PUZZLES))
         results.append((f"packs opened all {PUZZLES} slots, not just the first 4",
                         open_slots >= PUZZLES))
         results.append(("checks reached the server", "checks: sent " in whole))
@@ -866,8 +1541,10 @@ def main():
         close_game()
         time.sleep(2)
 
-    results.append(("the campaign save is byte-identical",
-                    sha(CAMPAIGN) == campaign_before))
+    results.append(("the campaign progress is untouched",
+                    campaign_progress(CAMPAIGN) == campaign_before))
+    results.append(("the run credited no real daily",
+                    daily_completions(CAMPAIGN) == dailies_before))
     results.append(("the run wrote its own save instead",
                     any(f.startswith("save_ap_") for f in os.listdir(SAVE_DIR))))
 
@@ -907,6 +1584,9 @@ def self_test():
     # had been redirected away from. A name lookup costs nothing and fails
     # before the game is ever launched.
     for name in ("launch_and_connect", "open_count", "loaded_level", "to_title",
+                 "check_pause_exit", "error_census", "unexplained", "table_audit",
+                 "force_windowed",
+                 "game_is_running",
                  "boot_level", "solve_level", "play", "read_plan", "clean",
                  "install_mod", "install_apworld", "write_config", "generate"):
         if name not in globals():
@@ -940,6 +1620,16 @@ def self_test():
                     v = node.optional_vars
                     if isinstance(v, ast.Name):
                         bound.add(v.id)
+                elif isinstance(node, ast.Lambda):
+                    # Lambda parameters are bindings too. Without this the
+                    # checker reported error_census()'s sort key as an
+                    # undefined name and refused to run the whole harness -
+                    # a false positive that is worse than the misses it was
+                    # written to catch, because it blocks rather than warns.
+                    for a_ in node.args.args:
+                        bound.add(a_.arg)
+                    for a_ in node.args.posonlyargs + node.args.kwonlyargs:
+                        bound.add(a_.arg)
             for node in ast.walk(fn):
                 if (isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
                         and node.id not in bound and node.id not in known):
