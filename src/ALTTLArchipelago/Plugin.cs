@@ -139,6 +139,7 @@ public sealed class Plugin : BasePlugin
                      ("skips", typeof(Skips)),
                      ("hints", typeof(Hints)),
                      ("navigation", typeof(Navigation)),
+                     ("daily guard", typeof(DailyGuard)),
                      ("title screen", typeof(TitleScreen)),
                  })
         {
@@ -157,6 +158,17 @@ public sealed class Plugin : BasePlugin
                 Logger.LogError($"PATCH FAILED, {name} IS DISABLED: {e.Message}");
                 failed.Add(name);
             }
+        }
+
+        // Resolved by name, so it runs after the attribute patches and reports
+        // its own misses rather than aborting the class. See DailyGuard.
+        try
+        {
+            DailyGuard.InstallOptional(harmony);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError($"daily guard: optional patches failed: {e.Message}");
         }
 
         Plugin.Logger.LogInfo($"features live: {string.Join(", ", applied)}");
@@ -320,6 +332,7 @@ public sealed class Plugin : BasePlugin
         // front of the replay.
         _replayQuietFor = ReplayQuiet;
         _replayed = 0;
+        _replayedNames.Clear();
 
         var connection = new Connection(Hub.OnMainThread);
         // The connection is passed in, not read from _session: Ready fires
@@ -352,6 +365,7 @@ public sealed class Plugin : BasePlugin
             if (_replayQuietFor > 0f)
             {
                 _replayed++;
+                _replayedNames.Add(item.Name ?? "(unnamed)");
                 return;
             }
 
@@ -491,8 +505,23 @@ public sealed class Plugin : BasePlugin
     /// pending timer fires a moment later and reconnects the session the
     /// player just asked to leave.
     /// </summary>
-    internal static void DisconnectNow()
+    internal static void DisconnectNow(string why = "unspecified")
     {
+        // WHO asked, in the log.
+        //
+        // A playtester reported being dropped to the DEFAULT title menu with
+        // Archipelago reading "disconnected", after finishing a level, without
+        // touching the pane - and having to reconnect by hand. The title menu
+        // only reverts when Track.End() runs, and Track.End() is reachable
+        // only from here, which in turn is reachable only from the pane button
+        // and from Unload. A socket drop does NOT come through here: OnDropped
+        // keeps the run redirected and retries.
+        //
+        // So the code says this cannot happen unasked, and the report says it
+        // did. Rather than guess, every route now names itself. The next
+        // occurrence will say whether a click arrived, the plugin unloaded, or
+        // something else entirely is calling this.
+        Logger.LogInfo($"disconnecting ({why})");
         _connectGen++;              // any in-flight attempt is now stale
         _retryIn = 0f;
         _connecting = false;
@@ -518,7 +547,7 @@ public sealed class Plugin : BasePlugin
         Inventory.End();
         RunState.End();
         SaveRedirect.End();
-        Logger.LogInfo("disconnected");
+        Logger.LogInfo($"disconnected ({why})");
         ConnectionPane.RefreshStatus();
     }
 
@@ -670,6 +699,16 @@ public sealed class Plugin : BasePlugin
     private static int _replayed;
 
     /// <summary>
+    /// The names behind the count, because the count on its own reads wrong.
+    ///
+    /// "Restored 1 item(s) from the server" on a brand new run looks like
+    /// leftover state from a previous game - droha asked whether it was a
+    /// clean run, and it was: one starting ability, replayed on connect. A
+    /// player cannot tell those apart from a number, and should not have to.
+    /// </summary>
+    private static readonly List<string> _replayedNames = new();
+
+    /// <summary>
     /// Close the quiet window once the replay stops, and say what arrived.
     ///
     /// One line instead of one per item. Silence would be worse: a player
@@ -687,8 +726,50 @@ public sealed class Plugin : BasePlugin
 
         var n = _replayed;
         _replayed = 0;
-        Logger.LogInfo($"items: {n} restored on connect");
-        Toasts.Show($"Restored {n} item(s) from the server", Toasts.Notice);
+
+        // Aggregated, because a replay is mostly duplicates - "Progressive
+        // Puzzle Pack x7" says something, seven identical lines do not.
+        var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var name in _replayedNames)
+        {
+            counts.TryGetValue(name, out var seen);
+            counts[name] = seen + 1;
+        }
+        _replayedNames.Clear();
+
+        var parts = new List<string>();
+        foreach (var pair in counts)
+        {
+            parts.Add(pair.Value > 1 ? $"{pair.Key} x{pair.Value}" : pair.Key);
+        }
+        parts.Sort(StringComparer.Ordinal);
+        var listed = parts.Count > 0 ? string.Join(", ", parts) : "nothing";
+
+        // "RESTORED" IS ONLY TRUE IF THERE WAS SOMETHING TO RESTORE.
+        //
+        // The server replays everything the slot holds on every connect, so
+        // this same code path runs twice over for two quite different events:
+        // handing a brand new run its starting kit, and giving a reconnecting
+        // player their progress back. Calling both "restored" made a fresh run
+        // read like leftover state from a previous game - which is exactly the
+        // doubt it caused, twice, before it was worth fixing.
+        //
+        // Nothing collected means nothing to restore, so what arrived is what
+        // the run STARTS with.
+        var fresh = Checks.Ledger.Collected.Count == 0;
+        var verb = fresh ? "starting with" : "restored on connect";
+
+        Logger.LogInfo($"items: {n} {verb}: {listed}");
+
+        // The toast gets the first few and a count for the rest. A wall of
+        // text on screen is its own kind of unreadable, and the log has the
+        // full list for anyone who wants it.
+        var shown = parts.Count <= 4
+            ? listed
+            : string.Join(", ", parts.GetRange(0, 4)) + $", +{parts.Count - 4} more";
+        Toasts.Show(fresh
+            ? $"Starting with {n} item(s): {shown}"
+            : $"Restored {n} item(s): {shown}", Toasts.Notice);
     }
 
     // ------------------------------------------------------------------
@@ -912,7 +993,7 @@ public sealed class Plugin : BasePlugin
 
     public override bool Unload()
     {
-        DisconnectNow();
+        DisconnectNow("the plugin is unloading");
         return true;
     }
 }
@@ -926,26 +1007,70 @@ public sealed class Ticker : MonoBehaviour
 {
     public Ticker(IntPtr pointer) : base(pointer) { }
 
+    /// <summary>
+    /// Failures already reported, so a step that throws every frame says so
+    /// once instead of sixty times a second.
+    /// </summary>
+    private static readonly HashSet<string> _reported = new();
+
+    /// <summary>
+    /// Run one tick step, and do not let it take the rest of the frame with it.
+    ///
+    /// This list used to be nineteen bare calls in a row with no try anywhere.
+    /// One throw took out every step BELOW it, silently and for as long as the
+    /// condition lasted - and the order matters: Toasts.Tick is tenth, so a
+    /// fault in Hub, Checks.TickAudit or Abilities.Tick stopped toasts
+    /// appearing while leaving everything above them working. "The toast
+    /// message doesn't always pop up" is exactly what that looks like from the
+    /// outside, with nothing in the log to say why.
+    ///
+    /// Isolating the steps does not fix a broken step; it stops one broken step
+    /// from presenting as several unrelated bugs, and names it in the log.
+    /// </summary>
+    private static void Step(string name, Action step)
+    {
+        try
+        {
+            step();
+        }
+        catch (Exception e)
+        {
+            if (_reported.Add(name))
+            {
+                Plugin.Logger.LogError(
+                    $"tick: '{name}' threw and is being skipped from here on "
+                    + $"(reported once): {e}");
+            }
+        }
+    }
+
     private void Update()
     {
-        Hub.Tick();
-        Plugin.TickRetry(Time.unscaledDeltaTime);
-        Plugin.TickChecks(Time.unscaledDeltaTime);
-        Plugin.TickOfflineStart(Time.unscaledDeltaTime);
-        SlotCache.Tick(Time.unscaledDeltaTime);
-        Plugin.TickItemReplay(Time.unscaledDeltaTime);
-        Checks.TickAudit(Time.unscaledDeltaTime);
-        Checks.TickEmptyLevelWatch(Time.unscaledDeltaTime);
-        Abilities.Tick(Time.unscaledDeltaTime);
-        Toasts.Tick(Time.unscaledDeltaTime);
-        Track.TickTrackIntegrity(Time.unscaledDeltaTime);
-        Badges.Tick(Time.unscaledDeltaTime);
-        Badges.TickWhy(Time.unscaledDeltaTime);
-        Plugin.TickCredits(Time.unscaledDeltaTime);
-        Traps.Tick(Time.unscaledDeltaTime);
-        Backgrounds.Tick();
-        Navigation.TickMenuCounts();
-        Track.TickCreditsCard();
-        TypingGuard.Tick(ConnectionPane.FocusedField, ConnectionPane.FocusNext);
+        var dt = Time.unscaledDeltaTime;
+
+        Step("hub", () => Hub.Tick());
+        Step("retry", () => Plugin.TickRetry(dt));
+        Step("checks", () => Plugin.TickChecks(dt));
+        Step("offline start", () => Plugin.TickOfflineStart(dt));
+        Step("slot cache", () => SlotCache.Tick(dt));
+        Step("item replay", () => Plugin.TickItemReplay(dt));
+        Step("check audit", () => Checks.TickAudit(dt));
+        Step("empty level watch", () => Checks.TickEmptyLevelWatch(dt));
+        Step("abilities", () => Abilities.Tick(dt));
+        Step("toasts", () => Toasts.Tick(dt));
+        Step("track integrity", () => Track.TickTrackIntegrity(dt));
+        Step("badges", () => Badges.Tick(dt));
+        Step("badge reasons", () => Badges.TickWhy(dt));
+        Step("credits", () => Plugin.TickCredits(dt));
+        Step("traps", () => Traps.Tick(dt));
+        Step("backgrounds", () => Backgrounds.Tick());
+        Step("menu counts", () => Navigation.TickMenuCounts());
+        Step("credits card", () => Track.TickCreditsCard());
+        Step("track scroll", () => Track.TickScroll(dt));
+        Step("daily rescue", () => DailyGuard.TickRescue(dt));
+        Step("connected tag", () => Badges.TickConnectedTag());
+        Step("overview dots", () => Badges.TickOverviewDots());
+        Step("typing guard",
+            () => TypingGuard.Tick(ConnectionPane.FocusedField, ConnectionPane.FocusNext));
     }
 }
