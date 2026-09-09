@@ -73,7 +73,13 @@ SLOT = "droha"
 #: gives up is coverage of the arrow, the pause-menu Exit, and the launch
 #: count, which are the parts that need a second session.
 PUZZLES = 8
-PACKS = 2
+
+#: Requested pack size. How many packs that BUYS is items._pack_cap's
+#: call, not ours - at 8 puzzles the cap is 1, so the request widens to a
+#: single pack of 4. Asserting a pack count here instead of reading the
+#: generator's boundaries is what made 'the run has 2 packs' fail on every
+#: run for as long as the cap has existed.
+PACK_SIZE = 2
 MAX_ROUNDS = 60
 QUICK = False
 
@@ -134,6 +140,24 @@ def campaign_progress(path):
         return None
     kept = {k: v for k, v in data.items() if k not in IGNORED_CAMPAIGN_FIELDS}
     return json.dumps(kept, sort_keys=True)
+
+
+def campaign_diff(before, after):
+    """Which top-level fields moved, for the failure line.
+
+    A bare "the campaign progress is untouched: FAIL" is the most alarming
+    line this harness can print and it says nothing about severity. On
+    2026-09-09 it fired for playerPrefs.fullscreen - a display setting the
+    harness itself had flipped - while levelCompletionData was byte-identical,
+    and telling those two apart took a manual decode of both saves. Name the
+    fields and the reader can judge in one line.
+    """
+    if before is None or after is None:
+        return "one of the saves could not be read"
+    a = json.loads(before)
+    b = json.loads(after)
+    moved = sorted(k for k in set(a) | set(b) if a.get(k) != b.get(k))
+    return ", ".join(moved) if moved else "nothing"
 
 
 def daily_completions(path):
@@ -459,12 +483,20 @@ def clean():
 
 
 def install_mod(assets):
-    zip_path = os.path.join(assets, "ALTTLArchipelago-0.3.0.zip")
-    if not os.path.isfile(zip_path):
-        candidates = [f for f in os.listdir(assets) if f.endswith(".zip")]
-        if not candidates:
-            sys.exit(f"no mod zip in {assets}")
-        zip_path = os.path.join(assets, candidates[0])
+    """Unpack the mod zip, and refuse if it is ambiguous which one.
+
+    The version used to be written in here as a literal, which quietly
+    became "prefer 0.3.0 if it is present". An assets folder holding last
+    release's zip beside this one would then test LAST release and report
+    a pass, which is the one outcome this harness must never produce.
+    """
+    candidates = sorted(f for f in os.listdir(assets) if f.endswith(".zip"))
+    if not candidates:
+        sys.exit(f"no mod zip in {assets}")
+    if len(candidates) > 1:
+        sys.exit(f"{len(candidates)} mod zips in {assets} - "
+                 f"which one is the release? {', '.join(candidates)}")
+    zip_path = os.path.join(assets, candidates[0])
 
     with zipfile.ZipFile(zip_path) as z:
         names = [n for n in z.namelist() if n.endswith(".dll")]
@@ -514,10 +546,18 @@ def generate():
             "A Little to the Left:\n"
             f"  puzzle_count: {PUZZLES}\n"
             f"  levels_to_beat: {PUZZLES}\n"
-            # pack_size 2 over 8 puzzles gives boundaries [4, 6, 8]: four open
-            # free, then two packs of two. Measured, not guessed - pack_size 4
-            # would give ONE pack and test half of what this is for.
-            "  pack_size: 2\n"
+            # The smallest pack the generator will honour, to get as many
+            # packs as an 8-puzzle run can carry.
+            #
+            # IT WILL NOT HONOUR 2 HERE, and the assertion below no longer
+            # pretends otherwise. items._pack_cap caps a run at
+            # round(puzzle_count * 0.18) packs, which for 8 puzzles is ONE,
+            # so the request widens to a single pack of 4 and the
+            # boundaries come out [4, 8] - not the [4, 6, 8] this comment
+            # used to claim as "measured, not guessed". Measured it was,
+            # but before the cap existed; it then went on being asserted
+            # as a hard-coded 2 that no 8-puzzle seed could satisfy.
+            f"  pack_size: {PACK_SIZE}\n"
             # QUICK trades the two things that make a run long and variable,
             # not its size: puzzle_count has a floor of 8, so there is nothing
             # to shrink there.
@@ -791,7 +831,16 @@ def solve_level(log):
             more = log.wait(["LevelComplete ", "no level running"], 6, 6,
                             "the completion")
             text += more
-            return ("LevelComplete " in more or "no level running" in more), text
+            finished = ("LevelComplete " in more
+                        or "no level running" in more)
+            if not finished:
+                # EXHAUSTED: nothing left to solve and the game still will
+                # not call it done. Marked in the returned text because
+                # that text is the only channel back to the caller - the
+                # say() above goes to stdout, and a first attempt at this
+                # grepped for that message and so never matched anything.
+                text += "\nharness: level exhausted, no completion\n"
+            return finished, text
 
         if attempt:
             say(6, f"pass {attempt + 1}: {len(todo)} controller(s) still unsolved "
@@ -831,6 +880,14 @@ SCREEN_KEY = r"HKCU\Software\maxinferno\A Little To The Left"
 
 #: The hashed value names Unity generates. They are stable for a given build.
 SCREEN_VALUES = {
+    # THE BOOLEAN, and leaving it out is why this did not work. Unity keeps
+    # "which mode" and "am I fullscreen" as SEPARATE values, and the game reads
+    # this one. Setting only the mode left it fullscreen, and on exit the game
+    # wrote its own choice back over every key below - so a run that printed
+    # "windowed 1280x720" actually played at 1920 borderless and flipped
+    # playerPrefs.fullscreen to true in the player's save. Which then failed
+    # the campaign-save assertion, for a display setting.
+    "Screenmanager Is Fullscreen mode_h3981298716": 0,
     "Screenmanager Fullscreen mode_h3630240806": WINDOWED,
     "Screenmanager Fullscreen mode Default_h401710285": WINDOWED,
     "Screenmanager Resolution Use Native_h1405027254": 0,
@@ -862,9 +919,16 @@ def force_windowed():
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
                             r"Software\maxinferno\A Little To The Left", 0,
-                            winreg.KEY_SET_VALUE) as key:
+                            winreg.KEY_SET_VALUE | winreg.KEY_QUERY_VALUE) as key:
             for name, value in SCREEN_VALUES.items():
                 winreg.SetValueEx(key, name, 0, winreg.REG_DWORD, value)
+            # READ BACK. The previous version returned True on a successful
+            # write and the caller printed "not fullscreen" on the strength of
+            # it, which was a claim about the registry rather than about the
+            # game. Reporting what is actually stored costs one read.
+            for name, value in SCREEN_VALUES.items():
+                if winreg.QueryValueEx(key, name)[0] != value:
+                    return False
         return True
     except OSError:
         return False
@@ -1164,6 +1228,8 @@ def play(log, plan):
     by_name = {name: i for i, (_, name) in enumerate(slots)}
     beaten = {}
     attempts = collections.Counter()
+    #: Slots a Skip has already been spent on - one each, at most.
+    skipped = set()
     credits = False
     idle = 0
     last_done = True   # nothing is running yet; see the boot site
@@ -1277,6 +1343,51 @@ def play(log, plan):
         tail = log.wait(["beaten:", "check:", "credits:"], 10, 6, "the check")
         transcript += tail
 
+        # A LEVEL THAT CANNOT BE FORCED GETS SKIPPED, ONCE.
+        #
+        # solve: sets a controller's solved flag and dispatches the event.
+        # That is enough for most levels and not enough for a PHASED one:
+        # PawPrints registers five controllers, all five solve, all five
+        # checks fire, and PawPrintsPhaseLevel still never raises
+        # LevelComplete because its phase machine wants the real solve
+        # path. The mod is right to bank no Beaten token; the harness is
+        # simply unable to finish that puzzle.
+        #
+        # It used to loop on it - nineteen rounds, 441 seconds, then stop
+        # one puzzle short of the credits and fail six assertions that had
+        # nothing wrong with them. Phased campaign levels became drawable
+        # in 0.3.1, so this stopped being hypothetical.
+        #
+        # A Skip is the player's own answer to a puzzle they cannot do,
+        # and since 0.3.1 it finishes the slot and counts toward the
+        # credits. Spending one here keeps the run honest AND exercises
+        # the Skip item, which nothing else in this harness touches.
+        #
+        # Once per slot, and only when the level is EXHAUSTED - every
+        # controller solved with no completion. A skip on a level that
+        # still has unsolved controllers would paper over a real routing
+        # bug, which is the opposite of what this is for.
+        # Only the truly exhausted case. A level with controllers still
+        # unsolved is a level the harness gave up on, and skipping that
+        # would hide a real routing or gating bug behind a green run.
+        exhausted = "harness: level exhausted" in chunk
+        if not done and exhausted and current not in skipped:
+            skipped.add(current)
+            log.new()
+            dev("skip", 1.5)
+            more = log.wait(["beaten:", "skip:", "check:"], 12, 6,
+                            "the skip")
+            transcript += more
+            chunk += more
+            tail += more
+            if "skip: spent one" in more:
+                say(6, f"slot {current} {level_id} cannot be force-solved; "
+                       f"spent a Skip")
+            elif "skip:" in more:
+                say(6, f"slot {current} {level_id} cannot be force-solved "
+                       f"and there was no Skip to spend")
+            done = "beaten:" in more
+
         blocked = ""
         for line in (chunk + tail).splitlines():
             if "waiting on " in line:
@@ -1375,7 +1486,8 @@ def main():
     digest = install_apworld(assets)
     print(f"      alttl.apworld sha256 {digest}, no loose copy", flush=True)
 
-    say(4, f"generating {PUZZLES} puzzles / {PACKS} packs")
+    say(4, f"generating {PUZZLES} puzzles, asking for packs of {PACK_SIZE} "
+           f"(the cap decides how many)")
     out_dir, seed_zip = generate()
     plan = read_plan(out_dir, seed_zip)
     print(f"      {seed_zip}, boundaries {plan['boundaries']}", flush=True)
@@ -1414,8 +1526,16 @@ def main():
 
         results.append((f"the run is {PUZZLES} puzzles",
                         f"{PUZZLES} puzzles" in connected))
-        results.append((f"the run has {PACKS} packs",
-                        f"{PACKS} packs of" in connected))
+        # Against the boundaries the GENERATOR chose, not a number written
+        # here. The two are allowed to differ - the pack cap widens packs
+        # to fit - and when they do it is the generator that is right.
+        # What must never differ is the generator's plan and the mod's
+        # reading of it, which is the thing worth asserting.
+        want_packs = max(0, len(plan["boundaries"]) - 1)
+        results.append((f"the mod sees the generator's {want_packs} pack(s)",
+                        f"{want_packs} packs of" in connected))
+        results.append(("the run is more than its free opening",
+                        want_packs >= 1))
         track = line_with(text, "track: ")
         print(f"      {track}", flush=True)
         results.append(("the track opens with 4 puzzles, not all 8",
@@ -1541,8 +1661,12 @@ def main():
         close_game()
         time.sleep(2)
 
+    campaign_after = campaign_progress(CAMPAIGN)
+    if campaign_after != campaign_before:
+        print(f"      campaign fields that moved: "
+              f"{campaign_diff(campaign_before, campaign_after)}", flush=True)
     results.append(("the campaign progress is untouched",
-                    campaign_progress(CAMPAIGN) == campaign_before))
+                    campaign_after == campaign_before))
     results.append(("the run credited no real daily",
                     daily_completions(CAMPAIGN) == dailies_before))
     results.append(("the run wrote its own save instead",
