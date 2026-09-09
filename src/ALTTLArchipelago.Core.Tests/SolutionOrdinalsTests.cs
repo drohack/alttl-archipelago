@@ -67,4 +67,68 @@ public class SolutionOrdinalsTests
         Assert.Equal(0, ordinals.Record(-1, "Stacked_0"));
         Assert.Equal(0, ordinals.CountFor(-1));
     }
+
+    /// <summary>
+    /// THE BUG THIS CLASS SHIPPED WITH, PINNED.
+    ///
+    /// The counter lived only in memory, so relaunching the game restarted it
+    /// at 1 and the next arrangement re-filed "Solution 1" - a location already
+    /// collected. droha found all three arrangements of Snow Globes, the game
+    /// recorded 3 of 3, and the server had exactly one check. The other two
+    /// were filed against a collected location and went nowhere, leaving a card
+    /// that looked unfinished with nothing obvious left to do.
+    /// </summary>
+    [Fact]
+    public void SeedingRestoresOrdinalsSoARelaunchDoesNotRefileSolutionOne()
+    {
+        var before = new SolutionOrdinals();
+        Assert.Equal(1, before.Record(0, "Pan_0"));
+        Assert.Equal(2, before.Record(0, "Pan_1"));
+
+        // The game closes. A fresh session, and the save says two arrangements
+        // were already found.
+        var after = new SolutionOrdinals();
+        Assert.Equal(2, after.Seed(0, new[] { "Pan_0", "Pan_1" }));
+
+        // The third arrangement must file Solution 3, not Solution 1.
+        Assert.Equal(3, after.Record(0, "Pan_2"));
+
+        // And a repeat of an old one is still not a new check.
+        Assert.Equal(0, after.Record(0, "Pan_0"));
+    }
+
+    [Fact]
+    public void SeedingTwiceIsHarmless()
+    {
+        // EnterSlot runs every time the card is opened, so this happens.
+        var ordinals = new SolutionOrdinals();
+
+        Assert.Equal(2, ordinals.Seed(0, new[] { "a", "b" }));
+        Assert.Equal(0, ordinals.Seed(0, new[] { "a", "b" }));
+        Assert.Equal(1, ordinals.Seed(0, new[] { "a", "b", "c" }));
+        Assert.Equal(3, ordinals.CountFor(0));
+    }
+
+    [Fact]
+    public void SeedingDoesNotLeakBetweenSlots()
+    {
+        var ordinals = new SolutionOrdinals();
+
+        ordinals.Seed(0, new[] { "a", "b" });
+
+        // A different slot of the same generator level shares solution ids, and
+        // must still start from the beginning.
+        Assert.Equal(1, ordinals.Record(1, "a"));
+        Assert.Equal(2, ordinals.CountFor(0));
+    }
+
+    [Fact]
+    public void SeedingIgnoresNonsenseRatherThanThrowing()
+    {
+        var ordinals = new SolutionOrdinals();
+
+        Assert.Equal(0, ordinals.Seed(-1, new[] { "a" }));
+        Assert.Equal(0, ordinals.Seed(0, null!));
+        Assert.Equal(0, ordinals.CountFor(0));
+    }
 }

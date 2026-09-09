@@ -40,6 +40,19 @@ internal static class Checks
     private static readonly SolutionOrdinals _solutions = new();
 
     /// <summary>
+    /// How many times each (slot, controller) has solved with no location
+    /// behind it, so the line is said once instead of once per frame.
+    ///
+    /// In the 0.3.0 playtest log this accounted for 723 of 736 such lines:
+    /// 'Constellations' on slot 28 raised its solved event 362 times and on
+    /// slot 11 361 times. Some controllers re-raise every frame while they sit
+    /// in their solved state. That is harmless - the location is already
+    /// collected - but it buried the eleven lines that were real, and those
+    /// are the ones that say a controller map is wrong.
+    /// </summary>
+    private static readonly Dictionary<string, int> _unrouted = new(StringComparer.Ordinal);
+
+    /// <summary>
     /// The IL2CPP side holds listeners through a weak wrapper, so a delegate
     /// that is not rooted on the managed side stops firing at the first GC.
     /// This list is the entire reason the subscriptions keep working.
@@ -74,6 +87,7 @@ internal static class Checks
         _slot = slot;
         _ledger = new CheckLedger();
         _solutions.Clear();
+        _unrouted.Clear();
         _currentSlot = -1;
         Attach();
     }
@@ -95,7 +109,7 @@ internal static class Checks
     internal static void EnterSlot(int slotIndex)
     {
         _currentSlot = slotIndex;
-        _audited = false;
+        _auditedCount = 0;
 
         // Any skip in flight belongs to the level we just left. If it never
         // produced a completion, the flag would otherwise sit set and swallow
@@ -117,17 +131,167 @@ internal static class Checks
         // renders - still held the level's own.
         Backgrounds.ApplyToLevel();
 
+        SeedSolutionsFromSave(slotIndex);
+
         Plugin.Logger.LogInfo($"checks: now playing slot {slotIndex}");
+    }
+
+    /// <summary>
+    /// The arrangements a save list records for a level, or null if the list
+    /// does not mention it at all.
+    ///
+    /// Null rather than an empty list on purpose: "this level is not in this
+    /// list" and "this level is in this list with nothing found" are different
+    /// answers, and only the first should send the caller on to the other list.
+    /// </summary>
+    private static List<string>? SolutionIdsFor(
+        Il2CppSystem.Collections.Generic.List<SaveData.LevelCompletionData>? all,
+        string levelId)
+    {
+        if (all == null) return null;
+
+        for (int i = 0; i < all.Count; i++)
+        {
+            var entry = all[i];
+            if (entry == null || entry.levelId != levelId) continue;
+
+            var ids = new List<string>();
+            var solutions = entry.solutions;
+            for (int k = 0; solutions != null && k < solutions.Count; k++)
+            {
+                var one = solutions[k];
+                if (one != null) ids.Add(one.solutionId ?? "");
+            }
+            return ids;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Hand over solution checks the player earned but never received.
+    ///
+    /// SEEDING ALONE WOULD HAVE MADE THE BUG PERMANENT. Restoring the ordinals
+    /// stops a relaunch re-filing Solution 1, but on a run that already lost
+    /// checks it also means every arrangement is now "seen", so Record returns
+    /// 0 forever and the missing locations can never be filed. droha's Snow
+    /// Globes had all three arrangements found and one check banked; the fix
+    /// for future sessions would have frozen the other two out for good.
+    ///
+    /// Finding N distinct arrangements earns Solutions 1 to N. That is the
+    /// whole rule, and it is true regardless of which session each was found
+    /// in, so anything short is simply owed.
+    ///
+    /// Reachability is still respected, exactly as SweepAlreadySolved does it:
+    /// a solution the run cannot currently reach stays uncollected rather than
+    /// handing out an item the logic says is not earned. It will be filed on a
+    /// later visit once the ability arrives.
+    /// </summary>
+    private static void FileSolutionsAlreadyEarned(int slotIndex)
+    {
+        if (_router == null || _progress == null) return;
+
+        var abilities = Inventory.Abilities;
+        if (abilities == null) return;
+        var packs = Track.State?.PacksHeld ?? 0;
+
+        var found = _solutions.CountFor(slotIndex);
+        for (int n = 1; n <= found; n++)
+        {
+            var location = _router.ForSolution(slotIndex, n);
+            if (location == null || _ledger.IsCollected(location)) continue;
+            if (!_progress.IsReachable(location, packs, abilities)) continue;
+
+            Plugin.Logger.LogInfo(
+                $"checks: {location} was earned in an earlier session but never "
+                + "filed - sending it now");
+            Report(location);
+        }
+    }
+
+    /// <summary>
+    /// Tell the ordinal counter which arrangements this slot already found.
+    ///
+    /// The counter is what turns a completion into a location: first new
+    /// arrangement files "Solution 1", second files "Solution 2". It lived only
+    /// in memory, so every relaunch restarted it at 1 and re-filed a location
+    /// that was already collected. droha found all three arrangements of Snow
+    /// Globes across two sessions; the game recorded 3 of 3 and the server had
+    /// one check, with the other two quietly dropped.
+    ///
+    /// Read from the game's save rather than from the ledger on purpose. The
+    /// ledger knows HOW MANY solution locations are collected, but not WHICH
+    /// arrangements produced them, so it cannot tell a repeat of an old
+    /// arrangement from a genuinely new one - and treating a repeat as new
+    /// would hand out a check the player has not earned. The save stores the
+    /// solutionIds themselves, which is exactly the question being asked.
+    ///
+    /// Called on every slot entry. Seed skips ids it already holds, so the
+    /// repeat is free.
+    /// </summary>
+    private static void SeedSolutionsFromSave(int slotIndex)
+    {
+        if (_slot == null || slotIndex < 0 || slotIndex >= _slot.Slots.Count) return;
+
+        try
+        {
+            var levelId = _slot.Slots[slotIndex].LevelId;
+            var data = SaveSystem.data;
+            if (data == null) return;
+
+            // BOTH LISTS. The save keeps campaign and archive progress apart,
+            // and 26 of the 111 levels a seed can draw are archive levels - a
+            // quarter of the pool. Reading only levelCompletionData found
+            // nothing for Snow Globes and quietly did nothing, which looked
+            // exactly like the fix working.
+            var ids = SolutionIdsFor(data.levelCompletionData, levelId)
+                      ?? SolutionIdsFor(data.archiveCompletionData, levelId);
+            if (ids == null) return;
+
+            var added = _solutions.Seed(slotIndex, ids);
+            if (added > 0)
+            {
+                Plugin.Logger.LogInfo(
+                    $"checks: slot {slotIndex} already had {added} solution(s) "
+                    + "found in an earlier session; the next new arrangement "
+                    + $"will file Solution {_solutions.CountFor(slotIndex) + 1}");
+            }
+
+            FileSolutionsAlreadyEarned(slotIndex);
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning(
+                $"checks: could not read earlier solutions for slot {slotIndex}: {e.Message}");
+        }
     }
 
     internal static void LeaveSlot()
     {
         _currentSlot = -1;
-        _audited = false;
+        _auditedCount = 0;
     }
 
     /// <summary>Whether the running level has been compared against the table.</summary>
-    private static bool _audited;
+    /// <summary>
+    /// How many controllers the last audit compared against.
+    ///
+    /// NOT a bool any more, and that is the fix. It used to be `_audited`, set
+    /// true after the first successful audit, so the comparison ran ONCE about
+    /// a second and a half after a level opened - and a level that reveals its
+    /// controllers PHASE BY PHASE has revealed almost nothing by then.
+    ///
+    /// TupperwareNesting registers 2 controllers at open and 7 by the time the
+    /// player has worked through it. The one-shot audit saw the 2, agreed with
+    /// the table, and said nothing; the five that appeared later were never
+    /// compared, so five groups the player could solve had no location behind
+    /// them and no warning was raised until the mismatch happened to be caught
+    /// by hand.
+    ///
+    /// Re-auditing whenever the count GROWS turns ordinary play into the
+    /// survey. It also distinguishes a phased controller from a prefab-only
+    /// ghost for free: a ghost never registers, so it never appears here.
+    /// </summary>
+    private static int _auditedCount;
 
     private static float _sinceAudit;
 
@@ -149,9 +313,75 @@ internal static class Checks
     /// own Start, so there is no single moment that is reliably "after all of
     /// them". Running late is fine; the answer does not change.
     /// </summary>
+    /// <summary>
+    /// Collect the groups that were ALREADY solved when the level opened.
+    ///
+    /// The game raises GameEvent_ObjectControllerSolved when a group BECOMES
+    /// solved. A group that is already in its finished arrangement when the
+    /// level loads never raises it, so nothing ever filed its check - and no
+    /// amount of playing could, because there was nothing left to do to it.
+    ///
+    /// That is what "half green and half red when there's nothing to do" looks
+    /// like from the level select. SlotProgress calls a card Mixed when some
+    /// remaining locations are reachable and some are not; an already-solved
+    /// group counts as reachable-and-uncollected forever, so the card kept
+    /// advertising work that did not exist. The badge was telling the truth
+    /// about a ledger that was wrong.
+    ///
+    /// GUARDED ON REACHABILITY, deliberately. A group can read as solved while
+    /// the ability that governs it is still locked - its objects are dimmed,
+    /// not rearranged - and filing that check would hand out an item the logic
+    /// says has not been earned. Anything blocked stays uncollected, which
+    /// makes the card honestly Locked rather than falsely Mixed.
+    /// </summary>
+    private static void SweepAlreadySolved(
+        Il2CppSystem.Collections.Generic.List<ObjectController> registered)
+    {
+        if (_router == null || _progress == null || _currentSlot < 0) return;
+
+        var abilities = Inventory.Abilities;
+        var packs = Track.State?.PacksHeld ?? 0;
+        if (abilities == null) return;
+
+        var filed = 0;
+        var blocked = 0;
+        for (int i = 0; i < registered.Count; i++)
+        {
+            var oc = registered[i];
+            if (oc == null) continue;
+
+            bool solved;
+            try { solved = oc.IsSolved; }
+            catch { continue; }
+            if (!solved) continue;
+
+            var name = oc.gameObject?.name ?? "";
+            if (name.Length == 0) continue;
+
+            var location = _router.ForController(_currentSlot, name);
+            if (location == null || _ledger.IsCollected(location)) continue;
+
+            if (!_progress.IsReachable(location, packs, abilities))
+            {
+                blocked++;
+                continue;
+            }
+
+            Report(location);
+            filed++;
+        }
+
+        if (filed > 0 || blocked > 0)
+        {
+            Plugin.Logger.LogInfo(
+                $"checks: {filed} group(s) were already solved on load and have "
+                + $"been collected, {blocked} left for when they unlock");
+        }
+    }
+
     internal static void TickAudit(float dt)
     {
-        if (_slot == null || _audited) return;
+        if (_slot == null) return;
 
         _sinceAudit += dt;
         if (_sinceAudit < 1.5f) return;
@@ -167,28 +397,73 @@ internal static class Checks
             var registered = level?.objectControllers;
             if (registered == null || registered.Count == 0) return;   // not up yet
 
-            _audited = true;
+            // Only when the level has revealed MORE than last time. A level
+            // that is not phased settles on its first count and this costs one
+            // comparison; a phased one is re-checked at every reveal.
+            if (registered.Count <= _auditedCount) return;
+            _auditedCount = registered.Count;
+
+            SweepAlreadySolved(registered);
 
             var levelId = _slot.Slots[_currentSlot].LevelId;
-            if (_mismatchesReported.Contains(levelId)) return;
             if (!_slot.ControllerGroups.TryGetValue(levelId, out var known)) return;
 
             var unknown = new List<string>();
+            var live = new HashSet<string>(StringComparer.Ordinal);
             for (int i = 0; i < registered.Count; i++)
             {
                 var oc = registered[i];
                 if (oc == null) continue;
                 var name = oc.gameObject?.name ?? "";
-                if (name.Length > 0 && !known.ContainsKey(name)) unknown.Add(name);
+                if (name.Length == 0) continue;
+                live.Add(name);
+                if (!known.ContainsKey(name)) unknown.Add(name);
             }
 
+            // The OTHER direction, which nothing checked before: a controller
+            // the table knows about that the running level does not have.
+            //
+            // This one is worse than an unrecognised controller, because it is
+            // silent. Every part location is minted from the table, so a group
+            // with no controller behind it can never raise its solved event and
+            // can never be collected - the card sits on Mixed or green for the
+            // whole run with nothing the player can do about it, and the star,
+            // which needs EVERY location on the slot, can never be reached.
+            // "Some levels show half green and half red when there's nothing to
+            // do" is what that looks like from the level select.
+            var missing = new List<string>();
+            foreach (var name in known.Keys)
+            {
+                if (!live.Contains(name)) missing.Add(name);
+            }
+
+            // Reported only while the level is still short of what the table
+            // expects. On a phased level the early phases legitimately lack
+            // most groups, so this would cry wolf at every reveal; it is only
+            // interesting once the level has stopped growing, which in practice
+            // means it is reported and then withdrawn as later phases arrive.
+            // Kept as a warning rather than suppressed, because a genuinely
+            // unearnable location looks identical until the level ends.
+            if (missing.Count > 0)
+            {
+                Plugin.Logger.LogWarning(
+                    $"UNEARNABLE LOCATIONS on {levelId} (at {registered.Count} "
+                    + $"controller(s) so far): the table expects "
+                    + $"{string.Join(", ", missing)}, which this level has not "
+                    + "registered - if the level is phased they may still appear");
+            }
+
+            // NEW ones only. Keyed by controller rather than by level, because
+            // a phased level reveals unknown controllers a few at a time and a
+            // per-level latch would report the first batch and hide the rest -
+            // which is the same mistake as the one-shot audit, one level up.
+            unknown.RemoveAll(n => !_mismatchesReported.Add($"{levelId}|{n}"));
             if (unknown.Count == 0) return;
 
             // Not every registered controller is a puzzle - the table only
             // holds the ones that can be checked - so this is a report, not an
             // error. It is loud because a genuine new controller means the
             // logic and the game disagree about what is solvable.
-            _mismatchesReported.Add(levelId);
             Plugin.Logger.LogWarning(
                 $"CONTROLLER MISMATCH on {levelId}: {registered.Count} registered, "
                 + $"{known.Count} in the table, not recognised: "
@@ -196,7 +471,10 @@ internal static class Checks
         }
         catch (Exception e)
         {
-            _audited = true;
+            // Do not re-arm on a throw: mark the current count as audited so a
+            // persistent fault cannot log once every 1.5 seconds for the rest
+            // of the level.
+            _auditedCount = int.MaxValue;
             Plugin.Logger.LogWarning($"checks: controller audit failed: {e.Message}");
         }
     }
@@ -373,7 +651,7 @@ internal static class Checks
             if (fallback < 0) return;
 
             _currentSlot = fallback;
-            _audited = false;
+            _auditedCount = 0;
             Plugin.Logger.LogInfo(
                 $"checks: playing {levelId} as slot {fallback} (resolved from the running level)");
         }
@@ -400,8 +678,24 @@ internal static class Checks
         // to tell apart from silence.
         if (location == null)
         {
-            Plugin.Logger.LogInfo(
-                $"checks: '{name}' solved on slot {_currentSlot}, no location for it");
+            // Said once per (slot, controller), then only when a repeat count
+            // crosses a round number - a re-firing controller stays visible
+            // without drowning out the ones that fire once. See _unrouted.
+            var key = $"{_currentSlot}/{name}";
+            _unrouted.TryGetValue(key, out var seen);
+            _unrouted[key] = seen + 1;
+
+            if (seen == 0)
+            {
+                Plugin.Logger.LogInfo(
+                    $"checks: '{name}' solved on slot {_currentSlot}, no location for it");
+            }
+            else if ((seen + 1) % 250 == 0)
+            {
+                Plugin.Logger.LogInfo(
+                    $"checks: '{name}' on slot {_currentSlot} has re-raised "
+                    + $"{seen + 1} times with no location - it is re-firing, not re-solving");
+            }
             return;
         }
 
@@ -420,18 +714,37 @@ internal static class Checks
             if (solution != null) Report(solution);
         }
 
-        // Beating the level is its own location, granting the token the credits
-        // gate counts. Sent on any completion, not only the first solution -
-        // but NOT for a skip.
+        // A skip finishes the puzzle outright: every solution, every controller
+        // group, and the Beaten token.
         //
-        // The game reports a skipped level as complete, so without this a Skip
-        // item granted the credits token, and enough Skips reached the goal
-        // with nothing solved. The solution check above still fires: getting
-        // past the puzzle is what a Skip is for. Only the goal is protected.
+        // This REVERSES the earlier behaviour, deliberately and on droha's
+        // call. Beaten used to be withheld on a skip, because the credits gate
+        // counts Beaten tokens and enough Skips could therefore reach the goal
+        // with nothing solved. The cost of that protection was a card that
+        // could never be finished: the star badge needs every location on the
+        // slot, so a skipped level sat one location short for the rest of the
+        // run with nothing the player could do about it.
+        //
+        // The exploit is now bounded by supply instead of by rule - skip_count
+        // caps at 20 - and the option text says so rather than promising that
+        // skipped puzzles do not count.
+        //
+        // Sent explicitly rather than left to the solved-controller events: a
+        // skip does not necessarily raise one per group, and the part
+        // locations are exactly the ones that would otherwise be stranded.
         if (Skips.Skipping)
         {
             Skips.Skipping = false;
-            Plugin.Logger.LogInfo("checks: skipped, so no Beaten token");
+
+            var sent = 0;
+            foreach (var name in _router.ForSlot(_currentSlot))
+            {
+                if (_ledger.IsCollected(name)) continue;
+                Report(name);
+                sent++;
+            }
+            Plugin.Logger.LogInfo(
+                $"checks: skipped slot {_currentSlot}, sent {sent} remaining location(s)");
             return;
         }
 
