@@ -14,6 +14,7 @@ seed-independent facts here, and put anything probabilistic there.
 
 from . import bases
 from .. import data
+from .. import options as apoptions
 
 
 def _addressed(test):
@@ -28,9 +29,16 @@ class TestDefaults(bases.ALTTLTestBase):
         """Every addressed location gets exactly one item."""
         self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
 
-    def test_the_run_is_the_full_length(self):
+    def test_the_run_is_the_default_length(self):
+        """The plan holds exactly puzzle_count puzzles.
+
+        Read from the option rather than written here as a number. It was 79
+        as a literal, and when the default moved to 70 this failed while
+        testing nothing that had broken - the name even said "full length",
+        which stopped being what the default meant.
+        """
         world = self.multiworld.worlds[self.player]
-        self.assertEqual(79, len(world.plan))
+        self.assertEqual(apoptions.PuzzleCount.default, len(world.plan))
         # 13, not 79/4 and no longer 14. Packs are UNIFORM now - the ramp that
         # widened them as the run went on is gone, because a pack that varies
         # is not the guarantee a pack is supposed to be. The size grows instead

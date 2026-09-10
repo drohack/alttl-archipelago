@@ -25,28 +25,40 @@ class PuzzleCount(Range):
     The full game is 79, laid out over five chapters exactly as vanilla. A
     lower number truncates the track rather than rescaling it, so a short run
     simply ends part way through a chapter.
+
+    THE DEFAULT IS 70, NOT 79, AND THAT IS ABOUT THE LEVEL SELECT. The game
+    lays out one dot per card along the bottom of that screen, sized for its
+    own widest campaign - about 85. A run adds a pack divider between blocks,
+    so 79 puzzles builds 92 cards and the strip runs off the edge of the
+    screen. 70 puzzles at the default pack size is 70 + 13 dividers + the
+    credits = 84, which fits. Turn it up if you want the whole game; the strip
+    scales itself down past that, it just gets smaller.
     """
     display_name = "Puzzle Count"
     range_start = 8
     range_end = 79
-    default = 79
+    default = 70
 
 
 class PackSize(Range):
-    """How many puzzles the first Puzzle Packs unlock.
+    """How many puzzles each Puzzle Pack unlocks.
 
-    Vanilla hands you one level at a time. Four means you always have several
+    Vanilla hands you one level at a time. Five means you always have several
     things to work on, so a single hard puzzle never stops the run.
 
-    Packs widen as the run goes on, so this is where you start rather than the
-    rate for the whole game - the opening is deliberately slow, and the last
-    packs hand you a good deal more than this. Whatever you pick, the run opens
-    with at least four puzzles so it cannot start locked.
+    EVERY BLOCK IS THIS SIZE, including the free opening - only the last is
+    short, because a run rarely divides evenly. If the run is long enough that
+    packs of this size would need more packs than it can carry, they all grow
+    together rather than the run growing a ramp. So this is a floor on how much
+    the run opens at a time, not the rate for the first pack only.
+
+    Below five the run still opens five, so it cannot start on a puzzle an
+    unlucky ability draw has locked.
     """
     display_name = "Puzzles Per Pack"
     range_start = 1
     range_end = 10
-    default = 4
+    default = 5
 
 
 class GeneratorWeight(Range):
@@ -178,7 +190,7 @@ class LevelsToBeat(Range):
     display_name = "Puzzles To Beat"
     range_start = 1
     range_end = 79
-    default = 40
+    default = 40      # of the default 70-puzzle run; droha's call, not a ratio
 
 
 class CatTrapChance(Range):

@@ -237,9 +237,10 @@ def open_the_start(random, plan: List[Slot], pack_size: int, wanted: int,
             plan[target], plan[source] = plan[source], plan[target]
             have.append(target)
 
-    # The free opening, which is at least MIN_OPENING puzzles however small the
-    # pack size - the same window items.pack_boundaries treats as free.
-    first = min(max(pack_size, items.MIN_OPENING), len(plan))
+    # The free opening - asked of items.pack_boundaries rather than recomputed,
+    # because the opening is the widened pack size and no longer just
+    # max(pack_size, MIN_OPENING).
+    first = min(items.opening_size(len(plan), pack_size), len(plan))
     claim(0, first, min(max(wanted, MIN_SOLVABLE_OPENING), first))
 
     # If nothing anywhere is solvable we return what we have. That can only

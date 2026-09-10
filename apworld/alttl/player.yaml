@@ -25,12 +25,19 @@ A Little to the Left:
   # How many puzzles the run contains. The full game is 79, laid out over
   # five chapters exactly as vanilla. A lower number truncates the track
   # rather than rescaling it. 8 to 79.
-  puzzle_count: 79
+  #
+  # 70 rather than 79 so the level select's overview strip fits the screen:
+  # 70 puzzles + 13 pack dividers + the credits card is 84 cards, and the
+  # game's own strip is sized for about 85. Higher still works - the strip
+  # scales itself down - it just gets smaller.
+  puzzle_count: 70
 
-  # How many puzzles the FIRST Puzzle Packs unlock. Packs widen as the run
-  # goes on, so this is where you start, not the rate for the whole game.
-  # A run always opens with at least four puzzles. 1 to 10.
-  pack_size: 4
+  # How many puzzles each Puzzle Pack unlocks. EVERY block is this size,
+  # including the free opening; only the last is short, because a run rarely
+  # divides evenly. On a long run they all grow together rather than the run
+  # growing a ramp. Below 5 the run still opens 5, so it cannot start on a
+  # puzzle your abilities have locked. 1 to 10.
+  pack_size: 5
 
   # ---- What goes in the run -------------------------------------------
 

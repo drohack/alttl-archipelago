@@ -257,7 +257,12 @@ class TestTheOpeningCanAbsorbTheFirstItems(unittest.TestCase):
                 if not world.options.ability_locks.value:
                     continue
 
-                window = min(max(world.pack_size, apitems.MIN_OPENING),
+                # apitems.opening_size, not a fourth copy of the formula.
+                # The opening is the WIDENED pack size now, so
+                # max(pack_size, MIN_OPENING) is wrong on any run long enough
+                # for the cap to grow the packs.
+                window = min(apitems.opening_size(len(world.plan),
+                                                  world.pack_size),
                              len(world.plan))
                 held = set(world.starting_abilities)
                 free = appool._free_checks(world.plan[:window], held)

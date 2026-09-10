@@ -50,6 +50,26 @@ def _free_checks(plan_slice, held) -> int:
     return total
 
 
+def _plateau_escape(world, window, held):
+    """The ability worth granting when no single one pays on its own.
+
+    Returns the first half of the best-scoring PAIR, or None when even a pair
+    cannot beat what is already open. See the caller for why this exists.
+    """
+    rest = [a for a in world.live_abilities if a not in held]
+    if len(rest) < 2:
+        return None
+
+    now = _free_checks(world.plan[:window], held)
+    best, score = None, now
+    for i, first in enumerate(rest):
+        for second in rest[i + 1:]:
+            opened = _free_checks(world.plan[:window], held | {first, second})
+            if opened > score:
+                best, score = first, opened
+    return best
+
+
 def decide(world) -> None:
     """Choose what is in the run. Must run before regions or items."""
     o = world.options
@@ -124,7 +144,8 @@ def decide(world) -> None:
     # checks, or until granting stops helping. Each grant is the ability that
     # opens the most, so the fewest are needed.
     if ability_locks and world.plan:
-        window = min(max(pack_size, items.MIN_OPENING), len(world.plan))
+        window = min(items.opening_size(len(world.plan), pack_size),
+                     len(world.plan))
         granted = False
 
         for _ in range(len(world.live_abilities)):
@@ -139,10 +160,25 @@ def decide(world) -> None:
                 if opened > gain:
                     best, gain = ability, opened
 
-            # Nothing left to grant, or nothing that would help. A run this
-            # thin is as open as it can be made; the fill takes it from here.
+            # A PLATEAU IS NOT A CEILING. Granting one ability at a time is
+            # greedy, and greedy stalls where an opening puzzle needs TWO
+            # abilities: neither alone opens anything, so both look worthless
+            # and the loop stops one short of the floor.
+            #
+            # Measured at 2 of 165 (config, seed) pairs in the stress sweep
+            # once the default run shrank to 70 puzzles - "5 free checks, 6
+            # reachable". Both were exactly this shape: single-step gain 5,
+            # best pair 6.
+            #
+            # So when no single grant helps, look one further. If some PAIR
+            # does better, grant the first half; the next pass then sees the
+            # second half pay and takes it normally. Only runs on the stall,
+            # and only over the live abilities, so the cost is a few hundred
+            # set lookups once per generation.
             if best is None or gain <= _free_checks(world.plan[:window], held):
-                break
+                best = _plateau_escape(world, window, held)
+                if best is None:
+                    break
 
             world.starting_abilities.append(best)
             held.add(best)

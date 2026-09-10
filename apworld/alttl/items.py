@@ -122,11 +122,17 @@ def classification(name: str) -> ItemClassification:
     return ItemClassification.filler
 
 
-#: Puzzles open at the start, whatever the pack size. A run must not begin on a
-#: single puzzle that an unlucky ability draw can lock: the opening exists so
-#: the player always has somewhere to start, which is a different job from
-#: pacing. At the default pack size of 4 this changes nothing.
-MIN_OPENING = 4
+#: The smallest a pack may be. A run must not begin on a single puzzle that an
+#: unlucky ability draw can lock, so this is the floor on the size itself.
+#:
+#: IT IS A FLOOR ON THE SIZE, NOT A SEPARATE OPENING. It used to be the latter:
+#: the free opening was held at 4 while the packs widened past it, so a default
+#: run opened 4 and then handed out 6 at a time. droha, seeing that: "the packs
+#: should all be the same size, the 4 minimum open just means they have
+#: something to do in 4 levels at the start, not that the starting levels in a
+#: pack are all completable." The guarantee is kept by raising the SIZE to this
+#: floor and letting the opening equal it, so every block matches.
+MIN_OPENING = 5
 
 #: Packs used to WIDEN as the run went on - "every N packs, the next one is a
 #: puzzle wider" - so a 40-puzzle run unlocked 4, 4, 4, 5, 5, 6, 6, 6. That was
@@ -150,9 +156,10 @@ def _pack_cap(puzzle_count: int) -> int:
 def _schedule(puzzle_count: int, pack_size: int, opening: int) -> List[int]:
     """Cumulative boundaries for uniform packs of `pack_size` after `opening`.
 
-    The opening is passed in rather than derived, because widening the packs
-    to fit the cap must not also widen the free start - a player who asked for
-    packs of 4 and got 6 should still begin with 4 open, not 6.
+    Callers now pass `opening == pack_size`, so every block is the same width.
+    The parameter survives because the two are conceptually different - the
+    opening is free and the packs are earned - and collapsing them into one
+    argument would hide that from the next reader.
     """
     out = [min(opening, puzzle_count)]
     while out[-1] < puzzle_count:
@@ -176,24 +183,44 @@ def pack_boundaries(puzzle_count: int, pack_size: int) -> List[int]:
     would need more packs than the run can carry, the SIZE grows - uniformly,
     for every pack - until it fits. A player who asks for packs of 2 in a
     40-puzzle run gets packs of 6, not packs of 2, 4, 6, 8, 10.
+
+    THE FREE OPENING IS ONE OF THOSE BLOCKS, not an exception to them. It used
+    to be pinned at MIN_OPENING while the packs widened around it, which is how
+    a default run came out 4, 6, 6, 6 ... 3 and read as a bug. The opening
+    follows the size now, including through the widening below, so the only
+    short block is the remainder.
     """
     cap = _pack_cap(puzzle_count)
 
-    size = max(1, pack_size)
-    opening = min(max(size, MIN_OPENING), puzzle_count)
-
-    schedule = _schedule(puzzle_count, size, opening)
+    # The floor applies to the SIZE, so the opening inherits it for free.
+    size = min(max(pack_size, MIN_OPENING), puzzle_count)
+    schedule = _schedule(puzzle_count, size, size)
 
     # Widen uniformly until the pack count fits. Solved directly rather than
-    # by search: after the opening there are (puzzle_count - opening) puzzles
-    # to hand out over at most `cap` packs. The opening does not move.
-    if len(schedule) - 1 > cap:
-        remaining = puzzle_count - opening
-        if remaining > 0 and cap > 0:
-            size = max(size, -(-remaining // cap))      # ceil
-        schedule = _schedule(puzzle_count, size, opening)
+    # by search: with the opening equal to the size, `cap` packs after it must
+    # cover the rest, so the size that just fits is ceil(remaining / cap) - and
+    # because the opening moves with it, one pass can leave one pack too many.
+    # Loop rather than reason about the rounding.
+    while len(schedule) - 1 > cap and size < puzzle_count:
+        remaining = puzzle_count - size
+        wanted = -(-remaining // cap) if cap > 0 else puzzle_count
+        size = max(size + 1, wanted)
+        schedule = _schedule(puzzle_count, size, size)
 
     return schedule
+
+
+def opening_size(puzzle_count: int, pack_size: int) -> int:
+    """How many puzzles are open before any pack arrives.
+
+    Read off pack_boundaries rather than recomputed, and that matters: the
+    opening is the WIDENED size now, so `max(pack_size, MIN_OPENING)` is wrong
+    whenever the cap forces packs to grow. Two callers had that expression
+    inline - pool.py's ability-granting window and slots.py's solvable-opening
+    claim - and both would have believed a 79-puzzle run opens 5 when it opens
+    6, seeding the run's difficulty against the wrong window.
+    """
+    return pack_boundaries(puzzle_count, pack_size)[0]
 
 
 def pack_count(puzzle_count: int, pack_size: int) -> int:
