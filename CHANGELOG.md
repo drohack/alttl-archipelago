@@ -8,7 +8,7 @@ table, and nothing detects that at runtime - so the version is checked by
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
-## 0.3.1 - unreleased
+## 0.3.1 - 2026-09-09
 
 Fixes from droha's first full 79-puzzle playthrough of 0.3.0. The BepInEx log
 from that session survived and is the evidence for most of what follows;
