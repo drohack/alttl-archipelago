@@ -10,8 +10,9 @@ The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
 ## 0.3.2 - unreleased
 
-Five reports from droha's 79-puzzle multiworld. **Location ids move**, so a
-seed generated before this build will not match a mod built after it.
+droha's 79-puzzle multiworld, and the playtest that followed it. **Location
+ids move**, so a seed generated before this build will not match a mod built
+after it.
 
 ### The fridge advertised work the puzzle never wanted
 
@@ -113,15 +114,133 @@ that clicks the buttons, not Rewired's maps" was the load-bearing assumption
 and it was false. Only the KEYBOARD's maps are switched off now, which is
 where the cursor-drift bindings live.
 
-Confirmed bound at runtime - "1 player(s), 1 of them keyboard-only", so the
-per-controller-type API exists here and the all-maps fallback did not fire.
-**The mouse behaviour itself is not yet confirmed and needs a human.**
+**The first build of this fix did not work, and the log said it had.** The
+lookup asked for `SetMapsEnabled(bool, ControllerType)`, which the map helper
+does not have - its two-argument overloads take a category, and the
+per-controller-type switch is `SetAllMapsEnabled(bool, ControllerType)`. So
+the narrow bind failed, the code fell through to `SetAllMapsEnabled(bool)`,
+and it went on disabling everything while printing "1 of them keyboard-only".
+A whole round of testing was spent on the wrong conclusion. The log now prints
+the bound SIGNATURE, because a label cannot be checked. Confirmed in play:
+"the clicking and typing are working".
 
-### Not fixed
+### The keyboard stopped driving the game from other windows
 
-A hard freeze after a cat trap on Envelopes. `AppendLog = false` in
-`BepInEx.cfg` meant the log was overwritten by the next launch, so there is
-nothing to read. Turn it on before hunting anything intermittent.
+droha: "why is my keyboard still controlling the mouse in game while I'm not
+focused on it? It often opens up the settings page and sometimes changes
+settings."
+
+`Application.isFocused` reported true with Notepad plainly in front - the
+focus-change log never fired once, which can only happen if the value never
+moved. Focus is asked of Windows now, via `GetForegroundWindow` and the owning
+process id. It fails OPEN: if the call cannot be made it reports focused,
+because suppressing input on a game that IS in front is worse than the bug.
+
+### The cat trap no longer freezes the game
+
+droha hit this three times, and the first report had no log left to read. It
+is not a freeze - it is an exception storm. `Player.log` held **6,583**
+identical `NullReferenceException`s in
+`DragObject+<>c__DisplayClass94_0.<ObjectPlaced>b__1`, thrown from
+`LeanTween.update`.
+
+Dropping a piece starts a LeanTween settle tween whose callback closes over
+the piece. Resetting the level destroys the piece while the tween is still
+registered, so LeanTween calls a dead reference every frame, forever. The game
+never hits it because nothing in the game resets a level mid-animation.
+
+**Three fixes missed before this one, and each failed differently.**
+`cancelAll()` stopped the exceptions and hung the load instead - the level
+load is an async state machine that awaits its own tweens on `Main Camera` and
+`Completion Stars`, so killing those meant `SetActiveLevel` never returned.
+Cancelling the level's own objects left 4,638 exceptions; adding every
+`DragObject` left 2,139. Dumping `LeanTween.tweens` ended the guessing:
+`LeanTween.value` has no GameObject, so the tween is parked on an internal
+`~LeanTween` holder and none of the three sweeps could ever have reached it.
+
+`CancelDetached` takes those and leaves the load's own tweens alone. Verified
+in play rather than by reasoning: three traps caught a live detached tween
+with **zero** exceptions, alongside 42 clean resets.
+
+Two smaller defects in the same moment. A trap landing just as a puzzle
+finished relaunched the level that was on its way out and threw the queued
+navigation away, so the run sat on a reset copy of the puzzle it had just
+solved - that counts as a miss now. And the reset restored every object's own
+colour, including ones an ability lock had dimmed, so locked pieces sat fully
+lit until the once-a-second pass came round; `HoldDim` re-dims every frame for
+half a second, which covers the rebuild.
+
+### The vanilla title menu no longer flashes past
+
+The Archipelago title appeared, then the original menu, then the Archipelago
+one again. The menu was following the CONNECTION - hidden at startup, restored
+when the first attempt failed, hidden again when the retry succeeded.
+
+droha asked the question that settles it: when would we ever use the normal
+menu with this mod installed? Only when you are not playing a multiworld,
+which is exactly when there is no slot name. That is the whole condition now.
+
+### Settings are shared between the campaign and a run
+
+A run redirects every save write, `playerPrefs` included, so settings changed
+while playing a multiworld landed in `save_ap_<slot>_<seed>.json` and the
+campaign never saw them. droha: "the user settings should persist between
+save1 and the Archipelago. They should be synced." They sync both ways now,
+and only the `playerPrefs` key moves.
+
+### The window opens at the size you chose
+
+droha: "why is my game always opening in full screen mode? I set it to
+windowed every time", and later "it's not remembering my selection".
+
+It was never fullscreen. The game stores the display choice as
+`Prefs.resolution`, an INDEX into a list `SettingsMenu` rebuilds from whichever
+monitor it opened on, sorted largest first - so index 0 is that monitor's
+native resolution, on any monitor. That index is applied at startup and
+overrides Unity's own stored size: measured, with the registry holding
+1280x720 and "use native" off, the game still opened 3840x2160. A windowed
+window the size of the monitor is indistinguishable from fullscreen.
+
+droha had already worked out why an index is the wrong thing to store: "the
+game changes the resolution list depending on what monitor opened it, so a
+number doesn't help me here." A save here held **35 against a list of 27** -
+out of range, from a different display - and the game fell back to native.
+
+`DisplayGuard` remembers the SIZE instead, in the mod's own config, and looks
+its index up fresh against whatever list the current display produced. It
+never picks a size: it re-applies the last size the game was actually running
+at, does nothing at all if that size is not offered by this display, and steps
+aside if the size has already been changed since startup. droha: "it should
+not override to this always, it's whatever the user sets it to - it should
+just keep that setting."
+
+Measured end to end: sabotage the save back to index 0, launch, and the window
+opens 3840x2160 and is corrected to 1280x720 within nine seconds, with the
+save repaired so the next launch needs no correction at all. Change it to
+1600x900 and relaunch, and 1600x900 is what comes back.
+
+### The harness stopped rewriting the display settings
+
+It used to force the game windowed at 1280x720 before every launch. Those
+values are the player's. droha, after it happened again: "why does it re-write
+those? It shouldn't. That's the whole thing I've been trying to tell you."
+
+`force_windowed` is gone, replaced by a read-only `describe_display`, and
+`self_test` greps its own source for a registry write and fails if one comes
+back. Reading is not enough on its own, because the game rewrites those values
+every time it exits, so the snapshot now captures them into `SCREEN.json` and
+restore puts back the ones that moved.
+
+### Tools
+
+`jiggle` settles pieces on demand, because reproducing the cat trap freeze
+needed a trap to land inside the settle animation and droha asked the fair
+question: "how do I time that? It needs to be timed to like the quarter
+second." `resolutions` prints Unity's list, the GAME's list and the saved
+index side by side; `setres 1280 720` sets a size by size, never by index.
+
+`AppendLog = false` in `BepInEx.cfg` is why the first freeze report was
+uninvestigable. Turn it on before hunting anything intermittent.
 
 ## 0.3.1 - 2026-09-09
 
