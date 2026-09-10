@@ -31,14 +31,30 @@ public static class Toasts
     /// </summary>
     private const float HoldSeconds = 8f;
 
+    /// <summary>
+    /// The hold used while a backlog is waiting to be shown.
+    ///
+    /// A burst that overflows the screen should CLEAR, not trickle. At the
+    /// full eight seconds a queue of fifteen takes two minutes to drain, by
+    /// which time the player has left the level it was telling them about.
+    /// </summary>
+    private const float BusyHoldSeconds = 2.5f;
+
     /// <summary>How long the fade itself takes.</summary>
     private const float FadeSeconds = 1.5f;
 
     /// <summary>
-    /// Most lines on screen at once. Beyond this the oldest is dropped
-    /// immediately: a burst of twenty checks should not paint over the puzzle.
+    /// Most lines on screen at once. Beyond this, further lines WAIT - see
+    /// _pending. They are not dropped, which is what this used to do.
+    ///
+    /// Five was too few and the eviction was the real bug: finishing a level
+    /// can solve several controllers and the level in one frame, and a Skip
+    /// reports every remaining location on the slot. The earliest lines were
+    /// destroyed before rendering a single frame - indistinguishable, on
+    /// screen, from never having been raised. droha: "I don't always see it
+    /// showing my items being released/received."
     /// </summary>
-    private const int MaxVisible = 5;
+    private const int MaxVisible = 10;
 
     private sealed class Line
     {
@@ -51,13 +67,21 @@ public static class Toasts
     private static readonly List<Line> _lines = new();
 
     /// <summary>
-    /// Messages raised before the canvas could be built.
+    /// Messages waiting to be shown, for either of two reasons.
     ///
-    /// Connecting happens at the title screen, where the fonts we borrow may
-    /// not exist yet. Without this the very first messages - the ones about
-    /// connecting - would be the only ones nobody ever sees.
+    /// The canvas may not exist yet: connecting happens at the title screen,
+    /// where the fonts we borrow may not be loaded. Without this the very
+    /// first messages - the ones about connecting - would be the only ones
+    /// nobody ever sees.
+    ///
+    /// Or the screen is FULL. That case used to destroy the oldest line
+    /// instead, which is why a burst read as messages never arriving. Holding
+    /// them costs a few strings and they appear as room frees up.
     /// </summary>
     private static readonly Queue<(string Text, Color Colour)> _pending = new();
+
+    /// <summary>Cap on the wait queue, so a long disconnect cannot grow it forever.</summary>
+    private const int MaxPending = 200;
 
 
     /// <summary>
@@ -116,18 +140,19 @@ public static class Toasts
     {
         if (string.IsNullOrEmpty(text)) return;
 
-        if (_stack == null)
+        // No overlay yet, or no room on it. Both wait; neither discards.
+        if (_stack == null || _lines.Count >= MaxVisible)
         {
-            // Bounded, so a long disconnected spell cannot grow without limit.
-            if (_pending.Count < 20)
+            var why = _stack == null ? "the overlay is not up" : "the screen is full";
+            if (_pending.Count < MaxPending)
             {
                 _pending.Enqueue((text, colour));
-                OnInfo?.Invoke($"toast queued, overlay not up yet: {text}");
+                OnInfo?.Invoke($"toast queued, {why}: {text}");
             }
             else
             {
                 OnWarning?.Invoke($"toast DROPPED, {_pending.Count} already "
-                                  + $"waiting and the overlay is not up: {text}");
+                                  + $"waiting and {why}: {text}");
             }
             return;
         }
@@ -155,27 +180,35 @@ public static class Toasts
                 return;
             }
 
-            while (_pending.Count > 0)
+            // ONLY INTO FREE SPACE. Draining the whole queue in one frame is
+            // what made MaxVisible a shredder rather than a limit.
+            while (_pending.Count > 0 && _lines.Count < MaxVisible)
             {
                 var (text, colour) = _pending.Dequeue();
                 AddLine(text, colour);
             }
+
+            // Something waiting means the lines on screen are in the way, so
+            // they get the short hold. Read once per frame rather than per
+            // line: a line must not expire on a different clock from its
+            // neighbour just because the queue emptied mid-loop.
+            var hold = _pending.Count > 0 ? BusyHoldSeconds : HoldSeconds;
 
             for (int i = _lines.Count - 1; i >= 0; i--)
             {
                 var line = _lines[i];
                 line.Age += dt;
 
-                if (line.Age >= HoldSeconds + FadeSeconds)
+                if (line.Age >= hold + FadeSeconds)
                 {
                     if (line.Label != null) UnityEngine.Object.Destroy(line.Label.gameObject);
                     _lines.RemoveAt(i);
                     continue;
                 }
 
-                if (line.Age > HoldSeconds && line.Label != null)
+                if (line.Age > hold && line.Label != null)
                 {
-                    var left = 1f - (line.Age - HoldSeconds) / FadeSeconds;
+                    var left = 1f - (line.Age - hold) / FadeSeconds;
                     var c = line.Label.color;
                     line.Label.color = new Color(c.r, c.g, c.b, Mathf.Clamp01(left));
                 }
@@ -284,20 +317,21 @@ public static class Toasts
 
         _lines.Add(new Line { Label = label });
 
-        while (_lines.Count > MaxVisible)
+        // UNREACHABLE, and loud if it ever is. Show and Tick are the only two
+        // ways in and both refuse once the screen is full, so overflow waits
+        // in _pending instead of being destroyed here.
+        //
+        // This used to be the eviction loop, and it was the bug: the oldest
+        // line was destroyed before it had rendered a single frame, which on
+        // screen is indistinguishable from the message never being raised.
+        // Kept as a tripwire rather than deleted, because the thing that
+        // brings it back is a THIRD caller added later that skips the gate.
+        if (_lines.Count > MaxVisible)
         {
-            var oldest = _lines[0];
-
-            // Said out loud. A final placement can solve several controllers
-            // and the level in one frame, pushing six or more lines at once,
-            // and the earliest were being destroyed before they had rendered a
-            // single frame - indistinguishable, on screen, from never having
-            // been raised.
-            OnInfo?.Invoke("toast pushed off the top before it was read: "
-                           + (oldest.Label == null ? "(gone)" : oldest.Label.text));
-
-            if (oldest.Label != null) UnityEngine.Object.Destroy(oldest.Label.gameObject);
-            _lines.RemoveAt(0);
+            OnWarning?.Invoke($"toast: {_lines.Count} lines with a cap of "
+                              + $"{MaxVisible} - a caller reached AddLine "
+                              + "without checking for room; messages will be "
+                              + "crowded off screen");
         }
     }
 
