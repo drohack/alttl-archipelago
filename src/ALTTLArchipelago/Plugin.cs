@@ -43,6 +43,7 @@ public sealed class Plugin : BasePlugin
     private static ConfigEntry<bool> _autoConnect = null!;
     private static ConfigEntry<int> _maxAttempts = null!;
     private static ConfigEntry<bool> _whyProbe = null!;
+    private static ConfigEntry<TypingGuard.Mode> _typingSuppression = null!;
 
     /// <summary>
     /// Whether the badge "why is this card that colour" file probe is running.
@@ -89,6 +90,8 @@ public sealed class Plugin : BasePlugin
         Toasts.OnInfo = m => Logger.LogInfo(m);
         Toasts.CanvasName = "ALTTLArchipelagoToasts";
         TypingGuard.OnWarning = m => Logger.LogWarning(m);
+        TypingGuard.OnInfo = m => Logger.LogInfo(m);
+        TypingGuard.OnDebug = m => Logger.LogDebug(m);
 
         // The kit ships with plain defaults; these are the Archipelago text
         // client's own colours, so a message here reads the same as the same
@@ -109,6 +112,33 @@ public sealed class Plugin : BasePlugin
             + "above, so quitting and coming back rejoins the multiworld. Does "
             + "nothing until a slot name is set. Toggle it in the Archipelago "
             + "dialog.");
+        // A BISECT SWITCH, not a preference anyone should need.
+        //
+        // Typing into the connection pane used to drag the mouse cursor
+        // around, because the game binds keys to cursor actions through
+        // Rewired, so the guard switches Rewired off while a box has focus.
+        // Doing that to EVERY map then broke the mouse the other way - the
+        // game's own UI module reads mouse buttons from Rewired, so it stopped
+        // seeing the release and behaved as though the button were held.
+        //
+        // Narrowing it to the keyboard is the fix, once the narrow call is
+        // actually bound - the first attempt asked Rewired for a method name
+        // that does not exist and quietly went on disabling everything. This
+        // setting stays as the control case for the next report of the shape
+        // "the mouse is wrong in that dialog".
+        //
+        //   Keyboard        the default - keyboard maps only
+        //   Off             switch nothing off; the cursor will drift
+        //   All             every map, the pre-0.3.2 behaviour
+        //   NavigationOnly  leave Rewired alone, unbind UI nav actions only
+        _typingSuppression = Config.Bind("Input", "TypingSuppression",
+            TypingGuard.Mode.Keyboard,
+            "Which of the game's input maps to switch off while a text box in "
+            + "the Archipelago dialog has focus. Leave this alone unless the "
+            + "mouse or the keyboard misbehaves in that dialog; then try Off "
+            + "and report which setting works.");
+        TypingGuard.Suppression = _typingSuppression.Value;
+
         _maxAttempts = Config.Bind("Server", "MaxRetries",
             RetryPolicy.DefaultMaxAttempts,
             "How many times to retry a lost connection before giving up. 0 "

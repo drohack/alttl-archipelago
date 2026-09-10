@@ -45,6 +45,87 @@ public static class TypingGuard
 {
     private static bool _suppressed;
 
+    /// <summary>
+    /// What the guard is allowed to switch off. Set from the mod config so a
+    /// player can bisect a mouse or keyboard problem without a rebuild.
+    ///
+    /// It exists because the first attempt to narrow the suppression appeared
+    /// not to work: droha's pointer still stuck in the connection pane. The
+    /// real cause was the binding, not the theory - the lookup asked for a
+    /// method that does not exist and silently fell back to disabling every
+    /// map, mouse included, while reporting "keyboard-only". See TryBind.
+    ///
+    /// Keeping the switch is worth the few lines anyway. Off is the control
+    /// case for any future report of this shape: if the mouse behaves with
+    /// the guard disabled it is this class, and if it does not it is not.
+    /// </summary>
+    public enum Mode
+    {
+        /// <summary>Switch nothing off. The cursor will drift while typing.</summary>
+        Off,
+
+        /// <summary>Keyboard maps only. The default.</summary>
+        Keyboard,
+
+        /// <summary>Every map, for every player. The pre-0.3.2 behaviour.</summary>
+        All,
+
+        /// <summary>Leave Rewired alone; only unbind UI navigation actions.</summary>
+        NavigationOnly,
+    }
+
+    public static Mode Suppression { get; set; } = Mode.Keyboard;
+
+    /// <summary>
+    /// Does this process own the foreground window?
+    ///
+    /// ASKED OF WINDOWS, NOT UNITY. Application.isFocused reported true with
+    /// Notepad plainly in front - the focus-change log never fired once,
+    /// which can only happen if the value never moved. Whether that is the
+    /// interop or the player build hardly matters; the OS knows, and one
+    /// P/Invoke is cheaper than trusting a property that has already lied.
+    ///
+    /// Fails OPEN. If the call cannot be made we report focused, because
+    /// suppressing input on a game that is actually in front would be far
+    /// worse than the bug being fixed.
+    /// </summary>
+    private static bool HasFocus()
+    {
+        try
+        {
+            var window = GetForegroundWindow();
+            if (window == IntPtr.Zero) return true;
+
+            GetWindowThreadProcessId(window, out var owner);
+            if (owner == 0) return true;
+
+            if (_ourProcess == 0)
+            {
+                _ourProcess = (uint)System.Diagnostics.Process
+                    .GetCurrentProcess().Id;
+            }
+            return owner == _ourProcess;
+        }
+        catch
+        {
+            return true;
+        }
+    }
+
+    private static uint _ourProcess;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(
+        IntPtr window, out uint processId);
+
+    private static bool _modeReported;
+    private static bool _wasUnfocused;
+    private static int _flips;
+    private static int _flipsReported;
+
     // The input module's action ids, saved so they can be put back.
     private static int _horizontal, _vertical, _submit, _cancel;
     private static Rewired.Integration.UnityUI.RewiredStandaloneInputModule? _module;
@@ -68,7 +149,19 @@ public static class TypingGuard
         if (_suppressed) return;
         _suppressed = true;
 
-        SetRewiredMapsEnabled(false);
+        if (!_modeReported)
+        {
+            _modeReported = true;
+            Say($"suppression mode is {Suppression}");
+        }
+
+        if (Suppression == Mode.Off)
+        {
+            Warn("suppression is OFF; the cursor will drift while typing");
+            return;
+        }
+
+        if (Suppression != Mode.NavigationOnly) SetRewiredMapsEnabled(false);
 
         try
         {
@@ -94,6 +187,11 @@ public static class TypingGuard
             Warn($"could not unbind UI navigation: {e.Message}");
         }
     }
+
+    /// <summary>
+    /// Whether the guard is holding input down right now, for diagnostics.
+    /// </summary>
+    public static bool IsSuppressing => _suppressed;
 
     public static void Restore()
     {
@@ -148,16 +246,27 @@ public static class TypingGuard
             // miss disabled the fix for the whole session.
             if (!_mapsLookedUp) ResolveMapHelper();
 
+            var wholeLot = Suppression == Mode.All;
             foreach (var (helper, method, keyboardOnly) in _mapHelpers)
             {
-                if (keyboardOnly)
+                if (keyboardOnly && !wholeLot)
                 {
                     method.Invoke(helper,
                         new object[] { enabled, Rewired.ControllerType.Keyboard });
                 }
-                else
+                else if (!keyboardOnly)
                 {
                     method.Invoke(helper, new object[] { enabled });
+                }
+                else
+                {
+                    // Mode.All was asked for but this helper only offers the
+                    // narrow call. Sweep every controller type by hand.
+                    foreach (Rewired.ControllerType type in
+                             Enum.GetValues(typeof(Rewired.ControllerType)))
+                    {
+                        method.Invoke(helper, new object[] { enabled, type });
+                    }
                 }
             }
         }
@@ -208,10 +317,21 @@ public static class TypingGuard
         }
 
         _mapsLookedUp = true;
-        var narrow = 0;
-        foreach (var (_, _, keyboardOnly) in _mapHelpers) if (keyboardOnly) narrow++;
-        Warn($"Rewired maps reachable for {_mapHelpers.Count} player(s), "
-             + $"{narrow} of them keyboard-only");
+        foreach (var (_, method, keyboardOnly) in _mapHelpers)
+        {
+            var ps = method.GetParameters();
+            var sig = new System.Text.StringBuilder(method.Name).Append('(');
+            for (int i = 0; i < ps.Length; i++)
+            {
+                if (i > 0) sig.Append(", ");
+                sig.Append(ps[i].ParameterType.Name);
+            }
+            // The SIGNATURE, not a summary. "keyboard-only" was printed for a
+            // binding that disabled everything, and a label cannot be checked.
+            Say($"Rewired: bound {sig.Append(')')} "
+                + (keyboardOnly ? "- keyboard maps only" : "- ALL maps"));
+        }
+        Say($"Rewired maps reachable for {_mapHelpers.Count} player(s)");
     }
 
     /// <summary>
@@ -280,8 +400,20 @@ public static class TypingGuard
     {
         if (candidate == null) return false;
 
+        // SetAllMapsEnabled, not SetMapsEnabled. This helper has no
+        // SetMapsEnabled(bool, ControllerType) at all - its two-argument
+        // overloads take a category id or name, and the per-controller-type
+        // switch is SetAllMapsEnabled(bool, ControllerType).
+        //
+        // Asking for the wrong name cost a whole round of testing: the lookup
+        // found nothing, fell through to SetAllMapsEnabled(bool), and disabled
+        // EVERY map including the mouse - while the log cheerfully reported
+        // "1 of them keyboard-only". droha tested that build and the pointer
+        // still stuck, which looked like the theory being wrong when it was
+        // the binding being wrong.
         var narrow = candidate.GetType().GetMethod(
-            "SetMapsEnabled", new[] { typeof(bool), typeof(Rewired.ControllerType) });
+            "SetAllMapsEnabled",
+            new[] { typeof(bool), typeof(Rewired.ControllerType) });
         if (narrow != null)
         {
             _mapHelpers.Add((candidate, narrow, true));
@@ -301,12 +433,33 @@ public static class TypingGuard
 
     private static object? Get(Type type, object? instance, params string[] names)
     {
+        const System.Reflection.BindingFlags Flags =
+            System.Reflection.BindingFlags.Public
+            | System.Reflection.BindingFlags.NonPublic
+            | System.Reflection.BindingFlags.Instance
+            | System.Reflection.BindingFlags.Static
+            | System.Reflection.BindingFlags.DeclaredOnly;
+
         foreach (var name in names)
         {
-            var property = type.GetProperty(name);
-            if (property != null) return property.GetValue(instance);
-            var field = type.GetField(name);
-            if (field != null) return field.GetValue(instance);
+            for (var t = type; t != null; t = t.BaseType)
+            {
+                try
+                {
+                    var property = t.GetProperty(name, Flags);
+                    if (property != null && property.GetIndexParameters().Length == 0)
+                    {
+                        return property.GetValue(instance);
+                    }
+                    var field = t.GetField(name, Flags);
+                    if (field != null) return field.GetValue(instance);
+                }
+                catch
+                {
+                    // A getter that throws is not an answer. Keep looking up
+                    // the chain rather than failing the whole lookup.
+                }
+            }
         }
         return null;
     }
@@ -322,15 +475,72 @@ public static class TypingGuard
     public static void Tick(Func<TMPro.TMP_InputField?> focused, Action focusNext)
     {
         var field = focused();
-        var wantsSuppression = field != null;
 
-        if (wantsSuppression && !_suppressed) Suppress();
-        else if (!wantsSuppression && _suppressed) Restore();
+        // ALT-TABBED AWAY COUNTS TOO.
+        //
+        // The game keeps polling Rewired while it is in the background, and
+        // its keys are bound to cursor and mouse-button actions - so typing
+        // in another window walks the game's cursor across its own menus and
+        // presses things. droha: "typing still causes the mouse to move while
+        // not focused. It's really annoying as it often opens up the settings
+        // page and sometimes changes settings."
+        //
+        // DevTools already sets ReInput.configuration
+        // .ignoreInputWhenAppNotInFocus, and it demonstrably does not stop
+        // this. It is also the wrong home: DevTools never ships, so a player
+        // would have the bug with no way to reach the setting.
+        //
+        // Suppressing the same maps the typing guard suppresses is exactly
+        // the right shape - keyboard only, restored the moment focus comes
+        // back, and it leaves the mouse alone so clicking back into the game
+        // behaves normally.
+        var unfocused = !HasFocus();
+        if (unfocused != _wasUnfocused)
+        {
+            _wasUnfocused = unfocused;
+            // Said out loud because "nothing suppressed" and "the game still
+            // thinks it is focused" look identical from outside.
+            Trace(unfocused ? "the game lost focus" : "the game regained focus");
+        }
+        var wantsSuppression = field != null || unfocused;
 
-        if (!wantsSuppression) return;
+        // COUNT THE TRANSITIONS. isFocused is polled, and if it flickers -
+        // TMP clearing focus for a frame while the pointer is down, say -
+        // this would disable and re-enable Rewired every couple of frames.
+        // Rewired's mouse source would be torn down and rebuilt underneath
+        // the UI module continuously, which is one of the few things that
+        // could leave it convinced a button is still held.
+        //
+        // Cheap and bounded: two ints and a log line every 20 flips. If the
+        // pane is open and this is silent, thrashing is ruled out and the
+        // stuck pointer is somewhere else entirely.
+        if (wantsSuppression && !_suppressed)
+        {
+            _flips++;
+            Suppress();
+        }
+        else if (!wantsSuppression && _suppressed)
+        {
+            _flips++;
+            Restore();
+        }
 
-        // Tab moves to the next box. Read from Unity's own key state, because
-        // Rewired is switched off at this point and would report nothing.
+        if (_flips >= _flipsReported + 20)
+        {
+            _flipsReported = _flips;
+            Warn($"suppression has flipped {_flips} times - if the game has "
+                 + "not been alt-tabbed that often, focus is flickering, "
+                 + "which would keep resetting the input state underneath "
+                 + "the mouse");
+        }
+
+        // Tab is a TEXT BOX thing. Reading it while merely unfocused would
+        // move the caret in a pane nobody is looking at, in response to a Tab
+        // pressed in another application.
+        if (field == null) return;
+
+        // Read from Unity's own key state, because Rewired is switched off at
+        // this point and would report nothing.
         if (Input.GetKeyDown(KeyCode.Tab)) focusNext();
     }
 
@@ -340,5 +550,27 @@ public static class TypingGuard
     /// </summary>
     public static Action<string>? OnWarning { get; set; }
 
+    /// <summary>
+    /// Routine commentary. Separate from OnWarning because this class only
+    /// had the one channel, so "the game lost focus" - which happens every
+    /// time you alt-tab - came out at WARNING level alongside things that
+    /// actually need attention. droha: "why is the focus log a warning?"
+    /// </summary>
+    public static Action<string>? OnInfo { get; set; }
+
+    /// <summary>
+    /// Per-alt-tab chatter. Debug rather than info: it fires every time the
+    /// window changes hands and tells a reader nothing they did not just do
+    /// themselves. It earns its place only when the question is "did the
+    /// guard notice?", which is a debugging question.
+    /// </summary>
+    public static Action<string>? OnDebug { get; set; }
+
     private static void Warn(string message) => OnWarning?.Invoke(message);
+
+    private static void Say(string message)
+        => (OnInfo ?? OnWarning)?.Invoke(message);
+
+    private static void Trace(string message)
+        => (OnDebug ?? OnInfo ?? OnWarning)?.Invoke(message);
 }
