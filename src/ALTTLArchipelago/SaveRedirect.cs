@@ -451,14 +451,14 @@ internal static class SaveRedirect
             var prefs = run[PrefsKey];
             if (prefs == null) return;
 
-            var mine = Newtonsoft.Json.Linq.JObject.Parse(Decode(campaign));
+            var campaignText = Decode(campaign);
+            var mine = Newtonsoft.Json.Linq.JObject.Parse(campaignText);
             if (Newtonsoft.Json.Linq.JToken.DeepEquals(mine[PrefsKey], prefs))
             {
                 return;                       // nothing changed; do not write
             }
 
-            mine[PrefsKey] = prefs;
-            Encode(campaign, mine.ToString(Newtonsoft.Json.Formatting.None));
+            WriteSettings(campaign, campaignText, mine, prefs);
             Plugin.Logger.LogInfo(
                 "save: copied the player's settings back to the campaign save");
         }
@@ -510,11 +510,11 @@ internal static class SaveRedirect
             var prefs = mine[PrefsKey];
             if (prefs == null) return;
 
-            var run = Newtonsoft.Json.Linq.JObject.Parse(Decode(runPath));
+            var runText = Decode(runPath);
+            var run = Newtonsoft.Json.Linq.JObject.Parse(runText);
             if (Newtonsoft.Json.Linq.JToken.DeepEquals(run[PrefsKey], prefs)) return;
 
-            run[PrefsKey] = prefs;
-            Encode(runPath, run.ToString(Newtonsoft.Json.Formatting.None));
+            WriteSettings(runPath, runText, run, prefs);
             Plugin.Logger.LogInfo(
                 "save: carried the player's settings into the run's save");
         }
@@ -537,10 +537,88 @@ internal static class SaveRedirect
         return new string(chars);
     }
 
+    /// <summary>
+    /// Put one settings object into a save, touching nothing else.
+    ///
+    /// SPLICED, NOT RE-SERIALISED. Parsing the whole document and writing it
+    /// back out to move a single key puts every other value through a parse
+    /// and a re-serialise too, so a number the game wrote as "1.0" can come
+    /// back as "1" and key order can shift. That is the mod rewriting bytes
+    /// nobody asked it to touch, in a file holding someone's progress.
+    ///
+    /// The re-serialise is still there as a FALLBACK, because a save the
+    /// splice cannot read confidently is not a reason to drop the settings
+    /// on the floor - it just stops being the quiet option, and says so.
+    /// </summary>
+    private static void WriteSettings(string path, string original,
+                                      Newtonsoft.Json.Linq.JObject parsed,
+                                      Newtonsoft.Json.Linq.JToken prefs)
+    {
+        var replacement = prefs.ToString(Newtonsoft.Json.Formatting.None);
+        var spliced = SettingsSplice.Replace(original, PrefsKey, replacement);
+
+        if (spliced == null)
+        {
+            parsed[PrefsKey] = prefs;
+            spliced = parsed.ToString(Newtonsoft.Json.Formatting.None);
+            Plugin.Logger.LogWarning(
+                $"save: could not find the settings object in "
+                + $"{Path.GetFileName(path)}, so the whole file was rewritten");
+        }
+
+        Encode(path, spliced);
+    }
+
+    /// <summary>
+    /// Write a save so that a crash cannot leave a half-written one.
+    ///
+    /// TEMP FILE, READ BACK, THEN MOVE. The old version wrote straight over
+    /// the target with File.WriteAllText, and the target here can be the
+    /// player's CAMPAIGN save - so a crash or a power cut partway through
+    /// took their progress with it. The mod's own scratch files, RunState and
+    /// SlotCache, were already careful in exactly this way; the one write
+    /// that touched something irreplaceable was the one that was not.
+    ///
+    /// The read-back is cheap and catches what a move alone cannot: a partial
+    /// write that still closed the file, an encoding that did not round-trip,
+    /// a disk that quietly dropped the tail. If what comes back is not what
+    /// went out, the temp file is discarded and the original is still there,
+    /// untouched.
+    /// </summary>
     private static void Encode(string path, string text)
     {
         var chars = text.ToCharArray();
         for (int i = 0; i < chars.Length; i++) chars[i] = (char)(chars[i] + 11);
-        File.WriteAllText(path, new string(chars), new UTF8Encoding(true));
+        var encoded = new string(chars);
+
+        // A suffix of our own, so this can never collide with the game's own
+        // temp file for the same save.
+        var temp = path + ".aptmp";
+
+        try
+        {
+            File.WriteAllText(temp, encoded, new UTF8Encoding(true));
+
+            if (Decode(temp) != text)
+            {
+                throw new IOException(
+                    "the file did not read back as it was written");
+            }
+
+            File.Move(temp, path, overwrite: true);
+        }
+        catch
+        {
+            try
+            {
+                if (File.Exists(temp)) File.Delete(temp);
+            }
+            catch
+            {
+                // Leaving a stray .aptmp behind is untidy. Losing the save is
+                // not, and the original is what matters here.
+            }
+            throw;
+        }
     }
 }
