@@ -16,10 +16,27 @@ namespace ALTTLModKit;
 ///   - Tab closed the dialog instead of moving to the next field, because the
 ///     UI module treats it as a navigation or cancel action.
 ///
-/// So while a field has focus, ALL Rewired maps are switched off and the input
-/// module's navigation actions are unbound. The mouse still works - it is
-/// Unity's pointer handling that clicks the buttons, not Rewired's maps - and
-/// everything is put back exactly as it was on the way out.
+/// So while a field has focus, the KEYBOARD's Rewired maps are switched off
+/// and the input module's navigation actions are unbound. Everything is put
+/// back exactly as it was on the way out.
+///
+/// KEYBOARD ONLY, AND THAT IS THE WHOLE POINT. This used to switch off every
+/// map for every player, on the reasoning - written here, and wrong - that
+/// "the mouse still works, it is Unity's pointer handling that clicks the
+/// buttons, not Rewired's maps". The scene's EventSystem carries the GAME's
+/// RewiredStandaloneInputModule, and that module reads mouse buttons from
+/// Rewired's own IMouseInputSource, not from UnityEngine.Input. Disabling
+/// every map therefore blinded it to the mouse RELEASE: its state stayed
+/// pressed, so moving the mouse kept sending drag events to the focused
+/// field and a second click never produced a fresh press.
+///
+/// droha reported exactly that - click once and the whole row highlights,
+/// then "moving the mouse around highlights different things, like I'm
+/// dragging it", and a second click does not put the caret where you clicked.
+///
+/// The drift this guard exists to stop comes from KEYS bound to cursor and
+/// mouse-button actions, which live in the keyboard maps, so narrowing the
+/// suppression keeps the original fix and gives the mouse back.
 ///
 /// Restoring matters more than disabling. Leaving the game's input disabled
 /// after closing a dialog would be far worse than the bug being fixed.
@@ -118,7 +135,8 @@ public static class TypingGuard
     /// </summary>
     /// <summary>Every player's map helper, with its SetAllMapsEnabled.</summary>
     private static readonly System.Collections.Generic.List<
-        (object Helper, System.Reflection.MethodInfo Method)> _mapHelpers = new();
+        (object Helper, System.Reflection.MethodInfo Method, bool KeyboardOnly)>
+        _mapHelpers = new();
     private static bool _mapsLookedUp;
 
     private static void SetRewiredMapsEnabled(bool enabled)
@@ -130,9 +148,17 @@ public static class TypingGuard
             // miss disabled the fix for the whole session.
             if (!_mapsLookedUp) ResolveMapHelper();
 
-            foreach (var (helper, method) in _mapHelpers)
+            foreach (var (helper, method, keyboardOnly) in _mapHelpers)
             {
-                method.Invoke(helper, new object[] { enabled });
+                if (keyboardOnly)
+                {
+                    method.Invoke(helper,
+                        new object[] { enabled, Rewired.ControllerType.Keyboard });
+                }
+                else
+                {
+                    method.Invoke(helper, new object[] { enabled });
+                }
             }
         }
         catch (Exception e)
@@ -182,7 +208,10 @@ public static class TypingGuard
         }
 
         _mapsLookedUp = true;
-        Warn($"Rewired maps reachable for {_mapHelpers.Count} player(s)");
+        var narrow = 0;
+        foreach (var (_, _, keyboardOnly) in _mapHelpers) if (keyboardOnly) narrow++;
+        Warn($"Rewired maps reachable for {_mapHelpers.Count} player(s), "
+             + $"{narrow} of them keyboard-only");
     }
 
     /// <summary>
@@ -238,15 +267,35 @@ public static class TypingGuard
         try { return get(); } catch { return null; }
     }
 
+    /// <summary>
+    /// Bind the narrowest map switch this build of Rewired offers.
+    ///
+    /// SetMapsEnabled(bool, ControllerType) is preferred because switching off
+    /// only the keyboard leaves the mouse source alive for the UI module - see
+    /// the note at the top of this file for what happens when it does not.
+    /// SetAllMapsEnabled is the fallback, and it is worth a warning: it fixes
+    /// the cursor drift and reintroduces the stuck-pointer bug.
+    /// </summary>
     private static bool TryBind(object? candidate)
     {
         if (candidate == null) return false;
 
-        var method = candidate.GetType().GetMethod(
-            "SetAllMapsEnabled", new[] { typeof(bool) });
-        if (method == null) return false;
+        var narrow = candidate.GetType().GetMethod(
+            "SetMapsEnabled", new[] { typeof(bool), typeof(Rewired.ControllerType) });
+        if (narrow != null)
+        {
+            _mapHelpers.Add((candidate, narrow, true));
+            return true;
+        }
 
-        _mapHelpers.Add((candidate, method));
+        var all = candidate.GetType().GetMethod(
+            "SetAllMapsEnabled", new[] { typeof(bool) });
+        if (all == null) return false;
+
+        Warn("Rewired: no per-controller-type map switch; falling back to "
+             + "disabling ALL maps, which leaves the mouse stuck while a text "
+             + "box has focus");
+        _mapHelpers.Add((candidate, all, false));
         return true;
     }
 
