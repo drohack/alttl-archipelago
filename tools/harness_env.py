@@ -41,6 +41,7 @@ prints "restored" having done nothing at all.
 """
 import atexit
 import glob
+import json
 import os
 import re
 import shutil
@@ -197,6 +198,66 @@ def _destination(rel):
     return os.path.join(CONFIG_DIR if kind == "config" else SAVE_DIR, name)
 
 
+#: Where Unity keeps the player's display choice.
+#:
+#: SNAPSHOTTED BECAUSE THE GAME REWRITES IT, not because any harness does.
+#: Every launch, the game persists whatever display state it ended up in -
+#: resolution, window mode, which monitor. A harness that launches the game
+#: therefore changes these whether it means to or not, and nothing here put
+#: them back.
+#:
+#: That cost droha their settings repeatedly over one session: 1280x720
+#: windowed on the primary monitor became 1920x1080, then borderless
+#: fullscreen on the second monitor, then 3840x2160 - each time because a
+#: probe had launched the game. "Why is my game always opening in full screen
+#: mode? I set it to windowed every time."
+SCREEN_KEY = r"Software\maxinferno\A Little To The Left"
+
+
+def _screen_values():
+    """Every Screenmanager/monitor value, as {name: (value, type)}."""
+    try:
+        import winreg
+    except ImportError:
+        return {}
+
+    out = {}
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, SCREEN_KEY, 0,
+                            winreg.KEY_QUERY_VALUE) as key:
+            count = winreg.QueryInfoKey(key)[1]
+            for i in range(count):
+                name, value, kind = winreg.EnumValue(key, i)
+                if "Screenmanager" in name or "Monitor" in name:
+                    out[name] = (value, kind)
+    except OSError:
+        pass
+    return out
+
+
+def _write_screen_values(values):
+    try:
+        import winreg
+    except ImportError:
+        return 0
+
+    put = 0
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, SCREEN_KEY, 0,
+                            winreg.KEY_SET_VALUE | winreg.KEY_QUERY_VALUE) as key:
+            for name, (value, kind) in values.items():
+                try:
+                    if winreg.QueryValueEx(key, name)[0] == value:
+                        continue
+                except OSError:
+                    pass
+                winreg.SetValueEx(key, name, 0, kind, value)
+                put += 1
+    except OSError:
+        pass
+    return put
+
+
 def take_snapshot(label):
     stamp = time.strftime("%Y%m%d-%H%M%S")
     safe = re.sub(r"[^A-Za-z0-9_.-]", "-", label)
@@ -208,6 +269,13 @@ def take_snapshot(label):
     for src, rel in _files_to_snapshot():
         shutil.copy2(src, os.path.join(root, rel))
         names.append(rel)
+
+    # The display settings live in the registry, not a file, so they go in
+    # their own sidecar rather than the manifest.
+    screen = _screen_values()
+    if screen:
+        with open(os.path.join(root, "SCREEN.json"), "w", encoding="utf-8") as f:
+            json.dump({k: list(v) for k, v in screen.items()}, f, indent=2)
 
     # The manifest is what lets restore DELETE files created during the run.
     # Without it a harness that starts a new run leaves its save behind, and
@@ -229,6 +297,21 @@ def restore_snapshot(root, quiet=False):
 
     with open(manifest, encoding="utf-8") as f:
         known = [line.strip() for line in f if line.strip()]
+
+    # Display settings first: the game may have rewritten them just by being
+    # launched, and they belong to the player, not the run.
+    screen_path = os.path.join(root, "SCREEN.json")
+    if os.path.isfile(screen_path):
+        try:
+            with open(screen_path, encoding="utf-8") as f:
+                wanted = {k: tuple(v) for k, v in json.load(f).items()}
+            moved = _write_screen_values(wanted)
+            if moved and not quiet:
+                print(f"-- display settings put back ({moved} value(s)) --",
+                      flush=True)
+        except Exception as e:
+            print(f"WARNING: could not restore the display settings: {e}",
+                  flush=True)
 
     put_back = 0
     for rel in known:

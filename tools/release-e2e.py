@@ -884,73 +884,74 @@ def solve_level(log):
 
 #: Unity FullScreenMode. 0 exclusive, 1 borderless, 2 maximised, 3 windowed.
 WINDOWED = 3
-WINDOW_SIZE = (1280, 720)
 
-#: Where Unity keeps the player's screen choice.
-SCREEN_KEY = r"HKCU\Software\maxinferno\A Little To The Left"
+#: Where Unity keeps the player's screen choice. READ ONLY - see below.
+SCREEN_KEY = r"Software\maxinferno\A Little To The Left"
 
-#: The hashed value names Unity generates. They are stable for a given build.
-SCREEN_VALUES = {
-    # THE BOOLEAN, and leaving it out is why this did not work. Unity keeps
-    # "which mode" and "am I fullscreen" as SEPARATE values, and the game reads
-    # this one. Setting only the mode left it fullscreen, and on exit the game
-    # wrote its own choice back over every key below - so a run that printed
-    # "windowed 1280x720" actually played at 1920 borderless and flipped
-    # playerPrefs.fullscreen to true in the player's save. Which then failed
-    # the campaign-save assertion, for a display setting.
-    "Screenmanager Is Fullscreen mode_h3981298716": 0,
-    "Screenmanager Fullscreen mode_h3630240806": WINDOWED,
-    "Screenmanager Fullscreen mode Default_h401710285": WINDOWED,
-    "Screenmanager Resolution Use Native_h1405027254": 0,
-    "Screenmanager Resolution Width_h182942802": WINDOW_SIZE[0],
-    "Screenmanager Resolution Height_h2627697771": WINDOW_SIZE[1],
-}
+#: The hashed value names Unity generates. Stable for a given build.
+MODE_VALUE = "Screenmanager Fullscreen mode_h3630240806"
+WIDTH_VALUE = "Screenmanager Resolution Width_h182942802"
+HEIGHT_VALUE = "Screenmanager Resolution Height_h2627697771"
 
 
-def force_windowed():
-    """Never take over the whole screen.
+def display_setting():
+    """What the player has the game set to. NEVER writes.
 
-    A test run should not be able to seize the display. droha asked for this
-    directly - a fullscreen game is disruptive to sit next to, and it makes
-    every screenshot the size of the monitor.
+    THIS USED TO FORCE WINDOWED AND IT WAS A MISTAKE. droha asked, reasonably,
+    that a test run not seize the screen, and the answer was to write six
+    registry values before every launch. Three things went wrong with that:
 
-    Done through the registry rather than the command line on purpose: this
-    game shows a configuration dialog when it is given Unity's -screen-*
-    arguments, which reads as a hang to anything waiting on the log. The exe
-    must be launched with NO arguments.
+      - It did not work. The game applies its own `playerPrefs` from
+        save1.json after startup, so it launched fullscreen anyway while the
+        harness printed "windowed 1280x720, not fullscreen" on the strength of
+        having written the registry.
+      - The game rewrites those keys from its RUNTIME state on exit, so every
+        run left the display wherever the run had ended up - including on the
+        wrong monitor.
+      - It kept overwriting a setting that belongs to the person at the
+        keyboard. droha, after the third time: "why does it re-write those? It
+        shouldn't! That's the whole thing I've been trying to tell you."
 
-    Best effort. A missing key means a different game build or a different
-    machine, and that is not a reason to fail a run.
+    The setting is already what they want. Reading it and saying so gets the
+    same outcome, and a run that finds fullscreen can warn instead of
+    silently changing it.
     """
     try:
         import winreg
     except ImportError:
-        return False
+        return None
 
     try:
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
-                            r"Software\maxinferno\A Little To The Left", 0,
-                            winreg.KEY_SET_VALUE | winreg.KEY_QUERY_VALUE) as key:
-            for name, value in SCREEN_VALUES.items():
-                winreg.SetValueEx(key, name, 0, winreg.REG_DWORD, value)
-            # READ BACK. The previous version returned True on a successful
-            # write and the caller printed "not fullscreen" on the strength of
-            # it, which was a claim about the registry rather than about the
-            # game. Reporting what is actually stored costs one read.
-            for name, value in SCREEN_VALUES.items():
-                if winreg.QueryValueEx(key, name)[0] != value:
-                    return False
-        return True
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, SCREEN_KEY, 0,
+                            winreg.KEY_QUERY_VALUE) as key:
+            mode = winreg.QueryValueEx(key, MODE_VALUE)[0]
+            width = winreg.QueryValueEx(key, WIDTH_VALUE)[0]
+            height = winreg.QueryValueEx(key, HEIGHT_VALUE)[0]
+        return mode, width, height
     except OSError:
-        return False
+        return None
+
+
+def describe_display():
+    """One line for the log, and whether it is going to take the screen."""
+    now = display_setting()
+    if now is None:
+        return "display setting unknown", False
+    mode, width, height = now
+    windowed = mode == WINDOWED
+    names = {0: "exclusive fullscreen", 1: "borderless fullscreen",
+             2: "maximised", 3: "windowed"}
+    return (f"{names.get(mode, f'mode {mode}')} {width}x{height}"
+            + ("" if windowed else " - the player's own setting, left alone"),
+            windowed)
 
 
 def launch_and_connect(log, phase, what):
     """Start the game and wait for the run to be up. Returns the log text."""
     if ensure_no_steam_relaunch():
         say(phase, "wrote steam_appid.txt so the game stops restarting itself")
-    if force_windowed():
-        say(phase, f"windowed {WINDOW_SIZE[0]}x{WINDOW_SIZE[1]}, not fullscreen")
+    what_display, _windowed = describe_display()
+    say(phase, what_display)
     log.before_launch()
     subprocess.Popen([EXE], cwd=GAME)
     return log.wait(["connected. ", "Archipelago refused"], 150, phase, what)
@@ -1721,13 +1722,15 @@ def self_test():
     if src.count("EXHAUSTED_MARK") < 3:
         sys.exit("self-test: EXHAUSTED_MARK is no longer used on both sides")
 
-    # The display fix. Unity keeps the mode and the boolean separately and
-    # the game reads the boolean; setting only the mode let a run play at
-    # 1920 borderless while printing "not fullscreen".
-    if "Screenmanager Is Fullscreen mode_h3981298716" not in SCREEN_VALUES:
-        sys.exit("self-test: force_windowed would not actually leave fullscreen")
-    if SCREEN_VALUES["Screenmanager Is Fullscreen mode_h3981298716"] != 0:
-        sys.exit("self-test: the fullscreen boolean must be 0")
+    # THE HARNESS MUST NOT WRITE THE PLAYER'S DISPLAY SETTINGS. It used to,
+    # it did not even work, and it kept moving the game to another monitor.
+    # Any reintroduction should fail here rather than in someone's face.
+    src_text = open(__file__, encoding="utf-8").read()
+    # Split so the needle does not appear verbatim in the needle's own line -
+    # the first version of this matched itself and failed every time.
+    if ("winreg.SetValue" + "Ex") in src_text:
+        sys.exit("self-test: this harness writes the registry again - the "
+                 "display belongs to the player, read it and report it")
 
     # campaign_diff names the fields that moved. The bare FAIL it replaced
     # read as "the run wrote the player's campaign save" when what had
@@ -1751,7 +1754,7 @@ def self_test():
     # before the game is ever launched.
     for name in ("launch_and_connect", "open_count", "loaded_level", "to_title",
                  "check_pause_exit", "error_census", "unexplained", "table_audit",
-                 "force_windowed",
+                 "describe_display",
                  "game_is_running",
                  "boot_level", "solve_level", "play", "read_plan", "clean",
                  "install_mod", "install_apworld", "write_config", "generate"):

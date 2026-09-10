@@ -99,10 +99,8 @@ def main():
 
             print("[3/7] launching the game", flush=True)
             log = e2e.Log()
-            if e2e.force_windowed():
-                print("      windowed, verified against the registry", flush=True)
-            else:
-                print("      WARNING: could not confirm windowed", flush=True)
+            what_display, windowed = e2e.describe_display()
+            print(f"      {what_display}", flush=True)
             log.before_launch()
             subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
             out = log.wait(["connected. "], 150, 3, "the connection")

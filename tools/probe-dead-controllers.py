@@ -259,8 +259,8 @@ def main():
 
             print("[2/3] launching the game", flush=True)
             log = e2e.Log()
-            if not e2e.force_windowed():
-                print("      WARNING: could not confirm windowed", flush=True)
+            what_display, windowed = e2e.describe_display()
+            print(f"      {what_display}", flush=True)
             log.before_launch()
             subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
             if "connected. " not in log.wait(["connected. "], 150, 2,
