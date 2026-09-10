@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text;
 using ALTTLArchipelago.Core;
 using HarmonyLib;
 
@@ -53,6 +54,12 @@ internal static class SaveRedirect
 
         _active = name;
         Plugin.Logger.LogInfo($"save redirected to {name}");
+
+        // The other half of the settings sync - campaign into the run, done
+        // BEFORE the load so the game reads the merged file. Without this the
+        // sync is one-way: a resolution set outside a run would be overwritten
+        // by whatever the run file happened to hold.
+        SyncSettingsIntoRun();
 
         try
         {
@@ -396,5 +403,144 @@ internal static class SaveRedirect
     private static void RedirectSaveFilename(ref string __result)
     {
         if (_active != null) __result = _active;
+    }
+
+
+    /// <summary>
+    /// Copy the player's SETTINGS back to the campaign save after every save.
+    ///
+    /// The redirect above moves every write into the run's file, and the
+    /// game keeps display and accessibility settings in the same file as
+    /// progress. So changing the resolution during a run wrote it to
+    /// save_ap_&lt;slot&gt;_&lt;seed&gt;.json, and the next launch - which reads
+    /// save1.json, because no run exists yet - came up on the old one.
+    ///
+    /// droha, after three goes at this: "it's not saving my settings. I turn
+    /// full screen off, I set the resolution to 720p, and when I open it it's
+    /// full screen off, 1080p." Fullscreen looked like it stuck only because
+    /// it had been edited into save1.json by hand.
+    ///
+    /// SETTINGS ONLY, and that is the whole design. The rule everywhere else
+    /// in this file is that a run never writes the campaign save, because
+    /// nothing a run does should be able to touch the player's progress. This
+    /// is the one deliberate exception, and it stays honest by copying a
+    /// single named object: playerPrefs in, nothing else touched, progress
+    /// read straight back out of the file and written again unchanged.
+    /// </summary>
+    private const string PrefsKey = "playerPrefs";
+
+    [HarmonyPatch(typeof(SaveSystem), nameof(SaveSystem.SaveGame))]
+    [HarmonyPostfix]
+    private static void MirrorSettingsToCampaign()
+    {
+        if (_active == null) return;
+
+        try
+        {
+            var runPath = SaveSystem.GetSavePath(false);
+            if (string.IsNullOrEmpty(runPath)) return;
+
+            var directory = Path.GetDirectoryName(runPath);
+            var extension = Path.GetExtension(runPath);
+            if (string.IsNullOrEmpty(directory)) return;
+
+            var campaign = Path.Combine(directory, CampaignName + extension);
+            if (!File.Exists(campaign) || !File.Exists(runPath)) return;
+
+            var run = Newtonsoft.Json.Linq.JObject.Parse(Decode(runPath));
+            var prefs = run[PrefsKey];
+            if (prefs == null) return;
+
+            var mine = Newtonsoft.Json.Linq.JObject.Parse(Decode(campaign));
+            if (Newtonsoft.Json.Linq.JToken.DeepEquals(mine[PrefsKey], prefs))
+            {
+                return;                       // nothing changed; do not write
+            }
+
+            mine[PrefsKey] = prefs;
+            Encode(campaign, mine.ToString(Newtonsoft.Json.Formatting.None));
+            Plugin.Logger.LogInfo(
+                "save: copied the player's settings back to the campaign save");
+        }
+        catch (Exception e)
+        {
+            // Cosmetic in the worst case - the settings simply do not follow.
+            // Never fatal, and never allowed to disturb the save that just
+            // succeeded.
+            Plugin.Logger.LogWarning($"save: could not mirror settings: {e.Message}");
+        }
+    }
+
+    /// <summary>The campaign save's name, without extension.</summary>
+    private const string CampaignName = "save1";
+
+    /// <summary>
+    /// Copy the campaign save's settings INTO the run's file, before it loads.
+    ///
+    /// The mirror below sends settings the other way, after every save. Both
+    /// directions are needed for them to be one setting rather than two that
+    /// happen to agree: without this, changing the resolution outside a run
+    /// would be undone the moment a run started, because the run file still
+    /// held the old value.
+    ///
+    /// Does nothing when the run file does not exist yet - the game is about
+    /// to create it from the campaign data already in memory, which is the
+    /// same values this would have copied.
+    /// </summary>
+    private static void SyncSettingsIntoRun()
+    {
+        if (_active == null) return;
+
+        try
+        {
+            var campaign = SaveSystem.GetSavePath(false);
+            if (string.IsNullOrEmpty(campaign)) return;
+
+            var directory = Path.GetDirectoryName(campaign);
+            var extension = Path.GetExtension(campaign);
+            if (string.IsNullOrEmpty(directory)) return;
+
+            // GetSavePath is already redirected by the time Begin runs, so
+            // build the campaign path rather than trusting what came back.
+            campaign = Path.Combine(directory, CampaignName + extension);
+            var runPath = Path.Combine(directory, _active + extension);
+            if (!File.Exists(campaign) || !File.Exists(runPath)) return;
+
+            var mine = Newtonsoft.Json.Linq.JObject.Parse(Decode(campaign));
+            var prefs = mine[PrefsKey];
+            if (prefs == null) return;
+
+            var run = Newtonsoft.Json.Linq.JObject.Parse(Decode(runPath));
+            if (Newtonsoft.Json.Linq.JToken.DeepEquals(run[PrefsKey], prefs)) return;
+
+            run[PrefsKey] = prefs;
+            Encode(runPath, run.ToString(Newtonsoft.Json.Formatting.None));
+            Plugin.Logger.LogInfo(
+                "save: carried the player's settings into the run's save");
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"save: could not carry settings in: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// The game's save format: UTF-8 with a BOM, every codepoint shifted up
+    /// by 11. Obfuscation rather than encryption - the first bytes decode to
+    /// {"guid".
+    /// </summary>
+    private static string Decode(string path)
+    {
+        var raw = File.ReadAllText(path, new UTF8Encoding(true));
+        var chars = raw.ToCharArray();
+        for (int i = 0; i < chars.Length; i++) chars[i] = (char)(chars[i] - 11);
+        return new string(chars);
+    }
+
+    private static void Encode(string path, string text)
+    {
+        var chars = text.ToCharArray();
+        for (int i = 0; i < chars.Length; i++) chars[i] = (char)(chars[i] + 11);
+        File.WriteAllText(path, new string(chars), new UTF8Encoding(true));
     }
 }
