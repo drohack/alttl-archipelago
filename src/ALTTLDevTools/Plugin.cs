@@ -1060,6 +1060,15 @@ public class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("unlocks", DumpUnlocks);
             }
+            else if (cmd.Equals("resolutions", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("resolutions", DumpResolutions);
+            }
+            else if (cmd.StartsWith("jiggle", StringComparison.OrdinalIgnoreCase))
+            {
+                var arg = cmd.Length > 7 ? cmd.Substring(7) : "";
+                SafeRun("jiggle", () => JigglePieces(arg));
+            }
             else if (cmd.Equals("sections", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("sections", DumpSections);
@@ -2104,6 +2113,164 @@ public class DevToolsBehaviour : MonoBehaviour
     /// so that string may be nothing more than the placeholder baked into the
     /// prefab. What a player actually sees is only knowable by showing it.
     /// </summary>
+    /// <summary>
+    /// Pick pieces up and drop them, for real, one after another.
+    ///
+    /// EXISTS BECAUSE A BUG NEEDED QUARTER-SECOND TIMING TO REPRODUCE.
+    /// Dropping a piece starts a LeanTween settle animation, and a cat trap
+    /// landing while one is running used to leave a dead callback throwing
+    /// every frame. Asking a human to spring a trap inside that window is not
+    /// a test; droha, reasonably: "how do I time that? It needs to be timed
+    /// to like the quarter second."
+    ///
+    /// So this drops piece after piece with a short gap, which keeps SOMETHING
+    /// settling for as long as it runs. A trap sent any time during that lands
+    /// mid-animation without anyone having to aim.
+    ///
+    /// A REAL POINTER DRAG, not a flag flip. docs/release-testing.md records
+    /// that every short reproducer written for this project used DevTools'
+    /// `complete` instead of solving, and all of them came back clean while
+    /// the bug reproduced in the full run. The settle tween only exists if a
+    /// piece is actually dragged and dropped, so this dispatches the same
+    /// pointer sequence the game gets from a mouse.
+    ///
+    ///     jiggle          every piece in the level, once
+    ///     jiggle:5        the first five
+    /// </summary>
+    /// <summary>
+    /// What the game's resolution list actually contains, with indices.
+    ///
+    /// The save stores the player's choice as an INDEX into this list, and
+    /// the list is built from the monitor the game opened on - so the same
+    /// number means different things on different displays, and a stale
+    /// index silently changes the window size. droha, who worked this out
+    /// first: "the game changes the resolution list depending on what
+    /// monitor opened it, so a number doesn't help me here."
+    ///
+    /// Printing the list is the only way to turn "index 0" into something a
+    /// person can check.
+    /// </summary>
+    private static void DumpResolutions()
+    {
+        var all = Screen.resolutions;
+        DevToolsPlugin.Log.LogInfo(
+            $"resolutions: {(all == null ? 0 : all.Length)} available, "
+            + $"current {Screen.width}x{Screen.height}, "
+            + $"fullScreen={Screen.fullScreen} mode={Screen.fullScreenMode}");
+
+        for (int i = 0; i < (all == null ? 0 : all.Length); i++)
+        {
+            var r = all![i];
+            var here = r.width == Screen.width && r.height == Screen.height
+                ? "  <- current size" : "";
+            DevToolsPlugin.Log.LogInfo(
+                $"resolutions:  [{i}] {r.width}x{r.height}{here}");
+        }
+    }
+
+    private static void JigglePieces(string arg)
+    {
+        var want = int.MaxValue;
+        if (!string.IsNullOrEmpty(arg)
+            && int.TryParse(arg, NumberStyles.Integer, CultureInfo.InvariantCulture,
+                            out var parsed))
+        {
+            want = parsed;
+        }
+
+        var pieces = UnityEngine.Object.FindObjectsOfType<DragObject>();
+        if (pieces == null || pieces.Length == 0)
+        {
+            DevToolsPlugin.Log.LogWarning("jiggle: no DragObject in the scene");
+            return;
+        }
+
+        // ObjectPlaced is what starts the settle animation, and it is reached
+        // by REFLECTION rather than a synthetic drag.
+        //
+        // The first version dispatched pointerDown/beginDrag/drag/endDrag
+        // through the EventSystem and started no tween at all - 24 drags,
+        // zero detached tweens - because DragObject has no OnDrag at all: the
+        // interop shows OnPointerDown, OnBeginDrag and OnEndDrag but no drag
+        // handler, so the sequence never amounted to a placement. Calling the
+        // method the crash names is both simpler and exactly on target.
+        // Snap(), not ObjectPlaced(GameEventData). The crash lives in a
+        // closure inside ObjectPlaced, but that overload wants a game event
+        // we have no honest way to synthesise - and Snap is what actually
+        // runs the settle: the type carries snapMoveTween, snapEase and
+        // m_snapTweenID right beside it.
+        System.Reflection.MethodInfo? placed = null;
+        foreach (var m in typeof(DragObject).GetMethods(
+                     System.Reflection.BindingFlags.Public
+                     | System.Reflection.BindingFlags.NonPublic
+                     | System.Reflection.BindingFlags.Instance))
+        {
+            if (m.Name != "Snap") continue;
+            if (m.GetParameters().Length != 0) continue;
+            placed = m;
+            break;
+        }
+
+        if (placed == null)
+        {
+            // Say what IS there. "No zero-argument ObjectPlaced" is true and
+            // useless; the overload list is what picks the next move.
+            DevToolsPlugin.Log.LogWarning(
+                "jiggle: no zero-argument ObjectPlaced on DragObject - "
+                + "candidates follow");
+            foreach (var m in typeof(DragObject).GetMethods(
+                         System.Reflection.BindingFlags.Public
+                         | System.Reflection.BindingFlags.NonPublic
+                         | System.Reflection.BindingFlags.Instance))
+            {
+                var n = m.Name;
+                if (n.IndexOf("Place", StringComparison.OrdinalIgnoreCase) < 0
+                    && n.IndexOf("Drop", StringComparison.OrdinalIgnoreCase) < 0
+                    && n.IndexOf("Snap", StringComparison.OrdinalIgnoreCase) < 0
+                    && n.IndexOf("Drag", StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    continue;
+                }
+                var ps = m.GetParameters();
+                var sig = new System.Text.StringBuilder(n).Append('(');
+                for (int j = 0; j < ps.Length; j++)
+                {
+                    if (j > 0) sig.Append(", ");
+                    sig.Append(ps[j].ParameterType.Name);
+                }
+                DevToolsPlugin.Log.LogInfo($"jiggle:   {sig.Append(')')}");
+            }
+            return;
+        }
+
+        var moved = 0;
+        var failed = 0;
+        for (int i = 0; i < pieces.Length && moved < want; i++)
+        {
+            var piece = pieces[i];
+            if (piece == null || piece.gameObject == null) continue;
+            if (!piece.gameObject.activeInHierarchy) continue;
+
+            try
+            {
+                placed.Invoke(piece, null);
+                moved++;
+            }
+            catch (Exception e)
+            {
+                if (failed++ == 0)
+                {
+                    DevToolsPlugin.Log.LogWarning(
+                        $"jiggle: ObjectPlaced threw: {e.Message}");
+                }
+            }
+        }
+
+        DevToolsPlugin.Log.LogInfo(
+            $"jiggle: placed {moved} of {pieces.Length} piece(s), {failed} "
+            + "threw; anything settling now is what a trap has to survive");
+    }
+
     private static void ShowSkipTooltip()
     {
         var found = 0;
