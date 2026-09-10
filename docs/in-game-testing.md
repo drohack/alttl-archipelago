@@ -84,6 +84,33 @@ cannot be found - because the restore sweep deletes save-folder files not in
 its manifest, and an empty `SAVE_DIR` makes that glob relative to the working
 directory, which is the repo.
 
+## Keep the log across launches
+
+BepInEx truncates `LogOutput.log` on every start. Set this in
+`BepInEx/config/BepInEx.cfg` before chasing anything intermittent:
+
+    [Logging.Disk]
+    AppendLog = true
+
+On 2026-09-10 droha hit a hard freeze after a cat trap and had to Alt+F4. The
+relaunch overwrote the only log of it, and `ErrorLog.log` holds two lines of
+Steam boilerplate, so the bug could not be investigated at all.
+
+`harness_env` deliberately does NOT snapshot this file, so the setting sticks
+across probe runs.
+
+**The mod keeps no log of its own** - it writes into BepInEx's. What it does
+write is state, and it is worth collecting alongside a log:
+
+| file | where | what |
+|---|---|---|
+| `alttl-last-session.json` | save folder | the offline slot cache: seed, plan, items |
+| `save_ap_<slot>_<seed>.json` / `.run.json` | save folder | the run's save and check ledger |
+| `alttl-prompts.json` | BepInEx root | which one-off prompts were answered |
+
+Unity keeps one previous session as `Player-prev.log`, but that is Unity's log
+and carries none of the mod's lines.
+
 ## Launching the game
 
 Run the executable directly, with no arguments:

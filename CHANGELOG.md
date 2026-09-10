@@ -8,6 +8,121 @@ table, and nothing detects that at runtime - so the version is checked by
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
+## 0.3.2 - unreleased
+
+Five reports from droha's 79-puzzle multiworld. **Location ids move**, so a
+seed generated before this build will not match a mod built after it.
+
+### The fridge advertised work the puzzle never wanted
+
+`Fridge (Something Eggstra)` had four locations and droha could only ever earn
+two, leaving the card half red for good. It has one now, the Solution.
+
+The level is an egg hunt and it ENDS when the carton is filled. Its other two
+controllers - the shelf objects and the tupperware - are arrangements the game
+does not ask for, so nothing ever solved them.
+
+Two independent measurements, because the first thing I concluded here was
+wrong. `tools/probe-dead-controllers.py` (new) force-solves every controller
+and all three fire, so they are not dead in the sense TupperwareTower's
+mechanism controllers were. Then `--only EggsContainable` solves the eggs and
+NOTHING else, and the game raises `LevelComplete` regardless. droha's room log
+agrees from the other side: `Solution 1` and `Eggs Containable` fired together
+at 03:31 while holding both Containers and Stacking, and the other two were
+never checked in the whole run.
+
+**Stacking is deliberately NOT kept as an `extraAbility`** - contrast
+TupperwareTower, where `Grids` is. The tupperware is dimmed without Stacking,
+but the level finishes without touching it, so requiring it would hold this
+level's only check behind an item the player never needs. The cross-check test
+grew an `OptionalAbilities` list for exactly this shape, and its docstring
+demands a measurement to join.
+
+435 locations to 432.
+
+### Packs are all the same size
+
+droha: "the packs should all be the same size, the 4 minimum open just means
+they have something to do in 4 levels at the start."
+
+The free opening was pinned at `MIN_OPENING` while the packs widened past it,
+so a default run opened 4 and then handed out 6 at a time. The floor applies
+to the pack SIZE now and the opening is simply the first block, so every block
+matches bar the remainder.
+
+- `puzzle_count` 79 to **70**, `pack_size` 4 to **5**, `MIN_OPENING` 4 to 5.
+  `levels_to_beat` stays 40. That is 70 + 13 dividers + credits = **84 cards**,
+  one under the widest strip the game draws.
+- `items.opening_size()` is now the single source of truth. `pool.py` and
+  `slots.py` each had their own `max(pack_size, MIN_OPENING)`, which is wrong
+  on any run long enough for the cap to widen the packs - they would have
+  believed a 79-puzzle run opens 5 when it opens 6.
+
+**Also fixed, and pre-existing:** the ability-granting loop is greedy one at a
+time, so it stalled where an opening puzzle needs TWO abilities - neither pays
+alone, so both looked worthless. It left openings a check short in 2 of 165
+stress configurations. It looks one further now when a single grant stops
+helping. Measured 2 before, **0 after**.
+
+### Toasts stopped throwing messages away
+
+droha: "I don't always see it showing my items being released/received."
+
+Beyond five on screen the OLDEST was destroyed, often before it had rendered a
+single frame - on screen, indistinguishable from never being raised. Finishing
+a level can push six or more at once and a Skip reports every remaining
+location on the slot.
+
+Ten now, and overflow WAITS instead of dying; the hold drops from 8s to 2.5s
+while a backlog exists so a burst clears rather than trickling. The eviction
+loop is now a tripwire that warns if a future caller reaches `AddLine` without
+checking for room.
+
+Measured on MedicineCabinet's 13 parts: **5 toasts waited for space, 0 lost.**
+
+Toasts already appeared bottom-left with the newest at the bottom and the
+stack growing upward, so nothing moved.
+
+### The level select strip fits the screen
+
+79 puzzles builds 92 cards against a strip the game sizes for about 85, so it
+ran off the edge. It is scaled to fit now, from a cached baseline so the
+one-second poll cannot shrink it cumulatively.
+
+The measurement that matters: the strip's own parent is content-sized and grew
+with the dots - 2025 wide against a span of 2026 - so comparing against it
+found no overflow and the first version of this silently did nothing. The room
+is the NARROWEST ancestor, which is the real viewport at 1920. Measured: 92
+dots span 2026 in 1920, scaled to 0.95, stable across repeated visits.
+
+### The connection pane's mouse no longer sticks
+
+droha: click once and the whole row highlights, then "moving the mouse around
+highlights different things, like I'm dragging it", and a second click does
+not put the caret where you clicked.
+
+The scene's EventSystem carries the GAME's `RewiredStandaloneInputModule`, and
+that module reads mouse buttons from Rewired's own `IMouseInputSource` rather
+than `UnityEngine.Input`. `TypingGuard` switched off EVERY Rewired map while a
+text box had focus, which blinded the module to the mouse RELEASE: its state
+stayed pressed, so mouse movement kept sending drag events to the field and no
+fresh press ever arrived.
+
+The comment asserting "the mouse still works - it is Unity's pointer handling
+that clicks the buttons, not Rewired's maps" was the load-bearing assumption
+and it was false. Only the KEYBOARD's maps are switched off now, which is
+where the cursor-drift bindings live.
+
+Confirmed bound at runtime - "1 player(s), 1 of them keyboard-only", so the
+per-controller-type API exists here and the all-maps fallback did not fire.
+**The mouse behaviour itself is not yet confirmed and needs a human.**
+
+### Not fixed
+
+A hard freeze after a cat trap on Envelopes. `AppendLog = false` in
+`BepInEx.cfg` meant the log was overwritten by the next launch, so there is
+nothing to read. Turn it on before hunting anything intermittent.
+
 ## 0.3.1 - 2026-09-09
 
 Fixes from droha's first full 79-puzzle playthrough of 0.3.0. The BepInEx log
