@@ -44,6 +44,7 @@ public sealed class Plugin : BasePlugin
     private static ConfigEntry<int> _maxAttempts = null!;
     private static ConfigEntry<bool> _whyProbe = null!;
     private static ConfigEntry<TypingGuard.Mode> _typingSuppression = null!;
+    private static ConfigEntry<string> _windowSize = null!;
 
     /// <summary>
     /// Whether the badge "why is this card that colour" file probe is running.
@@ -138,6 +139,24 @@ public sealed class Plugin : BasePlugin
             + "mouse or the keyboard misbehaves in that dialog; then try Off "
             + "and report which setting works.");
         TypingGuard.Suppression = _typingSuppression.Value;
+
+        // THE SIZE, NOT THE INDEX. The game remembers the display choice as
+        // a position in a list it rebuilds from whichever monitor it opened
+        // on, so the same number means different sizes on different screens
+        // and an out-of-range one silently becomes "native" - a window the
+        // size of the monitor, which in windowed mode is indistinguishable
+        // from fullscreen. See DisplayGuard for the measurements.
+        //
+        // Written by the mod, not by hand: it records whatever size the game
+        // is actually running at, so changing it in the game's own settings
+        // is what updates this.
+        _windowSize = Config.Bind("Display", "WindowSize", "",
+            "The window size to restore at startup, as WIDTHxHEIGHT. Set "
+            + "automatically from whatever size the game is running at, so "
+            + "change the resolution in the game's own settings rather than "
+            + "here. Empty means the game's own choice is left alone.");
+        DisplayGuard.Remember(_windowSize.Value);
+        DisplayGuard.OnRemember = size => _windowSize.Value = size;
 
         _maxAttempts = Config.Bind("Server", "MaxRetries",
             RetryPolicy.DefaultMaxAttempts,
@@ -1101,6 +1120,7 @@ public sealed class Ticker : MonoBehaviour
         Step("prompt memory", () => PromptMemory.Tick(dt));
         Step("connected tag", () => Badges.TickConnectedTag());
         Step("title state", () => TitleScreen.TickState());
+        Step("window size", () => DisplayGuard.Tick(dt));
         Step("overview dots", () => Badges.TickOverviewDots());
         Step("typing guard",
             () => TypingGuard.Tick(ConnectionPane.FocusedField, ConnectionPane.FocusNext));
