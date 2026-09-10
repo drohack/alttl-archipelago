@@ -84,6 +84,16 @@ public sealed class Plugin : BasePlugin
     {
         Logger = base.Log;
 
+        // WHAT THE GAME WAS LIKE BEFORE ANYONE TOUCHED IT.
+        //
+        // runInBackground decides whether the game keeps ticking - and keeps
+        // polling input - while another window has focus. DevTools forces it
+        // on, so a machine with DevTools installed does not behave like a
+        // player's. Recorded at load, before any of that, so the log always
+        // says which of the two this session is.
+        Logger.LogInfo(
+            $"stock: runInBackground={UnityEngine.Application.runInBackground}");
+
         // The kit takes its logger rather than reaching for ours; this is the
         // one line that replaces the reference it used to hold.
         Hub.OnError = m => Logger.LogError(m);
