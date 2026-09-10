@@ -459,7 +459,21 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # were dead locations. Removing them takes their two Grids entries out
         # of need_one; the level keeps requiring Grids through extraAbilities,
         # because the falling blocks are dimmed without it.
-        self.assertEqual((24, 94), (free, need_one),
+        # Now (24, 91). SomethingEggstra Fridge stopped minting part locations
+        # entirely: it had three groups and now has one, so has_parts is false
+        # and the level offers only its Solution. All three sat in need_one -
+        # EggsContainable and StandardObjects for Containers, Stackables for
+        # Stacking - which is the whole of 94 -> 91, with free untouched.
+        #
+        # Why they went: the level is an egg hunt and it ENDS when the carton
+        # is filled. Measured with tools/probe-dead-controllers.py --only
+        # EggsContainable, which solves the eggs alone and leaves the other
+        # two untouched: the game raises LevelComplete anyway. droha's room
+        # log shows the same from a real run - Solution 1 and Eggs Containable
+        # firing together while holding both Containers and Stacking, and the
+        # other two never checked at all. They were locations the card
+        # advertised and the puzzle never offered.
+        self.assertEqual((24, 91), (free, need_one),
                          "part requirement split changed; regenerate "
                          "names.json and re-measure before accepting")
 

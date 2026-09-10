@@ -176,9 +176,9 @@ GoodTidings_Ornament Box	Level	BulbsBox	Draggables		always-on
 SomethingEggstra PaintedEggs	Level	RowColSets	GridPuzzle	Grids	always-on		
 SomethingEggstra Egg Cups	Level	Shuffleables Cups	ShuffleablesRelative	Swapping	mutual	Shuffleables Eggs	
 SomethingEggstra Egg Cups	Level	Shuffleables Eggs	ShuffleablesRelative	Swapping	mutual	Shuffleables Cups	
-SomethingEggstra Fridge	Level	StandardObjects	Draggables		gated	EggsContainable	
-SomethingEggstra Fridge	Level	Stackables (Tupperware)	StackablesY	Stacking	always-on		
 SomethingEggstra Fridge	Level	EggsContainable	Containables	Containers	always-on		
+SomethingEggstra Fridge	Level	Stackables (Tupperware)	StackablesY	Stacking	ghost		
+SomethingEggstra Fridge	Level	StandardObjects	Draggables		ghost		
 SomethingEggstra Broken Eggs	Level	Egg #1 Shards	Pannables	?	non-puzzle		
 SomethingEggstra Broken Eggs	Level	Egg #2 Shards	Pannables	?	non-puzzle		
 SomethingEggstra Broken Eggs	Level	Egg #3 Shards	Pannables	?	non-puzzle		

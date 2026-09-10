@@ -3212,20 +3212,6 @@
       "isDailyTidy": false,
       "controllers": [
         {
-          "name": "StandardObjects",
-          "type": "Draggables",
-          "objects": 24,
-          "dependsOn": [
-            "EggsContainable"
-          ]
-        },
-        {
-          "name": "Stackables (Tupperware)",
-          "type": "StackablesY",
-          "objects": 2,
-          "dependsOn": []
-        },
-        {
           "name": "EggsContainable",
           "type": "Containables",
           "objects": 6,

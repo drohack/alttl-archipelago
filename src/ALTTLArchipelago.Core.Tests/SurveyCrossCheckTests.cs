@@ -96,6 +96,56 @@ public class SurveyCrossCheckTests
             "Falling Blocks/StackableGrid",
             "Foundation/StackableGrid",
         },
+
+        // OPTIONAL DECORATION. These two register, and unlike the mechanism
+        // controllers above they DO raise a solved event when forced - so
+        // they are not ghosts and not mechanisms. They are simply not part of
+        // the puzzle: the level asks you to find the eggs and fill the
+        // carton, and it ends the moment you have.
+        //
+        // Evidence, measured rather than argued.
+        // tools/probe-dead-controllers.py --only EggsContainable solves the
+        // eggs and NOTHING else, leaving both of these untouched, and the
+        // game raises LevelComplete anyway. droha's multiworld agrees from
+        // the other direction: the room log shows `Solution 1` and
+        // `Eggs Containable` firing together at 03:31 while holding both
+        // Containers and Stacking, with neither of these ever checked.
+        //
+        // So as locations they were unearnable in practice - the card sat
+        // half red forever, advertising work the puzzle never asks for.
+        // droha, having played it: "it should only have 1 location, just the
+        // solution."
+        //
+        // AND STACKING IS NOT AN extraAbility HERE, deliberately - contrast
+        // TupperwareTower above, where Grids is. The tupperware is dimmed
+        // without Stacking, but the level finishes without touching it, so
+        // requiring Stacking would hold the only check on this level behind
+        // an item the player never needs to use.
+        ["SomethingEggstra Fridge"] = new[]
+        {
+            "StandardObjects/Draggables",
+            "Stackables (Tupperware)/StackablesY",
+        },
+    };
+
+    /// <summary>
+    /// Levels where the prefab implies an ability the SOLUTION does not need.
+    ///
+    /// The rule below is "anything in the prefab could be needed, so declare
+    /// it", which is right whenever every controller is part of the puzzle.
+    /// It is wrong for a level that finishes while some of its controllers
+    /// are untouched: declaring their abilities would gate a check that is
+    /// already reachable without them.
+    ///
+    /// A member here needs a MEASUREMENT, not an argument - solve only the
+    /// controllers that matter and show the game still raises LevelComplete.
+    /// </summary>
+    private static readonly Dictionary<string, string[]> OptionalAbilities =
+        new(StringComparer.Ordinal)
+    {
+        // Measured: solving only EggsContainable completes the level with the
+        // tupperware untouched. See the KnownGaps entry above.
+        ["SomethingEggstra Fridge"] = new[] { "Stacking" },
     };
 
     private sealed record SurveyRow(string LevelId, string Controller, string Type);
@@ -222,13 +272,19 @@ public class SurveyCrossCheckTests
                 .ToHashSet(StringComparer.Ordinal);
 
             var declared = ControllerGroups.AbilitiesForLevel(level);
-            var undeclared = implied.Where(a => !declared.Contains(a))
+            OptionalAbilities.TryGetValue(level.LevelId, out var optional);
+
+            var undeclared = implied
+                .Where(a => !declared.Contains(a))
+                .Where(a => optional == null || !optional.Contains(a, StringComparer.Ordinal))
                 .OrderBy(a => a, StringComparer.Ordinal)
                 .ToArray();
 
             Assert.True(undeclared.Length == 0,
                 $"{level.LevelId} can need {string.Join(", ", undeclared)} but does not "
-                + "require it; add it to extraAbilities in levels.json");
+                + "require it; add it to extraAbilities in levels.json - or, if "
+                + "the level demonstrably finishes without it, to OptionalAbilities "
+                + "with the measurement that shows so");
         }
     }
 }

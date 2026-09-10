@@ -1820,24 +1820,6 @@
           "members": [
             "EggsContainable"
           ]
-        },
-        "Stackables (Tupperware)": {
-          "display": "(Tupperware)",
-          "abilities": [
-            "Stacking"
-          ],
-          "members": [
-            "Stackables (Tupperware)"
-          ]
-        },
-        "StandardObjects": {
-          "display": "Standard Objects",
-          "abilities": [
-            "Containers"
-          ],
-          "members": [
-            "StandardObjects"
-          ]
         }
       }
     },
