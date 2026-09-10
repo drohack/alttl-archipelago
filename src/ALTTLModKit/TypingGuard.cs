@@ -40,6 +40,15 @@ namespace ALTTLModKit;
 ///
 /// Restoring matters more than disabling. Leaving the game's input disabled
 /// after closing a dialog would be far worse than the bug being fixed.
+///
+/// AND RESTORING MEANS PER MAP. Switching every keyboard map back on is not
+/// the same as putting them back: Rewired's normal idiom is to enable and
+/// disable map CATEGORIES as the context changes, so a blanket enable hands
+/// back maps the game had deliberately off. Each map's state is recorded
+/// before it is touched and written back afterwards. That was a corner case
+/// while this only ran with our own dialog open, and stopped being one when
+/// suppression grew to cover the game being alt-tabbed away from - it now
+/// runs during ordinary play, for as long as the player is elsewhere.
 /// </summary>
 public static class TypingGuard
 {
@@ -237,7 +246,37 @@ public static class TypingGuard
         _mapHelpers = new();
     private static bool _mapsLookedUp;
 
+    /// <summary>
+    /// The maps switched off, and what each one's state WAS.
+    ///
+    /// This is the whole difference between a restore and a blanket enable.
+    /// SetAllMapsEnabled(true, Keyboard) turns every keyboard map on, which
+    /// is not what was there if the game had any of them deliberately off -
+    /// and Rewired's normal idiom is exactly that, enabling and disabling map
+    /// CATEGORIES as the context changes.
+    ///
+    /// It never mattered much while this only ran with a text box in our own
+    /// dialog focused. Suppression now also covers the game being alt-tabbed
+    /// away from, so it runs during ordinary play, for as long as the player
+    /// is in another window. A wrong restore stopped being a corner case.
+    /// </summary>
+    private static readonly System.Collections.Generic.List<
+        (Rewired.ControllerMap Map, bool WasEnabled)> _held = new();
+
+    /// <summary>Whether the last suppression used the per-map path.</summary>
+    private static bool _heldPrecisely;
+    private static bool _heldReported;
+
     private static void SetRewiredMapsEnabled(bool enabled)
+    {
+        if (enabled) RestoreMaps();
+        else SuppressMaps();
+    }
+
+    /// <summary>
+    /// Switch off the keyboard maps, remembering each one's state first.
+    /// </summary>
+    private static void SuppressMaps()
     {
         try
         {
@@ -246,36 +285,146 @@ public static class TypingGuard
             // miss disabled the fix for the whole session.
             if (!_mapsLookedUp) ResolveMapHelper();
 
-            var wholeLot = Suppression == Mode.All;
+            _held.Clear();
+            _heldPrecisely = false;
+
+            // Mode.All is the deliberate blunt instrument - a bisect setting,
+            // not a normal one - so it keeps the blunt implementation.
+            if (Suppression == Mode.All)
+            {
+                Blanket(false);
+                return;
+            }
+
+            var alreadyOff = 0;
             foreach (var (helper, method, keyboardOnly) in _mapHelpers)
             {
-                if (keyboardOnly && !wholeLot)
+                var maps = helper as Rewired.Player.ControllerHelper.MapHelper;
+                if (maps == null || !keyboardOnly)
                 {
-                    method.Invoke(helper,
-                        new object[] { enabled, Rewired.ControllerType.Keyboard });
+                    // No typed handle on this one, so it can only be done the
+                    // old way. Rare enough to be worth saying out loud.
+                    Warn("Rewired: no typed map helper, falling back to "
+                         + "switching every keyboard map off and on again");
+                    Invoke(method, helper, keyboardOnly, false);
+                    continue;
                 }
-                else if (!keyboardOnly)
+
+                var found = new Il2CppSystem.Collections.Generic.List<
+                    Rewired.ControllerMap>();
+                maps.GetAllMaps(Rewired.ControllerType.Keyboard, found);
+
+                for (int i = 0; i < found.Count; i++)
                 {
-                    method.Invoke(helper, new object[] { enabled });
+                    var map = found[i];
+                    if (map == null) continue;
+
+                    var was = map.enabled;
+                    if (!was) alreadyOff++;
+                    _held.Add((map, was));
+                    map.enabled = false;
                 }
-                else
-                {
-                    // Mode.All was asked for but this helper only offers the
-                    // narrow call. Sweep every controller type by hand.
-                    foreach (Rewired.ControllerType type in
-                             Enum.GetValues(typeof(Rewired.ControllerType)))
-                    {
-                        method.Invoke(helper, new object[] { enabled, type });
-                    }
-                }
+                _heldPrecisely = true;
+            }
+
+            // Said once so the log positively confirms the per-map path is
+            // in use, rather than leaving it to be inferred from the absence
+            // of the fallback warning - and said again whenever any map was
+            // ALREADY off, because that is the case this path exists for and
+            // the one a blanket restore would get wrong.
+            if (_heldPrecisely && (!_heldReported || alreadyOff > 0))
+            {
+                _heldReported = true;
+                Say($"Rewired: {_held.Count} keyboard map(s) held individually, "
+                    + $"{alreadyOff} of them already off");
             }
         }
         catch (Exception e)
         {
+            Warn($"could not disable Rewired maps: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Put every map back to the state it was actually in.
+    /// </summary>
+    private static void RestoreMaps()
+    {
+        try
+        {
+            if (!_heldPrecisely)
+            {
+                Blanket(true);
+                return;
+            }
+
+            var restored = 0;
+            foreach (var (map, was) in _held)
+            {
+                try
+                {
+                    if (map == null) continue;
+                    map.enabled = was;
+                    restored++;
+                }
+                catch
+                {
+                    // A controller unplugged while the game was in the
+                    // background takes its maps with it. Nothing to put back,
+                    // and no reason to abandon the others.
+                }
+            }
+
+            _held.Clear();
+            _heldPrecisely = false;
+            if (restored == 0) Blanket(true);
+        }
+        catch (Exception e)
+        {
             // Re-enabling failing is far worse than disabling failing: the
-            // game would be left unable to take input.
-            if (enabled) Warn($"COULD NOT RE-ENABLE Rewired maps: {e.Message}");
-            else Warn($"could not disable Rewired maps: {e.Message}");
+            // game would be left unable to take input. So this falls back to
+            // the blunt version rather than leaving the keyboard dead.
+            Warn($"COULD NOT RE-ENABLE Rewired maps: {e.Message}");
+            try { Blanket(true); } catch { }
+        }
+    }
+
+    /// <summary>
+    /// SetAllMapsEnabled across every helper. The old behaviour, kept for
+    /// Mode.All and as the fallback when there is no typed handle.
+    /// </summary>
+    private static void Blanket(bool enabled)
+    {
+        var wholeLot = Suppression == Mode.All;
+        foreach (var (helper, method, keyboardOnly) in _mapHelpers)
+        {
+            if (keyboardOnly && wholeLot)
+            {
+                // Mode.All was asked for but this helper only offers the
+                // narrow call. Sweep every controller type by hand.
+                foreach (Rewired.ControllerType type in
+                         Enum.GetValues(typeof(Rewired.ControllerType)))
+                {
+                    method.Invoke(helper, new object[] { enabled, type });
+                }
+                continue;
+            }
+
+            Invoke(method, helper, keyboardOnly, enabled);
+        }
+    }
+
+    private static void Invoke(System.Reflection.MethodInfo method, object helper,
+                               bool keyboardOnly, bool enabled)
+    {
+        if (keyboardOnly)
+        {
+            method.Invoke(helper,
+                new object[] { enabled, Rewired.ControllerType.Keyboard });
+        }
+        else
+        {
+            method.Invoke(helper, new object[] { enabled });
         }
     }
 
