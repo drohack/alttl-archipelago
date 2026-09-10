@@ -704,6 +704,9 @@ internal static class Checks
 
     private static void OnLevelComplete(GameEventManager.GameEventData data)
     {
+        // A finished puzzle is not a puzzle to knock over - see Traps.
+        Traps.NoteCompletion();
+
         EnsureSlot();
         if (_router == null || _currentSlot < 0) return;
 

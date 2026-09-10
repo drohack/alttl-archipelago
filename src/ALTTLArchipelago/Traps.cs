@@ -59,7 +59,26 @@ internal static class Traps
     internal static void Reset()
     {
         _applied = RunState.TrapsSprung;
+        _completedAt = 0f;
     }
+
+    /// <summary>
+    /// When the last level completed, so a trap landing on the way out can be
+    /// told from one landing mid-puzzle. See Tick.
+    /// </summary>
+    private static float _completedAt;
+
+    /// <summary>
+    /// How long after a completion a trap still counts as too late.
+    ///
+    /// Generous on purpose: the window that matters is the level teardown and
+    /// the load of the next one, which is not instant, and a trap arriving a
+    /// second into the new puzzle has nothing to undo there either.
+    /// </summary>
+    private const float CompletionGrace = 3f;
+
+    /// <summary>Told by Checks when a level finishes.</summary>
+    internal static void NoteCompletion() => _completedAt = Time.unscaledTime;
 
     /// <summary>
     /// Spring any traps that have arrived but not yet gone off.
@@ -91,12 +110,38 @@ internal static class Traps
             return;
         }
 
+        // A PUZZLE YOU HAVE JUST FINISHED IS NOT ONE TO KNOCK OVER.
+        //
+        // Completing a level starts the move to the next slot. Resetting it
+        // in that window relaunches the level that was on its way out, which
+        // throws the pending navigation away - so the run sits on a reset
+        // copy of the puzzle it just solved and never advances.
+        //
+        // droha: "the cat trap went off, but it didn't go to the next level.
+        // It did some of the animation... but never moved to the next level
+        // like it normally does." The log shows exactly that - navigation
+        // queued slot 1, then the trap relaunched slot 0 on top of it.
+        //
+        // Treated as a miss for the same reason a trap outside a puzzle is:
+        // there is no work left to undo, so springing announces a setback
+        // that did not happen.
+        var since = Time.unscaledTime - _completedAt;
+        if (_completedAt > 0f && since < CompletionGrace)
+        {
+            _applied += owed;
+            RunState.SpendTrap(owed);
+            Plugin.Logger.LogInfo(
+                $"trap: {owed} cat(s) arrived {since:0.0}s after the puzzle was "
+                + "finished, too late to knock anything over");
+            return;
+        }
+
         // One reset covers any number of cats: the puzzle can only go back to
         // its opening state once, and resetting N times in a row would just
         // replay the animation into an already-reset level.
         _applied += owed;
         RunState.SpendTrap(owed);
-        Spring(owed);
+        Spring(owed, level);
     }
 
     /// <summary>
@@ -109,7 +154,7 @@ internal static class Traps
     /// startling: the swipe should be what the player sees happen to the
     /// puzzle, not an explanation offered afterwards.
     /// </summary>
-    private static void Spring(int cats)
+    private static void Spring(int cats, Level level)
     {
         try
         {
@@ -128,12 +173,177 @@ internal static class Traps
                 return;
             }
 
+            // STOP THE ANIMATIONS FIRST, or the reset is a time bomb.
+            //
+            // DragObject.ObjectPlaced starts a LeanTween tween to settle a
+            // piece, and that tween holds a closure over the object. Resetting
+            // the level destroys the object while the tween is still
+            // registered, so LeanTween goes on calling the callback every
+            // frame against a dead reference - forever.
+            //
+            // droha hit this as the game freezing after a cat trap. It is not
+            // frozen: Player.log had 6,583 identical
+            // NullReferenceExceptions in DragObject+<>c__DisplayClass94_0
+            // .<ObjectPlaced>b__1, thrown from LeanTween.update, and the
+            // exception storm is what makes it unresponsive. It needs a
+            // trap to land in the window between placing a piece and the
+            // tween finishing, which is why it was rare and why the first
+            // report had no log left to read.
+            //
+            // The game never hits this because nothing in the game resets a
+            // level mid-animation. The trap does, so the trap cleans up.
+            CancelAnimations(level);
+
             manager.ResetLevel();
+
+            // The reset puts every object back to its own colour, including
+            // the ones an ability lock had dimmed. Waiting for the once-a-
+            // second pass to re-dim them shows the player a puzzle they
+            // cannot actually touch, fully lit, for up to a second.
+            Abilities.HoldDim();
+
             Plugin.Logger.LogInfo($"trap: {cats} cat(s) reset the puzzle");
         }
         catch (Exception e)
         {
             Plugin.Logger.LogWarning($"trap: could not spring: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Cancel the PIECES' animations before the level under them is torn down.
+    ///
+    /// Dropping a piece starts a LeanTween settle tween whose callback holds
+    /// the piece. Resetting the level destroys the piece while the tween is
+    /// still registered, so LeanTween calls a dead reference every frame -
+    /// droha's freeze, 6,583 NullReferenceExceptions in
+    /// DragObject+&lt;&gt;c__DisplayClass94_0.&lt;ObjectPlaced&gt;b__1.
+    ///
+    /// PER OBJECT, NOT cancelAll(). The first fix cancelled every tween in
+    /// the game and stopped the exceptions - and hung it instead. The level
+    /// load is an async state machine that AWAITS its own tweens, so killing
+    /// those means OnLevelInitComplete never runs and SetActiveLevel never
+    /// returns. droha again, with the tell that made it obvious: "no error
+    /// this time", and Player.log ending inside
+    /// &lt;SetActiveLevel&gt;d__48.MoveNext.
+    ///
+    /// So only the level's own objects, which are the ones about to be
+    /// destroyed and the only ones whose tweens can be left dangling.
+    /// </summary>
+    private static void CancelAnimations(Level level)
+    {
+        try
+        {
+            var objects = level.allLevelObjects;
+            if (objects == null) return;
+
+            var seen = new HashSet<int>();
+            var cancelled = 0;
+
+            for (int i = 0; i < objects.Count; i++)
+            {
+                var obj = objects[i];
+                if (obj == null) continue;
+
+                Cancel(obj.gameObject, seen, ref cancelled);
+                var renderer = obj.renderer;
+                if (renderer != null) Cancel(renderer.gameObject, seen, ref cancelled);
+            }
+
+            // AND THE DETACHED TWEENS, which are the ones that matter.
+            //
+            // Sweeping the level's objects was not enough, and neither was
+            // sweeping every DragObject after it: 14 objects cancelled still
+            // left 4,638 exceptions, and all seven DragObjects still left
+            // 2,139. The settle tween is not attached to any of them - see
+            // CancelDetached for where it actually lives.
+            var detached = CancelDetached(seen, ref cancelled);
+
+            if (cancelled > 0)
+            {
+                // The detached count is called out separately: zero there
+                // means the sweep found nothing to cancel, which looks exactly
+                // like a sweep that ran and missed. It is the number that
+                // proved the fix - three traps, one detached tween each,
+                // zero exceptions where there had been 6,583.
+                Plugin.Logger.LogInfo(
+                    $"trap: stopped animations on {cancelled} object(s), "
+                    + $"{detached} of them detached, before the reset");
+            }
+        }
+        catch (Exception e)
+        {
+            // Better a stuck animation than no reset at all - the paw swipe
+            // has already played by now.
+            Plugin.Logger.LogWarning($"trap: could not cancel animations: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Cancel the DETACHED value tweens - the ones that actually crash.
+    ///
+    /// DragObject.ObjectPlaced animates a dropped piece with
+    /// LeanTween.value(...), which has no GameObject of its own, so LeanTween
+    /// parks it on an internal holder called "~LeanTween". The callback
+    /// closes over the piece; the reset destroys the piece; the tween lives
+    /// on and throws every frame.
+    ///
+    /// THIS IS WHY THREE TARGETED CANCELS MISSED. The LevelObject, its sprite
+    /// renderer and all seven DragObjects were cancelled and the storm came
+    /// back every time, because the tween's transform was never any of them.
+    /// The dump settled it - seven live tweens on '~LeanTween', one per fly.
+    ///
+    /// And it is why cancelAll() hung the game instead: the same list holds
+    /// tweens on 'Main Camera' and 'Completion Stars', which the level load
+    /// awaits. Those are left alone here.
+    /// </summary>
+    private static int CancelDetached(HashSet<int> seen, ref int cancelled)
+    {
+        var found = 0;
+        try
+        {
+            var all = LeanTween.tweens;
+            if (all == null) return 0;
+
+            var limit = Math.Min(all.Length, LeanTween.tweenMaxSearch + 1);
+            for (int i = 0; i < limit; i++)
+            {
+                var d = all[i];
+                if (d == null || !d.toggle) continue;
+
+                var t = d.trans;
+                // A detached tween has no meaningful transform of its own:
+                // either none at all, or LeanTween's own holder object.
+                var isDetached = t == null
+                    || t.name.StartsWith("~LeanTween", StringComparison.Ordinal);
+                if (!isDetached) continue;
+
+                found++;
+                if (t == null) continue;
+                Cancel(t.gameObject, seen, ref cancelled);
+            }
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning(
+                $"trap: could not cancel the detached tweens: {e.Message}");
+        }
+        return found;
+    }
+
+    private static void Cancel(GameObject? go, HashSet<int> seen, ref int cancelled)
+    {
+        if (go == null) return;
+        if (!seen.Add(go.GetInstanceID())) return;
+
+        try
+        {
+            LeanTween.cancel(go);
+            cancelled++;
+        }
+        catch
+        {
+            // One object refusing is not a reason to leave the rest running.
         }
     }
 

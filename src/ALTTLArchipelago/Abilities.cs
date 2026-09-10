@@ -72,11 +72,65 @@ internal static class Abilities
         var state = Inventory.Abilities;
         if (state == null || !state.LocksEnabled) return;
 
+        // While a rebuild is settling, every frame. See HoldDim.
+        if (Time.unscaledTime < _holdUntil)
+        {
+            Apply(state);
+            return;
+        }
+
         _sincePass += dt;
         if (_sincePass < 1f) return;
         _sincePass = 0f;
 
         Apply(state);
+    }
+
+    /// <summary>
+    /// Re-dim right now, without waiting for the next pass.
+    ///
+    /// The dimming pass runs once a second, which is fine while a puzzle
+    /// sits still and wrong the moment something rebuilds it: the game
+    /// restores every object's own colour, and locked pieces then sit fully
+    /// lit until the next tick comes round. droha, on the cat trap: "the
+    /// items that are greyed out are colored in for a second before getting
+    /// greyed out."
+    /// </summary>
+    internal static void ApplyNow()
+    {
+        var state = Inventory.Abilities;
+        if (state == null || !state.LocksEnabled) return;
+
+        _sincePass = 0f;
+        Apply(state);
+    }
+
+    /// <summary>
+    /// Until when the dimming runs EVERY frame instead of once a second.
+    /// </summary>
+    private static float _holdUntil;
+
+    /// <summary>
+    /// Keep re-dimming for a short while, not just once.
+    ///
+    /// A single pass is not enough after a level rebuild. Calling ApplyNow
+    /// the instant the reset is requested dims objects the game is about to
+    /// restore: it puts every piece back to its own colour AFTER our call -
+    /// later in the frame, or on one of the next few - and the locked ones
+    /// then sit fully lit until the once-a-second pass comes round.
+    ///
+    /// droha, watching MedicineCabinet with Containers and Ordering locked:
+    /// "when the cat trap triggers I see the locked pieces as full colored in
+    /// before it snaps to greyed out." The log showed the re-dim running
+    /// immediately every time, which is exactly why once was not the answer.
+    ///
+    /// Half a second of per-frame passes covers the rebuild without pinning
+    /// the cost on the normal path, where nothing is changing the colours.
+    /// </summary>
+    internal static void HoldDim(float seconds = 0.5f)
+    {
+        _holdUntil = Time.unscaledTime + seconds;
+        ApplyNow();
     }
 
     private static void Apply(AbilityState state)
