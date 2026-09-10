@@ -1100,6 +1100,7 @@ public sealed class Ticker : MonoBehaviour
         Step("daily rescue", () => DailyGuard.TickRescue(dt));
         Step("prompt memory", () => PromptMemory.Tick(dt));
         Step("connected tag", () => Badges.TickConnectedTag());
+        Step("title state", () => TitleScreen.TickState());
         Step("overview dots", () => Badges.TickOverviewDots());
         Step("typing guard",
             () => TypingGuard.Tick(ConnectionPane.FocusedField, ConnectionPane.FocusNext));

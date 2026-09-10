@@ -78,6 +78,93 @@ internal static class TitleScreen
         }
     }
 
+    /// <summary>
+    /// Whether the vanilla-only entries should be hidden.
+    ///
+    /// A SLOT NAME IS THE WHOLE TEST. If the mod is set up to play a
+    /// multiworld, these entries never lead anywhere useful: the Archive,
+    /// Daily Tidy and Shuffle puzzles are IN the run, reached through the
+    /// track, and entering them any other way earns no checks. There is no
+    /// moment during a session where you would want them back.
+    ///
+    /// IT USED TO FOLLOW THE CONNECTION and that was the bug. Tracking
+    /// Track.Active, then "an attempt is in flight", then "an attempt has
+    /// finished" gave the menu three states and a race: it hid at startup,
+    /// RESTORED everything when the first connection attempt failed, and hid
+    /// again once the retry succeeded. droha saw the middle step - "the main
+    /// menu still flashed the old menu" - and asked the right question: when
+    /// would we ever use the normal menu with this mod installed?
+    ///
+    /// Only when you are not playing a multiworld, which is exactly when
+    /// there is no slot name. So that is the condition, and the menu no
+    /// longer changes while the game is running.
+    /// </summary>
+    private static bool ShouldHide()
+        => Track.Active || !string.IsNullOrWhiteSpace(Plugin.SlotNameSetting);
+
+    /// <summary>What the title was last drawn for, so an unchanged one is left alone.</summary>
+    private static bool? _shown;
+
+    /// <summary>
+    /// Keep the title in step with the connection without waiting for a
+    /// rebuild.
+    ///
+    /// Refresh() is called from the three places that begin or end a run, and
+    /// that is not enough on its own: an attempt that FAILS ends no run and
+    /// calls nothing, which would strand the menus hidden. A bool compare per
+    /// frame is cheaper than another event to forget.
+    /// </summary>
+    internal static void TickState()
+    {
+        try
+        {
+            var menu = UnityEngine.Object.FindObjectOfType<TitleMenu>();
+            if (menu == null)
+            {
+                _shown = null;              // nothing to hold; re-check on return
+                return;
+            }
+
+            var want = ShouldHide();
+
+            // ASKS THE BUTTONS, not a remembered answer. Tracking only the
+            // desired state was not enough: if the first Apply ran before the
+            // container existed - or the game switched the entries back on
+            // after our postfix - the wanted value never changed, so nothing
+            // ever retried and droha still saw the old menu flash past.
+            if (_shown == want && Matches(menu, want)) return;
+
+            _shown = want;
+            Apply(menu);
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"title: could not hold the menu: {e.Message}");
+        }
+    }
+
+    /// <summary>Is every entry we manage already in the state we want?</summary>
+    private static bool Matches(TitleMenu menu, bool hidden)
+    {
+        var container = menu.MainMenuContainer;
+        if (container == null) return false;     // cannot confirm; re-apply
+
+        for (int i = 0; i < container.childCount; i++)
+        {
+            var child = container.GetChild(i);
+            if (child == null || child.GetComponent<Button>() == null) continue;
+            if (!Matches(child.name, HiddenButtons)) continue;
+            if (child.gameObject.activeSelf == hidden) return false;
+        }
+
+        foreach (var section in HiddenSections)
+        {
+            var found = FindDeep(menu.transform, section);
+            if (found != null && found.gameObject.activeSelf == hidden) return false;
+        }
+        return true;
+    }
+
     private static void Apply(TitleMenu __instance)
     {
         try
@@ -85,7 +172,7 @@ internal static class TitleScreen
             var container = __instance.MainMenuContainer;
             if (container == null) return;
 
-            var connected = Track.Active;
+            var connected = ShouldHide();
 
             for (int i = 0; i < container.childCount; i++)
             {
