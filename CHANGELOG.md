@@ -231,6 +231,57 @@ back. Reading is not enough on its own, because the game rewrites those values
 every time it exits, so the snapshot now captures them into `SCREEN.json` and
 restore puts back the ones that moved.
 
+### The keyboard guard puts maps back as they were, not all on
+
+Found by reviewing what the mod changes against stock rather than by a
+report. Suppress called `SetAllMapsEnabled(false, Keyboard)` and Restore
+called `SetAllMapsEnabled(true, Keyboard)` - which is not a restore. It
+turned every keyboard map ON, including any the game had deliberately off,
+and enabling and disabling map CATEGORIES per context is Rewired's normal
+idiom.
+
+It barely mattered while this only ran with a text box in our own dialog
+focused. Suppression now also covers the game being alt-tabbed away from, so
+it runs during ordinary play for as long as the player is in another window,
+and a wrong restore stopped being a corner case.
+
+`ControllerMap.enabled` survives Rewired's obfuscation in this build, so each
+map's state is now recorded before it is touched and written back afterwards.
+The blanket call remains for `Mode.All`, which is a deliberate bisect setting,
+and as the fallback when no typed handle is available - which says so in the
+log rather than doing it quietly.
+
+Measured: two focus round-trips, "1 keyboard map(s) held individually, 0 of
+them already off", zero exceptions. The count line is permanent, so any
+context where the game DOES hold a keyboard map off will show up in the log.
+
+### The campaign save is written atomically, and only where it should be
+
+Also from the review, and the worse of the two. The settings mirror wrote
+straight over `save1.json` with `File.WriteAllText`, so a crash or a power cut
+partway through took the player's real progress with it. The inversion is the
+tell: `RunState` and `SlotCache` - the mod's own scratch files - were already
+writing temp-then-move, and the one write that touched something
+irreplaceable was the one that was not.
+
+It now writes a `.aptmp`, reads it back and checks it decodes to exactly what
+went out, and only then moves it into place. A failure discards the temp file
+and leaves the original untouched.
+
+The same write also round-tripped the WHOLE document through Newtonsoft to
+move one key, which puts every other value through a parse and a re-serialise.
+`SettingsSplice` (new, in Core, fourteen tests) finds the span of the settings
+object and replaces just that, so every other byte is copied through
+unexamined. It refuses rather than guesses - a document where the key is
+missing, duplicated, not an object, or unterminated returns null and the
+caller falls back to the old rewrite, saying so.
+
+Verified against the real save: only `resolution` changed, all fourteen
+progress keys identical, and the 2340 bytes before the settings object byte
+for byte the same. To be accurate about the severity, the drift was a latent
+risk rather than observed damage - a full re-serialise of this save's current
+shape happens to come out identical. The crash window was the real defect.
+
 ### Tools
 
 `jiggle` settles pieces on demand, because reproducing the cat trap freeze
