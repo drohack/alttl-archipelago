@@ -181,6 +181,83 @@ Two things this caught that a build could not:
   as the section lookup failing rather than the formatter. DevTools formats the
   hex by hand now.
 
+### The release gate, 0.3.1: 21/21 on the fourth attempt
+
+Four runs. The first three failed and **not one of them failed on the
+release** - every defect was in the harness measuring it. Worth recording in
+that order, because "11/20" on a fresh build reads as a broken release and was
+not one.
+
+| run | result | why |
+|---|---|---|
+| 1 | 11/20 | six failures cascading from PawPrints, plus three harness bugs |
+| 2 | killed | stalled on PawPrints again; my first skip fix could not fire |
+| 3 | abandoned | the game exited by itself at the title, cause unknown |
+| 4 | **21/21** | - |
+
+What the four harness defects were, since each one is a way a test can lie:
+
+- **It played fullscreen while printing "not fullscreen".** Unity keeps the
+  mode and the "am I fullscreen" BOOLEAN as separate registry values and the
+  game reads the boolean; `SCREEN_VALUES` set only the mode. So a run took the
+  whole display, wrote its own choice back over every key on exit, and flipped
+  `playerPrefs.fullscreen` in the campaign save. droha un-fullscreened it by
+  hand mid-run. `force_windowed` reads the registry back now instead of
+  returning true on a successful write - the old claim was about its own write.
+- **It asserted a pack count no 8-puzzle seed can have.** `_pack_cap` allows
+  `round(8 * 0.18) = 1` pack, so `pack_size: 2` widens to one pack of 4 and the
+  boundaries are `[4, 8]`. The harness hard-coded 2, and the yaml comment
+  called `[4, 6, 8]` "measured, not guessed" - measured before the cap existed
+  and asserted ever since. It reads the generator's boundaries now.
+- **"the campaign progress is untouched: FAIL" named nothing.** The most
+  alarming line the harness can print, and it fired for a display setting while
+  `levelCompletionData` was byte-identical. Telling those apart took a hand
+  decode of both saves. It lists the moved fields now.
+- **A phased level stalled the run.** See below.
+
+**PawPrints is not a mod bug and the run proved it.** It registers five
+controllers, the table declares exactly those five, all five solve and all five
+checks fire - but `PawPrintsPhaseLevel` never raises `LevelComplete` from a
+forced solved-flag, because its phase machine wants the real solve path. The
+mod is correct to bank no Beaten token. The harness is simply unable to finish
+that puzzle, and it looped nineteen rounds and 441 seconds before stopping one
+short. Phased campaign levels became drawable in 0.3.1, so this stopped being
+hypothetical the moment the base campaign was unlocked.
+
+It spends a Skip now, which since 0.3.1 finishes the slot and counts. In run 4:
+
+    slot 7 PawPrints cannot be force-solved; spent a Skip
+    round 8: slot 7 PawPrints beaten (8/8, 8 open)
+
+**The bug in the fix is the one worth remembering.** The first version detected
+exhaustion by searching the returned text for "waiting for the completion" -
+which is a `say()` to stdout, while that text is the game log. It could never
+match, the skip never fired, and the run stalled exactly as before with nothing
+saying why. Two string literals that had to agree and did not. They are one
+`EXHAUSTED_MARK` constant now and `self_test` fails if either side stops using
+it, so the bug class is gone rather than tested around.
+
+`tools/probe-skip-path.py` proves that path in about two minutes instead of
+fifteen, twice, deterministically:
+
+    solve_level: done=False exhausted=True
+    skip spent=True  mod banked a Beaten token=True
+
+It loads `release-e2e.py` and calls the real `solve_level` rather than
+reimplementing it, precisely because the bug it guards against WAS a copy that
+had drifted.
+
+**Still not fixed, and it is luck rather than correctness:** the arrow session
+has no Skip escape, so a cat trap landing badly can still stall it. Arrow
+navigation and pause-menu Exit failed in runs 1 and 3 and passed in 2 and 4 for
+that reason alone. And run 3's exit is unexplained - clean exit at the title,
+no exception in the BepInEx log, nothing in `Player.log`, no crash dump.
+
+Run 4 in full: 8/8 beaten, credits unlocked, the server agreeing the goal is
+met, two launches, zero solve exceptions, zero unexplained errors, the
+controller table matching every level played, and the campaign save provably
+untouched.
+
 ---
 
 ## 2026-09-08 - the controller table under-records phased levels
