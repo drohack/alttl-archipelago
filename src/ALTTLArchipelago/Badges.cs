@@ -270,6 +270,8 @@ internal static class Badges
                 $"badges: overview strip '{strip.name}' has {strip.childCount} dot(s)");
         }
 
+        FitStrip(strip);
+
         for (int i = 0; i < strip.childCount; i++)
         {
             var dot = strip.GetChild(i);
@@ -334,6 +336,157 @@ internal static class Badges
 
             go.transform.SetAsLastSibling();
         }
+    }
+
+    /// <summary>
+    /// The strip's own scale before we touched it, so the fit is computed from
+    /// a fixed baseline rather than by multiplying what is already there.
+    ///
+    /// Keyed by nothing - there is one strip - but reset whenever a different
+    /// object turns up, because the level select is rebuilt and the Transform
+    /// we measured may be gone.
+    /// </summary>
+    private static Transform? _fittedStrip;
+    private static Vector3 _fittedBase = Vector3.one;
+
+    /// <summary>
+    /// Shrink the overview strip until it fits the screen.
+    ///
+    /// The game sizes this for its own widest campaign, about 85 cards. A run
+    /// inserts a pack divider between blocks, so 79 puzzles builds 92 cards
+    /// and the strip runs off the edge - reported from a full-length run. The
+    /// default puzzle count now lands at 84 so this does nothing there, but a
+    /// player is free to ask for 79 and should not be punished with a strip
+    /// they cannot see the end of.
+    ///
+    /// SCALE, NOT SPACING. The mod has no handle on the layout - there is no
+    /// layout component here, the game positions each dot itself - so the only
+    /// lever that cannot fight it is the parent's scale.
+    ///
+    /// IDEMPOTENT, FROM A CACHED BASELINE. The game repaints these from
+    /// UpdateOverviewAppearance at moments we do not control, and this runs on
+    /// a one-second poll, so anything that multiplied the current value would
+    /// shrink the strip to nothing over a minute of looking at the menu.
+    /// </summary>
+    private static void FitStrip(Transform strip)
+    {
+        try
+        {
+            if (!ReferenceEquals(_fittedStrip, strip))
+            {
+                _fittedStrip = strip;
+                _fittedBase = strip.localScale;
+            }
+
+            var rect = strip.TryCast<RectTransform>();
+            var parent = strip.parent == null
+                ? null : strip.parent.TryCast<RectTransform>();
+            if (rect == null || parent == null)
+            {
+                ReportFit($"no RectTransform (self={rect != null}, "
+                          + $"parent={parent != null})");
+                return;
+            }
+
+            // Measured from the dots, not from the strip's own rect: the rect
+            // is whatever the game authored and need not bound its children.
+            float min = float.MaxValue, max = float.MinValue;
+            for (int i = 0; i < strip.childCount; i++)
+            {
+                var dot = strip.GetChild(i);
+                if (dot == null) continue;
+                var dr = dot.TryCast<RectTransform>();
+                if (dr == null) continue;
+                var x = dr.anchoredPosition.x;
+                if (x < min) min = x;
+                if (x > max) max = x;
+            }
+            if (min > max)
+            {
+                ReportFit($"no dot positions to measure from {strip.childCount} child(ren)");
+                return;
+            }
+
+            var span = (max - min) + DotAllowance;
+            var room = RoomFor(strip);
+
+            // Said out loud ONCE, whatever the verdict. A fit pass that only
+            // logs when it acts is indistinguishable from one that never ran,
+            // and that is exactly how the first attempt at this looked.
+            ReportFit($"{strip.childCount} dots span {span:0} in {room:0}");
+
+            if (span <= 0f || room <= 0f) return;
+
+            // Only ever shrink. Widening a strip the game already fits would
+            // be the mod inventing a layout rather than rescuing one.
+            var wanted = Mathf.Clamp(room / span, MinStripScale, 1f);
+            var target = _fittedBase * wanted;
+
+            if ((strip.localScale - target).sqrMagnitude < 0.000001f) return;
+
+            strip.localScale = target;
+            Plugin.Logger.LogInfo(
+                $"badges: overview strip scaled to {wanted:0.00} - "
+                + $"{strip.childCount} dots span {span:0} in {room:0}");
+        }
+        catch (Exception e)
+        {
+            // Cosmetic, on a poll. A strip that stays too wide is far better
+            // than an exception every second.
+            Plugin.Logger.LogWarning($"badges: could not fit the strip: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Room for the last dot itself, which the leftmost-to-rightmost span of
+    /// CENTRES leaves out. Approximate on purpose - being a few pixels
+    /// conservative costs nothing and stops the final dot touching the edge.
+    /// </summary>
+    private const float DotAllowance = 24f;
+
+    /// <summary>
+    /// How small the strip may get. At the maximum 79 puzzles it needs about
+    /// 0.9, so this floor is only reached by something unforeseen - and a
+    /// strip too small to read is no more useful than one that overflows.
+    /// </summary>
+    private const float MinStripScale = 0.55f;
+
+    /// <summary>
+    /// How much width the strip actually has, in its own units.
+    ///
+    /// THE IMMEDIATE PARENT IS THE WRONG ANSWER and measuring it is why the
+    /// first version of this never fired. The strip sits inside
+    /// 'Levels Overview Scrollbar', whose width TRACKS ITS CONTENT: with 92
+    /// dots it measured 2025 against a span of 2026, so the ratio was 0.9995
+    /// and nothing ever looked like it overflowed. The real viewport is two
+    /// levels up - 'Level Select' at 1920, the screen width.
+    ///
+    /// So take the NARROWEST ancestor. A content-sized box is by definition
+    /// at least as wide as its content, so it can never be the smallest; the
+    /// first fixed one above it wins. That holds without naming any of the
+    /// game's objects, which matters because the names here are not ours.
+    /// </summary>
+    private static float RoomFor(Transform strip)
+    {
+        var room = float.MaxValue;
+        var walk = strip.parent;
+        for (int up = 0; up < 6 && walk != null; up++, walk = walk.parent)
+        {
+            var wr = walk.TryCast<RectTransform>();
+            var width = wr == null ? 0f : wr.rect.width;
+            if (width > 1f && width < room) room = width;
+        }
+        return room == float.MaxValue ? 0f : room;
+    }
+
+    private static string? _fitReported;
+
+    /// <summary>One line per distinct measurement, so a 1s poll cannot spam.</summary>
+    private static void ReportFit(string what)
+    {
+        if (_fitReported == what) return;
+        _fitReported = what;
+        Plugin.Logger.LogInfo($"badges: strip fit - {what}");
     }
 
     /// <summary>
