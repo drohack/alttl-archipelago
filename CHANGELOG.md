@@ -170,6 +170,95 @@ colour, including ones an ability lock had dimmed, so locked pieces sat fully
 lit until the once-a-second pass came round; `HoldDim` re-dims every frame for
 half a second, which covers the rebuild.
 
+### The cat trap holds itself while a level is loading
+
+A second freeze, same trap, different cause - and this one was reported from
+the released 0.3.1 build, which has none of the guards above.
+
+The log ends like this:
+
+    track: slot 53 Stamps (Randomized) launching with seed 307681145, forceReload
+    trap: 1 cat(s) reset the puzzle
+    <nothing>
+
+`ActiveLevelInterface.Level` is already set partway through an async level
+load, so a trap ticking in that window finds what looks like a perfectly good
+puzzle and calls `ResetLevel` on it. The load is told to rebuild the level it
+is still building. `SetActiveLevel` never returns, and the game stops - no
+exception, no error, nothing to read. droha: "when finishing a level I got a
+background change trap... it reset and when I clicked anywhere the game fully
+froze. Had to alt+F4."
+
+**Not the exception storm above.** That one drowned in 6,583
+`NullReferenceException`s; all 1,549 lines of this log hold exactly one
+exception, and it is a benign startup timeout. Both needed finding
+separately.
+
+A trap now asks the level what it is doing - `LevelIsLoaded` and
+`IsTransitioning` - and **holds** rather than spending itself while a load is
+in flight, springing on the first tick after the level settles. The completion
+grace already in 0.3.2 does not cover this and could not: it measures time
+since the last completion, and a level reloading for any other reason is not
+one.
+
+**Measured, with the guard deliberately removed to prove it matters.** The
+freeze is a race that needs a click and resisted 29 direct attempts, so the
+thing measured instead is the state it comes out of: two levels alive at once,
+counted on every attempt. droha, watching an unguarded build: "oh god 2 levels
+loaded at once", with a screenshot of one puzzle drawn through another.
+
+Ten attempts per build, each finishing a real puzzle, with the trap delivered
+by the server the moment the level is reported beaten and live settle tweens
+held open across the window:
+
+| Build | Clean | Two levels alive |
+|---|---|---|
+| guard off, grace off, `CancelAnimations` off - 0.3.1's `Spring` | 1 | **9** |
+| the real build | 5 | 5 |
+| the real build, no trap sent at all | 5 | 5 |
+
+The unguarded build breaks on its FIRST trap and never recovers. The guarded
+build's failures start after the harness abandons a half-solved
+MedicineCabinet, and the third row is the control that proves it: with no trap
+sent, the same build breaks in the same place the same way. On the real build
+the trap never once reset a level inside a navigation - every attempt logged
+`found nothing to knock over` rather than `reset the puzzle`.
+
+**The hard freeze is still not reproduced.** The game kept running through all
+of it, including four real clicks into the wreckage. Two live levels is a
+state consistent with droha's hang, not a demonstration of it.
+`docs/data/trap-freeze-repro.md` has the runs, the three wrong versions of the
+measurement, and what is still untried.
+
+Also measured: a trap arriving mid-load is now held and springs once the level
+settles, where before it hit `level == null` and was silently spent - the
+guard turns a lost trap into a fired one - and it cannot strand a trap on the
+level select, because `ActiveLevelInterface` is null there.
+
+### The background trap stopped strobing
+
+Same report, same moment. "The background started kind of strobing/shifting
+between multiple colors."
+
+`Backgrounds.Tick` polls every frame and writes the camera back to the trap's
+colour whenever it differs. That poll exists because the one-shot write kept
+losing - the level's own setup runs after `StartLevel` returns and paints the
+camera from its own colour - and outlasting the game is the right answer for
+a settled level.
+
+It is the wrong answer during a transition, which ANIMATES the backdrop and so
+writes a new colour every frame. Two writers, sixty times a second, and the
+player sees the flicker.
+
+The poll now stands down while the level is loading or transitioning and picks
+up the instant it settles, which is the only moment it was ever needed.
+
+Measured afterwards, because "it writes every frame" deserved a number rather
+than an argument: with a Background Change Trap held, ten seconds settled in a
+puzzle is **zero** camera writes, a level load is zero, and a whole two-minute
+session is **one**. The per-frame cost is a Color comparison; the write
+happens about once per level, which is what it was always for.
+
 ### The vanilla title menu no longer flashes past
 
 The Archipelago title appeared, then the original menu, then the Archipelago
@@ -218,6 +307,45 @@ Measured end to end: sabotage the save back to index 0, launch, and the window
 opens 3840x2160 and is corrected to 1280x720 within nine seconds, with the
 save repaired so the next launch needs no correction at all. Change it to
 1600x900 and relaunch, and 1600x900 is what comes back.
+
+**One bug in the first version of this, found in play and worth
+recording.** The guard sampled the window size on its first tick and
+treated any later change as the player choosing one - so it would not
+override a size someone had just picked. It could not tell that apart
+from the GAME applying its own stored resolution, which happens a few
+seconds into the boot. So the game's late apply read as a player choice,
+the guard adopted it, and a remembered 1280x720 became 3840x2160 and
+stayed there. The log line that gave it away: "the size was changed to
+3840x2160 since startup, so that is what gets remembered".
+
+The check is gone. Nothing is recorded until the settle is over and the
+game has finished having opinions; a player cannot reach the settings
+and pick a size in the first few seconds, so there was nothing being
+protected. Verified after: "put the window back to 1280x720 (index 19 on
+this display), which the game had opened at 3840x2160".
+
+**And a second bug from the same root, reported as the game opening
+behind other windows.** droha: "the game always opens up in the
+background for some reason?" Measured on a fresh launch - the game held
+the foreground at eight seconds and had lost it by twelve, which is
+exactly when the correction lands. Changing the resolution makes Unity
+rebuild the window, and Windows hands the foreground to whatever was
+behind it.
+
+The correction should not have been running at all. With the registry
+and the save BOTH already naming the right size, the game reaches it on
+its own; the guard was sampling at its six-second settle, seeing a window
+the game had not got round to resizing yet, and racing it. So it now asks
+the save first: if the stored index already resolves to the remembered
+size, the game is left to apply it and nothing is touched. Verified - no
+correction logged at all on a launch that used to log one, and the window
+still ends up the right size.
+
+A `SetForegroundWindow` after a real correction covers the case where one
+IS needed. That half is unverified: a process started by a background
+script is denied the foreground by Windows, so the harness cannot
+reproduce the game taking focus in the first place. Only a launch started
+by hand can confirm it.
 
 ### The harness stopped rewriting the display settings
 
@@ -281,6 +409,340 @@ progress keys identical, and the 2340 bytes before the settings object byte
 for byte the same. To be accurate about the severity, the drift was a latent
 risk rather than observed damage - a full re-serialise of this save's current
 shape happens to come out identical. The crash window was the real defect.
+
+### The yaml option comments say what the options do
+
+droha read through `player.yaml` during the playtest and four comments
+did not survive the reading. None of this changes behaviour - the option
+values are untouched - but a comment that misleads is worse than no
+comment, and `test_player_yaml.py` skips comment lines, so nothing was
+ever going to catch these.
+
+- **`mechanic_coverage`** - "what is this? Should it be defaulted to 6 so
+  it's as random as possible?" It is a RESERVE, so higher is *less*
+  random. The comment now carries a measured table: 4 pulls in all four
+  jigsaw puzzles the game has on every seed, 5 adds all five drawer ones,
+  and **6 is identical to 5** because there is nothing left to reserve. 6
+  is the least random setting available and buys nothing over 5.
+- **`pack_size`** - "why does the comment say 1 to 10 when we want a
+  minimum 4?" Because 1 to 10 is the option's range and the floor is
+  applied afterwards. The comment now says so, and also admits the second
+  adjustment it never mentioned: a run carries at most fourteen packs, so
+  at `puzzle_count: 79` every pack is 6 whether you asked for 1 or 5. At
+  the default 70 you get the 5 you asked for.
+- **`archive_packs`** - "the comments should say the options." All six
+  keys are now listed with their in-game names and puzzle counts. The
+  jigsaw warning was vague ("turning enough of them off") and is now
+  exact: jigsaws exist only in Good Tidings, Trick or Tidy, Merry Mess
+  and Drawer Chores.
+- **`generator_weight`** - "kind of a bad name, as it's generated random
+  levels." Renaming moves an option key and breaks existing yamls, so the
+  comment does the work: it says the weights are relative rather than
+  percentages, and that "generator" is about where a puzzle comes from.
+
+Left alone deliberately: `archive_packs` stays a block sequence rather
+than the flow style droha suggested. `test_player_yaml.py`'s parser only
+understands block sequences, so flow style would read as a string and
+fail the defaults test - it needs a real YAML parse first, which is a
+bigger change than a comment pass.
+
+### Level endings: measured, and not ours
+
+droha: some levels finish on the three-button panel - restart, pause menu,
+next arrow - and others drop you straight into the next puzzle. "Why is
+that? We might want to make that the same across all levels."
+
+**It is the base game, and the mod is not involved.** Measured rather
+than reasoned about, because the three previous guesses at this kind of
+question were all wrong. A new DevTools `endings` command reads
+`LevelManager.m_allLevelInterfaces` in one frame at the title screen -
+every level's authored flags at once, with nothing loaded - and the
+result is in `docs/data/level-endings.tsv`.
+
+Of the 111 levels in the run pool, **92 show the panel and 19 do not**,
+and the 19 are all sixteen generator levels plus Tupperware Nesting,
+Tupperware Tower and Radial Dance Party. `generator_weight` defaults to
+80, so most of a default run is generators - which is exactly why it
+reads as inconsistent in play, and why the minority that DO show a panel
+feel like the odd ones.
+
+Two theories died here. The daily pool is not involved: `isDailyTidy`
+reads false for every level in the table, and `DailyGuard`'s rescue -
+the one mod path that genuinely skips a panel - leaves a log line that
+never appeared. And the fix sketched before the measurement would not
+have worked: generators already have `PreventRetryMenu` false, so
+forcing that flag changes nothing. Making it uniform would mean patching
+the `ShowRetryMenu` getter in either direction.
+
+droha's call, with the numbers in hand: leave it alone. Making 92 levels
+stop showing a screen the game wants to show, or making 19 show one they
+were never built for, is a bigger change than the inconsistency costs.
+The table stays as the record.
+
+### The credits can be gated on STARS instead of completions
+
+A new `goal` option. `beat_levels` is the default and unchanged;
+`star_levels` counts a puzzle only when every check on it is done - every
+solution and every part - which is the same star the level select already
+draws on a card with nothing left to do. It has its own count,
+`levels_to_star`, defaulting to 20, because starring is a great deal more
+work than beating and the number that makes a good run is a different
+number.
+
+**It needed no new logic, and that is the interesting part.** The obvious
+implementation is a second event item and a second event location per
+level, which would shift every location id again. It is not necessary:
+the Beaten event's requirement is already the STRICTEST on the slot - it
+asks for the union of the level's abilities, every solution location asks
+for the same union, and every part asks for a subset (pinned by
+`test_tables.NoPartNeedsMoreThanItsLevel`). All locations on a slot share
+one `packs` value. So a state that can reach N Beaten events can reach
+every location on those N slots, and "N starred" is provably achievable
+exactly when "N beaten" is. The completion condition already in place
+proves the star goal too.
+
+The difference between the goals is entirely how much work the PLAYER
+does, not what the generator must prove. `test_generation.TestStarGoal`
+asserts no Starred location is ever minted, so if a future change decides
+it needs one, that is a deliberate decision with ids moving rather than a
+surprise.
+
+On the mod side the star predicate already existed as a private helper in
+`Track`, doing exactly what the card's star does. It moved into
+`CheckRouter` as `StarredCount` / `HasWorkLeft` so the goal and the level
+select cannot drift apart about which puzzles are finished. Three places
+read `LevelsToBeat` directly - the credits gate, the beaten toast, the
+offline summary - and all three now go through one `Checks.GoalProgress`,
+because adding a second goal to three call sites is how two of them end
+up telling the player a different number. The toast reads "Puzzle beaten
+(12/20 starred)" on a star seed.
+
+**A Skip stars the puzzle it clears**, because it fills in every check on
+it. That is consistent with skips already counting toward beating, which
+was a deliberate 0.3.1 decision, so it is kept rather than special-cased -
+but it does mean `skip_count` shortcuts a star goal at full strength. The
+fill-stress sweep gained a no-skip star configuration for exactly that
+reason, so twenty free stars cannot hide a broken goal.
+
+Verified: 106 apworld tests and 260 C# tests, the star goal in four
+fill-stress configurations across the seed span, and a real seed
+generated from the player template reporting "Goal: Star Levels, Puzzles
+To Star: 20" with the Beaten events unchanged.
+
+### The level select says how far along you are
+
+droha asked for a "levels beaten / needed" counter. The number existed
+only in a toast that scrolls away, so the one screen where you decide
+what to play next never said how close you were.
+
+It reads the GOAL rather than the beaten count - a counter that always
+said "beaten" would be quietly measuring the wrong thing on half the
+seeds. Green once the count is met.
+
+**The star goal shows the star, not the word.** droha: "for star goal we
+should have 0/50 [star icon]s instead of it saying stars or beaten." It
+is the game's own `LTL-LevelSelect-Star-solved`, the same art a card
+wears when it has nothing left on it, so the counter and the cards are
+plainly talking about the same thing - and it sits directly above the
+chapter header's own star, which uses the same shape. The beaten goal
+keeps its word: there is no icon in the game for "finished any one way",
+and inventing a glyph would be less clear than the word, not more.
+
+Parented to the toast overlay and gated on the run's own track being on
+screen, both copied from the connected tag directly above it, and for the
+same reasons: the track scrolls and is rebuilt, the overlay is the mod's
+own canvas with no layout to lose to. It is in `RepaintSoon` so it does
+not arrive a second after the screen has settled - the regression already
+written up in that method.
+
+### Which mechanics you hold, at a glance
+
+droha: "show ability locks on the level select - icons for the twelve
+mechanics, so you can see at a glance which you hold." Until now the only
+way to find out was to open a puzzle and see what was greyed out.
+
+A row of tiles across the top left: a borrowed item picture with a
+three-letter label under it - SWP, STK, ORD and so on. Held is full
+colour, locked is a dim grey version of the same art, and **all of them
+are always shown** so the strip never changes width and you can see what
+is still to come rather than only what you have. Pills for mechanics this
+seed does not carry are omitted, and nothing is drawn at all when ability
+locks are off - in both cases the strip would otherwise describe a
+restriction that is not in force.
+
+**The icons are real game art, twelve of them, shipped with the mod.**
+There is no per-mechanic art in the game - abilities are the mod's
+invention - so the hunt went two ways, and both are in
+`docs/data/ability-icons.md`.
+
+First, **badge elements**: the small item pictures that sit on a badge,
+rather than an assembled badge. Two new DevTools commands made that
+searchable - `sprites <filter>` dumps every loaded sprite name (998 of
+them) and `spritegrid:<names>` draws a batch on screen at full size AND
+at icon size, because a name says nothing about how something reads at
+twenty pixels. Three rounds of that threw out everything thin or low
+contrast: a hammer, nails, callipers, keys, dice and scissors all
+disappear when small.
+
+Then, better, **objects out of the puzzles themselves**. Puzzle art is
+not loaded at the title screen, so `loadlevel:<index>` opens any level
+outright, `newsprites` reports what that brought in, and
+`spriteexport:<names>|<dir>` writes them out as PNGs - through a
+RenderTexture, because the game's textures are not readable, and cropped
+to `textureRect` because they are atlased. The first attempt handed back
+a bottle opener instead of stacked books: `Graphics.Blit` flips
+vertically on D3D and the crop has to invert y.
+
+Objects were taken from **generator puzzles first, then campaign**, and
+only from puzzles that use that mechanic and **nothing else** - so the
+picture and the lock mean the same thing. droha picked the twelve:
+
+    Swapping    Books          Badge1-Books2
+    Stacking    Cartridges     Badge2-NES
+    Ordering    Pencils        Badge1-Pencils
+    Gadgets     Lightbulb      badge3-lightbulb
+    Rotating    Record         Badge1-Record
+    Sticking    Stickers       Badge1-Stickers
+    Grids       GridTile       1x1-1, from Procedural Grid Puzzle
+    Tidying     Breadtag       Breadtag-red, from Breadtags
+    Containers  EggCarton      Carton-front copy, from the Fridge
+    Furniture   Drawer         Drawer-Top+Bottom, from Tool Drawer
+    Symmetry    Wreath         Wreath, from the Good Tidings wreath
+    Jigsaw      Gingerbread    GingerbreadMan - the solved cookie, seams
+                               and all
+
+**They ship as PNGs inside the DLL**, 129 KB for all twelve. That is not
+tidiness, it is the only thing that works: the six puzzle objects are
+Addressable assets, loaded when a level opens and released when it
+closes, so they are not in memory on the level select. Measured - six of
+twelve resolved there and the other six drew as lettered plates. The
+alternative was to catch each sprite as it passed and hold a reference,
+which meant the strip filled in gradually as a player happened to visit
+the right puzzles. droha: "can we just save those as png and use them in
+game? That way we don't have to do all this run around."
+
+Three dead ends worth recording so nobody repeats them. The Calendar's
+stickers, the shells and the dirty paw prints all export **blank** -
+they are white masks the game tints at runtime, so there is no colour in
+the sprite to take. The Microscope has no microscope: its pieces are
+crystal rings and a transparent lens, because the instrument is scenery.
+And `badge7-spider` is not the symmetry puzzle - that is the wreath.
+
+The letters stay under each icon. The mapping is a metaphor, not a fact,
+and nobody would guess all twelve cold.
+
+Laid out from droha's read of it in game: the block sits in the gap
+between the level select's close button and the chapter heading rather
+than at the left edge, where it covered the X; the two rows have air
+between them; and the art is fitted to its own proportions and pinned to
+a common baseline instead of centred in a square. That last one is why
+the egg carton looked wrong - it is five times wider than it is tall, so
+a square box with preserveAspect floated it in the middle of its tile
+with a gap underneath.
+
+Verified in play at 1280x720: "loaded 12 ability icon(s)", the strip
+built twelve tiles with three in full colour for the abilities held and
+nine dimmed, the counter read
+"0 / 40 beaten" beneath the connection tag and "0 / 50" with the star on
+a star-goal run, both survived a track rebuild, both were correctly
+absent inside a puzzle and on the pause menu, and the session logged
+zero exceptions. The seed used was generated before the `goal` option existed,
+so it also demonstrates the payload-without-a-goal default. The
+locks-off case is covered by the code path rather than by a run.
+
+### The Furniture ability is now called Drawer
+
+droha: "rename the ability to Drawer instead of Furniture - it's what we
+were calling it before I knew the ability name." The item a player
+receives should say the thing it opens, and every puzzle behind it is a
+drawer or a cupboard.
+
+The name is authored once, in `data/abilities.json`, which BOTH the
+apworld and the C# mod read and which `AbilityCatalogTests` pins against
+each other - so the rename is that one key and everything else follows.
+Ability item ids are positional over that file's key order, so renaming
+in place keeps the id and changes only the name.
+
+**A seed generated before this carries the old name.** The mod only draws
+a pill for an ability the seed's own catalogue contains, so an old save
+shows eleven of twelve with Drawer missing - correct behaviour, not a
+bug, and another reason 0.3.2 needs a fresh seed. Location ids had
+already moved.
+
+### The level select stopped saying "Chapter N"
+
+The game writes that subtitle from the section index and only has names
+for the five chapters it shipped with. A run has as many sections as it
+has packs - fifteen at the default - so past the fifth the line had
+nothing to say and read differently from every section before it. droha:
+"the chapters at 5 don't have a name... just remove the chapter x, and
+just have the - for all of them."
+
+Blanked rather than renumbered, because the run's own name for the
+section is already on screen directly underneath - "Opening", "Pack 3",
+"The End" - and a chapter number above a pack name is two different
+countings of the same thing. What is left is the dash and the star
+count, identical on every section.
+
+Held blank EVERY FRAME, not on a poll. The first version checked twice a
+second, and the game rewrites the subtitle as each section scrolls under
+the header - so the old chapter name showed until the next tick. droha:
+"I see chapter 1/2/3/4/5 show up when I scroll over the chapter
+markers." Only the SEARCH is throttled now; the label is remembered and
+looked for again only when the reference has gone.
+
+Only while the run track is up: the archive and daily menus use the same
+header, and their chapter names are theirs to keep.
+
+Verified alongside it that the sections line up with the packs, which is
+what the headings claim: `Opening` holds the five free puzzles from track
+position 0, then each `Pack N` starts at its own divider and holds five -
+5 + 13 x 6 = 83 cards for a 70-puzzle seed with thirteen packs.
+
+### Every mechanic is in the run, unless you ask for fewer
+
+droha: "is there a reason why we would have less than the full 12
+abilities? We should default try to have them in all runs, and have the
+options to have less if we want a simpler run."
+
+Measured first: at defaults, all twelve already appeared in twenty out of
+twenty seeds. The gap was **short runs**. The coverage reserve protected
+only the four mechanics no generator can make - stacking, containers,
+drawers, jigsaws - on the reasoning that the other eight arrive on their
+own. True at full length, false when the run is short: at
+`puzzle_count: 20`, Rotating was absent from four seeds in eight,
+Symmetry three, Gadgets one, all at the default coverage.
+
+The reserve now takes one of EVERY mechanic first, then the extra copies
+of those four. Re-measured: `puzzle_count: 20` gets all twelve every
+seed, and the default is unchanged because it was already complete.
+
+`mechanic_coverage: 0` is still the simpler run - it turns the whole
+reserve off including the new floor. The other ways to lose a mechanic
+are all content choices rather than accidents: dropping every event pack
+removes jigsaws from the game, generators-only removes all four hand-made
+mechanics, and an 8-puzzle run cannot hold twelve mechanics when several
+of them exist only on single-mechanic puzzles.
+
+Pinned by `test_every_mechanic_the_content_can_supply_is_in_the_run`,
+which asserts against what the ENABLED content could supply rather than
+against all twelve - with three exemptions it states outright: coverage
+zero, runs under twenty puzzles, and ability locks off.
+
+**A correction to something recorded earlier in this file.** The yaml
+notes said dropping `drawer_chores` would gut the Drawer mechanic because
+three of its five puzzles live in that pack. Measured, it does not - the
+coverage reserve pulls in Workbench and Medicine Cabinet instead, and all
+twelve still appear. That claim was reasoning, not measurement.
+
+**And a latent test bug this exposed.**
+`test_the_opening_holds_every_solvable_puzzle_it_can` computed the
+opening as `max(pack_size, MIN_OPENING)`, the expression
+`items.opening_size` exists precisely to replace - the opening is the
+WIDENED size when the pack cap forces packs to grow. The test was looking
+at five slots while `open_the_start` had filled six. It passed by luck
+until a draw put the fourth solvable puzzle at index 5, and then read as
+a regression in the reserve rather than as the stale window it was.
 
 ### Tools
 

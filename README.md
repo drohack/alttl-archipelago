@@ -3,8 +3,8 @@
 An [Archipelago](https://archipelago.gg) multiworld randomizer for
 [A Little To The Left](https://store.steampowered.com/app/1629520/).
 
-**Status: a seed generates and the game connects to it.** Not playable yet -
-the mod reports what the seed contains and does not touch the puzzles.
+**Status: playable.** A seed generates, the game connects to it, and the run
+plays through to the credits.
 
 | Part | State |
 |---|---|
@@ -29,6 +29,30 @@ queues anything earned, and sends it on the next connection - verified in
 Known gaps are listed at the end of the
 [verification log](docs/verification-log.md): a level that once loaded empty and
 has not reproduced, and the Play button's behaviour in a run.
+
+## Ability locks
+
+A run does not hand you the whole game at once. Twelve of the game's own
+mechanics - swapping, stacking, ordering, rotating and the rest - are items,
+and a puzzle that needs one you do not hold is there to look at but not to
+solve. The level select carries the twelve as a strip, so what is still out
+there is visible rather than something to keep a list of.
+
+Dim is a mechanic you have not found yet:
+
+![Twelve ability icons on the level select, all dimmed except Gadgets](docs/images/ability-strip-locked.png)
+
+Lit is one you hold:
+
+![The same twelve icons, all in full colour](docs/images/ability-strip-held.png)
+
+The icons are the game's own art rather than anything drawn for the mod - a
+badge element, a puzzle piece or a level's object, one per mechanic, chosen to
+be told apart at that size. Where each came from is recorded in
+[docs/data/ability-icons.md](docs/data/ability-icons.md).
+
+Both pictures are frames from the running game, taken by
+`tools/capture-ability-strip.py` and cut by `tools/crop-ability-strip.py`.
 
 ## Is the game moddable?
 
