@@ -243,17 +243,19 @@ internal static class Track
         return -1;
     }
 
-    /// <summary>Any uncollected location on this slot, reachable or not.</summary>
+    /// <summary>
+    /// Any uncollected location on this slot, reachable or not.
+    ///
+    /// Delegates to the router rather than keeping its own copy. The same
+    /// predicate is what the star goal counts and what the level select
+    /// draws a star for, and three implementations of "nothing left to do"
+    /// would eventually disagree about which puzzles are finished.
+    /// </summary>
     private static bool HasWorkLeft(int slot)
     {
         var router = Checks.Router;
         if (router == null) return true;
-
-        foreach (var name in router.ForSlot(slot))
-        {
-            if (!Checks.Ledger.IsCollected(name)) return true;
-        }
-        return false;
+        return router.HasWorkLeft(slot, Checks.Ledger.IsCollected);
     }
 
     /// <summary>
@@ -631,6 +633,9 @@ internal static class Track
     }
 
     /// <summary>The campaign level select, or null if it is not built yet.</summary>
+    /// <summary>The run's own level select, or null if that is not what is up.</summary>
+    internal static LevelSelect? CampaignSelect() => FindCampaignSelect();
+
     private static LevelSelect? FindCampaignSelect()
     {
         foreach (var candidate in UnityEngine.Object.FindObjectsOfType<LevelSelect>())

@@ -48,6 +48,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The ability icons, shipped inside the DLL so the strip does not
+         depend on which level's art happens to be loaded. See Badges. -->
+    <EmbeddedResource Include="Icons\*.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ALTTLModKit\ALTTLModKit.csproj" />
     <ProjectReference Include="..\ALTTLArchipelago.Core\ALTTLArchipelago.Core.csproj" />
   </ItemGroup>
@@ -91,6 +97,11 @@
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- ImageConversion.LoadImage, for the ability icons. -->
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.ImageConversionModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Unity.TextMeshPro">

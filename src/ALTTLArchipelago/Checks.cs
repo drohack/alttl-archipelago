@@ -78,6 +78,33 @@ internal static class Checks
     /// </summary>
     internal static int LevelsBeaten
         => _router?.BeatenCount(_ledger.IsCollected) ?? 0;
+
+    /// <summary>
+    /// How many puzzles are STARRED - every check on them collected.
+    ///
+    /// The same predicate the level select uses to draw a star on a card, so
+    /// the goal and the card cannot disagree about which puzzles are done.
+    /// Counted from the ledger for the same reason as LevelsBeaten: part of
+    /// it rides on event locations the server never sends back.
+    /// </summary>
+    internal static int LevelsStarred
+        => _router?.StarredCount(_ledger.IsCollected) ?? 0;
+
+    /// <summary>
+    /// Progress toward whichever goal this seed set, as done and needed.
+    ///
+    /// ONE PLACE, because there were three. The credits gate, the beaten
+    /// toast and the offline summary each read LevelsBeaten against
+    /// LevelsToBeat directly; adding a second goal to three call sites is
+    /// how two of them end up telling the player a different number.
+    /// </summary>
+    internal static (int Done, int Needed, string Unit) GoalProgress(SlotData? slot)
+    {
+        if (slot == null) return (0, 0, "beaten");
+        return slot.GoalIsStars
+            ? (LevelsStarred, slot.LevelsToStar, "starred")
+            : (LevelsBeaten, slot.LevelsToBeat, "beaten");
+    }
     internal static bool Active => _router != null;
 
     internal static void Begin(SlotData slot)
@@ -778,9 +805,13 @@ internal static class Checks
             // Beating a puzzle is the thing the credits gate counts, so it is
             // worth saying out loud - it was silent before, which made
             // finishing a level feel like nothing had happened.
-            var goal = Plugin.Seed?.LevelsToBeat ?? 0;
-            Toasts.Show(goal > 0
-                ? $"Puzzle beaten ({LevelsBeaten}/{goal})"
+            // Reports the GOAL's number, not always the beaten one. On a
+            // star seed "Puzzle beaten (12/40)" counts something the run
+            // does not care about, and the credits would then open at a
+            // moment the toast never predicted.
+            var (done, needed, unit) = GoalProgress(Plugin.Seed);
+            Toasts.Show(needed > 0
+                ? $"Puzzle beaten ({done}/{needed} {unit})"
                 : "Puzzle beaten", Toasts.Notice);
             return;
         }

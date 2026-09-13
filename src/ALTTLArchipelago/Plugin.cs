@@ -953,8 +953,9 @@ public sealed class Plugin : BasePlugin
             $"offline: resumed slot '{cache.SlotName}' seed {cache.Seed} "
             + $"saved {cache.SavedAt} - {slot.Slots.Count} puzzles, "
             + $"{Inventory.PacksHeld} pack(s) held, {cache.Items.Count} item(s)");
+        var (done, needed, unit) = Checks.GoalProgress(slot);
         Toasts.Show(
-            $"Playing offline - {Checks.LevelsBeaten} of {slot.LevelsToBeat} beaten. "
+            $"Playing offline - {done} of {needed} {unit}. "
             + "Checks are kept and sent when you connect.", Toasts.Notice);
 
         ConnectionPane.RefreshStatus();
@@ -1042,7 +1043,8 @@ public sealed class Plugin : BasePlugin
 
         Logger.LogInfo($"connected. {slot.Slots.Count} puzzles, "
             + $"{slot.PackTotal} packs of {slot.PackSize}, "
-            + $"beat {slot.LevelsToBeat} to unlock the credits");
+            + $"{(slot.GoalIsStars ? "star" : "beat")} {slot.GoalTarget} "
+            + "to unlock the credits");
         Logger.LogInfo($"ability locks {(slot.AbilityLocks ? "on" : "off")}, "
             + $"{slot.Abilities.Count} abilities, starting with "
             + $"[{string.Join(", ", slot.StartingAbilities)}]");
@@ -1103,6 +1105,26 @@ public sealed class Ticker : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// The one step that has to run AFTER the game has had its turn.
+    ///
+    /// Blanking the chapter subtitle from Update was a frame late: the game
+    /// writes that label while handling the pointer going over a chapter
+    /// marker, which happens in Update too, and whichever component runs
+    /// second wins. Ours ran first often enough that the name appeared for a
+    /// single frame and vanished - droha: "I'm still seeing a flash of the
+    /// Chapter 1 when hovering over the chapter marker. It flashes and goes
+    /// away after a frame."
+    ///
+    /// LateUpdate runs after every Update and before the frame is drawn, so
+    /// the label is blank by the time anything renders it. There is no
+    /// ordering left to lose.
+    /// </summary>
+    private void LateUpdate()
+    {
+        Step("chapter subtitle", () => Badges.TickChapterSubtitle());
+    }
+
     private void Update()
     {
         var dt = Time.unscaledDeltaTime;
@@ -1131,6 +1153,8 @@ public sealed class Ticker : MonoBehaviour
         Step("connected tag", () => Badges.TickConnectedTag());
         Step("title state", () => TitleScreen.TickState());
         Step("window size", () => DisplayGuard.Tick(dt));
+        Step("goal counter", () => Badges.TickGoalCounter());
+        Step("ability pills", () => Badges.TickAbilityPills());
         Step("overview dots", () => Badges.TickOverviewDots());
         Step("typing guard",
             () => TypingGuard.Tick(ConnectionPane.FocusedField, ConnectionPane.FocusNext));

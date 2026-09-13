@@ -80,6 +80,7 @@ internal static class GameDisplay
     internal static void Apply(SettingsMenu menu, int index, int width, int height)
     {
         menu.SetResolution(index);
+        KeepFocus();
 
         try
         {
@@ -97,4 +98,41 @@ internal static class GameDisplay
                 $"display: set {width}x{height} but could not record it: {e.Message}");
         }
     }
+
+    /// <summary>
+    /// Put the game back in front after a resolution change.
+    ///
+    /// CHANGING THE SIZE COSTS THE FOREGROUND. Unity rebuilds the window for
+    /// the new resolution and Windows hands focus to whatever was behind it,
+    /// so correcting the size a few seconds into the boot dropped the game
+    /// behind whatever else was open. droha: "the game always opens up in
+    /// the background for some reason?" Measured on a fresh launch - the
+    /// game held the foreground at eight seconds and had lost it to an
+    /// Explorer window by twelve, which is exactly when the correction
+    /// lands.
+    ///
+    /// A fix for damage this class does, so it is this class's to repair.
+    /// Windows only grants SetForegroundWindow to a process that already
+    /// holds it, which is true here: the game was in front a moment ago and
+    /// the resize is its own doing. If the rules refuse, the call does
+    /// nothing and the worst case is what happens today.
+    /// </summary>
+    private static void KeepFocus()
+    {
+        try
+        {
+            var window = GetActiveWindow();
+            if (window != IntPtr.Zero) SetForegroundWindow(window);
+        }
+        catch
+        {
+            // Cosmetic, and never worth failing a resolution change over.
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr GetActiveWindow();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr window);
 }

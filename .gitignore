@@ -35,6 +35,23 @@ __pycache__/
 *.png
 *.log
 
+# ... except the ability icons, which are SOURCE rather than an artifact.
+# They are embedded in the mod DLL and are what the level-select strip
+# draws; without them a clean clone builds a strip of lettered plates and
+# nothing says why. See docs/data/ability-icons.md.
+!src/ALTTLArchipelago/Icons/*.png
+
+# ... and the two README pictures of the level-select strip, which are the
+# only thing that shows a reader what ability locks look like. Cut by
+# tools/crop-ability-strip.py from frames tools/capture-ability-strip.py
+# takes out of the running game.
+!docs/images/*.png
+
+# The frames themselves are NOT kept. They are 1920x1080 screenshots of a
+# whole menu, regenerable in two minutes, and committing them would put a
+# quarter of a megabyte in the history every time the crop is retouched.
+/docs/images/raw/
+
 # Harness environment snapshots (tools/harness_env.py). Copies of the player's
 # saves and BepInEx config, kept on disk so a hard-killed run can still be
 # undone with --restore-latest.

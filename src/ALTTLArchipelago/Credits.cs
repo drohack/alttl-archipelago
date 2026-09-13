@@ -39,9 +39,19 @@ internal static class Credits
         _sinceCheck = 0f;
     }
 
-    /// <summary>How many more puzzles must be beaten before the credits open.</summary>
+    /// <summary>
+    /// How many more puzzles the goal still wants before the credits open.
+    ///
+    /// Beaten or starred, depending on the seed - Checks.GoalProgress owns
+    /// that choice so this does not have to. GoalLatch below takes the
+    /// number and nothing else, so the two goals need no code of their own
+    /// past this line.
+    /// </summary>
     internal static int Remaining(SlotData? slot)
-        => slot == null ? 0 : Math.Max(0, slot.LevelsToBeat - Checks.LevelsBeaten);
+    {
+        var (done, needed, _) = Checks.GoalProgress(slot);
+        return Math.Max(0, needed - done);
+    }
 
     /// <summary>
     /// Watch for the run being won.

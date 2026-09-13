@@ -33,6 +33,13 @@ namespace ALTTLArchipelago;
 /// the current display it does nothing at all and leaves the game to it.
 /// Being opinionated about someone's monitor is how this became a complaint
 /// in the first place.
+    ///
+///
+/// AND IT ONLY LEARNS AFTER THE SETTLE. The game applies its own saved
+/// resolution a few seconds into the boot, which is indistinguishable from a
+/// player changing it - so anything observed before the settle is ignored.
+/// Watching too early is how a remembered 1280x720 became 3840x2160 and
+/// stayed there.
 /// </summary>
 internal static class DisplayGuard
 {
@@ -48,16 +55,23 @@ internal static class DisplayGuard
     private static float _sinceBoot;
 
     /// <summary>
-    /// The size the game opened at, taken on the very first tick.
+    /// Whether the settle-time correction has run yet.
     ///
-    /// Kept so the settle-time correction can tell "the game opened at the
-    /// wrong size" from "the player has already changed it". Without it, a
-    /// player who opens the settings and picks a size within the first few
-    /// seconds would have it taken straight back off them, which is the
-    /// exact behaviour this class exists to stop.
+    /// This USED to be the size sampled on the first tick, compared at
+    /// settle to tell "the game opened at the wrong size" from "the player
+    /// has already changed it". It could not tell them apart, because the
+    /// game applies its own saved resolution a few seconds into the boot -
+    /// so the game's late apply read as a player choice, the guard adopted
+    /// it, and a remembered 1280x720 turned into 3840x2160 permanently.
+    /// The log line that gave it away: "the size was changed to 3840x2160
+    /// since startup, so that is what gets remembered".
+    ///
+    /// A player cannot realistically reach the settings and pick a size in
+    /// the first few seconds, so there is nothing to protect there; what
+    /// matters is that Track does not record anything until the settle is
+    /// over and the game has finished having opinions.
     /// </summary>
-    private static int _bootWidth;
-    private static int _bootHeight;
+    private static bool _settled;
 
     /// <summary>
     /// How long to let the game finish opening before touching anything.
@@ -92,12 +106,6 @@ internal static class DisplayGuard
 
     internal static void Tick(float dt)
     {
-        if (_bootWidth == 0)
-        {
-            _bootWidth = Screen.width;
-            _bootHeight = Screen.height;
-        }
-
         _sinceBoot += dt;
         if (_sinceBoot < SettleSeconds) return;
 
@@ -112,11 +120,15 @@ internal static class DisplayGuard
             if (!_fixed)
             {
                 _fixed = true;
+                _settled = true;
                 Restore();
                 return;
             }
 
-            Track();
+            // Only after the settle. Anything before it is the game applying
+            // its own stored choice, not the player making one - recording
+            // that was what overwrote a remembered size with the native one.
+            if (_settled) Track();
         }
         catch (Exception e)
         {
@@ -139,23 +151,30 @@ internal static class DisplayGuard
             return;                                         // already right
         }
 
-        // ALREADY CHANGED IS ALREADY ANSWERED. If the size is no longer what
-        // the game booted with, the player has been into the settings during
-        // the settle and that is the newer instruction of the two. droha, on
-        // the guard: "it should not override to this always, it's whatever
-        // the user sets it to - it should just keep that setting."
-        if (Screen.width != _bootWidth || Screen.height != _bootHeight)
-        {
-            Plugin.Logger.LogInfo(
-                $"display: the size was changed to {Screen.width}x{Screen.height} "
-                + "since startup, so that is what gets remembered");
-            return;
-        }
-
         var menu = GameDisplay.FindSettingsMenu();
         if (menu == null) return;
 
         var index = GameDisplay.IndexOf(menu, _rememberedWidth, _rememberedHeight);
+
+        // THE GAME MAY BE ABOUT TO DO THIS ITSELF. It applies its own saved
+        // choice somewhere in the boot, and not reliably before this settle -
+        // so a window still at native here is not necessarily a window that
+        // will stay there. If the save already names the size we want, the
+        // game gets there on its own and there is nothing to fix.
+        //
+        // Worth the check because the correction is not free: changing the
+        // resolution makes Unity rebuild the window, and Windows hands the
+        // foreground to whatever was behind it. droha: "the game always opens
+        // up in the background for some reason?" - measured with the registry
+        // and the save BOTH already naming the right size, so every one of
+        // those resizes was the guard racing the game and winning.
+        if (index >= 0 && SavedIndex() == index)
+        {
+            Plugin.Logger.LogInfo(
+                $"display: the save already asks for {_rememberedWidth}x"
+                + $"{_rememberedHeight}, so the game is left to apply it");
+            return;
+        }
         if (index < 0)
         {
             // NOT AN ERROR. A display that cannot do 1280x720 is a display
@@ -172,6 +191,23 @@ internal static class DisplayGuard
             $"display: put the window back to {_rememberedWidth}x"
             + $"{_rememberedHeight} (index {index} on this display), which the "
             + $"game had opened at {Screen.width}x{Screen.height}");
+    }
+
+    /// <summary>
+    /// What the save currently asks for, or -1 if it cannot be read.
+    /// </summary>
+    private static int SavedIndex()
+    {
+        try
+        {
+            var data = SaveSystem.data;
+            if (data == null || data.playerPrefs == null) return -1;
+            return data.playerPrefs.resolution;
+        }
+        catch
+        {
+            return -1;
+        }
     }
 
     /// <summary>
