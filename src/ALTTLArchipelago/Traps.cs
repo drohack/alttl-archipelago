@@ -101,7 +101,59 @@ internal static class Traps
         // and generator levels alike - so a trap springing as you walk in undoes
         // work that the game had already discarded. All it would do is announce
         // a setback that did not happen.
-        var level = GameManager.Instance?.levelManager?.ActiveLevelInterface?.Level;
+        var active = GameManager.Instance?.levelManager?.ActiveLevelInterface;
+
+        // A LEVEL STILL LOADING IS NOT ONE TO KNOCK OVER.
+        //
+        // THE THEORY, WHICH IS NOT PROVEN - read docs/data/trap-freeze-repro.md
+        // before trusting it. 29 attempts across four builds, including one
+        // reduced to exactly 0.3.1's Spring, failed to reproduce droha's
+        // hang; in 7 of the last 8 the trap fired squarely inside the
+        // post-completion navigation and the game carried on. So what follows
+        // explains the shape of the guard, not a demonstrated cause.
+        //
+        // ResetLevel re-enters a load that has not finished. The level load
+        // is an async state machine, and ActiveLevelInterface.Level is
+        // already set partway through it - so a trap ticking mid-load finds
+        // what looks like a perfectly good puzzle and tells the game to
+        // rebuild it underneath itself. SetActiveLevel never returns. No
+        // exception, no error: the game simply stops, and clicking does
+        // nothing.
+        //
+        // droha's log is consistent with it, on the RELEASED 0.3.1 build:
+        // "when finishing a level I got a background change trap... it reset
+        // and when I clicked anywhere the game fully froze. Had to alt+F4."
+        // The window is right there - "track: slot 53 ... launching with
+        // seed 307681145, forceReload" and then, on the very next line,
+        // "trap: 1 cat(s) reset the puzzle" - with not one exception in all
+        // 1,549 lines. Consistent with is not the same as caused by, and the
+        // reproduction went looking for the difference and did not find it.
+        //
+        // It is NOT the earlier cat trap freeze, which drowned in
+        // NullReferenceExceptions from tweens holding destroyed pieces. 0.3.1
+        // predates every one of those guards: it has no animation cancel to
+        // blame and no completion grace to have caught this.
+        //
+        // WHAT THE GUARD IS ACTUALLY WORTH, measured rather than argued
+        // (tools/probe-trap-window.py): a trap arriving mid-load is HELD and
+        // springs once the level settles, where before it hit `level == null`
+        // and was silently spent. It cannot strand a trap on the level
+        // select, because ActiveLevelInterface is null there and this test
+        // never runs. Both verified in game.
+        //
+        // The completion grace below would not cover it either, even now: it
+        // measures time since the last completion, and a level that reloads
+        // for any other reason is not a completion. Ask the level what it is
+        // doing instead of inferring it from a clock.
+        if (active != null && (!active.LevelIsLoaded || active.IsTransitioning))
+        {
+            // HELD, NOT SPENT. Unlike a trap with no puzzle to hit, this one
+            // has a target - it just cannot be applied safely this frame. The
+            // next tick will find the level settled and spring it properly.
+            return;
+        }
+
+        var level = active?.Level;
         if (level == null || level.allLevelObjects == null)
         {
             _applied += owed;

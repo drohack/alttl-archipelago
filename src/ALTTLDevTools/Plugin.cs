@@ -228,6 +228,8 @@ public class DevToolsBehaviour : MonoBehaviour
             }
         }
 
+        TickWatch();
+
         var gm = GameManager.Instance;
         if (gm == null) return;
 
@@ -979,6 +981,15 @@ public class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("press", () => PressControl(cmd.Substring("press:".Length)));
             }
+            else if (cmd.Equals("livelevels", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("livelevels", CountLiveLevels);
+            }
+            else if (cmd.StartsWith("clickat", StringComparison.OrdinalIgnoreCase))
+            {
+                var arg = cmd.Length > 8 ? cmd.Substring(8) : "";
+                SafeRun("clickat", () => ClickAt(arg));
+            }
             else if (cmd.Equals("pause", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("pause", OpenPauseMenu);
@@ -1043,6 +1054,10 @@ public class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("state", ReportState);
             }
+            else if (cmd.StartsWith("watch:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("watch", () => StartWatch(cmd.Substring("watch:".Length)));
+            }
             else if (cmd.StartsWith("menu:", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("menu", () => GoToMenu(cmd.Substring(5)));
@@ -1051,9 +1066,32 @@ public class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("shot", () =>
                 {
-                    var path = cmd.Substring(5);
-                    ScreenCapture.CaptureScreenshot(path);
-                    DevToolsPlugin.Log.LogInfo($"screenshot requested: {path}");
+                    // shot:C:/path.png            the window as it is
+                    // shot:C:/path.png|3          rendered at three times
+                    //
+                    // SUPERSIZE RATHER THAN A BIGGER WINDOW. Unity renders
+                    // the frame at a multiple of the current resolution, so
+                    // a detailed capture costs nothing but time - no
+                    // resolution change, no window rebuild, and nothing of
+                    // the player's display touched. Changing the resolution
+                    // to take a picture would move the size the mod
+                    // remembers, which is the one thing this project has
+                    // been asked repeatedly not to do.
+                    var arg = cmd.Substring(5);
+                    var size = 1;
+                    var bar = arg.LastIndexOf('|');
+                    if (bar > 0
+                        && int.TryParse(arg.Substring(bar + 1), NumberStyles.Integer,
+                                        CultureInfo.InvariantCulture, out var parsed)
+                        && parsed >= 1)
+                    {
+                        size = Math.Min(parsed, 8);
+                        arg = arg.Substring(0, bar);
+                    }
+
+                    ScreenCapture.CaptureScreenshot(arg, size);
+                    DevToolsPlugin.Log.LogInfo(
+                        $"screenshot requested: {arg} at {size}x");
                 });
             }
             else if (cmd.Equals("unlocks", StringComparison.OrdinalIgnoreCase))
@@ -1063,6 +1101,38 @@ public class DevToolsBehaviour : MonoBehaviour
             else if (cmd.Equals("resolutions", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("resolutions", DumpResolutions);
+            }
+            else if (cmd.StartsWith("loadlevel:", StringComparison.OrdinalIgnoreCase))
+            {
+                var arg = cmd.Substring("loadlevel:".Length);
+                SafeRun("loadlevel", () => LoadLevel(arg));
+            }
+            else if (cmd.StartsWith("spriteexport:", StringComparison.OrdinalIgnoreCase))
+            {
+                var arg = cmd.Substring("spriteexport:".Length);
+                SafeRun("spriteexport", () => ExportSprites(arg));
+            }
+            else if (cmd.StartsWith("spritegrid:", StringComparison.OrdinalIgnoreCase))
+            {
+                var arg = cmd.Substring("spritegrid:".Length);
+                SafeRun("spritegrid", () => ShowSpriteGrid(arg));
+            }
+            else if (cmd.Equals("spritegrid:off", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("spritegrid", () => ShowSpriteGrid(""));
+            }
+            else if (cmd.Equals("newsprites", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("newsprites", DumpNewSprites);
+            }
+            else if (cmd.StartsWith("sprites", StringComparison.OrdinalIgnoreCase))
+            {
+                var arg = cmd.Length > 8 ? cmd.Substring(8) : "";
+                SafeRun("sprites", () => DumpSprites(arg));
+            }
+            else if (cmd.Equals("endings", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("endings", DumpEndings);
             }
             else if (cmd.StartsWith("setres", StringComparison.OrdinalIgnoreCase))
             {
@@ -2155,6 +2225,511 @@ public class DevToolsBehaviour : MonoBehaviour
     /// Printing the list is the only way to turn "index 0" into something a
     /// person can check.
     /// </summary>
+    /// <summary>
+    /// What screen every level ends on, for all of them at once.
+    ///
+    /// THE QUESTION THIS ANSWERS. droha: some levels finish on the
+    /// three-button panel - restart, pause menu, next arrow - and others drop
+    /// you straight into the next puzzle. Nobody knew whether that was the
+    /// game's own design or something the mod introduced, and guessing was
+    /// how the last three of these went wrong.
+    ///
+    /// NO LEVEL LOADING. LevelManager.AllLevelInterfaces holds every level's
+    /// interface at once, so the whole table can be read from the title
+    /// screen in one frame. Loading 111 levels to ask each one a question it
+    /// can answer while asleep would take an hour and prove the same thing.
+    ///
+    /// The flags, and why each is here:
+    ///   PreventRetryMenu    authored per level, in the scene data
+    ///   DoPreventRetryMenu  the computed answer - authored AND anything else
+    ///   ShowRetryMenu       what the game will actually do
+    ///   CompleteSilently    finishes with no completion beat at all
+    ///   TransitionSilently  moves on with no transition
+    ///   IsDailyTidy         the mod forces this false during a run, so a
+    ///                       daily-pool level takes a different path than it
+    ///                       does in vanilla - the one place the mod is
+    ///                       implicated
+    ///
+    /// Printed as TSV so it can go straight into docs/data/ and be diffed
+    /// against apworld/alttl/data/levels.json.
+    /// </summary>
+    /// <summary>
+    /// Every loaded sprite whose name contains a substring.
+    ///
+    /// EXISTS SO NOBODY GUESSES A SPRITE NAME AGAIN. The mod borrows the
+    /// game's art by name in two places, and the comment history on
+    /// Badges.FindStar records two wrong guesses before the right name was
+    /// found. Asking the runtime what it has costs one command.
+    ///
+    /// The immediate use is the ability strip: it draws lettered pills
+    /// because the mod ships no art, and the question of whether the game
+    /// already has a per-mechanic icon is answerable rather than arguable.
+    ///
+    ///     sprites star        everything with "star" in the name
+    ///     sprites             everything, which is a lot
+    /// </summary>
+    /// <summary>
+    /// Start any level by index, ignoring the run entirely.
+    ///
+    /// For getting at a puzzle's OBJECT sprites, which are the only art in
+    /// the game that actually depicts a mechanic. They are loaded with their
+    /// level and not before, so the title screen sees none of them - a dump
+    /// there finds the level-select card icons and the badge elements and
+    /// nothing else.
+    ///
+    /// RUN THIS WITH NO RUN ACTIVE. Track's StartLevel prefix rewrites the
+    /// index to whatever slot the run intends, which is the whole point of
+    /// it; it returns early when there is no run, so clearing the slot name
+    /// first is what makes this command mean what it says.
+    ///
+    /// forceReload, because asking for the level that is already loaded
+    /// otherwise does nothing and looks like the command failed.
+    /// </summary>
+    private static void LoadLevel(string arg)
+    {
+        if (!int.TryParse(arg.Trim(), NumberStyles.Integer,
+                          CultureInfo.InvariantCulture, out var index))
+        {
+            DevToolsPlugin.Log.LogWarning("loadlevel: give a level index");
+            return;
+        }
+
+        var manager = GameManager.Instance?.levelManager;
+        if (manager == null)
+        {
+            DevToolsPlugin.Log.LogWarning("loadlevel: no LevelManager");
+            return;
+        }
+
+        manager.StartLevel(index, false, true, 12345);
+        DevToolsPlugin.Log.LogInfo($"loadlevel: asked for level {index}");
+    }
+
+    /// <summary>Sprite names seen by the last `newsprites` call.</summary>
+    private static readonly HashSet<string> _spritesSeen =
+        new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Sprite names that have appeared since the last time this was run.
+    ///
+    /// Loading a level adds its objects to the loaded set, so the DIFFERENCE
+    /// is exactly that level's art - no guessing at names, and no wading
+    /// through the nine hundred that were already there.
+    /// </summary>
+    private static void DumpNewSprites()
+    {
+        var all = Resources.FindObjectsOfTypeAll(
+            Il2CppInterop.Runtime.Il2CppType.Of<Sprite>());
+        var fresh = new List<string>();
+
+        for (int i = 0; all != null && i < all.Length; i++)
+        {
+            var sprite = all[i]?.TryCast<Sprite>();
+            if (sprite == null) continue;
+            var name = Str(() => sprite.name);
+            if (name.Length == 0) continue;
+            if (_spritesSeen.Add(name)) fresh.Add(name);
+        }
+
+        fresh.Sort(StringComparer.Ordinal);
+        foreach (var name in fresh) DevToolsPlugin.Log.LogInfo($"newsprites:  {name}");
+        DevToolsPlugin.Log.LogInfo(
+            $"newsprites: {fresh.Count} new, {_spritesSeen.Count} seen so far");
+    }
+
+    /// <summary>
+    /// Write named sprites out as PNG files.
+    ///
+    /// So a human can LOOK at them somewhere other than inside the game.
+    /// The grid command puts candidates on screen, which answers "does this
+    /// read at icon size", but comparing a dozen options properly means
+    /// having the images in hand - droha, reasonably: "is there a way for
+    /// me to see these easily? You're just kind of giving the icon name and
+    /// a description."
+    ///
+    /// THROUGH A RENDER TEXTURE, because the game's textures are not
+    /// readable. Reading sprite.texture directly throws on an imported
+    /// texture without Read/Write enabled, which is all of them; blitting
+    /// to a RenderTexture and reading THAT back is the standard way round
+    /// it and needs no asset changes.
+    ///
+    /// Cropped to textureRect, because these are atlased: the whole texture
+    /// is a sheet of dozens of sprites, and exporting it would produce the
+    /// same sheet a dozen times.
+    ///
+    ///     spriteexport:Badge1-Books2,badge3-Tape|C:/somewhere
+    /// </summary>
+    private static void ExportSprites(string arg)
+    {
+        var parts = arg.Split('|');
+        var names = new List<string>();
+        foreach (var raw in parts[0].Split(','))
+        {
+            var name = raw.Trim();
+            if (name.Length > 0) names.Add(name);
+        }
+        var dir = parts.Length > 1 ? parts[1].Trim() : "";
+        if (dir.Length == 0 || names.Count == 0)
+        {
+            DevToolsPlugin.Log.LogWarning(
+                "spriteexport: give names and a folder, as "
+                + "'spriteexport:A,B|C:/folder'");
+            return;
+        }
+
+        try { System.IO.Directory.CreateDirectory(dir); }
+        catch (Exception e)
+        {
+            DevToolsPlugin.Log.LogWarning($"spriteexport: {e.Message}");
+            return;
+        }
+
+        var found = new Dictionary<string, Sprite>(StringComparer.Ordinal);
+        var all = Resources.FindObjectsOfTypeAll(
+            Il2CppInterop.Runtime.Il2CppType.Of<Sprite>());
+        for (int i = 0; all != null && i < all.Length; i++)
+        {
+            var sprite = all[i]?.TryCast<Sprite>();
+            if (sprite == null) continue;
+            var name = Str(() => sprite.name);
+            if (name.Length == 0 || found.ContainsKey(name)) continue;
+            if (names.Contains(name)) found[name] = sprite;
+        }
+
+        var written = 0;
+        foreach (var name in names)
+        {
+            if (!found.TryGetValue(name, out var sprite)) continue;
+            if (WriteSpritePng(sprite, name, dir)) written++;
+        }
+
+        DevToolsPlugin.Log.LogInfo(
+            $"spriteexport: wrote {written} of {names.Count} to {dir}");
+    }
+
+    private static bool WriteSpritePng(Sprite sprite, string name, string dir)
+    {
+        RenderTexture? rt = null;
+        RenderTexture? previous = null;
+        Texture2D? readable = null;
+        try
+        {
+            var source = sprite.texture;
+            if (source == null) return false;
+
+            var rect = sprite.textureRect;
+            var w = Mathf.Max(1, Mathf.RoundToInt(rect.width));
+            var h = Mathf.Max(1, Mathf.RoundToInt(rect.height));
+
+            rt = RenderTexture.GetTemporary(
+                source.width, source.height, 0,
+                RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            Graphics.Blit(source, rt);
+
+            previous = RenderTexture.active;
+            RenderTexture.active = rt;
+
+            readable = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            // FLIPPED IN Y. Graphics.Blit writes the RenderTexture upside
+            // down on D3D relative to the source, while sprite.textureRect
+            // is measured from the bottom of the source. Reading at the
+            // rect as given returned a neighbouring sprite from the atlas -
+            // asking for stacked books and getting a bottle opener.
+            var y = source.height - Mathf.RoundToInt(rect.y) - h;
+            readable.ReadPixels(new Rect(rect.x, y, w, h), 0, 0, false);
+            readable.Apply();
+
+            var bytes = ImageConversion.EncodeToPNG(readable);
+            if (bytes == null || bytes.Length == 0) return false;
+
+            // The names carry no path characters today, but a sprite name is
+            // the game's to choose and a stray slash would write outside the
+            // folder we were given.
+            var safe = name;
+            foreach (var bad in System.IO.Path.GetInvalidFileNameChars())
+            {
+                safe = safe.Replace(bad, '_');
+            }
+
+            System.IO.File.WriteAllBytes(
+                System.IO.Path.Combine(dir, safe + ".png"), bytes);
+            return true;
+        }
+        catch (Exception e)
+        {
+            DevToolsPlugin.Log.LogWarning($"spriteexport: {name}: {e.Message}");
+            return false;
+        }
+        finally
+        {
+            RenderTexture.active = previous;
+            if (rt != null) RenderTexture.ReleaseTemporary(rt);
+            if (readable != null) UnityEngine.Object.Destroy(readable);
+        }
+    }
+
+    private static GameObject? _spriteGrid;
+
+    /// <summary>
+    /// Draw named sprites in a grid, so a human can SEE them.
+    ///
+    /// A sprite name says nothing about silhouette, colour or how it reads
+    /// at twenty pixels, and the question this exists for is exactly that:
+    /// droha, on picking art for the ability pills, "look for ones easy to
+    /// distinguish at a glance". That cannot be answered from a name list,
+    /// and it cannot be answered by extracting textures either - the game's
+    /// are not readable without a RenderTexture round trip. Putting them on
+    /// the screen the game is already drawing sidesteps both problems.
+    ///
+    /// Each entry is drawn twice - large enough to identify, and at pill
+    /// size - because an icon that is obvious at 56 pixels and mud at 20 is
+    /// no use for a legend.
+    ///
+    ///     spritegrid:Badge1-Books1,Badge5-Broom
+    ///     spritegrid:off
+    /// </summary>
+    private static void ShowSpriteGrid(string arg)
+    {
+        if (_spriteGrid != null)
+        {
+            UnityEngine.Object.Destroy(_spriteGrid);
+            _spriteGrid = null;
+        }
+        if (string.IsNullOrWhiteSpace(arg) || arg == "off")
+        {
+            DevToolsPlugin.Log.LogInfo("spritegrid: cleared");
+            return;
+        }
+
+        var wanted = new List<string>();
+        foreach (var raw in arg.Split(','))
+        {
+            var name = raw.Trim();
+            if (name.Length > 0) wanted.Add(name);
+        }
+
+        var found = new Dictionary<string, Sprite>(StringComparer.Ordinal);
+        var all = Resources.FindObjectsOfTypeAll(
+            Il2CppInterop.Runtime.Il2CppType.Of<Sprite>());
+        for (int i = 0; all != null && i < all.Length; i++)
+        {
+            var sprite = all[i]?.TryCast<Sprite>();
+            if (sprite == null) continue;
+            var name = Str(() => sprite.name);
+            if (name.Length == 0 || found.ContainsKey(name)) continue;
+            if (wanted.Contains(name)) found[name] = sprite;
+        }
+
+        var canvasGo = new GameObject("ApSpriteGrid");
+        _spriteGrid = canvasGo;
+        var canvas = canvasGo.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 9000;          // over everything, including toasts
+        var scaler = canvasGo.AddComponent<UnityEngine.UI.CanvasScaler>();
+        scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+
+        // An opaque backing, so a pale icon is not judged against whatever
+        // happens to be behind it.
+        var bg = new GameObject("BG");
+        bg.transform.SetParent(canvasGo.transform, false);
+        var bgRt = bg.AddComponent<RectTransform>();
+        bgRt.anchorMin = Vector2.zero;
+        bgRt.anchorMax = Vector2.one;
+        bgRt.offsetMin = Vector2.zero;
+        bgRt.offsetMax = Vector2.zero;
+        var bgImage = bg.AddComponent<UnityEngine.UI.Image>();
+        bgImage.color = new Color(0.11f, 0.13f, 0.12f, 1f);
+
+        const int columns = 6;
+        const float cell = 300f;
+        const float rowHeight = 165f;
+
+        var shown = 0;
+        foreach (var name in wanted)
+        {
+            if (!found.TryGetValue(name, out var sprite)) continue;
+
+            var col = shown % columns;
+            var row = shown / columns;
+            var x = 40f + col * cell;
+            var y = -40f - row * rowHeight;
+
+            AddGridSprite(canvasGo.transform, sprite, x, y, 96f);
+            AddGridSprite(canvasGo.transform, sprite, x + 110f, y - 30f, 26f);
+            AddGridLabel(canvasGo.transform, name, x, y - 100f, cell - 20f);
+            shown++;
+        }
+
+        var missing = new List<string>();
+        foreach (var n in wanted) if (!found.ContainsKey(n)) missing.Add(n);
+        DevToolsPlugin.Log.LogInfo(
+            $"spritegrid: showing {shown} of {wanted.Count}"
+            + (missing.Count > 0
+                ? $"; not loaded: {string.Join(", ", missing)}"
+                : ""));
+    }
+
+    private static void AddGridSprite(Transform parent, Sprite sprite,
+                                      float x, float y, float size)
+    {
+        var go = new GameObject("s");
+        go.transform.SetParent(parent, false);
+        var rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0f, 1f);
+        rt.anchorMax = new Vector2(0f, 1f);
+        rt.pivot = new Vector2(0f, 1f);
+        rt.anchoredPosition = new Vector2(x, y);
+        rt.sizeDelta = new Vector2(size, size);
+
+        var image = go.AddComponent<UnityEngine.UI.Image>();
+        image.sprite = sprite;
+        image.preserveAspect = true;
+        image.raycastTarget = false;
+    }
+
+    private static void AddGridLabel(Transform parent, string text,
+                                     float x, float y, float width)
+    {
+        var go = new GameObject("t");
+        go.transform.SetParent(parent, false);
+        var rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0f, 1f);
+        rt.anchorMax = new Vector2(0f, 1f);
+        rt.pivot = new Vector2(0f, 1f);
+        rt.anchoredPosition = new Vector2(x, y);
+        rt.sizeDelta = new Vector2(width, 40f);
+
+        var label = go.AddComponent<TMPro.TextMeshProUGUI>();
+        label.text = text;
+        label.fontSize = 16f;
+        label.color = Color.white;
+        label.raycastTarget = false;
+    }
+
+    private static void DumpSprites(string filter)
+    {
+        filter = (filter ?? "").Trim();
+
+        var all = Resources.FindObjectsOfTypeAll(
+            Il2CppInterop.Runtime.Il2CppType.Of<Sprite>());
+        if (all == null)
+        {
+            DevToolsPlugin.Log.LogWarning("sprites: nothing loaded");
+            return;
+        }
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < all.Length; i++)
+        {
+            var sprite = all[i]?.TryCast<Sprite>();
+            if (sprite == null) continue;
+
+            var name = Str(() => sprite.name);
+            if (string.IsNullOrEmpty(name)) continue;
+            if (filter.Length > 0
+                && name.IndexOf(filter, StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                continue;
+            }
+            // Deduped: the same sprite is referenced from many objects, and
+            // an undeduped dump of this is thousands of identical lines.
+            if (!seen.Add(name)) continue;
+
+            DevToolsPlugin.Log.LogInfo($"sprites:  {name}");
+        }
+
+        DevToolsPlugin.Log.LogInfo(
+            $"sprites: {seen.Count} distinct name(s) of {all.Length} loaded"
+            + (filter.Length > 0 ? $" matching '{filter}'" : ""));
+    }
+
+    private static void DumpEndings()
+    {
+        var manager = GameManager.Instance?.levelManager;
+        if (manager == null)
+        {
+            DevToolsPlugin.Log.LogWarning("endings: no LevelManager yet");
+            return;
+        }
+
+        // The FIELDS, not AllLevelInterfaces - that one is a method taking a
+        // bool whose meaning is not recoverable from a signature-only
+        // interop assembly, and guessing an argument is how the last few of
+        // these went wrong. m_allLevelInterfaces first because the name says
+        // it is the complete set.
+        var all = manager.m_allLevelInterfaces;
+        var which = "m_allLevelInterfaces";
+        if (all == null || all.Length == 0)
+        {
+            all = manager.LevelInterfaces;
+            which = "LevelInterfaces";
+        }
+        if (all == null || all.Length == 0)
+        {
+            DevToolsPlugin.Log.LogWarning("endings: no level interfaces");
+            return;
+        }
+        DevToolsPlugin.Log.LogInfo($"endings: reading {all.Length} from {which}");
+
+        DevToolsPlugin.Log.LogInfo(
+            "endings\tlevelIndex\tlevelId\tpreventRetryMenu\tdoPreventRetryMenu"
+            + "\tshowRetryMenu\tcompleteSilently\ttransitionSilently"
+            + "\tisDailyTidy\tisHolidayDaily\tisCampaign\tisArchive");
+
+        var panels = 0;
+        var silent = 0;
+        for (int i = 0; i < all.Length; i++)
+        {
+            var li = all[i];
+            if (li == null) continue;
+
+            // Every read is wrapped: these are computed properties on an
+            // interop type, and one of them throwing must not cost the other
+            // hundred and ten rows.
+            var row = string.Join("\t",
+                Num(() => li.LevelIndex),
+                Str(() => li.LevelId),
+                Flag(() => li.PreventRetryMenu),
+                Flag(() => li.DoPreventRetryMenu),
+                Flag(() => li.ShowRetryMenu),
+                Flag(() => li.CompleteSilently),
+                Flag(() => li.TransitionSilently),
+                Flag(() => li.IsDailyTidy),
+                Flag(() => li.IsHolidayDaily),
+                Flag(() => li.IsCampaignLevel),
+                Flag(() => li.IsArchiveLevel));
+
+            DevToolsPlugin.Log.LogInfo("endings\t" + row);
+
+            try
+            {
+                if (li.ShowRetryMenu) panels++;
+                if (li.CompleteSilently) silent++;
+            }
+            catch
+            {
+                // Counted best-effort; the rows above are the real output.
+            }
+        }
+
+        DevToolsPlugin.Log.LogInfo(
+            $"endings: {all.Length} level(s), {panels} showing the retry panel, "
+            + $"{silent} completing silently");
+    }
+
+    private static string Flag(Func<bool> read)
+    {
+        try { return read() ? "1" : "0"; }
+        catch { return "?"; }
+    }
+
+    private static string Num(Func<int> read)
+    {
+        try { return read().ToString(CultureInfo.InvariantCulture); }
+        catch { return "?"; }
+    }
+
     private static void DumpResolutions()
     {
         var all = Screen.resolutions;
@@ -2362,6 +2937,137 @@ public class DevToolsBehaviour : MonoBehaviour
         DevToolsPlugin.Log.LogInfo(
             $"setres: asked the game for {width}x{height} (its index {index}), "
             + $"windowed; {persisted}");
+    }
+
+    /// <summary>
+    /// How many levels are alive at once. Exactly one is correct.
+    ///
+    /// THE SYMPTOM, MADE COUNTABLE. A cat trap resetting a puzzle inside a
+    /// navigation relaunches the level that was on its way out while the
+    /// incoming one is still coming up, and neither is torn down - droha,
+    /// watching a deliberately un-guarded build: "oh god 2 levels loaded at
+    /// once", with a screenshot of one puzzle drawn straight through another.
+    ///
+    /// This matters more than the hang it may or may not lead to. A freeze is
+    /// a race and reproduces perhaps a third of the time; two live levels is
+    /// a state, and a state can be counted on every run and compared between
+    /// builds. That turns "did the fix work" from a wait-and-see into a
+    /// number.
+    ///
+    /// AllLevelInterfaces rather than the active one, because the whole point
+    /// is the level the game has stopped calling active while it is still
+    /// loaded and still listening.
+    /// </summary>
+    private static void CountLiveLevels()
+    {
+        var lm = GameManager.Instance?.levelManager;
+        if (lm == null)
+        {
+            DevToolsPlugin.Log.LogWarning("livelevels: no LevelManager");
+            return;
+        }
+
+        // THE LEVEL OBJECTS IN THE SCENE, not the interface table.
+        //
+        // The first version walked AllLevelInterfaces(false) asking each for
+        // LevelIsLoaded, and reported 0 with a puzzle plainly on screen -
+        // that table holds the AUTHORED interface per level, not whatever is
+        // instantiated. Level is a real Unity object (`controllers` prints
+        // its GetInstanceID), so ask the scene instead.
+        //
+        // FindObjectsOfType, deliberately, NOT FindObjectsOfTypeAll: the
+        // former returns only live, active objects, and a level that has been
+        // torn down properly should vanish from it. Counting prefabs and
+        // dead assets would defeat the whole point.
+        var levels = UnityEngine.Object.FindObjectsOfType<Level>();
+        var live = new List<string>();
+        if (levels != null)
+        {
+            for (int i = 0; i < levels.Length; i++)
+            {
+                var lvl = levels[i];
+                if (lvl == null) continue;
+                live.Add(Str(() => lvl.name + "#" + lvl.GetInstanceID()));
+            }
+        }
+
+        var active = lm.ActiveLevelInterface;
+        DevToolsPlugin.Log.LogInfo(
+            $"livelevels: {live.Count} loaded [{string.Join(", ", live)}]"
+            + $" active={(active == null ? "none" : Str(() => active.LevelId))}");
+    }
+
+    /// <summary>
+    /// "clickat" or "clickat:X,Y" - click wherever the player would click.
+    ///
+    /// THE LAST STEP OF droha's REPORT, and the one nothing here could do.
+    /// "It reset ... and when I clicked anywhere the game fully froze." The
+    /// harness reproduces the state before that - a trap resetting inside a
+    /// navigation leaves two levels alive at once, which droha saw on screen
+    /// as "oh god 2 levels loaded at once" - but it had no way to take the
+    /// final action, so every run ended with the game wounded and still
+    /// ticking.
+    ///
+    /// Deliberately NOT aimed at a named control, unlike press:. The report
+    /// says ANYWHERE, and with two levels stacked the interesting part is
+    /// precisely which of the two the raycast finds and what is still
+    /// listening on the one that should have been torn down.
+    ///
+    /// Screen coordinates, origin bottom-left, defaulting to the middle of
+    /// the window.
+    /// </summary>
+    private static void ClickAt(string arg)
+    {
+        var at = new Vector2(Screen.width / 2f, Screen.height / 2f);
+        var parts = arg.Split(',');
+        if (parts.Length == 2
+            && float.TryParse(parts[0], NumberStyles.Float,
+                              CultureInfo.InvariantCulture, out var x)
+            && float.TryParse(parts[1], NumberStyles.Float,
+                              CultureInfo.InvariantCulture, out var y))
+        {
+            at = new Vector2(x, y);
+        }
+
+        var system = UnityEngine.EventSystems.EventSystem.current;
+        if (system == null)
+        {
+            DevToolsPlugin.Log.LogWarning("clickat: no EventSystem");
+            return;
+        }
+
+        var data = new UnityEngine.EventSystems.PointerEventData(system);
+        data.button = UnityEngine.EventSystems.PointerEventData.InputButton.Left;
+        data.position = at;
+        data.pressPosition = at;
+
+        var hits = new Il2CppSystem.Collections.Generic.List<
+            UnityEngine.EventSystems.RaycastResult>();
+        system.RaycastAll(data, hits);
+
+        if (hits.Count == 0)
+        {
+            DevToolsPlugin.Log.LogInfo(
+                $"clickat: ({at.x:F0},{at.y:F0}) hit nothing at all");
+            return;
+        }
+
+        var target = hits[0].gameObject;
+        data.pointerCurrentRaycast = hits[0];
+        data.pointerPressRaycast = hits[0];
+
+        DevToolsPlugin.Log.LogInfo(
+            $"clickat: ({at.x:F0},{at.y:F0}) over {hits.Count} object(s), "
+            + $"topmost '{(target == null ? "null" : target.name)}'");
+
+        UnityEngine.EventSystems.ExecuteEvents.Execute(
+            target, data, UnityEngine.EventSystems.ExecuteEvents.pointerDownHandler);
+        UnityEngine.EventSystems.ExecuteEvents.Execute(
+            target, data, UnityEngine.EventSystems.ExecuteEvents.pointerUpHandler);
+        UnityEngine.EventSystems.ExecuteEvents.Execute(
+            target, data, UnityEngine.EventSystems.ExecuteEvents.pointerClickHandler);
+
+        DevToolsPlugin.Log.LogInfo("clickat: dispatched");
     }
 
     private static void JigglePieces(string arg)
@@ -3315,6 +4021,97 @@ public class DevToolsBehaviour : MonoBehaviour
         }
     }
 
+    /// <summary>How many more frames the watcher has to run, and its state.</summary>
+    private static int _watchFrames;
+    private static string _watchLast = "";
+    private static Color _watchCam;
+    private static bool _watchCamSeen;
+
+    /// <summary>
+    /// "watch:SECONDS" - report the level's load flags and the camera's
+    /// background colour EVERY FRAME, printing only when something changes.
+    ///
+    /// Two questions this exists to answer, both of which were being decided
+    /// by argument rather than measurement.
+    ///
+    /// ONE: what do LevelIsLoaded and IsTransitioning actually read outside a
+    /// puzzle? The cat trap now HOLDS itself while a level is mid-load, and a
+    /// hold that never releases is worse than the freeze it replaced - so the
+    /// level select and the post-level screen have to be watched, not assumed.
+    ///
+    /// TWO: does the game keep repainting Camera.main.backgroundColor after a
+    /// level has settled, or only during setup? Backgrounds.Tick writes it on
+    /// every differing frame because two one-shot attempts lost to a later
+    /// paint. If the paint is a one-time thing at setup, the per-frame poll is
+    /// doing nothing for the rest of the puzzle and can stop.
+    ///
+    /// Change-only output on purpose: a frame-by-frame dump of a ten-second
+    /// window is 600 identical lines, and the thing worth seeing is the edges.
+    /// </summary>
+    private static void StartWatch(string arg)
+    {
+        var seconds = 10f;
+        float.TryParse(arg, NumberStyles.Float, CultureInfo.InvariantCulture, out seconds);
+        if (seconds <= 0f) seconds = 10f;
+
+        _watchFrames = Mathf.RoundToInt(seconds * 60f);
+        _watchLast = "";
+        _watchCamSeen = false;
+        DevToolsPlugin.Log.LogInfo(
+            $"watch: reporting changes for {seconds:0.#}s ({_watchFrames} frames)");
+    }
+
+    /// <summary>One frame of the watcher. Called from Update, cheap when off.</summary>
+    private static void TickWatch()
+    {
+        if (_watchFrames <= 0) return;
+        _watchFrames--;
+
+        try
+        {
+            var gm = GameManager.Instance;
+            var lm = gm == null ? null : gm.levelManager;
+            var li = lm == null ? null : lm.ActiveLevelInterface;
+
+            var line =
+                "gameState=" + (gm == null || gm.GameState == null
+                    ? "null" : gm.GameState.GetIl2CppType().Name)
+                + " interface=" + (li == null ? "null" : li.LevelId)
+                + " loaded=" + (li == null ? "-" : li.LevelIsLoaded.ToString())
+                + " transitioning=" + (li == null ? "-" : li.IsTransitioning.ToString())
+                + " level=" + (li == null || li.Level == null ? "null" : "present");
+
+            if (line != _watchLast)
+            {
+                _watchLast = line;
+                DevToolsPlugin.Log.LogInfo($"watch: {line}");
+            }
+
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                var c = cam.backgroundColor;
+                if (!_watchCamSeen || c != _watchCam)
+                {
+                    _watchCamSeen = true;
+                    _watchCam = c;
+                    DevToolsPlugin.Log.LogInfo(
+                        $"watch: camera={c.r:0.000},{c.g:0.000},{c.b:0.000}");
+                }
+            }
+
+            if (_watchFrames == 0)
+            {
+                DevToolsPlugin.Log.LogInfo("watch: finished");
+            }
+        }
+        catch (Exception e)
+        {
+            _watchFrames = 0;
+            DevToolsPlugin.Log.LogWarning($"watch: stopped, {e.Message}");
+        }
+    }
+
     private static void ReportState()
     {
         var gm = GameManager.Instance;
@@ -3328,7 +4125,10 @@ public class DevToolsBehaviour : MonoBehaviour
             + " solutionCount=" + Str(() => li == null ? "-" : li.SolutionCount.ToString())
             + " found=" + Str(() => li == null ? "-" : li.NumSolutionsFound.ToString())
             + " solved=" + Str(() => li == null ? "-" : li.Solved.ToString())
-            + " unlocked=" + Str(() => li == null ? "-" : li.IsUnlocked.ToString()));
+            + " unlocked=" + Str(() => li == null ? "-" : li.IsUnlocked.ToString())
+            + " loaded=" + Str(() => li == null ? "-" : li.LevelIsLoaded.ToString())
+            + " transitioning=" + Str(() => li == null ? "-" : li.IsTransitioning.ToString())
+            + " level=" + Str(() => li == null || li.Level == null ? "null" : "present"));
     }
 
     /// <summary>

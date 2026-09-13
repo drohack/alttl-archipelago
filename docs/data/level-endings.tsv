@@ -1,0 +1,122 @@
+# What screen each level in the run pool ends on.
+#
+# Read from LevelManager.m_allLevelInterfaces in one frame at the title
+# screen, via the DevTools "endings" command - no level is loaded, so
+# every row is the authored value rather than one session of play.
+#
+# showRetryMenu is the one that matters: 1 means the three-button panel
+# (restart / pause menu / next arrow), 0 means the run moves straight on.
+# It is the GAME deciding, not the mod - see CHANGELOG 0.3.2.
+#
+source	levelIndex	levelId	display	showRetryMenu	preventRetryMenu	completeSilently
+archive	1022	NeatStreak_Bathroom Drawer	Bathroom Drawer (Drawer Chores)	1	0	0
+archive	1010	TrickOrTidy_Bats	Bats (Trick or Tidy)	1	0	0
+archive	1011	TrickOrTidy_Bones	Bones (Trick or Tidy)	1	0	0
+archive	110	SomethingEggstra Broken Eggs	Broken Eggs (Something Eggstra)	1	0	0
+archive	1012	TrickOrTidy_Candy	Candy (Trick or Tidy)	1	0	0
+archive	1015	MerryMess_CandyCanes	Candy Canes (Merry Mess)	1	0	0
+archive	1009	SnackPack Cereal	Cereal (Snack Pack)	1	0	0
+archive	1013	TrickOrTidy_ChocolateBars	Chocolate Bars (Trick or Tidy)	1	0	0
+archive	1001	GoodTidings_Cookies	Cookies (Good Tidings)	1	0	0
+archive	1005	GoodTidings_Cookies (Jigsaw)	Cookies Jigsaw (Good Tidings)	1	0	0
+archive	1016	MerryMess_Crackers	Crackers (Merry Mess)	1	0	0
+archive	108	SomethingEggstra Egg Cups	Egg Cups (Something Eggstra)	1	0	0
+archive	109	SomethingEggstra Fridge	Fridge (Something Eggstra)	1	0	0
+archive	1014	TrickOrTidy_JackOLanterns	Jack O'Lanterns (Trick or Tidy)	1	0	0
+archive	1019	MerryMess_NutCrackers	Nut Crackers (Merry Mess)	1	0	0
+archive	1006	GoodTidings_Ornament Box	Ornament Box (Good Tidings)	1	0	0
+archive	107	SomethingEggstra PaintedEggs	Painted Eggs (Something Eggstra)	1	0	0
+archive	1020	NeatStreak_Paper Plane Supplies	Paper Plane Supplies (Drawer Chores)	1	0	0
+archive	1002	GoodTidings_Popcorn	Popcorn (Good Tidings)	1	0	0
+archive	1018	MerryMess_Presents	Presents (Merry Mess)	1	0	0
+archive	1004	GoodTidings_Presents (Stacked)	Presents Stacked (Good Tidings)	1	0	0
+archive	1008	SnackPack Pretzels	Pretzels (Snack Pack)	1	0	0
+archive	1007	SnackPack Sandwich	Sandwich (Snack Pack)	1	0	0
+archive	1017	MerryMess_SnowGlobes	Snow Globes (Merry Mess)	1	0	0
+archive	1021	NeatStreak_Tool Drawer	Tool Drawer (Drawer Chores)	1	0	0
+archive	1003	GoodTidings_Wreath	Wreath (Good Tidings)	1	0	0
+base	14	Angled Image Frame	Angled Image Frame	1	0	0
+base	40	Batteries	Batteries	1	0	0
+base	7	Books	Books	1	0	0
+base	18	Books 2	Books 2	1	0	0
+base	13	Books 3	Books 3	1	0	0
+base	25	Bowls	Bowls	1	0	0
+base	53	Boxes (Stacked)	Boxes (Stacked)	1	0	0
+base	56	Broken Vase	Broken Vase	1	0	0
+base	78	Candles	Candles	1	0	0
+base	34	Cat Food Cans	Cat Food Cans	1	0	0
+base	1	Cat Frame	Cat Frame	1	0	0
+base	2	Cat Toys	Cat Toys	1	0	0
+base	74	Chess Shadows	Chess Shadows	1	0	0
+base	39	Cleaning Supplies	Cleaning Supplies	1	0	0
+base	68	Clover	Clover	1	0	0
+base	41	Coins 1 (Shape)	Coins 1 (Shape)	1	0	0
+base	51	Coins 2 (Dirtyness)	Coins 2 (Dirtyness)	1	0	0
+base	3	Colored Pencils	Colored Pencils	1	0	0
+base	76	Desktop Computer	Desktop Computer	1	0	0
+base	31	Drink Glasses	Drink Glasses	1	0	0
+base	27	Eggs	Eggs	1	0	0
+base	72	Frame Maze	Frame Maze	1	0	0
+base	36	Fridge Inside	Fridge Inside	1	0	0
+base	35	Front of Fridge 1 (Postcards)	Front of Fridge 1 (Postcards)	1	0	0
+base	37	Front of Fridge 2 (Polaroids)	Front of Fridge 2 (Polaroids)	1	0	0
+base	29	Fruit Stickers	Fruit Stickers	1	0	0
+base	67	Gems (Jigsaw)	Gems (Jigsaw)	1	0	0
+base	61	Gems (Simple)	Gems (Simple)	1	0	0
+base	23	Jars	Jars	1	0	0
+base	44	Junk Drawer	Junk Drawer	1	0	0
+base	47	Keys	Keys	1	0	0
+base	80	Lamp	Lamp	1	0	0
+base	59	Leaves	Leaves	1	0	0
+base	43	Light Bulbs	Light Bulbs	1	0	0
+base	77	Matchboxes	Matchboxes	1	0	0
+base	49	MedicineCabinet	Medicine Cabinet	1	0	0
+base	79	Mirror	Mirror	1	0	0
+base	5	Multiple Frames	Multiple Frames	1	0	0
+base	8	NES Games	NES Games	1	0	0
+base	45	PaintCans	Paint Cans	1	0	0
+base	48	PartsOrganizer	Parts Organizer	1	0	0
+base	30	Pasta	Pasta	1	0	0
+base	57	PawPrints	Paw Prints	1	0	0
+base	16	Pencils 3	Pencils 3	1	0	0
+base	32	Place Setting	Place Setting	1	0	0
+base	60	Plant Pots	Plant Pots	1	0	0
+base	33	Plate	Plate	1	0	0
+base	4	Post-It Notes Scribble #1 (Simple Line)	Post-It Notes Scribble #1 (Simple Line)	1	0	0
+base	10	Post-It Notes Scribble #2 (3x3 Grid)	Post-It Notes Scribble #2 (3x3 Grid)	1	0	0
+base	15	Post-It Notes Scribble #3 (5x3 Grid)	Post-It Notes Scribble #3 (5x3 Grid)	1	0	0
+base	81	Radial Dance Party	Radial Dance Party	0	0	1
+base	20	Record Player	Record Player	1	0	0
+base	64	Rock Collection	Rock Collection	1	0	0
+base	66	Rock Gradient	Rock Gradient	1	0	0
+base	65	Seed Pods	Seed Pods	1	0	0
+base	19	Sharp Pencils	Sharp Pencils	1	0	0
+base	22	Soup Cans	Soup Cans	1	0	0
+base	24	Spoons	Spoons	1	0	0
+base	6	Stacked Papers	Stacked Papers	1	0	0
+base	9	Stamps	Stamps	1	0	0
+base	52	Storage Boxes	Storage Boxes	1	0	0
+base	11	Tacks	Tacks	1	0	0
+base	63	Trim Plant (Vines)	Trim Plant (Vines)	1	0	0
+base	82	TupperwareNesting	Tupperware Nesting	0	1	1
+base	83	TupperwareTower	Tupperware Tower	0	1	1
+base	42	UtensilsDrawer	Utensils Drawer	1	0	0
+base	54	Wilting Flowers	Wilting Flowers	1	0	0
+base	50	Workbench	Workbench	1	0	0
+base	17	Wrong Aspect Papers	Wrong Aspect Papers	1	0	0
+generator	996	Batteries (Randomized)	Batteries (Randomized)	0	0	0
+generator	995	Books (Randomized)	Books (Randomized)	0	0	0
+generator	28	Breadtags	Breadtags	0	0	0
+generator	46	Buttons	Buttons	0	0	0
+generator	12	Calendar	Calendar	0	0	0
+generator	73	Clock	Clock	0	0	0
+generator	69	Microscope	Microscope	0	0	0
+generator	999	Pencils (Randomized)	Pencils (Randomized)	0	0	0
+generator	998	Post-It Notes (Randomized)	Post-It Notes (Randomized)	0	0	0
+generator	1000	Procedural Grid Puzzle	Procedural Grid Puzzle	0	0	0
+generator	62	Shells	Shells	0	0	0
+generator	26	Spice Jars	Spice Jars	0	0	0
+generator	70	SpiderWeb	Spider Web	0	0	0
+generator	997	Stamps (Randomized)	Stamps (Randomized)	0	0	0
+generator	75	Telescope	Telescope	0	0	0
+generator	58	Trim Plant	Trim Plant	0	0	0

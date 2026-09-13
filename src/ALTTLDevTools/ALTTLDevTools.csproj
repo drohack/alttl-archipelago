@@ -89,6 +89,11 @@
       <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.ScreenCaptureModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- EncodeToPNG, for the sprite exporter. -->
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <!-- For ReInput.configuration. ModKit references this too, but a
          transitive reference is not something to rely on for a compile. -->
     <Reference Include="Rewired_Core">

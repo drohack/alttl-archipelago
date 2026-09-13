@@ -322,12 +322,30 @@ internal static class Backgrounds
     /// and the player holds a Background Change Trap. The write happens on the
     /// handful of frames where the game has just overwritten us. That is a
     /// fair price for a feature that otherwise silently does nothing.
+    ///
+    /// EXCEPT WHILE THE GAME IS TRANSITIONING, which is the difference
+    /// between outlasting the game and fighting it. A transition ANIMATES the
+    /// backdrop, so it writes a new colour every frame - and a per-frame
+    /// write of our own on top of that is two things arguing sixty times a
+    /// second. The player sees the result as a flicker: droha, on taking a
+    /// Background Change Trap as a level finished, "the background started
+    /// kind of strobing/shifting between multiple colors".
+    ///
+    /// So wait for it to settle. The colour the game is animating towards is
+    /// about to be overwritten anyway, and one write after the transition
+    /// ends is all this ever needed.
     /// </summary>
     internal static void Tick()
     {
         try
         {
             if (!Track.Active) return;
+
+            var active = GameManager.Instance?.levelManager?.ActiveLevelInterface;
+            if (active != null && (active.IsTransitioning || !active.LevelIsLoaded))
+            {
+                return;
+            }
 
             var wanted = ForLevel();
             if (wanted == null) return;
@@ -337,12 +355,39 @@ internal static class Backgrounds
             if (cam.backgroundColor == wanted.Value) return;
 
             cam.backgroundColor = wanted.Value;
+            CountWrite();
         }
         catch
         {
             // Cosmetic, and on the frame path. Silence is right here: a
             // warning per frame would bury the log.
         }
+    }
+
+    private static int _writes;
+    private static float _writesReportedAt;
+
+    /// <summary>
+    /// Say how often this is actually writing, at most once a second.
+    ///
+    /// The per-frame poll is only defensible if it is quiet once a level has
+    /// settled - one or two writes as the level finishes painting itself, and
+    /// then nothing. droha asked the fair question ("I don't know if I like
+    /// changing background colors every tick, that seems overkill?") and the
+    /// honest answer needed a number rather than an argument.
+    ///
+    /// A count per second rather than a line per write: if this ever IS
+    /// fighting something, a line per write is sixty a second and the log
+    /// becomes useless exactly when it matters most.
+    /// </summary>
+    private static void CountWrite()
+    {
+        _writes++;
+        var now = Time.unscaledTime;
+        if (now - _writesReportedAt < 1f) return;
+        _writesReportedAt = now;
+        Plugin.Logger.LogInfo($"backgrounds: repainted the camera {_writes} time(s)");
+        _writes = 0;
     }
 
 
