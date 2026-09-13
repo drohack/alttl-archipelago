@@ -7,7 +7,7 @@ namespace ALTTLArchipelago.Core;
 ///
 ///     Stacking     0 generators, 2 archive, 10 base
 ///     Containers   0 generators, 4 archive,  4 base
-///     Furniture    0 generators, 3 archive,  1 base
+///     Drawer    0 generators, 3 archive,  1 base
 ///     Jigsaw       0 generators, 4 archive,  0 base
 ///
 /// That matters because the default draw is 80% generators. Left to the
@@ -16,11 +16,11 @@ namespace ALTTLArchipelago.Core;
 /// entire family of puzzle disappears from the game.
 ///
 /// Jigsaw is the most fragile: four levels, every one of them archive.
-/// Furniture is next: four levels, of which only Workbench is base.
+/// Drawer is next: four levels, of which only Workbench is base.
 ///
 /// So the slot draw reserves a few slots up front to guarantee coverage before
 /// the weights get a say. It is cheap because these levels overlap heavily -
-/// NeatStreak_Paper Plane Supplies alone covers Containers, Furniture and
+/// NeatStreak_Paper Plane Supplies alone covers Containers, Drawer and
 /// Jigsaw - so guaranteeing three of each costs about 8 of 79 slots.
 ///
 /// This is derived from the level table rather than hardcoded, so adding DLC
@@ -51,7 +51,7 @@ public static class MechanicCoverage
     /// <paramref name="perAbility"/> times, chosen greedily so overlapping
     /// levels do the work of several.
     ///
-    /// Returns fewer than asked if the table cannot supply it - Furniture only
+    /// Returns fewer than asked if the table cannot supply it - Drawer only
     /// exists on four levels, so a demand of five is unmeetable. The caller
     /// takes what it gets rather than failing generation; a thin run beats no
     /// run.

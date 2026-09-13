@@ -111,7 +111,17 @@ class MechanicCoverage(Range):
     Stacking, containers, drawers and jigsaws only exist as hand-made puzzles.
     Without this they turn up by luck or not at all. Raising it makes the run's
     mechanics more even and brings in more base-game puzzles; 4 uses up every
-    drawer puzzle in the game, so every run would contain all of them.
+    jigsaw puzzle in the game and 5 every drawer one, so every run would
+    contain all of them.
+
+    ABOVE ZERO, EVERY MECHANIC IS GUARANTEED AT LEAST ONE PUZZLE - not only
+    these four. The other eight come from generators and turn up on their own
+    in a full-length run, but a short one can miss them by chance: at 20
+    puzzles, Rotating was absent from half the seeds measured. This number is
+    the count for the four scarce mechanics; the rest get one each.
+
+    Set it to 0 for a simpler run: that turns the whole reserve off, including
+    the one-of-each floor, and leaves every mechanic to the weighted draw.
 
     This is a floor, not the only door. Campaign puzzles are also drawn by the
     campaign weight above - and before that option existed this setting really
@@ -179,6 +189,43 @@ class GuaranteedOpenSlots(Range):
     range_start = 0
     range_end = 10
     default = 4
+
+
+class Goal(Choice):
+    """What unlocks the credits.
+
+    Beat Levels counts a puzzle once you have finished it any one way -
+    every solution the level has, or a Skip.
+
+    Star Levels counts a puzzle only when EVERY check on it is done: every
+    solution and every part. It is the same star the level select draws on a
+    card with nothing left to do, so you can see your progress toward it
+    while you play.
+
+    A Skip fills in every check on the puzzle it clears, so a skipped puzzle
+    is starred as well as beaten. That is deliberate and matches how skips
+    already count toward beating - but it does mean skip_count is as much a
+    shortcut to a star goal as to a beaten one.
+    """
+    display_name = "Goal"
+    option_beat_levels = 0
+    option_star_levels = 1
+    default = 0
+
+
+class LevelsToStar(Range):
+    """How many puzzles to star before the credits unlock.
+
+    Only used when the goal is Star Levels; ignored otherwise. Separate from
+    Puzzles To Beat because starring is a great deal more work than beating,
+    so the number that makes a good run is a different number.
+
+    Clamped to the puzzle count, the same as Puzzles To Beat.
+    """
+    display_name = "Puzzles To Star"
+    range_start = 1
+    range_end = 79
+    default = 20      # half of the beaten default; starring is the harder ask
 
 
 class LevelsToBeat(Range):
@@ -258,7 +305,9 @@ class ALTTLOptions(PerGameCommonOptions):
     ability_locks: AbilityLocks
     starting_abilities: StartingAbilities
     guaranteed_open_slots: GuaranteedOpenSlots
+    goal: Goal
     levels_to_beat: LevelsToBeat
+    levels_to_star: LevelsToStar
     cat_trap_chance: CatTrapChance
     skip_count: SkipCount
     hint_coverage: HintCoverage
@@ -266,7 +315,9 @@ class ALTTLOptions(PerGameCommonOptions):
 
 option_groups = [
     OptionGroup("Goal", [
+        Goal,
         LevelsToBeat,
+        LevelsToStar,
         PuzzleCount,
         PackSize,
     ]),

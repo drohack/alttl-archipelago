@@ -79,7 +79,11 @@ def decide(world) -> None:
 
     # Clamped rather than rejected: a yaml asking to beat more puzzles than
     # exist should still generate, just with the goal it can actually offer.
+    # Both counts are clamped even though only one is in use, so slot_data
+    # never carries a number the run cannot honour.
     world.levels_to_beat = min(o.levels_to_beat.value, puzzle_count)
+    world.levels_to_star = min(o.levels_to_star.value, puzzle_count)
+    world.goal_is_stars = o.goal.value == o.goal.option_star_levels
 
     source_weights = {
         "generator": o.generator_weight.value,
@@ -110,6 +114,7 @@ def decide(world) -> None:
     actual = len(world.plan)
     world.pack_total = items.pack_count(actual, pack_size)
     world.levels_to_beat = min(world.levels_to_beat, actual)
+    world.levels_to_star = min(world.levels_to_star, actual)
 
     ability_locks = bool(o.ability_locks.value)
 
@@ -344,7 +349,14 @@ def slot_data(world) -> Mapping[str, Any]:
         # would unlock a different set of puzzles than the logic assumed
         # reachable. Sending it keeps one source of truth.
         "pack_boundaries": items.pack_boundaries(len(world.plan), world.pack_size),
+        # THE GOAL, as a string rather than the option's integer. The mod
+        # dispatches on it, and a name that reads the same in the payload and
+        # in the C# is one fewer thing to keep in step than 0 and 1.
+        "goal": "star_levels" if world.goal_is_stars else "beat_levels",
         "levels_to_beat": world.levels_to_beat,
+        # Sent whichever goal is in use, so the mod can show the other number
+        # if it ever wants to and so a payload is readable on its own.
+        "levels_to_star": world.levels_to_star,
         "ability_locks": bool(world.options.ability_locks.value),
         "abilities": {a: data.ABILITY_CLASSES[a] for a in world.live_abilities},
         "starting_abilities": sorted(world.starting_abilities),

@@ -63,7 +63,10 @@ Three kinds:
   group is its own check, collected as soon as that group is tidy.
 - **The credits.**
 
-A puzzle you clear with a Skip does not count toward the goal.
+A puzzle you clear with a Skip DOES count toward the goal, and a Skip
+fills in every check on that puzzle - so a skipped puzzle is starred as
+well as beaten. The shortcut is bounded by how many Skips the seed
+contains rather than forbidden.
 
 Hint pages are not checks - they are things you spend items on, not places
 items are found.
@@ -90,7 +93,18 @@ rather than jumping to a new one every time you log in.
 
 ## What is the victory condition?
 
-Beat the number of puzzles your config asks for, then finish the credits card.
-A puzzle counts as beaten once you have solved it any one way. The credits item
-is shuffled into the multiworld like any other, so it can turn up early or
-late - but the card stays locked until you have beaten enough puzzles.
+Finish enough puzzles, then finish the credits card. The credits item is
+shuffled into the multiworld like any other, so it can turn up early or late -
+but the card stays locked until the count is met.
+
+What "enough" means depends on the `goal` option:
+
+- **Beat Levels** (the default) counts a puzzle once you have finished it any
+  one way, and wants `levels_to_beat` of them.
+- **Star Levels** counts a puzzle only when EVERY check on it is done - every
+  solution and every part - and wants `levels_to_star`. It is the same star
+  the level select draws on a card with nothing left to do, so you can watch
+  your progress toward it while you play.
+
+Starring is a great deal more work than beating, which is why the two have
+separate counts rather than sharing one number.

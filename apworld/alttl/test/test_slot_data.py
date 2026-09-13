@@ -91,9 +91,9 @@ class TestSlotDataShape(unittest.TestCase):
     def test_top_level_keys_are_exactly_these(self):
         self.assertEqual(
             {"slots", "pack_size", "pack_total", "pack_boundaries",
-             "levels_to_beat", "ability_locks", "abilities",
-             "starting_abilities", "requirements", "cat_trap_chance",
-             "controller_groups"},
+             "goal", "levels_to_beat", "levels_to_star", "ability_locks",
+             "abilities", "starting_abilities", "requirements",
+             "cat_trap_chance", "controller_groups"},
             set(self.payload))
 
     def test_every_slot_carries_what_the_mod_needs_to_launch_it(self):

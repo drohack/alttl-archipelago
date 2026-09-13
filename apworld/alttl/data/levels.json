@@ -1080,7 +1080,7 @@
       "levelIndex": 49,
       "levelId": "MedicineCabinet",
       "extraAbilities": [
-        "Furniture"
+        "Drawer"
       ],
       "source": "base",
       "solutionCount": 1,

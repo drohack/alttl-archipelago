@@ -57,7 +57,7 @@
       "TupperwareLids",
       "TupperwareNesting"
     ],
-    "Furniture": [
+    "Drawer": [
       "Cupboard",
       "DrawerController",
       "HangingToolsController"

@@ -18,9 +18,26 @@ A Little to the Left:
 
   # ---- Goal -----------------------------------------------------------
 
-  # Puzzles to beat before the credits unlock. A puzzle counts once solved
-  # any one way, or skipped it. Clamped to puzzle_count.
+  # What unlocks the credits.
+  #
+  #   beat_levels  finish levels_to_beat puzzles, any one way each
+  #   star_levels  STAR levels_to_star puzzles - every check on the puzzle,
+  #                every solution and every part. The same star the level
+  #                select draws on a card with nothing left to do.
+  #
+  # A Skip fills in every check on the puzzle it clears, so a skipped puzzle
+  # counts as starred as well as beaten under either goal.
+  goal: beat_levels
+
+  # Puzzles to beat before the credits unlock, when goal is beat_levels. A
+  # puzzle counts once solved any one way, or skipped. Clamped to
+  # puzzle_count. 1 to 79.
   levels_to_beat: 40
+
+  # Puzzles to star before the credits unlock, when goal is star_levels.
+  # Ignored otherwise. Lower than levels_to_beat by default because starring
+  # is a great deal more work than beating. Clamped to puzzle_count. 1 to 79.
+  levels_to_star: 20
 
   # How many puzzles the run contains. The full game is 79, laid out over
   # five chapters exactly as vanilla. A lower number truncates the track
@@ -34,17 +51,26 @@ A Little to the Left:
 
   # How many puzzles each Puzzle Pack unlocks. EVERY block is this size,
   # including the free opening; only the last is short, because a run rarely
-  # divides evenly. On a long run they all grow together rather than the run
-  # growing a ramp. Below 5 the run still opens 5, so it cannot start on a
-  # puzzle your abilities have locked. 1 to 10.
+  # divides evenly.
+  #
+  # 1 to 10, but read that as a FLOOR rather than a promise. Two things
+  # raise it. Below 5 the run still opens 5, so it cannot start on a puzzle
+  # an unlucky ability draw has locked. And a run can only carry 14 packs,
+  # so when packs of your size would need more than that they all grow
+  # together - at puzzle_count 79 you get packs of 6 whether you asked for
+  # 1 or 5. At the default 70 you get exactly the 5 you asked for.
   pack_size: 5
 
   # ---- What goes in the run -------------------------------------------
 
   # How strongly to favour procedurally generated puzzles - the sixteen that
   # build a fresh layout from a seed, so they are new even if you have
-  # finished the game. Weighed against archive_weight and base_weight.
-  # 0 to 100.
+  # finished the game.
+  #
+  # This and the two below are RELATIVE weights, not percentages. 80/10/10
+  # and 8/1/1 mean the same thing; what matters is the ratio between them.
+  # The name is about where a puzzle comes from, not about it being
+  # randomly generated in the Archipelago sense. 0 to 100.
   generator_weight: 80
 
   # How strongly to favour the seasonal event puzzles. Most players have
@@ -57,9 +83,31 @@ A Little to the Left:
   # except where mechanic_coverage drags a level in. 0 to 100.
   base_weight: 10
 
-  # Puzzles guaranteed for each mechanic no generator can make - stacking,
-  # containers, drawers and jigsaws. A floor, not the only way campaign
-  # puzzles get in - see base_weight above. 0 to 6.
+  # Puzzles RESERVED for each mechanic no generator can make - stacking,
+  # containers, drawers and jigsaws. Four mechanics that only exist as
+  # hand-made levels, so without this they turn up by luck or not at all.
+  #
+  # ABOVE ZERO, EVERY mechanic is guaranteed at least one puzzle, not only
+  # those four. The other eight come from generators and show up by
+  # themselves in a full run, but a short one can miss them: at
+  # puzzle_count 20, Rotating was absent from half the seeds measured
+  # before this. The number below is the count for the four scarce ones.
+  #
+  # HIGHER IS LESS RANDOM, not more: every point pins more of the run to a
+  # fixed set of levels. Measured across seeds, at any run length:
+  #
+  #   0   the reserve is OFF entirely - no floor, no guarantee, every
+  #       mechanic left to the weighted draw. This is the simpler run.
+  #   3   3 jigsaws, 3 or 4 drawer puzzles, one of everything else
+  #   4   all 4 jigsaws the game has, every seed
+  #   5   all 4 jigsaws AND all 5 drawer puzzles, every seed
+  #   6   identical to 5 - there is nothing left to reserve
+  #
+  # So 6 is the LEAST random setting, not the most, and it buys nothing
+  # over 5.
+  #
+  # A floor, not the only door - campaign puzzles also arrive through
+  # base_weight above. 0 to 6.
   mechanic_coverage: 3
 
   # Most times any one generated puzzle may appear. 0 uses the maximum.
@@ -67,9 +115,20 @@ A Little to the Left:
   # repeats.
   generator_repeat_limit: 0
 
-  # Which seasonal event packs may appear. Removing a pack removes its
-  # puzzles - and jigsaws exist only in event packs, so turning enough of
-  # them off drops jigsaws and the ability with them.
+  # Which seasonal event packs may appear. These six are every valid key,
+  # and the list below is the default - delete a line to drop that pack.
+  #
+  #   good_tidings       Good Tidings       6 puzzles
+  #   trick_or_tidy      Trick or Tidy      5 puzzles
+  #   merry_mess         Merry Mess         5 puzzles
+  #   drawer_chores      Drawer Chores      3 puzzles
+  #   something_eggstra  Something Eggstra  4 puzzles
+  #   snack_pack         Snack Pack         3 puzzles
+  #
+  # Removing a pack removes its puzzles. Jigsaws exist ONLY in the first
+  # four, so dropping all of good_tidings, trick_or_tidy, merry_mess and
+  # drawer_chores takes the jigsaw mechanic out of the run and the ability
+  # item with it.
   archive_packs:
     - good_tidings
     - trick_or_tidy

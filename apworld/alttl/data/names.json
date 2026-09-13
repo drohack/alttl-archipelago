@@ -1144,7 +1144,7 @@
           "display": "Bottle",
           "abilities": [
             "Containers",
-            "Furniture"
+            "Drawer"
           ],
           "members": [
             "Bottle Containables"
@@ -1153,7 +1153,7 @@
         "Draggables": {
           "display": "Draggables",
           "abilities": [
-            "Furniture"
+            "Drawer"
           ],
           "members": [
             "Draggables"
@@ -1162,7 +1162,7 @@
         "Drawer Controller": {
           "display": "Drawer",
           "abilities": [
-            "Furniture"
+            "Drawer"
           ],
           "members": [
             "Drawer Controller"
@@ -1171,7 +1171,7 @@
         "Indexable": {
           "display": "Indexable",
           "abilities": [
-            "Furniture",
+            "Drawer",
             "Ordering"
           ],
           "members": [
@@ -1260,7 +1260,7 @@
           "display": "Containables",
           "abilities": [
             "Containers",
-            "Furniture"
+            "Drawer"
           ],
           "members": [
             "Containables"
@@ -1269,7 +1269,7 @@
         "Draggables": {
           "display": "Draggables",
           "abilities": [
-            "Furniture"
+            "Drawer"
           ],
           "members": [
             "Draggables"
@@ -1278,7 +1278,7 @@
         "Drawer Controller": {
           "display": "Drawer",
           "abilities": [
-            "Furniture"
+            "Drawer"
           ],
           "members": [
             "Drawer Controller"
@@ -1293,7 +1293,7 @@
           "display": "Containables",
           "abilities": [
             "Containers",
-            "Furniture"
+            "Drawer"
           ],
           "members": [
             "Containables"
@@ -1302,7 +1302,7 @@
         "Draggables": {
           "display": "Draggables",
           "abilities": [
-            "Furniture"
+            "Drawer"
           ],
           "members": [
             "Draggables"
@@ -1311,7 +1311,7 @@
         "Drawer Controller": {
           "display": "Drawer",
           "abilities": [
-            "Furniture"
+            "Drawer"
           ],
           "members": [
             "Drawer Controller"
@@ -2206,7 +2206,7 @@
         "DraggablesForTargets": {
           "display": "Draggables For Targets",
           "abilities": [
-            "Furniture"
+            "Drawer"
           ],
           "members": [
             "DraggablesForTargets"
@@ -2215,7 +2215,7 @@
         "ToolsController": {
           "display": "Tools",
           "abilities": [
-            "Furniture"
+            "Drawer"
           ],
           "members": [
             "ToolsController"

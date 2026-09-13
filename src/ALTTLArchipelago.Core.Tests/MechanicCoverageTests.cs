@@ -14,7 +14,7 @@ public class MechanicCoverageTests
         var gaps = MechanicCoverage.WithoutGeneratorCoverage(Table());
 
         Assert.Equal(
-            new[] { Abilities.Containers, Abilities.Furniture, Abilities.Jigsaw, Abilities.Stacking }
+            new[] { Abilities.Containers, Abilities.Drawer, Abilities.Jigsaw, Abilities.Stacking }
                 .OrderBy(x => x, StringComparer.Ordinal),
             gaps.OrderBy(x => x, StringComparer.Ordinal));
     }
@@ -30,8 +30,8 @@ public class MechanicCoverageTests
             t.Levels.Where(l => ControllerGroups.AbilitiesForLevel(l).Contains(Abilities.Jigsaw)),
             l => Assert.Equal("archive", l.Source));
 
-        // Furniture is next: four levels, only Workbench outside the archive.
-        Assert.Equal(4, MechanicCoverage.CountFor(t, Abilities.Furniture));
+        // Drawer is next: four levels, only Workbench outside the archive.
+        Assert.Equal(4, MechanicCoverage.CountFor(t, Abilities.Drawer));
     }
 
     [Fact]
@@ -72,12 +72,12 @@ public class MechanicCoverageTests
     {
         var t = Table();
 
-        // Furniture exists on exactly four levels, so ten is impossible.
-        var reserved = MechanicCoverage.Reserve(t, new[] { Abilities.Furniture }, 10);
+        // Drawer exists on exactly four levels, so ten is impossible.
+        var reserved = MechanicCoverage.Reserve(t, new[] { Abilities.Drawer }, 10);
 
         Assert.Equal(4, reserved.Count);
         Assert.All(reserved,
-            l => Assert.Contains(Abilities.Furniture, ControllerGroups.AbilitiesForLevel(l)));
+            l => Assert.Contains(Abilities.Drawer, ControllerGroups.AbilitiesForLevel(l)));
     }
 
     [Fact]

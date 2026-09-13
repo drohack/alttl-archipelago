@@ -217,7 +217,7 @@ public static class ControllerGroups
     /// tick a box with a puzzle that never teaches the thing.
     ///
     /// Measured when this split was made: folding ExtraAbilities into coverage
-    /// took Furniture from 4 levels to 5, the fifth being MedicineCabinet on
+    /// took Drawer from 4 levels to 5, the fifth being MedicineCabinet on
     /// the strength of a prefab Cupboard that does not register at load.
     /// </summary>
     public static IReadOnlySet<string> AbilitiesTaughtBy(LevelInfo level)

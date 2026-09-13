@@ -149,7 +149,7 @@ class TestDefaults(bases.ALTTLTestBase):
         """Contents of a drawer must inherit the drawer's ability.
 
         The 0.3.0 logic said Tool Drawer's 47 draggables needed no items at all,
-        while the game disabled the DrawerController until Furniture arrived -
+        while the game disabled the DrawerController until Drawer arrived -
         so the card read as playable and the drawer would not open. The sweep
         had recorded dependsOn: [] on every controller.
 
@@ -160,7 +160,7 @@ class TestDefaults(bases.ALTTLTestBase):
         """
         # The groups whose objects live IN the drawer. Deliberately not every
         # group in these levels: the chalk jigsaws in Paper Plane Supplies are
-        # assembled on the desk, so requiring Furniture for them would mark a
+        # assembled on the desk, so requiring Drawer for them would mark a
         # card blocked when it is playable. A missing edge makes a seed
         # unwinnable and a spurious one only makes a card look busier, so the
         # ambiguous cases are listed rather than swept in.
@@ -181,7 +181,7 @@ class TestDefaults(bases.ALTTLTestBase):
                 if (level.level_id, part) not in contents:
                     continue
                 seen.add((level.level_id, part))
-                self.assertIn("Furniture", abilities,
+                self.assertIn("Drawer", abilities,
                               "%s / %s can be done without opening the drawer"
                               % (level.level_id, part))
 
@@ -261,12 +261,56 @@ class TestBothSourceWeightsZero(bases.ALTTLTestBase):
 
 
 class TestTinyRun(bases.ALTTLTestBase):
-    options = {"puzzle_count": 8, "pack_size": 4, "levels_to_beat": 40}
+    options = {"puzzle_count": 8, "pack_size": 4, "levels_to_beat": 40,
+               "levels_to_star": 40}
 
     def test_goal_is_clamped_to_what_exists(self):
         world = self.multiworld.worlds[self.player]
         self.assertEqual(8, len(world.plan))
         self.assertLessEqual(world.levels_to_beat, 8)
+
+    def test_the_star_goal_is_clamped_too(self):
+        """Both counts are clamped, not just the one in use.
+
+        slot_data carries both whichever goal is set, so an unclamped
+        levels_to_star would reach the mod as a target it can never hit -
+        and on the goal the player is not even playing, which is exactly
+        the kind of wrong number nobody looks at.
+        """
+        world = self.multiworld.worlds[self.player]
+        self.assertLessEqual(world.levels_to_star, 8)
+
+    def test_pool_is_zero_sum(self):
+        self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
+
+
+class TestStarGoal(bases.ALTTLTestBase):
+    options = {"goal": "star_levels", "levels_to_star": 12}
+
+    def test_the_goal_is_actually_stars(self):
+        """Guards against the star configurations being green for the wrong
+        reason. Everything else about this goal reuses the beaten machinery,
+        so a `goal` that silently failed to apply would leave every star test
+        passing while testing the beaten goal twice."""
+        world = self.multiworld.worlds[self.player]
+        self.assertTrue(world.goal_is_stars)
+        self.assertEqual(12, world.levels_to_star)
+
+    def test_the_payload_says_so(self):
+        from .. import pool
+        payload = pool.slot_data(self.multiworld.worlds[self.player])
+        self.assertEqual("star_levels", payload["goal"])
+        self.assertEqual(12, payload["levels_to_star"])
+
+    def test_no_new_locations_or_items_exist_for_it(self):
+        """The star goal rides the Beaten events - see rules.set_all_rules.
+
+        If a future change mints a Starred event instead, location ids shift
+        for every seed and this is the test that should make someone say so
+        out loud rather than discover it in a playthrough.
+        """
+        names = {l.name for l in self.multiworld.get_locations(self.player)}
+        self.assertFalse([n for n in names if "Starred" in n or "Star " in n])
 
     def test_pool_is_zero_sum(self):
         self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
@@ -294,7 +338,7 @@ class TestAllTraps(bases.ALTTLTestBase):
 
 
 class TestMaximumCoverage(bases.ALTTLTestBase):
-    """4 exhausts Furniture's entire supply of four levels; 6 cannot be met at
+    """4 exhausts Drawer's entire supply of four levels; 6 cannot be met at
     all and must degrade rather than fail."""
 
     options = {"mechanic_coverage": 6}

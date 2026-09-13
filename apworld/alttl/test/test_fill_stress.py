@@ -22,6 +22,7 @@ from test.bases import WorldTestBase
 from test.general import setup_multiworld
 
 from .. import data, items, slots
+from .. import options as apoptions
 
 #: Enough to catch a per-seed failure without slowing the everyday run. The two
 #: causes found on 2026-09-02 both failed within the first three seeds.
@@ -94,6 +95,17 @@ CONFIGURATIONS = {
         "hint_coverage": 100, "cat_trap_chance": 100, "skip_count": 20},
     "beat everything": {"levels_to_beat": 79},
     "beat one": {"levels_to_beat": 1},
+    # The star goal. It leans on the same Beaten events as the beaten goal -
+    # see the reasoning in rules.set_all_rules - so what these configurations
+    # actually prove is that the equivalence holds under a fill, at both ends
+    # of the range, rather than only in the argument.
+    "star levels": {"goal": "star_levels"},
+    "star everything": {"goal": "star_levels", "levels_to_star": 79},
+    "star one": {"goal": "star_levels", "levels_to_star": 1},
+    # A star goal with no skips, because a Skip fills in every check on a
+    # puzzle and so stars it - which would hide a broken star goal behind
+    # twenty free stars.
+    "star levels, no skips": {"goal": "star_levels", "skip_count": 0},
     # Deliberately hostile: the thinnest content with the tightest gates.
     "worst case": {"pack_size": 1, "starting_abilities": 0,
                    "guaranteed_open_slots": 0, "mechanic_coverage": 0,
@@ -143,6 +155,52 @@ class TestTheOpeningIsUsable(unittest.TestCase):
     afternoon of bisecting.
     """
 
+    def test_every_mechanic_the_content_can_supply_is_in_the_run(self):
+        """All twelve, unless the player asked for fewer.
+
+        A run missing a mechanic is a run where an ability item never
+        appears and the player never learns why. The coverage reserve used
+        to protect only the four that no generator can make, on the
+        reasoning that the other eight arrive on their own - true at full
+        length, false when the run is short. At puzzle_count 20 that cost
+        Rotating in half the seeds measured.
+
+        Three honest exemptions, and only three. `mechanic_coverage: 0` turns
+        the reserve off deliberately, which is the simpler run the option
+        exists to offer. And a run has to be long enough to hold one of
+        each: a 8-puzzle draw cannot fit twelve mechanics when several of
+        them only exist on single-mechanic puzzles. And with ability locks
+        off there are no ability items at all, so there is nothing to miss.
+
+        Asserted against what the ENABLED CONTENT can supply, not against
+        all twelve, because dropping the event packs genuinely removes
+        jigsaws from the game - there is nothing for a reserve to find.
+        """
+        thin = []
+        for name, options in CONFIGURATIONS.items():
+            if options.get("mechanic_coverage") == 0:
+                continue
+            if options.get("puzzle_count", apoptions.PuzzleCount.default) < 20:
+                continue
+            # With ability_locks off there are no ability items at all, so
+            # live_abilities is empty by design and there is nothing to miss.
+            if options.get("ability_locks") is False:
+                continue
+
+            for seed in seed_span():
+                test = _generate(options, seed)
+                world = test.multiworld.worlds[test.player]
+
+                supply = set()
+                for level in slots._eligible(world.options):
+                    supply |= level.abilities
+                missing = sorted(supply - set(world.live_abilities))
+                if missing:
+                    thin.append(f"  {name} (seed {seed}): {', '.join(missing)}")
+
+        self.assertFalse(thin, "runs missing a mechanic their content could "
+                               "have supplied:\n" + "\n".join(thin))
+
     def test_the_opening_holds_every_solvable_puzzle_it_can(self):
         """The guarantee itself, not a proxy for it.
 
@@ -159,7 +217,15 @@ class TestTheOpeningIsUsable(unittest.TestCase):
                 test = _generate(options, seed)
                 world = test.multiworld.worlds[test.player]
                 held = set(world.starting_abilities)
-                opening = min(max(world.pack_size, items.MIN_OPENING),
+                # items.opening_size, NOT max(pack_size, MIN_OPENING). The
+                # opening is the WIDENED size when the pack cap forces packs
+                # to grow, and open_the_start guarantees its solvable slots
+                # across that wider window. This test used the old
+                # expression and so looked at five slots while the code had
+                # filled six - it passed by luck until a draw put the fourth
+                # solvable puzzle at index 5.
+                opening = min(items.opening_size(len(world.plan),
+                                                 world.pack_size),
                               len(world.plan))
 
                 def solvable(slot):
@@ -341,7 +407,7 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
     #: CONTAINED: something inside a container inside a closed drawer. You
     #: cannot reach the container until the drawer opens. Added in 0.3.1 after
     #: Tool Drawer showed as completable while the game kept the drawer shut
-    #: until Furniture arrived.
+    #: until Drawer arrived.
     #:
     #: ASSEMBLED: a group that ARRANGES what other groups BUILD. Its objects are
     #: their outputs, so it cannot begin until they are finished. droha hit this
@@ -419,7 +485,7 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
                     free += 1
         # Was (32, 74) before 0.3.1, then (28, 78). Four groups that needed
         # nothing at all - the loose contents of the three drawer levels and
-        # Workbench's draggables - now inherit Furniture from the container
+        # Workbench's draggables - now inherit Drawer from the container
         # they live in, so they moved from free to needing something.
         #
         # Now (28, 82): TupperwareNesting gained four groups, all of which

@@ -52,6 +52,8 @@ class ALTTLWorld(World):
     live_abilities: List[str]
     starting_abilities: List[str]
     levels_to_beat: int
+    levels_to_star: int
+    goal_is_stars: bool
     pack_total: int
 
     def generate_early(self) -> None:

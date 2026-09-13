@@ -43,7 +43,7 @@ class TestTables(unittest.TestCase):
                 self.assertNotEqual(locations.BEATEN, part)
 
     def test_gap_abilities_are_the_measured_four(self):
-        self.assertEqual({"Stacking", "Containers", "Furniture", "Jigsaw"},
+        self.assertEqual({"Stacking", "Containers", "Drawer", "Jigsaw"},
                          set(data.GAP_ABILITIES))
 
     def test_every_ability_has_at_least_one_level(self):

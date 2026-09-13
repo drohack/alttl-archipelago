@@ -116,6 +116,22 @@ class TestPlayerYaml(unittest.TestCase):
                     f"default is {sorted(str(v) for v in default)}")
                 continue
 
+            # A Choice's default is an INT and the yaml spells the name -
+            # "goal: beat_levels" against a default of 0. The comment above
+            # notes this for Archipelago's own options and skips them; ours
+            # get checked, by resolving the written name back to its value.
+            choices = getattr(option, "options", None)
+            if choices and isinstance(written, str) and not written.isdigit():
+                self.assertIn(
+                    written, choices,
+                    f"{name}: template says {written}, which is not one of "
+                    f"{sorted(choices)}")
+                self.assertEqual(
+                    choices[written], default,
+                    f"{name}: template says {written} "
+                    f"(= {choices[written]}), default is {default}")
+                continue
+
             if isinstance(default, bool) or written in ("true", "false"):
                 self.assertEqual(
                     written, "true" if default else "false",

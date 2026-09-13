@@ -97,11 +97,26 @@ def set_all_rules(world) -> None:
         set_rule(location, lambda state, r=req: satisfied(
             state, r["packs"], r["abilities"]))
 
-    # The credits need their own item AND enough puzzles beaten. The count is
-    # carried by event locations rather than pool items, so it costs no item
-    # slots and structurally forces the fill to spread progression across the
-    # run instead of letting it bunch at the start.
-    needed = world.levels_to_beat
+    # The credits need their own item AND enough puzzles finished. The count
+    # is carried by event locations rather than pool items, so it costs no
+    # item slots and structurally forces the fill to spread progression
+    # across the run instead of letting it bunch at the start.
+    #
+    # THE STAR GOAL USES THE SAME TOKEN, and that is not a shortcut - it is
+    # the correct rule. Starring a puzzle means collecting every location on
+    # it, and the Beaten event's own requirement is already the STRICTEST of
+    # them: rules.py above gives Beaten the union of the level's abilities,
+    # every solution location the same union, and every part a subset of it
+    # (pinned by test_tables.NoPartNeedsMoreThanItsLevel). All locations on a
+    # slot share one packs value. So a state that can reach N Beaten events
+    # can reach every location on those N slots, and "N starred" is provably
+    # achievable exactly when "N beaten" is.
+    #
+    # Which means no second event item, no second event location, and no
+    # shift in location ids for a goal that is materially harder to play.
+    # The difference between the two goals is entirely how much work the
+    # PLAYER does, not what the generator must prove.
+    needed = world.levels_to_star if world.goal_is_stars else world.levels_to_beat
 
     def can_finish(state, n=needed) -> bool:
         return (state.has(items.CREDITS_ITEM, player, 1)

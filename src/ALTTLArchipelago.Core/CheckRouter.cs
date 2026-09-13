@@ -65,6 +65,48 @@ public sealed class CheckRouter
         return beaten;
     }
 
+    /// <summary>
+    /// How many of this run's puzzles are STARRED - every check on them done.
+    ///
+    /// A star is what the level select already draws on a card with nothing
+    /// left to do, and the predicate is the same one: no location the slot
+    /// can produce is still uncollected. ForSlot includes the Beaten event,
+    /// so starred implies beaten and the two counts are nested rather than
+    /// independent.
+    ///
+    /// NOT reachability-aware, deliberately. This answers "is there work
+    /// left on this puzzle", not "could the player do it now" - a puzzle
+    /// whose remaining check is behind an ability the player has not got is
+    /// unfinished, not starred. SlotProgress.StatusOf is the cousin that
+    /// cares about reachability, for colouring the card.
+    /// </summary>
+    public int StarredCount(Func<string, bool> isCollected)
+    {
+        var starred = 0;
+        for (int slot = 0; slot < _slot.Slots.Count; slot++)
+        {
+            if (!HasWorkLeft(slot, isCollected)) starred++;
+        }
+        return starred;
+    }
+
+    /// <summary>
+    /// Is anything on this slot still uncollected?
+    ///
+    /// Lifted out of Track, which had it as a private helper, so the goal and
+    /// the level select cannot drift apart about what "nothing left to do"
+    /// means - the star on the card and the star the goal counts have to be
+    /// the same star.
+    /// </summary>
+    public bool HasWorkLeft(int slotIndex, Func<string, bool> isCollected)
+    {
+        foreach (var name in ForSlot(slotIndex))
+        {
+            if (!isCollected(name)) return true;
+        }
+        return false;
+    }
+
     /// <summary>Is this a location the seed actually contains?</summary>
     public bool Exists(string? name)
         => !string.IsNullOrEmpty(name) && _slot.Requirements.ContainsKey(name!);

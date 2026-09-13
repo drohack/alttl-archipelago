@@ -3,7 +3,7 @@
 Two passes, in this order and for this reason:
 
   1. Cover the mechanics no generator can produce. Four abilities - Stacking,
-     Containers, Furniture and Jigsaw - exist only on hand-made levels, so if
+     Containers, Drawer and Jigsaw - exist only on hand-made levels, so if
      the draw does not go looking for them they arrive by luck or not at all.
      Ties are broken at random so the same levels do not turn up every seed.
 
@@ -116,13 +116,33 @@ def draw(random, slots: int, coverage: int, source_weights: Dict[str, int],
             return instances.get(level.level_id, 0) < cap
         return level.level_id not in used
 
-    # --- pass 1: cover the mechanics generators cannot make -----------------
-    need = {a: coverage for a in data.GAP_ABILITIES}
+    # --- pass 1: make sure every mechanic is in the run ---------------------
+    #
+    # ONE OF EVERYTHING, then extra copies of the four that no generator can
+    # make. The reserve used to cover only those four, on the reasoning that
+    # the other eight arrive by themselves - which is true at full length and
+    # false when the run is short. Measured over eight seeds at
+    # puzzle_count 20: Rotating absent from four of them, Symmetry three,
+    # Gadgets one, all with coverage at its default. A run that silently
+    # drops a mechanic is a run where an ability item never appears and a
+    # player never learns why.
+    #
+    # droha: "is there a reason why we would have less than the full 12
+    # abilities? We should default try to have them in all runs, and have
+    # the options to have less if we want a simpler run."
+    #
+    # coverage 0 is still that option: it turns the whole reserve off,
+    # including this floor, and leaves every mechanic to the weighted draw.
+    need = {}
+    if coverage > 0:
+        need = {a: 1 for a in data.ABILITIES}
+        for ability in data.GAP_ABILITIES:
+            need[ability] = coverage
     while any(v > 0 for v in need.values()) and len(picked) < slots:
         wanted = {a for a, v in need.items() if v > 0}
         candidates = [l for l in pool if available(l) and (l.abilities & wanted)]
         if not candidates:
-            # The table cannot supply what was asked - Furniture only exists on
+            # The table cannot supply what was asked - Drawer only exists on
             # four levels, so a demand of five is unmeetable. Take what there
             # is rather than failing generation; a thin run beats no run.
             break

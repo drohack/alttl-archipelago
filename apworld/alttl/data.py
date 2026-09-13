@@ -189,7 +189,7 @@ GENERATOR_ABILITIES: FrozenSet[str] = frozenset(
     a for l in GENERATORS for a in l.abilities
 )
 
-#: Stacking, Containers, Furniture and Jigsaw in the base game. Derived rather
+#: Stacking, Containers, Drawer and Jigsaw in the base game. Derived rather
 #: than hardcoded so adding DLC - which does have stacking and container
 #: generators - corrects it by itself.
 GAP_ABILITIES: List[str] = [a for a in ABILITIES if a not in GENERATOR_ABILITIES]

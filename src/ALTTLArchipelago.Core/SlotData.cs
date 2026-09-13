@@ -55,9 +55,47 @@ public sealed class SlotData
     [JsonPropertyName("pack_boundaries")]
     public List<int> PackBoundaries { get; set; } = new();
 
+    /// <summary>
+    /// What unlocks the credits: "beat_levels" or "star_levels".
+    ///
+    /// A STRING, matching the payload, rather than the option's 0 and 1.
+    /// The mod dispatches on it and so does a human reading a slot_data
+    /// dump; a name that reads the same on both sides is one fewer mapping
+    /// to keep in step.
+    ///
+    /// Defaults to beating, which is both the option default and what every
+    /// seed generated before this existed meant - an older server's payload
+    /// carries no "goal" key at all and must degrade to the old behaviour.
+    /// </summary>
+    [JsonPropertyName("goal")]
+    public string Goal { get; set; } = "beat_levels";
+
+    /// <summary>True when the run's goal is starring rather than beating.</summary>
+    [JsonIgnore]
+    public bool GoalIsStars
+        => string.Equals(Goal, "star_levels", StringComparison.Ordinal);
+
     /// <summary>Puzzles to beat before the credits card unlocks.</summary>
     [JsonPropertyName("levels_to_beat")]
     public int LevelsToBeat { get; set; } = 40;
+
+    /// <summary>
+    /// Puzzles to STAR before the credits card unlocks - every check on the
+    /// puzzle, not just finishing it. Only used when Goal is star_levels.
+    /// </summary>
+    [JsonPropertyName("levels_to_star")]
+    public int LevelsToStar { get; set; } = 20;
+
+    /// <summary>
+    /// How many puzzles the goal actually wants, whichever goal it is.
+    ///
+    /// Here rather than at each call site because three places used to read
+    /// LevelsToBeat directly - the credits gate, the beaten toast and the
+    /// offline summary - and a fourth would have been written before anyone
+    /// noticed the first three disagreed with the goal.
+    /// </summary>
+    [JsonIgnore]
+    public int GoalTarget => GoalIsStars ? LevelsToStar : LevelsToBeat;
 
     /// <summary>When false, every mechanic works from the start.</summary>
     [JsonPropertyName("ability_locks")]
@@ -176,6 +214,17 @@ public sealed class SlotData
         if (LevelsToBeat > Slots.Count)
         {
             problems.Add($"levels_to_beat {LevelsToBeat} exceeds {Slots.Count} slots");
+        }
+        if (LevelsToStar > Slots.Count)
+        {
+            problems.Add($"levels_to_star {LevelsToStar} exceeds {Slots.Count} slots");
+        }
+        // Checked even though only one goal is in use: the generator clamps
+        // both, so a count over the slot total means the payload did not come
+        // from a generator that agrees with this build.
+        if (Goal != "beat_levels" && Goal != "star_levels")
+        {
+            problems.Add($"goal '{Goal}' is not one this build knows");
         }
 
         // Every level in the run needs its controller map, or every group check

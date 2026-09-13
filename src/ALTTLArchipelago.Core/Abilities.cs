@@ -23,7 +23,7 @@ public static class Abilities
     public const string Grids = "Grids";
     public const string Tidying = "Tidying";
     public const string Containers = "Containers";
-    public const string Furniture = "Furniture";
+    public const string Drawer = "Drawer";
     public const string Sticking = "Sticking";
     public const string Symmetry = "Symmetry";
     public const string Jigsaw = "Jigsaw";
@@ -93,9 +93,9 @@ public static class Abilities
         ["TupperwareLids"] = Containers,
         ["TupperwareNesting"] = Containers,
 
-        ["DrawerController"] = Furniture,
-        ["Cupboard"] = Furniture,
-        ["HangingToolsController"] = Furniture,
+        ["DrawerController"] = Drawer,
+        ["Cupboard"] = Drawer,
+        ["HangingToolsController"] = Drawer,
 
         ["Stickables"] = Sticking,
         ["SortingItems_Draggables"] = Sticking,
@@ -109,7 +109,7 @@ public static class Abilities
     public static readonly IReadOnlyList<string> All = new[]
     {
         Swapping, Stacking, Ordering, Gadgets, Rotating, Grids,
-        Tidying, Containers, Furniture, Sticking, Symmetry, Jigsaw,
+        Tidying, Containers, Drawer, Sticking, Symmetry, Jigsaw,
     };
 
     /// <summary>
