@@ -89,6 +89,11 @@
       <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.ScreenCaptureModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- AudioListener.volume, so a scripted run can be silent. -->
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.AudioModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <!-- EncodeToPNG, for the sprite exporter. -->
     <Reference Include="UnityEngine.ImageConversionModule">
       <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.ImageConversionModule.dll</HintPath>

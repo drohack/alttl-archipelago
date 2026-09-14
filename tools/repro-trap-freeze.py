@@ -351,7 +351,8 @@ def main():
         with Environment("repro-trap-freeze") as env:
             env.configure(Host="localhost", Port=str(PORT),
                           SlotName=SLOT, AutoConnect="true")
-            env.configure_devtools(TargetVirtualDesktop=str(DESKTOP),
+            env.configure_devtools(MuteAudio="true",
+                                   TargetVirtualDesktop=str(DESKTOP),
                                    RaiseWindowAtStartup="false")
             say(f"server on {PORT}, launching")
             ensure_no_steam_relaunch()

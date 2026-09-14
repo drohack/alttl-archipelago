@@ -45,7 +45,8 @@ import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from harness_env import (SAVE_DIR, CONFIG_DIR, close_game,
-                         ensure_no_steam_relaunch)
+                         ensure_no_steam_relaunch, take_snapshot,
+                         restore_snapshot)
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GAME = r"G:/Games/Steam/steamapps/common/A Little To The Left"
@@ -54,6 +55,7 @@ LOG = os.path.join(GAME, "BepInEx", "LogOutput.log")
 CMD = os.path.join(GAME, "BepInEx", "alttl-devtools-commands.txt")
 PLUGIN_DIR = os.path.join(GAME, "BepInEx", "plugins", "ALTTLArchipelago")
 MOD_CONFIG = os.path.join(CONFIG_DIR, "droha.alttl.archipelago.cfg")
+DEVTOOLS_CONFIG = os.path.join(CONFIG_DIR, "droha.alttl.devtools.cfg")
 CAMPAIGN = os.path.join(SAVE_DIR, "save1.json")
 
 AP = os.path.join(REPO, "Archipelago")
@@ -538,6 +540,26 @@ def write_config():
                 "Password = \n"
                 "AutoConnect = true\n"
                 "MaxRetries = 0\n")
+
+
+def write_devtools_config():
+    """Silence the run.
+
+    A gate plays real sessions for a quarter of an hour, and until now it did
+    so with the music and the effects going on whichever machine happened to
+    be running it. droha: "can you set the tests to have the music and sf
+    muted?"
+
+    MuteAudio holds AudioListener.volume at zero rather than touching the
+    player's own volume settings, which live inside the encoded save next to
+    actual progress. Nothing here is persisted and nothing of theirs moves.
+
+    Partial on purpose: BepInEx fills in every key not named here with its
+    default, so this says the one thing it means to say.
+    """
+    with open(DEVTOOLS_CONFIG, "w", encoding="utf-8", newline="\n") as f:
+        f.write("[Debug]\n"
+                "MuteAudio = true\n")
 
 
 def generate():
@@ -1493,6 +1515,7 @@ def main():
     zip_name, dlls = install_mod(assets)
     print(f"      {zip_name} -> {len(dlls)} dll(s) in BepInEx/plugins", flush=True)
     write_config()
+    write_devtools_config()
 
     say(3, "installing the world from its .apworld")
     digest = install_apworld(assets)
@@ -1815,6 +1838,36 @@ def self_test():
         sys.exit("self-test: open_count misread the pack line")
 
 
+def main_restoring():
+    """Run the gate, and put the player's environment back afterwards.
+
+    THE ONE HARNESS THAT DID NOT DO THIS, and it is the most destructive of
+    them: step 1 deletes the mod's config and the run saves outright, then
+    writes a config pointing at localhost. Every other harness here wraps
+    itself in harness_env for exactly that reason, and docs/in-game-testing.md
+    has a section titled "Put the player's environment back when the harness
+    exits" that this file quietly ignored.
+
+    droha found it the way these are always found - by looking: "the game is
+    still open, i can't tell if you're still testing"... and then a config
+    pointing at localhost with their real server gone. The snapshots that
+    could have recovered it had been pruned.
+
+    A snapshot, not a `with` block, because the body calls sys.exit on a
+    failed check and a context manager would still have to survive that - this
+    way the restore is in a finally and every exit path goes through it.
+    """
+    snap = take_snapshot("release-e2e")
+    try:
+        return main()
+    finally:
+        # Quiet on the way out: the gate's own verdict is what matters, and a
+        # restore that announces itself between the checks and the summary
+        # reads like part of the result.
+        restore_snapshot(snap, quiet=True)
+        print(f"environment restored from {os.path.basename(snap)}", flush=True)
+
+
 if __name__ == "__main__":
     self_test()
-    raise SystemExit(main())
+    raise SystemExit(main_restoring())

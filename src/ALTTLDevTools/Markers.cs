@@ -354,6 +354,27 @@ internal static class Markers
     /// </summary>
     internal static void IconInfo(int index)
     {
+        // SAY SO BEFORE TOUCHING ANYTHING. This call hung the game once, with
+        // "command: iconinfo:84" in the log and then nothing at all - not the
+        // out-of-range warning it should have printed instantly, not an
+        // exception, no further frames. With no output between the dispatch
+        // and the first Unity call there was no way to tell which of them had
+        // stopped, and the only diagnosis available was a guess.
+        //
+        // The index is also checked against nothing-in-particular first, so a
+        // plainly silly number is rejected without a scene search. 84 was a
+        // LEVEL index handed to a function that wants a TRACK position; the
+        // track had ten items.
+        DevToolsPlugin.Log.LogInfo($"iconinfo: looking up track position {index}");
+
+        if (index < 0 || index > 512)
+        {
+            DevToolsPlugin.Log.LogWarning(
+                $"iconinfo: {index} is not a track position - this takes the "
+                + "card's place on the track, not a level index");
+            return;
+        }
+
         var track = UnityEngine.Object.FindObjectOfType<LevelsTrack>();
         if (track == null)
         {

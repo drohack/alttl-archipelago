@@ -105,6 +105,27 @@ public class DevToolsPlugin : BasePlugin
     /// </summary>
     internal static bool WatchEvents;
 
+    /// <summary>
+    /// Silence the game.
+    ///
+    /// A harness run plays real sessions for fifteen minutes with the music
+    /// and the effects going, which is exactly as pleasant as it sounds when
+    /// it happens on the machine someone is working at. droha: "can you set
+    /// the tests to have the music and sf muted?"
+    ///
+    /// AudioListener.volume, NOT the player's own volume settings. Those live
+    /// inside the encoded save alongside actual progress, so muting by editing
+    /// them would mean decoding and rewriting a save file to change a
+    /// preference - a great deal of risk for a quiet room, and it would leave
+    /// the player's sliders moved afterwards. The listener is the engine's own
+    /// master tap, it is not persisted anywhere, and it is forgotten the
+    /// moment the process ends.
+    ///
+    /// Off by default: a player running DevTools by hand should hear the game.
+    /// The harnesses turn it on, and harness_env puts the setting back.
+    /// </summary>
+    internal static bool MuteAudio;
+
     public override void Load()
     {
         Log = base.Log;
@@ -137,6 +158,15 @@ public class DevToolsPlugin : BasePlugin
             "Bring the game window to the foreground at startup. Off by default "
             + "because it steals focus from whatever else is being worked on, on "
             + "whichever virtual desktop that happens to be.").Value;
+
+        MuteAudio = Config.Bind(
+            "Debug",
+            "MuteAudio",
+            false,
+            "Silence the game by holding AudioListener.volume at zero. For "
+            + "scripted runs, which otherwise play music and effects for the "
+            + "length of the session. Does not touch the player's own volume "
+            + "settings, which live in the save file.").Value;
 
         WatchEvents = Config.Bind(
             "Debug",
@@ -229,6 +259,16 @@ public class DevToolsBehaviour : MonoBehaviour
         }
 
         TickWatch();
+
+        // Re-asserted rather than set once. The game raises the listener back
+        // to 1 on its own at least at startup, and a mute that loses a race
+        // with that is worse than none - it sounds like the setting does not
+        // work. One float comparison per frame is nothing.
+        if (DevToolsPlugin.MuteAudio
+            && UnityEngine.AudioListener.volume != 0f)
+        {
+            UnityEngine.AudioListener.volume = 0f;
+        }
 
         var gm = GameManager.Instance;
         if (gm == null) return;
@@ -980,6 +1020,25 @@ public class DevToolsBehaviour : MonoBehaviour
             else if (cmd.StartsWith("press:", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("press", () => PressControl(cmd.Substring("press:".Length)));
+            }
+            else if (cmd.Equals("mute", StringComparison.OrdinalIgnoreCase)
+                     || cmd.Equals("unmute", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("mute", () =>
+                {
+                    DevToolsPlugin.MuteAudio =
+                        cmd.Equals("mute", StringComparison.OrdinalIgnoreCase);
+                    UnityEngine.AudioListener.volume =
+                        DevToolsPlugin.MuteAudio ? 0f : 1f;
+                    DevToolsPlugin.Log.LogInfo(
+                        $"audio: {(DevToolsPlugin.MuteAudio ? "muted" : "unmuted")}"
+                        + $" (AudioListener.volume="
+                        + $"{UnityEngine.AudioListener.volume:0.##})");
+                });
+            }
+            else if (cmd.Equals("creditscard", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("creditscard", ReportCreditsCard);
             }
             else if (cmd.Equals("livelevels", StringComparison.OrdinalIgnoreCase))
             {
@@ -2937,6 +2996,84 @@ public class DevToolsBehaviour : MonoBehaviour
         DevToolsPlugin.Log.LogInfo(
             $"setres: asked the game for {width}x{height} (its index {index}), "
             + $"windowed; {persisted}");
+    }
+
+    /// <summary>
+    /// What state the credits card is actually in on the level select.
+    ///
+    /// droha: "when i went back to the level select i see a level with a hand
+    /// print as the icon. it's greyed out like I can't play it. I think it's
+    /// the credits but I can't tell."
+    ///
+    /// The suspicion to test is that Track.ApplyUnlocks creates completion
+    /// data for the chapter dividers and for the run's open slots, and the
+    /// credits card is neither - it is appended to the track separately, after
+    /// the loop, so nothing ever sets unlockedOnLevelSelect on it. A card with
+    /// no completion row draws locked. This reads the three things that would
+    /// settle it rather than inferring from a screenshot.
+    /// </summary>
+    private static void ReportCreditsCard()
+    {
+        var manager = GameManager.Instance?.levelManager;
+        if (manager == null)
+        {
+            DevToolsPlugin.Log.LogWarning("creditscard: no LevelManager");
+            return;
+        }
+
+        LevelInterface? credits = null;
+        var all = manager.m_allLevelInterfaces;
+        if (all != null)
+        {
+            for (int i = 0; i < all.Count; i++)
+            {
+                var li = all[i];
+                if (li == null) continue;
+                var isCredits = false;
+                try { isCredits = li.IsCredits; } catch { continue; }
+                if (isCredits) { credits = li; break; }
+            }
+        }
+
+        if (credits == null)
+        {
+            DevToolsPlugin.Log.LogWarning("creditscard: no credits level found");
+            return;
+        }
+
+        var has = Str(() =>
+            SaveSystem.data.LevelHasCompletionData(credits).ToString());
+        var flag = "-";
+        try
+        {
+            if (SaveSystem.data.LevelHasCompletionData(credits))
+            {
+                var entry = SaveSystem.data.GetLevelCompletionData(credits);
+                flag = entry == null
+                    ? "no entry" : entry.unlockedOnLevelSelect.ToString();
+            }
+        }
+        catch (Exception e) { flag = "threw: " + e.Message; }
+
+        // The card's OWN art, by name. The mod picks no icon for this card -
+        // it puts the game's credits level on the track and the LevelIcon
+        // draws whatever that level carries - so naming the sprite settles
+        // whether the hand print is authored for the credits or something we
+        // caused. droha: "is that for the credits, or you just picked it?"
+        var locked = Str(() => credits.LockedIcon == null
+            ? "none" : credits.LockedIcon.name);
+        var unlocked = Str(() => credits.UnlockedIcon == null
+            ? "none" : credits.UnlockedIcon.name);
+
+        DevToolsPlugin.Log.LogInfo(
+            $"creditscard: lockedIcon={locked} unlockedIcon={unlocked}");
+
+        DevToolsPlugin.Log.LogInfo(
+            "creditscard: id=" + Str(() => credits.LevelId)
+            + " index=" + Str(() => credits.LevelIndex.ToString())
+            + " isUnlocked=" + Str(() => credits.IsUnlocked.ToString())
+            + " hasCompletionData=" + has
+            + " unlockedOnLevelSelect=" + flag);
     }
 
     /// <summary>
