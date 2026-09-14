@@ -54,6 +54,20 @@ internal static class Credits
     }
 
     /// <summary>
+    /// The credits card was played through to the end.
+    ///
+    /// Told by Checks, which sees the completion event. The credits are not a
+    /// slot and hold no checks, so everything else in that handler ignores
+    /// them - this is the one thing that cares.
+    /// </summary>
+    internal static void NotePlayed()
+    {
+        if (_latch.Played) return;
+        _latch.CreditsPlayed();
+        Plugin.Logger.LogInfo("credits: played to the end");
+    }
+
+    /// <summary>
     /// Watch for the run being won.
     ///
     /// A poll rather than a hook on the beaten token arriving, because the goal
@@ -79,7 +93,8 @@ internal static class Credits
             {
                 Plugin.Logger.LogInfo(
                     $"credits: unlocked after {Checks.LevelsBeaten} puzzles");
-                Toasts.Show("The credits are unlocked", Toasts.Notice);
+                Toasts.Show("The credits are unlocked - play them to finish "
+                            + "the run", Toasts.Notice);
             }
 
             if (!_latch.ShouldReport(left, held)) return;

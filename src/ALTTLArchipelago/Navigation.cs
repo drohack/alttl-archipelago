@@ -660,6 +660,25 @@ internal static class Navigation
         {
             if (!Track.Active) return;
 
+            // THE CREDITS DO NOT HAVE A NEXT. They are the end of the run, and
+            // answering this with the next unfinished slot dropped the player
+            // straight into another puzzle the moment the ending finished -
+            // droha: "after it played the credits it loaded into a new level.
+            // Not what I was expecting... probably just dump them back to
+            // level select."
+            //
+            // Sent to the track rather than the title: the run is finished and
+            // the level select is where you can see it, including the cards
+            // still unstarred if the goal was beaten rather than starred.
+            var active = GameManager.Instance?.levelManager?.ActiveLevelInterface;
+            if (active != null && active.IsCredits)
+            {
+                Plugin.Logger.LogInfo(
+                    "navigation: the credits have no next level - back to the track");
+                GoToTrack("the credits");
+                return;
+            }
+
             var next = Track.NextUnfinishedSlot();
             if (next < 0) return;                  // nothing left; leave it alone
 

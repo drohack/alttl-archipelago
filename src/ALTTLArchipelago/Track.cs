@@ -546,6 +546,46 @@ internal static class Track
                 }
             }
 
+            // THE CREDITS CARD, which is neither a divider nor a slot.
+            //
+            // It is appended to the track after the slot loop in SetLevels, so
+            // the loop below - which walks _order - never reaches it, and
+            // nothing ever gave it a completion row. A card without one draws
+            // locked, so the finale sat on the track greyed out at the exact
+            // moment it became playable. droha: "i see a level with a hand
+            // print as the icon. it's greyed out like I can't play it. I think
+            // it's the credits but I can't tell."
+            //
+            // The click was never the problem - IsRefused already allows this
+            // card once Remaining hits zero. Only the drawing was wrong, which
+            // is the worse kind of bug: the game let you in and the card said
+            // you could not come.
+            //
+            // GATED ON BEING PLAYABLE, not merely on holding the item. While
+            // puzzles are still owed the card SHOULD look locked, because it
+            // is - IsRefused turns the click away and says how many are left.
+            // Unlocking it early would make the drawing lie in the other
+            // direction.
+            if (Inventory.HasCredits && Credits.Remaining(Plugin.Seed) <= 0)
+            {
+                var finale = CreditsLevel(manager);
+                if (finale != null)
+                {
+                    if (!SaveSystem.data.LevelHasCompletionData(finale))
+                    {
+                        SaveSystem.data.CreateLevelCompletionData(finale, null);
+                        created++;
+                    }
+
+                    var row = SaveSystem.data.GetLevelCompletionData(finale);
+                    if (row != null && !row.unlockedOnLevelSelect)
+                    {
+                        row.unlockedOnLevelSelect = true;
+                        flagged++;
+                    }
+                }
+            }
+
             for (int i = 0; i < _state.OpenSlots && i < _order.Count; i++)
             {
                 var level = manager.GetLevelInterface(_order[i]);
@@ -800,6 +840,24 @@ internal static class Track
             var credits = CreditsLevel(manager);
             if (credits != null && Inventory.HasCredits)
             {
+                // A DIVIDER FIRST, so the finale reads as its own chapter.
+                //
+                // Every pack on the track gets a break card and the ending did
+                // not, so the credits sat directly against the last puzzle of
+                // the last pack and looked like one more card in it. droha:
+                // "There should be a chapter break between the last pack and
+                // credits so it's more obvious."
+                //
+                // The next divider art in rotation, by the same rule the packs
+                // use - the count of packs already placed - so the ending gets
+                // a card the run has not just shown.
+                var finaleBreak = DividerFor(dividers, bounds.Count);
+                if (finaleBreak != null)
+                {
+                    levels.Add(finaleBreak);
+                    _plan.Add(Divider);
+                }
+
                 levels.Add(credits);
                 _plan.Add(CreditsCard);
             }
@@ -841,10 +899,22 @@ internal static class Track
             // differ by every divider inserted before that point. Walking the
             // plan converts one to the other without having to count dividers
             // by hand.
+            // THE DIVIDER MAKES THE BREAK, NOT THE CREDITS CARD.
+            //
+            // The credits used to start a section of their own, which is how
+            // the overview scrollbar came to draw the finale as a chapter
+            // boundary rather than a card - droha: "on the scroll bar in level
+            // select the credits looks like a chapter break?" Once a real
+            // divider card was put in front of it there were two breaks in a
+            // row, which made it worse rather than better.
+            //
+            // So the credits are an ordinary card inside the section the
+            // divider opens. The break is the divider's job, and the ending
+            // reads as a chapter with one thing in it.
             var breaks = new List<int> { 0 };
             for (int i = 1; i < _plan.Count; i++)
             {
-                if (_plan[i] == Divider || _plan[i] == CreditsCard) breaks.Add(i);
+                if (_plan[i] == Divider) breaks.Add(i);
             }
             breaks.Add(_plan.Count);
 
@@ -858,10 +928,19 @@ internal static class Track
                 var slice = new Il2CppSystem.Collections.Generic.List<LevelInterface>();
                 for (int i = start; i < end; i++) slice.Add(levels[i]);
 
-                var title = _plan[start] == CreditsCard ? "The End"
+                // Named for what the section CONTAINS, now that the credits
+                // no longer start one. The finale also does not consume a pack
+                // number - it is not a pack.
+                var finale = false;
+                for (int i = start; i < end; i++)
+                {
+                    if (_plan[i] == CreditsCard) { finale = true; break; }
+                }
+
+                var title = finale ? "The End"
                     : step == 0 ? "Opening"
                     : $"Pack {step}";
-                step++;
+                if (!finale) step++;
 
                 sections.Add(new LevelSelect.Section
                 {

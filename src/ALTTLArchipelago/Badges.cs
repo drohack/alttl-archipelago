@@ -1050,39 +1050,51 @@ internal static class Badges
                 default: continue;
             }
 
-            var existing = dot.Find(DotName);
-            if (existing != null)
-            {
-                var img = existing.GetComponent<Image>();
-                if (img != null)
-                {
-                    // The sprite decides which look this is, so it has to be
-                    // set as well as the tint - a dot that went from Mixed to
-                    // Doable would otherwise keep the diagonal and just recolour
-                    // it, which reads as a solid green triangle.
-                    var wanted = split ? DiagonalSprite() : null;
-                    if (img.sprite != wanted) img.sprite = wanted;
-                    if (img.color != colour) img.color = colour;
-                }
-                continue;
-            }
-
-            var go = new GameObject(DotName);
-            go.transform.SetParent(dot, false);
-
-            var rt = go.AddComponent<RectTransform>();
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
-
-            var image = go.AddComponent<Image>();
-            if (split) image.sprite = DiagonalSprite();
-            image.color = colour;
-            image.raycastTarget = false;
-
-            go.transform.SetAsLastSibling();
+            Paint(dot, colour, split);
         }
+    }
+
+    /// <summary>
+    /// Put (or update) the tinted overlay on one overview dot.
+    ///
+    /// Extracted when the finale needed the same treatment from a second
+    /// place in the loop. A tinted CHILD rather than the dot's own Image, for
+    /// the reason in TickOverviewDots: the game repaints these itself.
+    /// </summary>
+    private static void Paint(Transform dot, Color colour, bool split)
+    {
+        var existing = dot.Find(DotName);
+        if (existing != null)
+        {
+            var img = existing.GetComponent<Image>();
+            if (img != null)
+            {
+                // The sprite decides which look this is, so it has to be set
+                // as well as the tint - a dot that went from Mixed to Doable
+                // would otherwise keep the diagonal and just recolour it,
+                // which reads as a solid green triangle.
+                var wanted = split ? DiagonalSprite() : null;
+                if (img.sprite != wanted) img.sprite = wanted;
+                if (img.color != colour) img.color = colour;
+            }
+            return;
+        }
+
+        var go = new GameObject(DotName);
+        go.transform.SetParent(dot, false);
+
+        var rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+
+        var image = go.AddComponent<Image>();
+        if (split) image.sprite = DiagonalSprite();
+        image.color = colour;
+        image.raycastTarget = false;
+
+        go.transform.SetAsLastSibling();
     }
 
     /// <summary>

@@ -556,6 +556,25 @@ internal static class Checks
                 return;
             }
 
+            // THE CREDITS ARE SUPPOSED TO BE EMPTY. They are an animation, not
+            // a puzzle: no controllers, no level objects, nothing to solve. The
+            // watch below exists to catch a puzzle that loaded as a blank room,
+            // and it accused the finale of exactly that - droha, playing the
+            // ending: "I got an error saying the credits failed to load? but
+            // it's playing right now just fine."
+            //
+            // Also the moment the run is won. Reaching this card IS finishing
+            // the seed, so the goal goes out now rather than after several
+            // minutes of animation - droha again: "I would expect the
+            // completion to go right after the credits level loads."
+            if (li.IsCredits)
+            {
+                _watchedLevel = "";
+                _emptyFor = 0f;
+                Credits.NotePlayed();
+                return;
+            }
+
             var id = li.LevelId ?? "";
             if (id != _watchedLevel)
             {
@@ -733,6 +752,23 @@ internal static class Checks
     {
         // A finished puzzle is not a puzzle to knock over - see Traps.
         Traps.NoteCompletion();
+
+        // THE CREDITS, FIRST, because everything below this line is about
+        // slots and the credits card is not one - EnsureSlot finds nothing and
+        // the handler returns, which is why noticing them anywhere later would
+        // never have run.
+        //
+        // The goal is normally already reported by then: the level watch sees
+        // the card load and calls NotePlayed there, so the server hears about
+        // it as the animation starts rather than when it ends. This is the
+        // belt to that braces, for a credits run that somehow completes
+        // without the watch having ticked.
+        var finale = GameManager.Instance?.levelManager?.ActiveLevelInterface;
+        if (finale != null && finale.IsCredits)
+        {
+            Credits.NotePlayed();
+            return;
+        }
 
         EnsureSlot();
         if (_router == null || _currentSlot < 0) return;
