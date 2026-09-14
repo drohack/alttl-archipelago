@@ -1,42 +1,41 @@
 # A Little To The Left - Archipelago
 
 An [Archipelago](https://archipelago.gg) multiworld randomizer for
-[A Little To The Left](https://store.steampowered.com/app/1629520/).
+[A Little To The Left](https://store.steampowered.com/app/1629520/), the
+tidying puzzle game.
 
 **Status: playable.** A seed generates, the game connects to it, and the run
 plays through to the credits.
 
-| Part | State |
-|---|---|
-| Research and the verification gate | done, [verification log](docs/verification-log.md) |
-| Design | agreed, [spec](docs/superpowers/specs/2026-09-01-alttl-archipelago-design.md) |
-| `apworld/alttl/` - the Archipelago world | **generates real seeds**, 91 tests |
-| `src/ALTTLArchipelago.Core/` - Unity-free rules and state | 224 tests |
-| `src/ALTTLArchipelago/` - the BepInEx mod | **plays a seed** |
+## What gets randomized
 
-Verified end to end on 2026-09-03: a generated seed served by `MultiServer.py`,
-played in game to completion. The seed's puzzles replace the campaign on the
-level select, packs reveal them in the order the generator planned, abilities
-gate the objects, solving sends checks the server accepts, items arriving are
-applied and announced, and the goal is reported back - the server declaring
-"Team #1 has completed all of their games".
+The run is shaped like the base campaign - a scrolling filmstrip of cards -
+but most of the puzzles in it are **procedurally generated**. Sixteen of the
+game's puzzles build a fresh layout from a seed, so they are new even if you
+have finished the game. They are mixed with the seasonal Archive puzzles and
+with hand-made campaign puzzles where those are the only source of a mechanic.
 
-A run also survives the server going away. If no server answers at launch, the
-mod resumes the last run from a cache of the slot data and the received items,
-queues anything earned, and sends it on the next connection - verified in
-[docs/verification-log.md](docs/verification-log.md) by `tools/offline-test.py`.
+**Locations.** Every distinct solution of every puzzle is its own check, and
+puzzles with several arrangements give several. Finishing a puzzle is a check
+in its own right, and so is each group of objects you tidy inside one.
 
-Known gaps are listed at the end of the
-[verification log](docs/verification-log.md): a level that once loaded empty and
-has not reproduced, and the Play button's behaviour in a run.
+**Items.** Puzzle Packs, the twelve mechanic abilities, the Credits, Skips,
+Hint Pages, and Background Change Traps. A Cat Trap knocks your arrangement
+over - it costs time, never progress.
 
-## Ability locks
+**The goal.** Beat a set number of puzzles, or star them, and the credits card
+appears at the end of the track. Playing it finishes the run.
 
-A run does not hand you the whole game at once. Twelve of the game's own
-mechanics - swapping, stacking, ordering, rotating and the rest - are items,
-and a puzzle that needs one you do not hold is there to look at but not to
-solve. The level select carries the twelve as a strip, so what is still out
-there is visible rather than something to keep a list of.
+Two things gate progress. **Puzzle Packs** open the next block of cards.
+**Abilities** unlock the mechanics themselves, and objects belonging to a
+mechanic you have not found sit dimmed and cannot be moved - so a puzzle can
+be partly solved, left, and come back to when the missing ability arrives.
+
+### Ability locks
+
+Twelve of the game's own mechanics are items. The level select carries all
+twelve as a strip, so what is still out there is visible rather than something
+to keep a list of.
 
 Dim is a mechanic you have not found yet:
 
@@ -48,103 +47,44 @@ Lit is one you hold:
 
 The icons are the game's own art rather than anything drawn for the mod - a
 badge element, a puzzle piece or a level's object, one per mechanic, chosen to
-be told apart at that size. Where each came from is recorded in
+be told apart at that size. Provenance for all twelve:
 [docs/data/ability-icons.md](docs/data/ability-icons.md).
 
-Both pictures are frames from the running game, taken by
-`tools/capture-ability-strip.py` and cut by `tools/crop-ability-strip.py`.
+**Neither DLC is implemented.** No DLC puzzle is placed in a run, whichever
+ones you own.
 
-## Is the game moddable?
+Full detail, including every option and what each item does:
+[the world's game page](apworld/alttl/docs/en_A_Little_to_the_Left.md).
 
-Yes, and unusually easily. This was the question the project started with, and
-the answers below are what the rest of the work rests on.
+## Install
 
-- Unity 2020.3.26f1 / IL2CPP. **BepInEx 6 IL2CPP loads it cleanly.**
-- Nothing is obfuscated - the interop assemblies decompile to 683 readable
-  source files with real class and method names.
-- The save file is plaintext JSON behind a +11 codepoint shift, with no
-  checksum, and it already stores per-level unlock flags and the set of
-  distinct solutions found.
-- The game ships a typed event bus (`GameEventManager`) that publishes
-  `GameEvent_LevelComplete` **with the solution id**, so location checks need
-  no Harmony patching at all.
-- The game ships a shuffled-level-order mode (`LevelManager.ShuffleActive`,
-  `RefreshShuffleLevels`, `GetShuffledLevelIndex`) - a randomizer's level
-  ordering engine, already written.
-- Any level can be launched from anywhere with a forced procedural seed
-  (`StartLevel(index, showTransition, forceReload, randomSeed)`), including
-  daily-only and archive-only puzzles, regardless of lock state. **Verified.**
+1. **BepInEx 6 (IL2CPP)**: unzip
+   [BepInEx-Unity.IL2CPP-win-x64-6.0.0-pre.2.zip](https://github.com/BepInEx/BepInEx/releases/tag/v6.0.0-pre.2)
+   into the game folder - the one containing `A Little To The Left.exe`.
+2. **First launch**: start the game, wait for the main menu, quit. This launch
+   is slow because BepInEx is generating interop assemblies.
+3. **Mod**: unzip `ALTTLArchipelago-X.Y.Z.zip` from the
+   [releases page](../../releases) into the same game folder.
+4. **Archipelago host**, only if you are generating the multiworld: install
+   [Archipelago](https://github.com/ArchipelagoMW/Archipelago/releases/latest)
+   0.6.7 or newer, put `alttl.apworld` (same release) into its
+   `custom_worlds/` folder, and `A Little to the Left.yaml` into `Players/`.
 
-Full detail, including what is still unproven:
-[docs/research-findings.md](docs/research-findings.md). What the game
-*contains* - level counts, chapters, the unlock rule, what the level select
-looks like, and what the daily and archive content actually is:
-[docs/content-report.md](docs/content-report.md).
+The three release files ship together and carry the same version number. A mod
+and an apworld that disagree about the version disagree about the item table.
 
-## Content inventory
+Details, the yaml options and troubleshooting:
+[docs/installation.md](docs/installation.md).
 
-186 level definitions ship in the build. With DLC1 owned and DLC2 not:
-**136 playable puzzles carrying 194 distinct solutions.**
+## Connect
 
-| Group | Levels | Solutions |
-|---|---:|---:|
-| Base campaign | 79 | 108 |
-| Archive / event packs | 26 | 46 |
-| DLC1 *Cupboards & Drawers* | 25 | 32 |
-| Daily generators | 6 | 8 |
-| DLC2 *Seeing Stars* (not owned) | 37 | 100 |
+Launch the game and use the **Archipelago** button on the main menu: server
+address, port, slot name, password. The run appears on the level select once
+you are connected.
 
-DLC2 is a third of the alternate-solution content. Worth buying before the
-item pool is designed.
-
-The 6 daily generators (Books, Batteries, Stamps, Post-It Notes, Pencils, and
-a Procedural Grid Puzzle) accept an arbitrary seed, so they are an unbounded
-supply of extra puzzles.
-
-## The probe
-
-`src/ALTTLDevTools/` is a BepInEx plugin. It reads and writes files; it does
-not change the game. It is never shipped with the randomizer.
-
-Build (game must be closed):
-
-```
-cp src/GameDir.props.example src/GameDir.props   # point it at your install
-dotnet build src/ALTTLDevTools
-```
-
-Drive it by writing a command into `<game>/BepInEx/alttl-devtools-commands.txt`:
-
-| Command | Effect |
-|---|---|
-| `dump` | Write the full level / daily / archive / DLC table to `BepInEx/alttl-dump.json` (also runs automatically at the main menu) |
-| `solutions` | Load all 186 level prefabs and record their object controllers to `BepInEx/alttl-solutions.tsv` |
-| `state` | Log the current game state and active level |
-| `boot:<index>[:<seed>]` | Launch any level with an optional forced procedural seed |
-| `complete` | Force-complete the active level |
-| `menu:title` / `menu:levels` / `menu:archive` / `menu:daily` | Jump to a menu |
-| `unlocks` | Write the campaign unlock/completion state and chapter membership |
-| `sections` | Log the level-select sections and every track icon's lock state |
-| `levelsweep` | Boot every level in turn and record its RUNTIME controllers to `apworld/alttl/data/levels.json`. This is the source of truth for the level table |
-| `gensweep:<index>[:<n>]` | Regenerate one procedural puzzle n times and record how its layout varies |
-| `cardlabels` / `cardlabels:off` | Put the level name under each level-select card |
-| `solve:<index>[:<solutionId>]` | Write a completion entry into the save |
-| `resetlevels` | Reset level completion data to a fresh save |
-| `reorder:<i1,i2,...>` or `reorder:off` | Replace the level-select track with an arbitrary level list |
-| `shot:<abs path>` | Screenshot |
-| `inert:list` / `inert:<controller>` / `inert:off` | Dim and disable one controller's objects on the active level |
-| `lockcard:<index>` / `lockcard:off` | Refuse launches of a level |
-| `clickcard:<index>` | Invoke `LevelIcon.DoStartLevel` the way a real click does |
-| `tint` / `tint:refresh` | Recolour every level-select card border, optionally forcing a repaint |
-| `iconinfo:<index>` | Dump one level-select icon's child tree, with components, sizes and sibling order |
-| `marker:states` / `marker:refresh` / `marker:off` | Cycle the four tracker-badge states across the cards: green, green/red split corner to corner, red, star. See S5 in the verification log |
-| `unlockto:<n>` | Give the first n levels a completion entry, so the level select renders them unlocked |
-
-Gameplay events land in `BepInEx/alttl-watch.log`, and only when the
-`WatchEvents` config setting is on - `ObjectPlaced` alone fires hundreds of
-times per level load, so it is off by default.
-
-Curated copies of the probe output are in [docs/data/](docs/data/).
+A run also survives the server going away. If nothing answers at launch, the
+mod resumes the last run from a cache of the slot data and the received items,
+queues anything you earn, and sends it on the next connection.
 
 ## Repository layout
 
@@ -164,16 +104,20 @@ Curated copies of the probe output are in [docs/data/](docs/data/).
   reference back into the mod cannot compile, which is what keeps them
   extractable
 - `src/ALTTLDevTools/` - the research and survey plugin. Deliberately not part
-  of the randomizer, installed separately, never shipped
+  of the randomizer, installed separately, never shipped. Its commands are in
+  [docs/devtools.md](docs/devtools.md)
 - `apworld/alttl/` - the Archipelago world (Python)
-- `docs/verification-log.md` - results of the Phase 0 verification gate
+- `docs/installation.md` - what a player does with the three release files
+- `docs/research-findings.md` - the modding surface: what was proven, and how.
+  This is where "is the game moddable" is answered, at length
+- `docs/content-report.md` - the content: base game, daily, archive, DLC, with
+  level and solution counts
+- `docs/verification-log.md` - results of the Phase 0 verification gate, and
+  the known gaps
 - `docs/in-game-testing.md` - how to test against the one real install without
   leaving a mess in it, and the harnesses that once measured nothing
-- `docs/installation.md` - what a player does with the three release files
 - `docs/release-testing.md` - checking a release actually works, automatically
   or by hand, and the log lines that tell you it did
-- `docs/research-findings.md` - the modding surface: what was proven, and how
-- `docs/content-report.md` - the content: base game, daily, archive, DLC
 - `docs/data/` - the level table and controller survey the probe produced.
   Reference data only: the survey walks level *prefabs*, and the runtime
   controller set differs, so `apworld/alttl/data/levels.json` is the source of
@@ -188,13 +132,14 @@ Curated copies of the probe output are in [docs/data/](docs/data/).
 - `tools/harness_env.py` - snapshot the player's BepInEx config and save folder
   before a harness runs and restore them after, including on Ctrl-C. Wrap any
   new harness that writes either. `--restore-latest` recovers from a hard kill
+- `tools/release-e2e.py` - the release gate: clean the install to vanilla,
+  install the release assets, generate a seed, and play it through
 - `tools/build_apworld.py` - package the world into a distributable
   `alttl.apworld`
 - `tools/package-release.py` - build all three release assets and refuse if the
   version numbers disagree or the build produced a file it does not recognise
 - `tools/check-version.py` - the version lives in three files; fail when they
   drift. `--set X.Y.Z` writes all three
-- `CHANGELOG.md`, `docs/installation.md` - what shipped, and how to install it
 - `.github/workflows/ci.yml` - Core built with no game installed, Core tests,
   the world's tests against the minimum supported Archipelago version, the
   packaged apworld generating a real seed, and an ASCII-only check
@@ -224,19 +169,18 @@ Port and SlotName in `BepInEx/config/droha.alttl.archipelago.cfg` and launch.
 
 ## The Archipelago world
 
-`apworld/alttl/` is the generator side, and it is the part that works today.
-It needs an Archipelago checkout to run against; the repo expects a clone at
-`Archipelago/`, which is gitignored.
+`apworld/alttl/` is the generator side. It needs an Archipelago checkout to run
+against; the repo expects a clone at `Archipelago/`, which is gitignored.
 
 ```
 powershell tools/ap-sync.ps1                              # copy the world in
 cd Archipelago
-python -m unittest discover -s worlds/alttl/test -t .     # 91 tests
+python -m unittest discover -s worlds/alttl/test -t .
 ```
 
 The fill is seed-dependent, so a single seed proves very little - that is how a
 broadly broken fill once sat behind a fully green suite. `test_fill_stress.py`
-sweeps 32 option configurations across a span of fixed seeds; widen it before a
+sweeps option configurations across a span of fixed seeds; widen it before a
 release:
 
 ```
@@ -245,3 +189,11 @@ ALTTL_STRESS_SEEDS=200 python -m unittest worlds.alttl.test.test_fill_stress
 
 To roll a real seed, put a yaml in a folder and run
 `python Generate.py --player_files_path <folder>`.
+
+## License
+
+[MIT](LICENSE).
+
+The BepInEx interop assemblies this repo builds against are generated from the
+game, and are neither included here nor redistributable. You need your own copy
+of the game to build the mod.

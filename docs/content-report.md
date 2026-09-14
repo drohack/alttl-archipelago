@@ -263,9 +263,13 @@ Both DLCs are defined in the base build whether or not they are installed, so
 adding them later is a data change, not a code change. Their controllers are
 all classes the base game already uses, plus a handful of bespoke ones.
 
-| DLC | App ID | Owned here | Levels | Solutions | Notes |
+NEITHER DLC IS IMPLEMENTED. No DLC level is placed in a run, whichever ones
+the player owns. The counts below are what the build defines, not what the
+randomizer uses.
+
+| DLC | App ID | Implemented | Levels | Solutions | Notes |
 |---|---|---|---:|---:|---|
-| DLC1 *Cupboards & Drawers* | 2343790 | yes | 25 puzzles (+4 cat interludes, +1 credits) | 32 | |
+| DLC1 *Cupboards & Drawers* | 2343790 | no | 25 puzzles (+4 cat interludes, +1 credits) | 32 | |
 | DLC2 *Seeing Stars* | 2828160 | no | 37 | 100 | 5 bonus levels gated on 50/60/70/80/90 solution-stars |
 
 DLC2 is the interesting one for two reasons: it is more solutions than the
