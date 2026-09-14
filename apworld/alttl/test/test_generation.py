@@ -345,3 +345,38 @@ class TestMaximumCoverage(bases.ALTTLTestBase):
 
     def test_pool_is_zero_sum(self):
         self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
+
+
+class TestTheReserveLeavesRoomOnAShortRun(bases.ALTTLTestBase):
+    """The mechanic reserve must not consume every slot of a small seed.
+
+    THIS IS THE 0.3.2 RELEASE-GATE REGRESSION, pinned. Reserving one level per
+    ability sounds harmless and is, at length; on the smallest legal run it
+    demanded twelve abilities plus extra copies of the gap four from eight
+    slots, could never satisfy that, and spent all eight trying - picking at
+    every step whichever level covered the MOST abilities, which is the most
+    elaborate hand-made puzzle available.
+
+    The result generated and passed every unit test, because a mechanic being
+    PRESENT was all anything asked. What it could not do was be played: the
+    e2e deadlocked at 2 of 8, waiting on four abilities behind levels it could
+    not reach, and 11 of 21 checks failed where 0.3.1 scored 21/21.
+
+    So the assertion is about BALANCE, not presence: pass 2's weighted draw
+    has to get a share of the run, because that is where the ordinary,
+    single-mechanic levels come from.
+    """
+
+    options = {"puzzle_count": 8, "levels_to_beat": 8}
+
+    def test_the_run_is_not_all_reserve_levels(self):
+        levels = [s.level for s in self.multiworld.worlds[self.player].plan]
+
+        # Half the run is the cap, so at least half must come from elsewhere.
+        # Counted as "levels needing three or more abilities", which is what
+        # the reserve reaches for and what a short run cannot bootstrap from.
+        elaborate = [l for l in levels if len(l.abilities) >= 3]
+        self.assertLessEqual(
+            len(elaborate), len(levels) // 2,
+            f"{len(elaborate)} of {len(levels)} levels need 3+ abilities: "
+            f"{[l.level_id for l in levels]}")

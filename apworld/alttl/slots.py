@@ -138,7 +138,30 @@ def draw(random, slots: int, coverage: int, source_weights: Dict[str, int],
         need = {a: 1 for a in data.ABILITIES}
         for ability in data.GAP_ABILITIES:
             need[ability] = coverage
-    while any(v > 0 for v in need.values()) and len(picked) < slots:
+    # A CEILING, BECAUSE THE GUARANTEE MUST NOT EAT THE WHOLE RUN.
+    #
+    # Without it this loop runs until every demand is met or the slots are
+    # gone, and on a short run the demands cannot be met at all: twelve
+    # abilities plus extra copies of the gap four, against eight slots. It
+    # then spends every one of them, and it spends them on the WORST levels
+    # for a short run - `best` prefers whatever covers the most abilities at
+    # once, which is the elaborate hand-made puzzles.
+    #
+    # The 0.3.2 release gate caught it: an 8-puzzle seed came out as
+    # TupperwareTower, Fruit Stickers and friends, the run deadlocked at 2 of
+    # 8 waiting on four abilities it could never reach, and 11 of 21 checks
+    # failed. 0.3.1 passed the same gate 21/21 an hour later. Nothing in the
+    # unit suites saw it because they ask whether a mechanic is PRESENT, and
+    # it was - every one of them, which was the whole problem.
+    #
+    # Half the run, so the weighted draw in pass 2 always gets the other half.
+    # At any realistic length this changes nothing: twelve abilities need
+    # roughly six to eight levels to cover, and half of a 40-puzzle run is
+    # twenty. It only binds where it has to.
+    reserve_cap = max(1, slots // 2)
+    while (any(v > 0 for v in need.values())
+           and len(picked) < slots
+           and len(picked) < reserve_cap):
         wanted = {a for a, v in need.items() if v > 0}
         candidates = [l for l in pool if available(l) and (l.abilities & wanted)]
         if not candidates:
