@@ -509,8 +509,20 @@ KNOWN_UNFORCEABLE = (
     # objective. Solving it leaves the tower standing but the level unfinished
     # - see KNOWN_TABLE_GAPS above for why the other two are not locations.
     "TupperwareTower",
-    # Phased. Every controller solves and the phase machine still holds the
-    # completion.
+    # WHY THIS ONE RESISTS IS NOT MEASURED. What is observed, from
+    # testserver/logs/e2e-20260914-154848.log: all six scoring controllers
+    # reach solved=True, Pannables stays false because it is scenery, and no
+    # LevelComplete follows. Two details worth the next person's attention -
+    # `Computer Errors` needed forcing TWICE before its flag stuck, and the
+    # level's own solvedNow stayed at 1 while six flags flipped, so whatever
+    # DesktopComputer counts is not the flags.
+    #
+    # It is NOT a phase level - levelClass is `DesktopComputer` - and this
+    # comment said "phased" for one release because that was the nearest
+    # familiar shape, not because anyone looked. The likelier story is
+    # `Computer Errors`: zero objects, dependsOn Computer Desktop, needs
+    # Gadgets, which reads as a scripted popup sequence rather than an
+    # arrangement. Untested.
     "Desktop Computer",
 )
 

@@ -7,9 +7,17 @@
 # options page for this game, which is generated from the same source as this
 # file. What is here is the short version.
 
-name: Player1
+# Your name in-game, limited to 16 characters.
+#     {player} will be replaced with the player's slot number.
+#     {number} will be replaced with the counter value of the name.
+# Keep a placeholder in it if you generate more than one slot from this file:
+# two slots that resolve to the same name will not generate.
+name: Player{number}
+
 game: A Little to the Left
-description: A Little to the Left
+
+# Describes this file rather than the game - useful once you have several.
+description: Default A Little to the Left Template
 
 requires:
   version: 0.6.7
