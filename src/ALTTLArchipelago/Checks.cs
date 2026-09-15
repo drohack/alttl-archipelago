@@ -444,7 +444,21 @@ internal static class Checks
                 var name = oc.gameObject?.name ?? "";
                 if (name.Length == 0) continue;
                 live.Add(name);
-                if (!known.ContainsKey(name)) unknown.Add(name);
+                if (known.ContainsKey(name)) continue;
+
+                // A controller that can never carry a location is not a
+                // mismatch, it is scenery. Pannables is the only one - see
+                // ControllerTypes, where the count behind that is recorded -
+                // and reporting it made the loudest warning in the mod
+                // permanent on every level that has one.
+                var runtimeType = "";
+                try { runtimeType = oc.GetIl2CppType().Name; } catch { }
+                if (!ALTTLArchipelago.Core.ControllerTypes.Scores(runtimeType))
+                {
+                    continue;
+                }
+
+                unknown.Add(name);
             }
 
             // The OTHER direction, which nothing checked before: a controller
