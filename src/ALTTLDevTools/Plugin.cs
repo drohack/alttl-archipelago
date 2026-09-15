@@ -3905,8 +3905,43 @@ public class DevToolsBehaviour : MonoBehaviour
             ObjectController = target,
             LevelInterface = li,
         };
-        GameEventManager.AddGameEvent<GameEventManager.GameEvent_ObjectControllerSolved>(data);
-        DevToolsPlugin.Log.LogInfo($"solve: dispatched ObjectControllerSolved for {name}");
+
+        try
+        {
+            GameEventManager.AddGameEvent<GameEventManager.GameEvent_ObjectControllerSolved>(data);
+            DevToolsPlugin.Log.LogInfo($"solve: dispatched ObjectControllerSolved for {name}");
+        }
+        catch (Exception e)
+        {
+            // NOT AN ERROR, and it used to be logged as one.
+            //
+            // The throw comes from the GAME, in its own win check:
+            //
+            //   System.NullReferenceException
+            //     at LevelInterface.CheckWinCondition (GameEventData details)
+            //     at GameEventManager.TryDispatchEvent
+            //     at GameEventManager.AddGameEvent[T]
+            //     at DevToolsBehaviour.SolveController
+            //
+            // No mod code is on that stack. It happens when a solved event is
+            // pushed at a level the game already considers finished - which is
+            // what re-entering a beaten puzzle and forcing a controller does,
+            // and is a state only this command can manufacture.
+            //
+            // It matters because the release gate counts logged ERRORS, so
+            // twelve of these from one revisit pass failed "no solve threw
+            // inside the game" on a run where nothing had gone wrong. The
+            // first fix was to stop the gate looking at revisit passes at all,
+            // which hid real errors along with this one. Logging it honestly
+            // is better than teaching the gate to look away.
+            //
+            // The mod's own behaviour here is already correct and tested: a
+            // location it has collected is never sent twice
+            // (CheckLedger.Check returns false, CheckLedgerTests pins it).
+            DevToolsPlugin.Log.LogInfo(
+                $"solve: {name} was already solved as far as the level is "
+                + $"concerned, so its win check had nothing to do ({e.GetType().Name})");
+        }
     }
 
     private static void UnlockTo(string arg)
