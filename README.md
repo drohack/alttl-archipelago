@@ -15,21 +15,47 @@ game's puzzles build a fresh layout from a seed, so they are new even if you
 have finished the game. They are mixed with the seasonal Archive puzzles and
 with hand-made campaign puzzles where those are the only source of a mechanic.
 
-**Locations.** Every distinct solution of every puzzle is its own check, and
-puzzles with several arrangements give several. Finishing a puzzle is a check
-in its own right, and so is each group of objects you tidy inside one.
+**Locations.** Three kinds. Every distinct **solution** is a check, and puzzles
+with several valid arrangements give several. Every **group** of objects you
+tidy is a check, on puzzles made of more than one group - on a single-group
+puzzle the group and its first solution are the same event, so only one check
+is minted. And the **credits**.
 
-**Items.** Puzzle Packs, the twelve mechanic abilities, the Credits, Skips,
-Hint Pages, and Background Change Traps. A Cat Trap knocks your arrangement
-over - it costs time, never progress.
+Finishing a puzzle is not a check of its own. It is an event the generator
+counts toward the goal, which is why a single-group puzzle pays one check
+rather than two.
 
-**The goal.** Beat a set number of puzzles, or star them, and the credits card
-appears at the end of the track. Playing it finishes the run.
+**Items.**
 
-Two things gate progress. **Puzzle Packs** open the next block of cards.
-**Abilities** unlock the mechanics themselves, and objects belonging to a
-mechanic you have not found sit dimmed and cannot be moved - so a puzzle can
-be partly solved, left, and come back to when the missing ability arrives.
+- **Puzzle Packs.** A run has no chapters. A pack opens the next block of
+  cards instead - five puzzles at a time by default. Every block is the same
+  size, the free opening included, and only the last is short.
+- **The twelve mechanics**, one item each: Swapping, Stacking, Ordering,
+  Gadgets, Rotating, Grids, Tidying, Containers, Drawer, Sticking, Symmetry
+  and Jigsaw.
+- **Credits.** A real item in the pool, so it can be anywhere in the
+  multiworld, including in somebody else's world.
+- **Skips.** Clears a puzzle you are stuck on. It finishes the puzzle and
+  counts toward the goal, and it fills in every check on it - so a skipped
+  puzzle is starred as well as beaten.
+- **Hint Pages.** Without one the notepad still opens; you just cannot erase
+  the scribble.
+- **Cat Trap.** The cat walks through an active puzzle and knocks your
+  arrangement over. It costs time, never progress.
+- **Background Change Trap.** Repaints the background.
+
+**The goal.** Two conditions, and both are required: beat (or star) a set
+number of puzzles, AND find the Credits item. Either one alone does nothing.
+Together they unlock the credits card, which sits at the end of the track and
+is not part of any pack - and you then have to go and play it. Reaching the
+count does not end the run by itself, deliberately: the run ends when you
+watch the ending.
+
+Packs and abilities are the two gates, and they gate different things. A pack
+decides which cards you may open at all. An ability decides what you may touch
+once you are inside one: objects belonging to a mechanic you have not found
+sit dimmed and cannot be moved, so a puzzle can be partly solved, left, and
+come back to when the missing ability arrives.
 
 ### Ability locks
 
@@ -49,6 +75,47 @@ The icons are the game's own art rather than anything drawn for the mod - a
 badge element, a puzzle piece or a level's object, one per mechanic, chosen to
 be told apart at that size. Provenance for all twelve:
 [docs/data/ability-icons.md](docs/data/ability-icons.md).
+
+### What the mod puts on screen
+
+- **A badge on every card**, saying whether the card is worth opening: green
+  when everything left on it can be done now, green over red when only some of
+  it can, and a star when there is nothing left. A card you cannot play yet is
+  veiled - the game's own locked look means only "not reached yet", which is a
+  different thing.
+- **The ability strip** above, and **a progress counter** reading in the same
+  terms as the goal - starred or beaten, whichever this seed asked for.
+- **An Archipelago pane on the main menu** for address, port, slot name and
+  password, so connecting never means editing a config file.
+- **Toasts** for what you find and receive, coloured the way Archipelago's own
+  text client colours them.
+- **Play and the next arrow** open the next puzzle the RUN wants, rather than
+  the next one in the campaign's order.
+
+### Options
+
+All set in the yaml. The ones that change a run most:
+
+- `goal` - `beat_levels` or `star_levels`, each with its own count
+  (`levels_to_beat`, `levels_to_star`).
+- `puzzle_count` - 8 to 79.
+- `pack_size` - how many puzzles a pack opens. Read it as a floor rather than
+  a promise: a run always opens at least five, and packs grow together when
+  yours would need more than the fourteen a run can carry.
+- `generator_weight`, `archive_weight`, `base_weight` - relative weights for
+  the three sources: procedurally generated, seasonal event, main campaign.
+  Ratios rather than percentages, so 80/10/10 and 8/1/1 mean the same thing.
+- `mechanic_coverage` - slots reserved so scarce mechanics are guaranteed to
+  turn up. Higher is LESS random, not more: every point pins more of the run
+  to a fixed set of levels.
+- `ability_locks`, `starting_abilities`, `guaranteed_open_slots` - whether
+  mechanics are gated at all, and how much of that gate you start past.
+- `skip_count`, `hint_coverage`, `cat_trap_chance` - how many Skips exist,
+  what share of this seed's hint pages become items, and what share of the
+  filler is the cat.
+- `archive_packs` - which seasonal packs are in. Jigsaws exist only in four of
+  them, so dropping those four removes the mechanic and its item with it.
+- `generator_repeat_limit` - how often one generated puzzle may repeat.
 
 **Neither DLC is implemented.** No DLC puzzle is placed in a run, whichever
 ones you own.
