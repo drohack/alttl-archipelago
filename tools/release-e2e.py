@@ -36,6 +36,7 @@ import collections
 import hashlib
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -93,6 +94,16 @@ PACK_SIZE = 2
 #: stalled the way it had before the fix. One name removes the whole bug
 #: class; self_test asserts it is used on both sides.
 EXHAUSTED_MARK = "harness: level exhausted, no completion"
+
+#: Written into the transcript when the harness starts going back over levels
+#: it has already beaten, so the phase is visible when reading a run. Nothing
+#: is excluded on the strength of it - see the error census, which used to.
+REVISIT_MARK = "harness: revisit pass begins"
+
+#: The game's credits "level". Found by IsCredits at runtime rather than by
+#: this number anywhere in the mod - it is only here because clickcard: takes
+#: a level index, and the one the mod reports is stable across the build.
+CREDITS_LEVEL_INDEX = 84
 MAX_ROUNDS = 60
 QUICK = False
 
@@ -101,6 +112,62 @@ TOTAL = 7
 
 def say(phase, msg):
     print(f"[{phase}/{TOTAL}] {msg}", flush=True)
+
+
+#: Every line this gate prints also lands here, overwritten at the start of
+#: each run, so a run in progress can be watched without a status bar.
+#:
+#: The gate takes about fifteen minutes and prints throughout, but that output
+#: only ever existed in whatever file the caller happened to redirect into -
+#: a path nobody else could guess. droha runs it from an editor pane that
+#: shows neither the background process nor its output: "i don't even see if
+#: you have a process running in the background". A FIXED path is the whole
+#: point. Open it once, leave it open, and the editor reloads it as it grows.
+PROGRESS = os.path.join(REPO, "testserver", "logs", "e2e-progress.txt")
+
+
+class Tee:
+    """stdout that also writes the transcript to a file.
+
+    Wraps the stream rather than replacing it, so the console still streams
+    normally and a caller's own redirect keeps working. Every write is
+    flushed: a watcher tailing the file should see a line when it is printed,
+    not when a block buffer happens to fill.
+
+    A failure to write the copy must never take the run down with it - the
+    file is a convenience and the gate is the point - so the file side is
+    wrapped and swallowed while the real stream is not.
+    """
+
+    def __init__(self, stream, path):
+        self.stream = stream
+        self.file = None
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            self.file = open(path, "w", encoding="utf-8", errors="replace")
+        except Exception as e:
+            stream.write(f"could not open {path}: {e}\n")
+
+    def write(self, text):
+        n = self.stream.write(text)
+        if self.file is not None:
+            try:
+                self.file.write(text)
+                self.file.flush()
+            except Exception:
+                self.file = None
+        return n
+
+    def flush(self):
+        self.stream.flush()
+        if self.file is not None:
+            try:
+                self.file.flush()
+            except Exception:
+                self.file = None
+
+    def isatty(self):
+        return self.stream.isatty()
 
 
 def sha(path):
@@ -397,6 +464,54 @@ KNOWN_TABLE_GAPS = (
     "Radial Dance Party",
     "Record Player",
     "TupperwareNesting",
+    # TupperwareTower registers Foundation and Falling Blocks, both
+    # StackableGrid, and the table lists only the Tower. That is DELIBERATE and
+    # already measured: they are the tower's mechanism rather than objectives,
+    # they never raise a solved event, and as locations they could never be
+    # earned. tools/probe-dead-controllers.py established it and
+    # test_fill_stress.py's split comment records the day they were deleted -
+    # "Now (24, 94). TupperwareTower lost three groups and gained one back".
+    # The level still requires Grids through extraAbilities, because the
+    # falling blocks are dimmed without it.
+    #
+    # It belongs on this list and was missed when those locations went. Absent
+    # from it, the gate failed every run on a gap the project had already
+    # decided about - and the obvious-looking repair, putting the two
+    # locations back, re-creates two checks no player can collect.
+    "TupperwareTower",
+)
+
+
+#: Levels the harness cannot force to completion, so a Skip is the only way it
+#: has to finish the slot. Asserted, not merely tolerated - see the two checks
+#: on the skip record.
+#:
+#: `solve` sets a controller's solved flag and dispatches the event. That
+#: finishes most levels and does NOT finish a phased one: its phase machine
+#: waits for the real drag path, which synthetic pointer input cannot produce
+#: because DragObject has no OnDrag and nothing starts the settle tween. The
+#: level is then EXHAUSTED - every controller solved, no LevelComplete - and
+#: the harness spends a Skip, which is what a player stuck on that puzzle
+#: would do anyway.
+#:
+#: THIS LIST IS A LEDGER OF WHAT IS UNPROVEN, not a list of things that are
+#: fine. A level here is beaten in the transcript without ever having been
+#: solved, so the gate says nothing about whether a human can finish it. That
+#: is a manual item in docs/release-testing.md, deliberately not automated:
+#: pretending a Skip proves solvability is the failure this list exists to
+#: stop being invisible.
+#:
+#: Adding a name here is a decision to stop testing that level's solve path.
+#: Measure first - the far likelier cause of a new entry is a regression in
+#: solve routing or ability gating, which is exactly what the check is for.
+KNOWN_UNFORCEABLE = (
+    # Registers Foundation, Tower and Falling Blocks; only the Tower is an
+    # objective. Solving it leaves the tower standing but the level unfinished
+    # - see KNOWN_TABLE_GAPS above for why the other two are not locations.
+    "TupperwareTower",
+    # Phased. Every controller solves and the phase machine still holds the
+    # completion.
+    "Desktop Computer",
 )
 
 
@@ -748,6 +863,19 @@ class Server:
         return False
 
 
+#: Controller types that cannot be force-solved and never carry a location.
+#: Measured across the whole level table: of thirty-nine types, Pannables is
+#: the only one no level ever makes a location of. See
+#: src/ALTTLArchipelago.Core/ControllerTypes.cs, which holds the same list for
+#: the mod's own audit.
+#: A plain substring, not a regex. The first version used one, and the
+#: "\b" in its pattern reached this file as a literal backspace
+#: character - it printed as type=Pannables, matched nothing, and the
+#: self-test below was the only reason it did not ship silently
+#: skipping nothing at all.
+NEVER_SOLVABLE = "type=Pannables"
+
+
 def unsolved_controllers(text):
     """Indexes of controllers reported solved=False.
 
@@ -775,8 +903,23 @@ def unsolved_controllers(text):
             idx = int(body[1:body.index("]")])
         except (ValueError, IndexError):
             continue
-        if body.rstrip().endswith("solved=False"):
-            todo.append(idx)
+        if not body.rstrip().endswith("solved=False"):
+            continue
+
+        # SCENERY IS NOT WORK. A Pannables controller carries no location in
+        # any of the ten levels that have one, and cannot be force-solved:
+        # SetSolved takes, but dispatching the solved event through the game's
+        # own handler throws ArgumentOutOfRange, so it reports unsolved again
+        # on the next pass. Every retry then went on it, the budget ran out,
+        # and the level was called unfinishable - which is how Desktop
+        # Computer held the 0.3.2 gate at 7 of 8.
+        #
+        # Matched on the type the listing prints, not the controller's name,
+        # because the names are per-level and the type is the fact.
+        if NEVER_SOLVABLE in body:
+            continue
+
+        todo.append(idx)
     return todo
 
 
@@ -1264,6 +1407,15 @@ def play(log, plan):
     attempts = collections.Counter()
     #: Slots a Skip has already been spent on - one each, at most.
     skipped = set()
+    #: [(level_id, was_still_ability_gated)] for every Skip actually spent.
+    #: The gate asserts against this rather than letting a skipped level read
+    #: as an ordinary win, which is how "2 of 8 were never solved" stayed
+    #: buried in the transcript.
+    spent = []
+    #: Slots gone back to after everything was beaten, to pick up checks that
+    #: were gated by an ability at the time. One pass each; see the revisit
+    #: block below for why it exists and why it cannot spin.
+    revisited = set()
     credits = False
     idle = 0
     last_done = True   # nothing is running yet; see the boot site
@@ -1308,7 +1460,12 @@ def play(log, plan):
 
     current = None          # slot index of the puzzle now open, or None
     for step in range(1, MAX_ROUNDS + 1):
-        if len(beaten) >= len(slots):
+        # ALL BEATEN IS NOT THE SAME AS DONE. Beating every puzzle leaves
+        # behind any part that was gated by an ability at the time, and the
+        # goal can sit behind exactly one of those - see the revisit block
+        # below. Stop when the credits are open, or when a revisit pass has
+        # been spent on every slot and there is nothing further to try.
+        if len(beaten) >= len(slots) and (credits or revisited >= beaten.keys()):
             break
 
         transcript += log.new()
@@ -1322,11 +1479,39 @@ def play(log, plan):
         if current is None:
             candidates = [i for i in range(min(open_slots, len(slots)))
                           if i not in beaten]
+
+            # GO BACK FOR WHAT YOU COULD NOT REACH THE FIRST TIME.
+            #
+            # Beating every puzzle is not the same as collecting every check.
+            # A part gated behind an ability you did not hold stays uncollected
+            # when the level is finished, and the ability may arrive much
+            # later - which is the whole point of partial solving, and exactly
+            # what a player does about it: walk back and tidy the drawer now
+            # that Drawer has turned up.
+            #
+            # The harness never did. A run beat 8 of 8 and still failed the
+            # goal, because the Credits item sat on a Drawer part of a level
+            # finished six rounds before Drawer arrived - from a Skip spent on
+            # the very last puzzle. Nothing was wrong with the seed or the mod.
+            #
+            # One pass per slot, so this cannot spin: a level revisited and
+            # still short is a level whose remaining checks are genuinely out
+            # of reach, and that is a finding rather than something to retry.
+            if not candidates and not credits:
+                candidates = [i for i in sorted(beaten) if i not in revisited]
+                if candidates and REVISIT_MARK not in transcript:
+                    transcript += "\n" + REVISIT_MARK + "\n"
+                if candidates:
+                    say(6, f"round {step}: all beaten but the credits are not "
+                           f"open - revisiting for checks that were gated")
+
             if not candidates:
                 say(6, f"round {step}: {len(beaten)}/{len(slots)} beaten and "
                        f"{open_slots} open - nothing left to try")
                 break
             current = min(candidates, key=lambda i: (attempts[i], i))
+            if current in beaten:
+                revisited.add(current)
             index, level_id = slots[current]
 
             # Only unwind through the menus after a level was FINISHED.
@@ -1406,7 +1591,13 @@ def play(log, plan):
         # would hide a real routing or gating bug behind a green run.
         exhausted = EXHAUSTED_MARK in chunk
         if not done and exhausted and current not in skipped:
-            skipped.add(current)
+            # READ THE GATING BEFORE SPENDING, because spending destroys the
+            # evidence: a Skip grants every location on the slot, so once it
+            # lands there is no way to tell whether the level was unfinishable
+            # or merely still waiting on an ability the mod had not granted.
+            # Both arrive here as EXHAUSTED. Only one of them is acceptable.
+            gated = any("waiting on " in line
+                        for line in (chunk + tail).splitlines())
             log.new()
             dev("skip", 1.5)
             more = log.wait(["beaten:", "skip:", "check:"], 12, 6,
@@ -1415,11 +1606,21 @@ def play(log, plan):
             chunk += more
             tail += more
             if "skip: spent one" in more:
+                # LATCHED ONLY ON A SPEND. This used to mark the slot before
+                # asking, so a level that reached the skip path before any
+                # Skip item had arrived was written off permanently - and
+                # Skips are items, so early in a run there are none. Desktop
+                # Computer asked once in round 2, was told there was nothing
+                # to spend, and was never offered another chance across the
+                # next seventeen rounds while two Skips sat in the inventory.
+                skipped.add(current)
+                spent.append((level_id, gated))
                 say(6, f"slot {current} {level_id} cannot be force-solved; "
-                       f"spent a Skip")
+                       f"spent a Skip"
+                       + (" WHILE STILL ABILITY-GATED" if gated else ""))
             elif "skip:" in more:
                 say(6, f"slot {current} {level_id} cannot be force-solved "
-                       f"and there was no Skip to spend")
+                       f"and there is no Skip to spend yet")
             done = "beaten:" in more
 
         blocked = ""
@@ -1449,7 +1650,8 @@ def play(log, plan):
                f"{'beaten' if done else 'not finishable yet' + blocked} "
                f"({len(beaten)}/{len(slots)}, {open_slots} open)")
 
-        if credits or len(beaten) >= len(slots):
+        if credits or (len(beaten) >= len(slots)
+                       and revisited >= beaten.keys()):
             break
         if idle >= len(slots) * 2:
             say(6, f"nothing finished in {idle} attempts; stopping")
@@ -1467,6 +1669,25 @@ def play(log, plan):
         current = None
 
     if beaten:
+        # PLAY THE CREDITS. The run is not over until the player watches the
+        # ending: 0.3.2 stopped reporting the goal the instant the Credits
+        # item arrived, because that read as the run ending without an ending
+        # - droha beat the puzzle granting it and "that instant it said i
+        # completed the game. I didn't have to go out and play the credits at
+        # all". There is deliberately no timeout on the far side of that, so a
+        # harness that never opens the card never sees a goal, which is
+        # correct behaviour and looked like a regression.
+        #
+        # The card is the last thing on the track and IsRefused lets it
+        # through once the beaten count is met, so this is the same click a
+        # player makes.
+        if credits:
+            say(6, "playing the credits, which is what reports the goal")
+            dev("menu:levels", 3.0)
+            log.new()
+            dev(f"clickcard:{CREDITS_LEVEL_INDEX}", 6.0)
+            transcript += log.new()
+
         say(6, "staying connected for the goal report")
         transcript += log.wait(["goal: reported to the server"], 60, 6,
                                "the goal report")
@@ -1476,7 +1697,7 @@ def play(log, plan):
             credits = True
 
     close_game()
-    return list(beaten.values()), credits, transcript, open_slots, first
+    return list(beaten.values()), credits, transcript, open_slots, first, spent
 
 
 def main():
@@ -1547,7 +1768,7 @@ def main():
             got, expected, arrow_text = check_arrow(log, plan)
 
         say(5, "launching a clean game and playing the run")
-        beaten, credits, transcript, open_slots, text = play(log, plan)
+        beaten, credits, transcript, open_slots, text, spent = play(log, plan)
         whole = arrow_text + transcript
 
         connected = line_with(text, "connected. ")
@@ -1573,8 +1794,16 @@ def main():
                         want_packs >= 1))
         track = line_with(text, "track: ")
         print(f"      {track}", flush=True)
-        results.append(("the track opens with 4 puzzles, not all 8",
-                        "4 open" in track))
+        # ASKED OF THE SEED, NOT HARD-CODED. The opening is the first pack
+        # boundary, and that moves when level selection changes - it went from
+        # 4 to 5 the moment the mechanic reserve was capped, and a literal "4
+        # open" then failed a run that was entirely correct. This file already
+        # carries one scar from exactly that mistake, in the pack_size comment
+        # above: a hard-coded 2 that no 8-puzzle seed could ever satisfy.
+        opening = plan["boundaries"][0] if plan["boundaries"] else 0
+        results.append((f"the track opens with {opening} puzzles, not all "
+                        f"{PUZZLES}",
+                        f"{opening} open" in track and opening < PUZZLES))
 
         # One launch for the whole run, and asserted. It took a correct boot:
         # teardown plus unwinding to the title after each puzzle to get here,
@@ -1582,6 +1811,15 @@ def main():
         # test rather than quietly making it ten times slower.
         launches = whole.count("A Little To The Left Archipelago loaded")
         arrows = whole.count("navigation: replay Next") +                  whole.count("navigation: post-level Continue")
+        # THE WHOLE RUN, revisit pass included.
+        #
+        # This briefly read only the part before REVISIT_MARK, to get past
+        # twelve "solve failed" errors a revisit produced. That was the wrong
+        # fix and it was mine: teaching the gate not to look at a phase is
+        # indistinguishable from hiding a real error in it. The throw was the
+        # game's own win check reacting to a solved event on a level it had
+        # already finished, so DevTools now says that in a sentence at info
+        # level, and everything that is still an ERROR is still counted here.
         threw = whole.count("solve failed")
         errors = error_census(whole)
         print(f"      launches: {launches}; arrow presses: {arrows}; "
@@ -1648,6 +1886,40 @@ def main():
                         not gaps))
 
         results.append((f"all {PUZZLES} puzzles beaten", len(beaten) >= PUZZLES))
+
+        # WHAT THE SKIPS COVERED FOR, made visible and then asserted.
+        #
+        # A Skip finishes a slot and banks its Beaten token, so a skipped
+        # level is indistinguishable from a solved one in every count above.
+        # A run can therefore go green having never solved a quarter of its
+        # puzzles, and the only trace is a line in the middle of a
+        # fifteen-minute transcript. These two checks are what turn that from
+        # something you have to notice into something the gate says.
+        if spent:
+            print(f"      {len(spent)} of {len(beaten)} beaten by spending a "
+                  f"Skip, never solved:", flush=True)
+            for level_id, gated in spent:
+                note = " STILL ABILITY-GATED" if gated else ""
+                known = "" if level_id in KNOWN_UNFORCEABLE else " UNEXPECTED"
+                print(f"         {level_id}{known}{note}", flush=True)
+
+        # 1. Only levels already known to need one. A NEW name here is the
+        #    signal worth having: the harness could force that level last
+        #    release and cannot now, which points at solve routing or at the
+        #    controller table, not at the level.
+        surprises = [l for l, _ in spent if l not in KNOWN_UNFORCEABLE]
+        results.append(("a Skip was spent only where one is known to be "
+                        "needed", not surprises))
+
+        # 2. And none of them was still waiting on an ability. This is the
+        #    check with teeth. An ability-gated level reaches the skip path
+        #    looking exactly like an unfinishable one - every controller the
+        #    player can reach is solved - so without this, a mod that wrongly
+        #    withheld an ability would be PAPERED OVER by the Skip and the run
+        #    would pass. The harness must never buy its way past a gating bug.
+        papered = [l for l, gated in spent if gated]
+        results.append(("no Skip covered for a level the mod was still "
+                        "gating", not papered))
 
         # The mod's tally, beside the harness's. These measure the same thing
         # from opposite sides, and when they disagree the harness is wrong -
@@ -1745,6 +2017,22 @@ def self_test():
     if src.count("EXHAUSTED_MARK") < 3:
         sys.exit("self-test: EXHAUSTED_MARK is no longer used on both sides")
 
+    # THE SKIP LEDGER'S TWO VERDICTS, because they are pure list work and
+    # getting them backwards would turn both checks into decoration that
+    # passes on every run. The gating one matters most: a Skip spent on a
+    # level the mod was still gating must FAIL even though the level is on
+    # the known list, or a gating bug buys its way to a green run.
+    sample = [("TupperwareTower", False), ("Desktop Computer", False)]
+    if [l for l, _ in sample if l not in KNOWN_UNFORCEABLE]:
+        sys.exit("self-test: the known-unforceable levels are not allowlisted")
+    if [l for l, gated in sample if gated]:
+        sys.exit("self-test: an ungated skip was read as gated")
+    bad = [("TupperwareTower", True), ("Pasta", False)]
+    if not [l for l, _ in bad if l not in KNOWN_UNFORCEABLE]:
+        sys.exit("self-test: an unexpected skipped level was not caught")
+    if not [l for l, gated in bad if gated]:
+        sys.exit("self-test: a skip over an ability-gated level was not caught")
+
     # THE HARNESS MUST NOT WRITE THE PLAYER'S DISPLAY SETTINGS. It used to,
     # it did not even work, and it kept moving the game to another monitor.
     # Any reintroduction should fail here rather than in someone's face.
@@ -1832,6 +2120,17 @@ def self_test():
     except Exception:
         pass          # the check is a convenience, never a reason to not run
 
+    pannable = ("[Info   :ALTTL Dev Tools]   [1] Pannables "
+                "type=Pannables solved=False")
+    draggable = ("[Info   :ALTTL Dev Tools]   [2] Computer Desktop "
+                 "type=Draggables solved=False")
+    if unsolved_controllers(pannable) != []:
+        sys.exit("self-test: a Pannables controller must not be solved")
+    if unsolved_controllers(draggable) != [2]:
+        sys.exit("self-test: an ordinary unsolved controller must be solved")
+    if unsolved_controllers(pannable + "\n" + draggable) != [2]:
+        sys.exit("self-test: scenery must be skipped and the rest kept")
+
     if open_count("track: 8 puzzles, 4 open, 2 packs", 0) != 4:
         sys.exit("self-test: open_count misread the opening track line")
     if open_count("track: 1/2 packs, 6 puzzles open (+2)", 4) != 6:
@@ -1861,6 +2160,27 @@ def main_restoring():
     try:
         return main()
     finally:
+        # KEEP THE GAME LOG, whatever happened.
+        #
+        # This gate is flaky and the log is the only way to tell one failure
+        # from another - but the next run overwrites it, so by the time a
+        # failure is worth comparing against a success, the evidence is gone.
+        # That is exactly how a 0-of-8 run was reduced to guesswork: same zip,
+        # same seed, same code as a run that beat all eight, and nothing left
+        # to diff.
+        #
+        # Named by the clock and kept next to the server logs. Cheap, and it
+        # turns "it is flaky" into something that can be read.
+        try:
+            os.makedirs(os.path.join(REPO, "testserver", "logs"), exist_ok=True)
+            kept = os.path.join(
+                REPO, "testserver", "logs",
+                time.strftime("e2e-%Y%m%d-%H%M%S.log"))
+            shutil.copyfile(LOG, kept)
+            print(f"game log kept at {os.path.relpath(kept, REPO)}", flush=True)
+        except Exception as e:
+            print(f"could not keep the game log: {e}", flush=True)
+
         # Quiet on the way out: the gate's own verdict is what matters, and a
         # restore that announces itself between the checks and the summary
         # reads like part of the result.
@@ -1869,5 +2189,8 @@ def main_restoring():
 
 
 if __name__ == "__main__":
+    sys.stdout = Tee(sys.stdout, PROGRESS)
+    print(f"progress is being written to "
+          f"{os.path.relpath(PROGRESS, REPO)}", flush=True)
     self_test()
     raise SystemExit(main_restoring())

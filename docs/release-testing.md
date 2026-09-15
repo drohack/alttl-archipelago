@@ -79,6 +79,39 @@ This is the exception to "a short reproducer must do REAL solves" above, and
 only because a forced solve failing to complete the level IS the condition
 under test.
 
+### What a Skip does NOT prove, and the one manual check
+
+A Skip banks the slot's Beaten token, so a skipped level is indistinguishable
+from a solved one in every count the gate prints. A run can go green having
+never actually solved a quarter of its puzzles.
+
+The gate now says so rather than leaving it in the transcript. It keeps a
+ledger of every Skip it spent and asserts two things about it:
+
+- **a Skip was spent only where one is known to be needed.** The allowlist is
+  `KNOWN_UNFORCEABLE` in `release-e2e.py`. A new name failing this check is
+  far more likely to be a regression in solve routing or in the controller
+  table than a genuinely unforceable level - measure before allowlisting.
+- **no Skip covered for a level the mod was still gating.** This is the one
+  with teeth. An ability-gated level reaches the skip path looking exactly
+  like an unfinishable one: every controller the player can reach is solved.
+  Without this check, a mod that wrongly withheld an ability would be papered
+  over by the Skip and the run would pass. The harness must never buy its way
+  past a gating bug.
+
+Neither check proves a HUMAN can finish those levels, and no harness here can.
+A real solve needs the drag path - `DragObject` has no `OnDrag`, so synthetic
+pointer input never starts the settle tween that `Snap()` does. So this stays
+manual, once per release:
+
+> Generate a seed containing each level in `KNOWN_UNFORCEABLE`, grant every
+> ability, and finish each one by hand. Confirm the level completes, the mod
+> banks a Beaten token, and the checks reach the server.
+
+Skipping this is a reasonable call for a patch release that touched neither
+solve routing nor the controller table. Skipping it silently is not - say so
+in the release notes, because the gate's green does not cover it.
+
 ## The automatic route
 
 ```

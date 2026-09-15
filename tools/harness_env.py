@@ -380,11 +380,27 @@ def set_config(name, settings):
             changed.append(f"{key}={value}")
 
     if wanted:
-        # Loud, because a silently ignored setting means the harness is not
-        # testing what it says it is. A key can go missing when the plugin
-        # renames it, and the run would otherwise look fine.
-        print(f"WARNING: {name} has no line(s) for "
-              f"{', '.join(sorted(wanted))}", flush=True)
+        # ADDED, NOT JUST COMPLAINED ABOUT.
+        #
+        # A key is missing whenever the plugin has not written its config
+        # since the setting was introduced - and this function is usually
+        # called BEFORE the launch that would write it, so a brand new setting
+        # never takes on its first run. Worse, restore puts the old config
+        # back afterwards, so it never takes on any run: MuteAudio was added,
+        # wired into five harnesses, and silently did nothing every time,
+        # while droha listened to the game twice and said so.
+        #
+        # Appended under the section the caller names in the key, or at the
+        # end if there is none to find. BepInEx reads a bare assignment fine
+        # and rewrites the file with its own documentation on the next launch,
+        # so nothing is lost by writing the short form here.
+        for key in sorted(wanted):
+            value = str(wanted[key])
+            lines.append(f"{key} = {value}")
+            changed.append(f"{key}={value} (added)")
+        print(f"note: {name} gained {', '.join(sorted(wanted))} - the plugin "
+              f"had not written {'them' if len(wanted) > 1 else 'it'} yet",
+              flush=True)
 
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines) + "\n")
