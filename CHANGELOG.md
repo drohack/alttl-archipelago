@@ -8,7 +8,7 @@ table, and nothing detects that at runtime - so the version is checked by
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
-## 0.3.2 - unreleased
+## 0.3.2 - 2026-09-14
 
 droha's 79-puzzle multiworld, and the playtest that followed it. **Location
 ids move**, so a seed generated before this build will not match a mod built
@@ -744,6 +744,55 @@ at five slots while `open_the_start` had filled six. It passed by luck
 until a draw put the fourth solvable puzzle at index 5, and then read as
 a regression in the reserve rather than as the stale window it was.
 
+### The credits have to be played, not just unlocked
+
+droha, mid-playtest: "i beat the level that had the credits unlock... That
+instant it said i completed the game. i didn't have to go out and play the
+credits at all."
+
+The goal fired the moment the Credits ITEM arrived, which read as the run
+ending without an ending. `GoalLatch.ShouldReport` now also requires the
+credits to have been played, and there is deliberately **no fallback** -
+droha: "there should be no fallback. the user needs to click on the credits
+level to finish". A harness that never opens the card never sees a goal, which
+is correct rather than a regression, and cost an e2e run to re-learn.
+
+The card itself was also unreadable: a greyed hand-print with no label, which
+droha could not identify as the credits at all. It gets a completion row like
+any other card once it is playable, and a divider before it so it is visibly
+the end of the track rather than part of the last pack. Not a chapter break -
+that was tried and looked like gold-plating - just an ordinary card.
+
+### A mechanic reserve that could eat a short run
+
+The coverage reserve took one level per mechanic before anything else drew,
+with nothing stopping it from taking the WHOLE run. At 8 puzzles it did: every
+slot went to a different mechanic, so nearly every level needed abilities the
+player could not yet hold, and the run deadlocked at 2 of 8.
+
+The 0.3.2 release gate caught it and 0.3.1 passed the same gate 21/21 an hour
+later - a real regression this release introduced. Nothing in the unit suites
+saw it, because they ask whether a mechanic is PRESENT and every one of them
+was. That was the whole problem.
+
+The reserve is capped at half the slots, so the weighted draw always gets the
+other half. At any realistic length it changes nothing: twelve abilities need
+six to eight levels to cover, and half of a 40-puzzle run is twenty. It binds
+only where it has to. `TestTheReserveLeavesRoomOnAShortRun` pins it from the
+side that matters - at most half an 8-puzzle seed may need three or more
+abilities.
+
+### Scenery stopped being reported as a controller mismatch
+
+`Pannables` carries no locations on any level, so every level holding one
+logged the mod's loudest warning forever. It is skipped in the audit now.
+
+Measured across all 39 controller types before hardcoding anything: Pannables
+is the only one that appears (12 times) and never carries a location. The
+apworld had already reached the same conclusion independently - `abilities.json`
+lists it under `notPuzzles` - and `ControllerTypes` in Core is now the single
+place that says so, with the count in its comment.
+
 ### Tools
 
 `jiggle` settles pieces on demand, because reproducing the cat trap freeze
@@ -754,6 +803,34 @@ index side by side; `setres 1280 720` sets a size by size, never by index.
 
 `AppendLog = false` in `BepInEx.cfg` is why the first freeze report was
 uninvestigable. Turn it on before hunting anything intermittent.
+
+**The release gate now says what its Skips covered for.** A Skip banks the
+slot's Beaten token, so a skipped level is indistinguishable from a solved one
+in every count the gate prints - a run could go green having never solved a
+quarter of its puzzles, with the only trace a line in the middle of a
+fifteen-minute transcript. It keeps a ledger now and asserts two things: a
+Skip was spent only on a level in `KNOWN_UNFORCEABLE`, and no Skip covered for
+a level the mod was still ability-gating. The second is the one with teeth -
+a gated level reaches the skip path looking exactly like an unfinishable one,
+so without it a mod that wrongly withheld an ability would be paid past and
+the run would pass. The reading is taken BEFORE the Skip is spent, because
+spending it destroys the evidence.
+
+**And it puts the player's environment back.** The gate deletes the mod config
+and writes one pointing at localhost; it never restored either, and droha lost
+their real server settings to it. Every exit path now goes through a restore,
+and the game log is archived per run so an intermittent failure can be diffed
+against a passing one instead of guessed at.
+
+`harness_env.set_config` ADDS a missing key instead of warning about it. A key
+is missing whenever the plugin has not written its config since the setting
+was introduced, and set_config runs before the launch that would write it - so
+`MuteAudio` was added, wired into five harnesses, and silently did nothing
+every time, while droha listened to the game twice and said so.
+
+Every line the gate prints also lands in `testserver/logs/e2e-progress.txt`,
+at a fixed path, so a fifteen-minute run can be watched from an editor pane
+that shows neither the background process nor its output.
 
 ## 0.3.1 - 2026-09-09
 
