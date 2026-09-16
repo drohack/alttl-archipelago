@@ -138,7 +138,9 @@ Full detail, including every option and what each item does:
    `custom_worlds/` folder, and `A Little to the Left.yaml` into `Players/`.
 
 The three release files ship together and carry the same version number. A mod
-and an apworld that disagree about the version disagree about the item table.
+and an apworld that disagree about the version disagree about the item table,
+so the mod refuses such a pair when it connects rather than playing a subtly
+wrong run.
 
 Details, the yaml options and troubleshooting:
 [docs/installation.md](docs/installation.md).

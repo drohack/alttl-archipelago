@@ -236,7 +236,7 @@ name, and press Connect.
 
 | Claim | Where you see it |
 |---|---|
-| the mod loaded | `features live: save redirect, connection pane, track, skips, hints, navigation, title screen` in `BepInEx/LogOutput.log`, and no `FEATURES DISABLED` |
+| the mod loaded | `features live: save redirect, connection pane, track, skips, hints, navigation, daily guard, title screen` in `BepInEx/LogOutput.log`, and no `PATCH FAILED` |
 | the seed came through | `connected. 8 puzzles, 2 packs of 2, beat 8 to unlock the credits` |
 | the track is gated | `track: 8 puzzles, 4 open, 2 packs` - four of eight, not all eight |
 | checks reach the server | `checks: sent 1, 0 still owed` |

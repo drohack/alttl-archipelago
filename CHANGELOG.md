@@ -8,6 +8,95 @@ table, and nothing detects that at runtime - so the version is checked by
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+An audit droha asked for after the apworld manifest bug: "can you do a full
+audit that we're not missing/half implementing other things like this?" The
+bug had a shape - half of an external contract, checks that read the source
+while the artifact shipped broken, a failure that only logged, and a declared
+guarantee that silently did nothing - and the audit looked for all four.
+
+### A run finished offline never reported its goal
+
+The worst thing it found, and a regression from 0.3.2's own credits change.
+Reporting the goal requires the credits to have been PLAYED, and that flag
+lived only in GoalLatch - which is replaced wholesale on every reconnect and
+every offline start. Finish the run offline, play the credits, reconnect: the
+flag was gone, the goal was never sent, and the multiworld waited forever on a
+slot that had genuinely finished. A relaunch between the two did the same.
+Nothing logged it.
+
+The flag is persisted in the run's sidecar file now. The latch also stopped
+claiming it "closes on the acknowledgement" - the client library has no async
+or callback form of SetGoalAchieved, so a send that left is all anyone knows.
+What makes that safe is the persistence: each session re-owes the goal and
+re-sends until one lands, and the server takes a repeat as idempotent.
+
+Proved in a real game by `tools/probe-offline-goal.py`, which finishes a run,
+kills the server, plays the credits offline, brings the server back and
+watches the goal arrive.
+
+### The mod refuses a seed built by a different apworld
+
+`slot_data` carries `world_version` and the mod compares it with its own
+assembly version at connect. Location ids move between releases, so a 0.3.1
+mod on a 0.3.2 seed sent the wrong checks under the right names and said
+nothing. check-version.py enforced the pact inside the repo, between commits,
+and never between two installs.
+
+Refused rather than warned: everything past that point builds a run on the
+payload, and checks sent into other people's worlds cannot be walked back. A
+seed too old to say which version made it is an unknown, not a mismatch, and
+is allowed with a warning.
+
+### The packaged apworld carries its container keys
+
+The bug that started the audit. Archipelago's spec defines two manifests with
+opposite rules - the source must not declare `version`/`compatible_version`,
+the packaged archive must - and the packager copied the source verbatim, so
+the artifact had neither. Every release since 0.3.0 shipped it.
+
+It was not only a future problem. The failed parse left `minimum_ap_version`
+unpopulated, and the loader's check is `if apworld.minimum_ap_version and ...`
+- so the minimum version we declared was never enforced at all.
+
+### Diagnostics that logged and did nothing now act
+
+- the controller audit returned silently on a level with no controller_groups
+  entry - the one case where NO group check can ever be collected. A level
+  merely missing a few groups got the loud warning.
+- `SlotData.Problems()` is "whether the payload is coherent enough to start a
+  run on", and the offline start and cache write both refuse on it. The live
+  connect path logged a warning and started anyway. It refuses now.
+- `pack_size` defaulted to 4 against an option default of 5, and
+  `cat_trap_chance` to 10 against 25, contradicting the invariant SlotData
+  states about itself. The test that should have caught it was asserting the
+  drifted values, so `tools/check-slot-defaults.py` reads both sides in CI.
+
+### The release tooling checks the artifacts
+
+`tools/check-release-assets.py` opens the three files a player downloads:
+their four versions must agree, the apworld manifest must be readable, and the
+yaml must parse and keep a `{number}` placeholder. `--expect` catches a stale
+folder, which "they agree with each other" cannot.
+
+The release gate runs it before installing. It defaulted to `release-test/`,
+which holds the PREVIOUS release between releases, and green-lit 0.3.1's
+artifacts twice during 0.3.2.
+
+CI now generates from our own shipped yaml rather than Archipelago's template,
+using two copies so the name placeholder is exercised, and asserts the
+packaged world loads with no errors logged. `.apignore` makes Archipelago's
+own packager produce the same archive ours does.
+
+### Docs that contradicted the code
+
+The game page said packs widen as you go (removed in 0.3.2), that the
+multiworld holds a Hint Page for every page (the default is 50%, and the same
+file said so seven lines earlier), and that the credits card needs only the
+count. `docs/release-testing.md` gave a "features live" line missing `daily
+guard`, so the string it told you to look for could never match.
+
 ## 0.3.2 - 2026-09-14
 
 droha's 79-puzzle multiworld, and the playtest that followed it. **Location

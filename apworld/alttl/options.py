@@ -256,8 +256,9 @@ class HintCoverage(Range):
 
     A percentage rather than a count, because how many pages a run contains
     depends on what it drew: every puzzle in the game has at least one, most
-    have exactly one, and some run to five. A default 79-puzzle seed holds
-    about 110 pages, so 50 means roughly 55 items - enough to open the hints
+    have exactly one, and some run to five. This is a percentage of whatever
+    your seed actually holds, so 50 means about half its pages - enough to
+    open the hints
     you actually reach for, without the pool being nothing but hints.
 
     Turn it up if you want the reassurance of knowing every notepad in the run

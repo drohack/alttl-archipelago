@@ -16,9 +16,9 @@ where those are the only source of a mechanic.
 
 Two things gate your progress:
 
-- **Puzzle Packs** open the next block of puzzles on the track. The run starts
-  with a few open and the packs widen as you go, so the opening is deliberately
-  slow and the end is quick.
+- **Puzzle Packs** open the next block of puzzles on the track. Every block is
+  the same size, the free opening included, and only the last is short - a run
+  rarely divides evenly. **Pack Size** sets it, five by default.
 - **Abilities** unlock the mechanics themselves - swapping, stacking, rotating,
   nesting things in containers, and so on. Objects belonging to a mechanic you
   have not unlocked sit dimmed and cannot be moved.
@@ -49,9 +49,10 @@ run can be opened.
 
 A **Hint Page** uncovers one page of one puzzle's hint notepad. Most puzzles
 have a one-page hint, but some run to five, and each page costs its own item.
-By default the multiworld contains exactly one Hint Page for every page your
-seed actually holds, so a player who finds them all can read every hint in the
-run; turn **Hint Coverage** down if you want some notepads to stay shut.
+At the default 50% coverage the seed holds an item for about half the pages it
+contains, so some notepads stay shut - turn **Hint Coverage** up to 100 if you
+want every hint in the run to be openable. Without the item the notepad still
+opens; you just cannot erase the scribble covering the page.
 
 ## What is considered a location check?
 
@@ -93,9 +94,13 @@ rather than jumping to a new one every time you log in.
 
 ## What is the victory condition?
 
-Finish enough puzzles, then finish the credits card. The credits item is
-shuffled into the multiworld like any other, so it can turn up early or late -
-but the card stays locked until the count is met.
+Finish enough puzzles AND find the Credits item, then play the credits card.
+Both are required: the item is shuffled into the multiworld like any other, so
+it can turn up early or late, and meeting the count without it leaves the card
+locked - as does holding it before the count is met.
+
+Playing the card is what ends the run. Reaching the count does not finish it
+on your behalf; you go to the card and watch the ending.
 
 What "enough" means depends on the `goal` option:
 
