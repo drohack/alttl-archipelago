@@ -1,23 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using ALTTLArchipelago.Core;
 
 namespace ALTTLArchipelago;
 
 /// <summary>
-/// The little that has to outlive the process but does not belong to the game.
+/// The disk half of <see cref="RunStateData"/>: where the file lives, when it
+/// is written, and refusing to let either fail loudly.
 ///
-/// Two things so far:
-///
-/// - checks earned but not yet accepted by the server. Without them, playing
-///   offline and quitting loses everything earned in that session: the ledger
-///   is in memory, and the server never heard about any of it.
-/// - how many Skips have been spent. Archipelago replays the ITEMS on
-///   reconnect, so the number held is always recoverable - but nothing tells
-///   us how many were used, and without that every reconnect would hand them
-///   all back.
+/// Deliberately thin. What the run state CONTAINS, and whether a given call
+/// changed anything worth writing, are decided in Core, where they are tested
+/// without a game. This file only knows a path and an atomic write.
 ///
 /// A sidecar file rather than a field in the game's save. The save is the
 /// game's own format behind a character cipher, and adding a key would mean
@@ -26,91 +20,8 @@ namespace ALTTLArchipelago;
 /// </summary>
 internal static class RunState
 {
-    private sealed class Payload
-    {
-        [JsonPropertyName("owed")]
-        public List<string> Owed { get; set; } = new();
-
-        [JsonPropertyName("skipsUsed")]
-        public int SkipsUsed { get; set; }
-
-        /// <summary>
-        /// Traps that have already gone off.
-        ///
-        /// Archipelago replays the whole item list on every reconnect, so
-        /// without this every cat you have ever been sent fires again the
-        /// moment you log back in - and since that happens before a puzzle is
-        /// open, they are all spent as misses and a genuinely new trap has
-        /// nothing left to do.
-        /// </summary>
-        [JsonPropertyName("trapsSprung")]
-        public int TrapsSprung { get; set; }
-
-        /// <summary>
-        /// Event locations we have collected - the Beaten tokens.
-        ///
-        /// The only checks nothing else can restore. They have no address, so
-        /// the server never lists them back at login, and they are never owed
-        /// because sending one can only ever be rejected. Both of the things
-        /// that rebuild a ledger therefore miss them.
-        ///
-        /// Without this the beaten count returned to zero on every login, so
-        /// the credits goal could only be reached inside one unbroken session -
-        /// and the track's badges forgot which puzzles were finished.
-        /// </summary>
-        [JsonPropertyName("beaten")]
-        public List<string> Beaten { get; set; } = new();
-
-        /// <summary>
-        /// Hint pages already paid for, as "slot:page".
-        ///
-        /// A set of keys rather than a spent COUNT, and the difference is the
-        /// whole point: a page you have opened must stay open. With a counter,
-        /// leaving a puzzle and coming back would charge a second Hint Page
-        /// for a page you had already read, and re-reading your own hint is
-        /// not something a player should pay for twice. The length of this
-        /// list is what has been spent, so one field answers both questions.
-        ///
-        /// Keyed by SLOT, not level index: a generator can be drawn several
-        /// times into one run, and each instance has its own notepad.
-        ///
-        /// A missing key deserialises to an empty list, so run files written
-        /// before this existed stay valid.
-        /// </summary>
-        [JsonPropertyName("hintPages")]
-        public List<string> HintPages { get; set; } = new();
-
-        /// <summary>
-        /// Whether the player has played the credits through to the end.
-        ///
-        /// THE GOAL CANNOT BE REPORTED WITHOUT THIS, which is why it has to
-        /// outlive the process. Reporting requires the credits to have been
-        /// PLAYED, and that flag lived only in GoalLatch, which
-        /// Credits.Reset() replaces wholesale on every reconnect and every
-        /// offline start. So a player who finished the run offline, played the
-        /// credits and then reconnected had the fact wiped, and the goal was
-        /// never sent - the multiworld waiting forever on a slot that had
-        /// genuinely finished. Relaunching between playing the credits and
-        /// reporting did the same thing.
-        ///
-        /// It also does the work an acknowledgement would. The client library
-        /// offers SetGoalAchieved and no async or callback form, so a send
-        /// that left is the strongest signal available and the report latch
-        /// cannot honestly wait for more. Because this survives, every
-        /// reconnect re-arms the report and sends again until one lands, and
-        /// the server takes a repeated goal as idempotent.
-        ///
-        /// A missing key deserialises to false, so run files written before
-        /// this existed stay valid - such a player re-plays the credits card,
-        /// which is a click.
-        /// </summary>
-        [JsonPropertyName("creditsPlayed")]
-        public bool CreditsPlayed { get; set; }
-    }
-
     private static string? _path;
-    private static Payload _state = new();
-
+    private static RunStateData _state = new();
 
     internal static int SkipsUsed => _state.SkipsUsed;
     internal static int TrapsSprung => _state.TrapsSprung;
@@ -118,20 +29,18 @@ internal static class RunState
     /// <summary>Have the credits been played in this run, ever?</summary>
     internal static bool CreditsPlayed => _state.CreditsPlayed;
 
-    /// <summary>Record that the credits were played. Idempotent.</summary>
-    internal static void NoteCreditsPlayed()
-    {
-        if (_state.CreditsPlayed) return;
-        _state.CreditsPlayed = true;
-        Write();
-    }
-
     /// <summary>How many Hint Pages have been spent.</summary>
-    internal static int HintPagesOpened => _state.HintPages.Count;
+    internal static int HintPagesOpened => _state.HintPagesOpened;
 
     /// <summary>Has this page already been paid for?</summary>
-    internal static bool IsHintPageOpen(string key)
-        => _state.HintPages.Contains(key);
+    internal static bool IsHintPageOpen(string key) => _state.IsHintPageOpen(key);
+
+    internal static IReadOnlyList<string> Owed() => _state.Owed;
+
+    internal static IReadOnlyList<string> Beaten() => _state.Beaten;
+
+    /// <summary>Record that the credits were played. Idempotent.</summary>
+    internal static void NoteCreditsPlayed() => WriteIf(_state.NoteCreditsPlayed());
 
     /// <summary>
     /// Pay for a page. Returns false if it was already open, so the caller
@@ -139,17 +48,25 @@ internal static class RunState
     /// </summary>
     internal static bool OpenHintPage(string key)
     {
-        if (string.IsNullOrEmpty(key)) return false;
-        if (_state.HintPages.Contains(key)) return false;
-        _state.HintPages.Add(key);
-        Write();
-        return true;
+        var opened = _state.OpenHintPage(key);
+        WriteIf(opened);
+        return opened;
     }
+
+    internal static void SetBeaten(IReadOnlyList<string> beaten)
+        => WriteIf(_state.SetBeaten(beaten));
+
+    internal static void SetOwed(IReadOnlyList<string> owed)
+        => WriteIf(_state.SetOwed(owed));
+
+    internal static void SpendSkip() => WriteIf(_state.SpendSkip());
+
+    internal static void SpendTrap(int count) => WriteIf(_state.SpendTrap(count));
 
     internal static void Begin(string saveName)
     {
         _path = null;
-        _state = new Payload();
+        _state = new RunStateData();
 
         try
         {
@@ -159,19 +76,13 @@ internal static class RunState
 
             if (!File.Exists(_path)) return;
 
-            var loaded = JsonSerializer.Deserialize<Payload>(File.ReadAllText(_path));
+            var loaded = RunStateData.FromJson(File.ReadAllText(_path));
             if (loaded == null) return;
 
             _state = loaded;
-            if (_state.Owed.Count > 0 || _state.SkipsUsed > 0 || _state.TrapsSprung > 0
-                || _state.Beaten.Count > 0 || _state.HintPages.Count > 0)
+            if (_state.HasProgress)
             {
-                Plugin.Logger.LogInfo(
-                    $"run state: {_state.Owed.Count} check(s) still owed, "
-                    + $"{_state.SkipsUsed} skip(s) used, "
-                    + $"{_state.TrapsSprung} trap(s) already sprung, "
-                    + $"{_state.HintPages.Count} hint page(s) opened, "
-                    + $"{_state.Beaten.Count} puzzle(s) beaten");
+                Plugin.Logger.LogInfo($"run state: {_state.Summary()}");
             }
         }
         catch (Exception e)
@@ -179,60 +90,25 @@ internal static class RunState
             // A corrupt file must not stop the game starting. What it held is
             // lost, which is bad; a crash loop is worse.
             Plugin.Logger.LogWarning($"run state: could not read it: {e.Message}");
-            _state = new Payload();
+            _state = new RunStateData();
         }
     }
 
     internal static void End()
     {
         _path = null;
-        _state = new Payload();
+        _state = new RunStateData();
     }
 
-    internal static IReadOnlyList<string> Owed() => _state.Owed;
-
-    internal static IReadOnlyList<string> Beaten() => _state.Beaten;
-
-    internal static void SetBeaten(IReadOnlyList<string> beaten)
+    /// <summary>
+    /// Write only when Core says something actually changed.
+    ///
+    /// The flush that calls SetOwed runs on a timer, so an offline session
+    /// would otherwise sit re-saving an identical list every few seconds.
+    /// </summary>
+    private static void WriteIf(bool changed)
     {
-        if (Same(_state.Beaten, beaten)) return;
-
-        _state.Beaten = new List<string>(beaten);
-        Write();
-    }
-
-    internal static void SetOwed(IReadOnlyList<string> owed)
-    {
-        // Skip a write that would change nothing. The flush that calls this
-        // runs on a timer, so an offline session sits re-saving the same list
-        // every few seconds otherwise.
-        if (Same(_state.Owed, owed)) return;
-
-        _state.Owed = new List<string>(owed);
-        Write();
-    }
-
-    private static bool Same(List<string> a, IReadOnlyList<string> b)
-    {
-        if (a.Count != b.Count) return false;
-        for (int i = 0; i < a.Count; i++)
-        {
-            if (!string.Equals(a[i], b[i], StringComparison.Ordinal)) return false;
-        }
-        return true;
-    }
-
-    internal static void SpendSkip()
-    {
-        _state.SkipsUsed++;
-        Write();
-    }
-
-    internal static void SpendTrap(int count)
-    {
-        if (count <= 0) return;
-        _state.TrapsSprung += count;
-        Write();
+        if (changed) Write();
     }
 
     /// <summary>
@@ -247,7 +123,7 @@ internal static class RunState
             // Through a temp file and moved into place, so a quit midway leaves
             // the previous state intact rather than half a file.
             var temp = _path + ".tmp";
-            File.WriteAllText(temp, JsonSerializer.Serialize(_state));
+            File.WriteAllText(temp, _state.ToJson());
             File.Move(temp, _path, overwrite: true);
         }
         catch (Exception e)
