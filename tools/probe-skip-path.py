@@ -27,7 +27,6 @@ Needs a seed in testserver/out-e2e (the gate leaves one) and the release
 installed. Exits 0 only if the skip both spends and banks a token.
 """
 import glob
-import importlib.util
 import os
 import subprocess
 import sys
@@ -38,10 +37,7 @@ TOOLS = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, TOOLS)
 from harness_env import Environment
 
-spec = importlib.util.spec_from_file_location(
-    "e2e", os.path.join(TOOLS, "release-e2e.py"))
-e2e = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(e2e)
+import release_e2e as e2e
 
 CMDS = os.path.join(tempfile.gettempdir(), "alttl-skip-probe-cmds.txt")
 
@@ -181,4 +177,9 @@ def main():
     return rc
 
 
-sys.exit(main())
+# A GUARD, because these are importable now. Without it, `import
+# probe_dead_controllers` launches the game, starts a MultiServer and plays a
+# level - which is exactly what happened to a smoke test that only meant to
+# check the module parsed.
+if __name__ == "__main__":
+    sys.exit(main())

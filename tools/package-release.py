@@ -213,7 +213,7 @@ def main() -> int:
 
     # LAST RELEASE'S ZIP GOES FIRST. The output folder accumulates: the zip is
     # named for its version, so building 0.3.3 beside 0.3.2 leaves two, and
-    # then "the mod zip" is ambiguous - which is precisely what release-e2e
+    # then "the mod zip" is ambiguous - which is precisely what release_e2e
     # cannot resolve and what check-release-assets.py refuses. Found by that
     # refusal on its first real use, which is the checker earning its place.
     #

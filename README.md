@@ -202,7 +202,7 @@ queues anything you earn, and sends it on the next connection.
 - `docs/superpowers/specs/` - the original design doc, kept as history. It
   describes a product that no longer exists and says so at the top
 - `tools/ap-sync.ps1` - copy `apworld/alttl` into the Archipelago clone
-- `tools/offline-test.py` - five phases proving a run survives the server going
+- `tools/offline_test.py` - five phases proving a run survives the server going
   away and rejoins when it comes back, including that a regenerated seed under
   the same slot name does not come up on the cached plan
 - `tools/offline-reconnect-test.py` - the one claim that needs the pane:
@@ -211,7 +211,7 @@ queues anything you earn, and sends it on the next connection.
 - `tools/harness_env.py` - snapshot the player's BepInEx config and save folder
   before a harness runs and restore them after, including on Ctrl-C. Wrap any
   new harness that writes either. `--restore-latest` recovers from a hard kill
-- `tools/release-e2e.py` - the release gate: clean the install to vanilla,
+- `tools/release_e2e.py` - the release gate: clean the install to vanilla,
   install the release assets, generate a seed, and play it through
 - `tools/build_apworld.py` - package the world into a distributable
   `alttl.apworld`

@@ -13,7 +13,7 @@ So:
 Nothing logged it. The player sees the credits, the run looks over, and the
 seed never completes for anyone else.
 
-tools/offline-test.py cannot catch this: none of its five phases plays the
+tools/offline_test.py cannot catch this: none of its five phases plays the
 credits. The Core tests cover the latch in isolation. This is the only thing
 that exercises the whole path through a real game, a real server going away,
 and a real relaunch.
@@ -37,7 +37,6 @@ a fresh latch, and never reports.
 Runs inside harness_env, so the player's config and save folder are restored
 afterwards. Closes the game on the way out.
 """
-import importlib.util
 import json
 import os
 import subprocess
@@ -48,10 +47,7 @@ TOOLS = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, TOOLS)
 from harness_env import Environment, SAVE_DIR, close_game, ensure_no_steam_relaunch
 
-_spec = importlib.util.spec_from_file_location(
-    "offline_test", os.path.join(TOOLS, "offline-test.py"))
-off = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(off)
+import offline_test as off
 
 REPO = off.REPO
 PORT = off.PORT
@@ -65,7 +61,7 @@ CMDS = os.path.join(REPO, "testserver", "goalprobe-commands.txt")
 CREDITS_LEVEL_INDEX = 84
 
 TOTAL = 3
-# The borrowed launch/dev helpers print through offline-test's say(), which
+# The borrowed launch/dev helpers print through offline_test's say(), which
 # carries ITS phase count. Line it up so a reader is not told "phase 2/5" by
 # a three-phase probe.
 off.TOTAL = TOTAL
@@ -124,7 +120,7 @@ def generate():
 
 
 class PipedServer(off.Server):
-    """offline-test's Server, but reading console commands from a file.
+    """offline_test's Server, but reading console commands from a file.
 
     The base class gives MultiServer a DEVNULL stdin, which is right for a
     harness that never cheats. This probe has to hand itself the Credits item,

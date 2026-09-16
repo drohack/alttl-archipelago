@@ -5,7 +5,7 @@ rather than by solving them, because `solve:` sets a controller's flag and
 that is not enough for either one. So the gate proves the Skip path and says
 nothing about whether a person can finish the puzzle - and a Skip banks the
 Beaten token, so a skipped level is indistinguishable from a solved one in
-every count the gate prints. tools/release-e2e.py lists both in
+every count the gate prints. tools/release_e2e.py lists both in
 KNOWN_UNFORCEABLE and docs/release-testing.md carries this as a manual item.
 
 No harness can close that gap. A real solve needs the drag path: DragObject
@@ -58,7 +58,6 @@ CLEANING UP AFTERWARDS. Nothing here does it for you:
 
 Until that runs, the mod points at localhost instead of your real server.
 """
-import importlib.util
 import json
 import os
 import subprocess
@@ -70,10 +69,7 @@ sys.path.insert(0, TOOLS)
 from harness_env import (close_game, ensure_no_steam_relaunch,
                          set_config, take_snapshot)
 
-spec = importlib.util.spec_from_file_location(
-    "e2e", os.path.join(TOOLS, "release-e2e.py"))
-e2e = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(e2e)
+import release_e2e as e2e
 
 REPO = e2e.REPO
 CMDS = os.path.join(REPO, "testserver", "handtest-commands.txt")

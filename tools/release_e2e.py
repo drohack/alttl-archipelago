@@ -6,7 +6,7 @@ a seed generated from a yaml, a real MultiServer, and a run played to the
 credits. It is the only test that would catch a release that is broken only
 as a release.
 
-    PYTHONUNBUFFERED=1 py -3.13 -u tools/release-e2e.py 2>/dev/null
+    PYTHONUNBUFFERED=1 py -3.13 -u tools/release_e2e.py 2>/dev/null
 
     --clean-only   put the install back to vanilla and stop
     --assets DIR   where the three release files are (default release-test)

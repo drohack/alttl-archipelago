@@ -45,7 +45,7 @@ are the parts that need a second session. Use it for "did this edit break
 anything"; use the full gate to sign off a release.
 
 ```
-PYTHONUNBUFFERED=1 py -3.13 -u tools/release-e2e.py --quick 2>/dev/null
+PYTHONUNBUFFERED=1 py -3.13 -u tools/release_e2e.py --quick 2>/dev/null
 ```
 
 ### The gate runs a self-test first
@@ -72,7 +72,7 @@ is right to bank no Beaten token. Phased campaign levels became drawable in
 six assertions that had nothing wrong with them. The gate spends a Skip
 instead, which since 0.3.1 finishes the slot and counts toward the credits.
 
-It loads `release-e2e.py` and calls the real `solve_level`, deliberately: the
+It loads `release_e2e.py` and calls the real `solve_level`, deliberately: the
 bug it guards against WAS a copy that had drifted out of step. Expect
 
     solve_level: done=False exhausted=True
@@ -96,7 +96,7 @@ The gate now says so rather than leaving it in the transcript. It keeps a
 ledger of every Skip it spent and asserts two things about it:
 
 - **a Skip was spent only where one is known to be needed.** The allowlist is
-  `KNOWN_UNFORCEABLE` in `release-e2e.py`. A new name failing this check is
+  `KNOWN_UNFORCEABLE` in `release_e2e.py`. A new name failing this check is
   far more likely to be a regression in solve routing or in the controller
   table than a genuinely unforceable level - measure before allowlisting.
 - **no Skip covered for a level the mod was still gating.** This is the one
@@ -187,7 +187,7 @@ to forget - which is the whole reason they are named here:
 ## The automatic route
 
 ```
-PYTHONUNBUFFERED=1 py -3.13 -u tools/release-e2e.py 2>/dev/null
+PYTHONUNBUFFERED=1 py -3.13 -u tools/release_e2e.py 2>/dev/null
 ```
 
 Seven phases: clean the install to vanilla, install the mod from its zip,
@@ -243,7 +243,7 @@ Same thing, by hand. Takes about ten minutes.
 **1. Clean the install.**
 
 ```
-py -3.13 tools/release-e2e.py --clean-only
+py -3.13 tools/release_e2e.py --clean-only
 ```
 
 This removes the mod, its config, every `save_ap_*` run file and the installed
@@ -304,7 +304,7 @@ Trap. It costs time, never progress.
 
 ## Notes on the harness, if you extend it
 
-`tools/release-e2e.py` drives the game through DevTools' command file, and
+`tools/release_e2e.py` drives the game through DevTools' command file, and
 nearly every bug found while writing it was in the harness rather than the
 mod. The ones worth knowing about, all recorded in comments at the site:
 

@@ -17,7 +17,7 @@ cache being confidently wrong about a run that has since been regenerated.
 Runs inside harness_env, so the player's BepInEx config and save folder are
 restored afterwards, including the cache file this creates.
 
-    PYTHONUNBUFFERED=1 py -3.13 -u tools/offline-test.py 2>/dev/null
+    PYTHONUNBUFFERED=1 py -3.13 -u tools/offline_test.py 2>/dev/null
 """
 import json
 import os

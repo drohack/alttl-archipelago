@@ -32,7 +32,6 @@ first version of this probe did exactly that and called EggsContainable dead,
 which the room log disproves.
 """
 import glob
-import importlib.util
 import os
 import re
 import subprocess
@@ -43,10 +42,7 @@ TOOLS = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, TOOLS)
 from harness_env import Environment
 
-spec = importlib.util.spec_from_file_location(
-    "e2e", os.path.join(TOOLS, "release-e2e.py"))
-e2e = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(e2e)
+import release_e2e as e2e
 
 #: SomethingEggstra Fridge. The level this probe was written for.
 DEFAULT_LEVELS = [109]
@@ -295,4 +291,9 @@ def main():
     return 0
 
 
-sys.exit(main())
+# A GUARD, because these are importable now. Without it, `import
+# probe_dead_controllers` launches the game, starts a MultiServer and plays a
+# level - which is exactly what happened to a smoke test that only meant to
+# check the module parsed.
+if __name__ == "__main__":
+    sys.exit(main())

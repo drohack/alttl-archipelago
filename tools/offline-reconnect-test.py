@@ -1,6 +1,6 @@
 """Press Connect during an offline run, against a server that is still down.
 
-The one claim tools/offline-test.py cannot make, because it needs the pane.
+The one claim tools/offline_test.py cannot make, because it needs the pane.
 
 What is being tested is an invariant, not a repaired crash. Inventory clears
 the item list at the top of every connection ATTEMPT, which is right when the
@@ -119,7 +119,7 @@ def start_server():
         [sys.executable, "MultiServer.py", "--port", str(PORT),
          os.path.join(SEED, zipname)],
         cwd=AP, stdout=subprocess.DEVNULL, stderr=err, stdin=subprocess.DEVNULL,
-        # See offline-test.py: without this MultiServer PROMPTS to install a
+        # See offline_test.py: without this MultiServer PROMPTS to install a
         # requirement and dies on EOF, looking exactly like a refused port.
         env=dict(os.environ, SKIP_REQUIREMENTS_UPDATE="1"))
     import socket

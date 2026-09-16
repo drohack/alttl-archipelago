@@ -15,7 +15,7 @@ WHAT IT CATCHES, each one a gap the audit found:
     package-release.py run makes them together - the documented workflow of
     downloading the apworld from CI and building the zip locally has no such
     guarantee.
-  - a STALE assets folder. tools/release-e2e.py defaults to release-test/,
+  - a STALE assets folder. tools/release_e2e.py defaults to release-test/,
     refuses two zips as ambiguous, and accepts one old zip without a word. It
     green-lit the previous release twice during 0.3.2.
   - a .apworld whose manifest is missing its container keys, which is the bug
