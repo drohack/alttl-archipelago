@@ -8,7 +8,13 @@ table, and nothing detects that at runtime - so the version is checked by
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
-## Unreleased
+## 0.3.3 - 2026-09-16
+
+**Location ids did NOT move**, unusually for this project - the tables and the
+code that builds them are byte-identical to 0.3.2. A seed generated with the
+0.3.2 apworld still plays on this mod: it carries no version field, so the new
+pair check treats it as an unknown rather than a mismatch and allows it with a
+warning. Nothing needs regenerating.
 
 An audit droha asked for after the apworld manifest bug: "can you do a full
 audit that we're not missing/half implementing other things like this?" The

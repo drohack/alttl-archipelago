@@ -197,7 +197,23 @@ def read_save(path):
 #: calendar forward: the game appends one history entry per day it has not seen
 #: yet, at LAUNCH, before an Archipelago session exists and therefore before
 #: SaveRedirect is armed. Vanilla does this whether the mod is installed or not.
-IGNORED_CAMPAIGN_FIELDS = ("saveTimestamp", "dailyTidyProgress")
+#: Fields the campaign save may legitimately differ in after a run.
+#:
+#: playerPrefs is the interesting one and it was NOT here until 0.3.3, which
+#: means this check had been passing by luck. SaveRedirect.MirrorSettingsToCampaign
+#: copies playerPrefs from the run save into the campaign save ON PURPOSE -
+#: "SETTINGS ONLY, and that is the whole design", because droha's volume and
+#: resolution changes made inside a run must not be lost when they go back to
+#: the campaign. So a run is EXPECTED to move this field, and the check only
+#: stayed green while no setting happened to change during a run. It went red
+#: the first time one did: the harness sets a window size, the mod records the
+#: resolution, and the mirror does its job.
+#:
+#: What still protects the player is unchanged: levelCompletionData and every
+#: other progress field are compared, the daily count is pinned separately,
+#: and SettingsSpliceTests in Core asserts the splice touches playerPrefs and
+#: nothing else - which is the property that makes ignoring it safe here.
+IGNORED_CAMPAIGN_FIELDS = ("saveTimestamp", "dailyTidyProgress", "playerPrefs")
 
 
 def campaign_progress(path):

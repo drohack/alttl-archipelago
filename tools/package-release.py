@@ -211,6 +211,19 @@ def main() -> int:
     out = (ROOT / args.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
 
+    # LAST RELEASE'S ZIP GOES FIRST. The output folder accumulates: the zip is
+    # named for its version, so building 0.3.3 beside 0.3.2 leaves two, and
+    # then "the mod zip" is ambiguous - which is precisely what release-e2e
+    # cannot resolve and what check-release-assets.py refuses. Found by that
+    # refusal on its first real use, which is the checker earning its place.
+    #
+    # Only OUR zips, only in the top level, and only other versions - a rerun
+    # of the same version simply overwrites.
+    for stale in out.glob("ALTTLArchipelago-*.zip"):
+        if stale.name != f"ALTTLArchipelago-{version}.zip":
+            stale.unlink()
+            print(f"      removed the older {stale.name}", flush=True)
+
     if args.skip_build:
         print("[2/5] --skip-build: using the Release output on disk", flush=True)
     else:
