@@ -188,4 +188,69 @@ public class SlotDataTests
             }
         }
     }
+
+    [Fact]
+    public void AMatchingPairIsNotAMismatch()
+    {
+        var slot = new SlotData { WorldVersion = "0.3.2" };
+
+        Assert.Null(slot.VersionMismatch("0.3.2"));
+    }
+
+    [Fact]
+    public void ADifferentApworldVersionIsRefused()
+    {
+        // The pairing this exists to catch: the player updated one of the two
+        // files in the release and not the other. Location ids move between
+        // releases, so the run would send the wrong checks under the right
+        // names and nothing would say so.
+        var slot = new SlotData { WorldVersion = "0.3.1" };
+
+        var why = slot.VersionMismatch("0.3.2");
+
+        Assert.NotNull(why);
+        Assert.Contains("0.3.1", why);
+        Assert.Contains("0.3.2", why);
+    }
+
+    [Fact]
+    public void APatchLevelDifferenceIsStillAMismatch()
+    {
+        // Deliberately strict. Allowing "same major.minor" would wave through
+        // exactly the pairing that breaks: 0.3.1 to 0.3.2 moved location ids.
+        var slot = new SlotData { WorldVersion = "0.3.1" };
+
+        Assert.NotNull(slot.VersionMismatch("0.3.9"));
+    }
+
+    [Fact]
+    public void ASeedThatPredatesTheCheckIsAllowed()
+    {
+        // An unknown is not a mismatch. Refusing here would strand runs that
+        // are very probably fine, for a field their generator never had.
+        var slot = new SlotData { WorldVersion = "" };
+
+        Assert.Null(slot.VersionMismatch("0.3.2"));
+    }
+
+    [Fact]
+    public void AnUnreadableModVersionDisablesTheCheck()
+    {
+        // The caller passes "" when the assembly version cannot be read.
+        // Failing every connection over a packaging oddity would be a worse
+        // failure than the one being guarded against.
+        var slot = new SlotData { WorldVersion = "0.3.1" };
+
+        Assert.Null(slot.VersionMismatch(""));
+    }
+
+    [Fact]
+    public void TheVersionSurvivesARoundTripThroughJson()
+    {
+        var json = "{\"world_version\": \"0.3.2\", \"slots\": []}";
+
+        var slot = SlotData.FromJson(json);
+
+        Assert.Equal("0.3.2", slot.WorldVersion);
+    }
 }

@@ -88,9 +88,21 @@ class TestSlotDataShape(unittest.TestCase):
     def setUpClass(cls):
         cls.payload = _build()
 
+    def test_the_world_version_is_the_one_the_manifest_declares(self):
+        """The mod refuses a seed whose version does not match its own, so an
+        empty or wrong value here is worse than no check at all - it would
+        either strand every run or wave through the mismatched pair the field
+        exists to catch."""
+        import json
+        from .. import data
+        self.assertTrue(self.payload["world_version"],
+                        "slot_data carries no world_version")
+        self.assertEqual(data.WORLD_VERSION, self.payload["world_version"])
+
     def test_top_level_keys_are_exactly_these(self):
         self.assertEqual(
-            {"slots", "pack_size", "pack_total", "pack_boundaries",
+            {"world_version",
+             "slots", "pack_size", "pack_total", "pack_boundaries",
              "goal", "levels_to_beat", "levels_to_star", "ability_locks",
              "abilities", "starting_abilities", "requirements",
              "cat_trap_chance", "controller_groups"},

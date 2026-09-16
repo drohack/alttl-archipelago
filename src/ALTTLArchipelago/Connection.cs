@@ -198,13 +198,47 @@ internal sealed class Connection
             }
 
             var success = (LoginSuccessful)result;
-            Connected = true;
-            SlotName = slotName;
-            LastError = "";
 
             // Parse on this thread, hand the RESULT to the main thread. Doing
             // the work here keeps a parse failure out of the frame loop.
             var slot = ParseSlotData(success.SlotData);
+
+            // THE PAIR CHECK, BEFORE ANYTHING IS SET UP.
+            //
+            // The mod and the apworld ship together and must agree about the
+            // item table. check-version.py binds them at BUILD time, across
+            // three files in one commit - and nothing checked the two things
+            // a player actually installed. A 0.3.1 mod would connect to a
+            // 0.3.2 seed without complaint and play a subtly wrong game:
+            // location ids move between releases, so it sends the wrong
+            // checks under the right names. The README admitted as much,
+            // which made it a known hole rather than an unknown one.
+            //
+            // Refused rather than warned. Everything past this line builds a
+            // run on the payload, and a run built on the wrong table cannot
+            // be walked back - checks are sent to other people's worlds. The
+            // reason is returned the same way every other refusal is, so the
+            // connection pane shows it instead of a bare failure.
+            var mismatch = slot.VersionMismatch(ModVersionOrEmpty());
+            if (mismatch != null)
+            {
+                Plugin.Logger.LogError($"refusing the seed: {mismatch}");
+                LastError = mismatch;
+                Abandon();
+                return mismatch;
+            }
+
+            if (string.IsNullOrEmpty(slot.WorldVersion))
+            {
+                Plugin.Logger.LogWarning(
+                    "this seed predates the version check, so the mod cannot "
+                    + "tell whether it matches. If the run misbehaves, "
+                    + "regenerate it with the apworld from this release.");
+            }
+
+            Connected = true;
+            SlotName = slotName;
+            LastError = "";
             Slot = slot;
 
             _dispatch(() =>
@@ -225,6 +259,19 @@ internal sealed class Connection
             Abandon();
             return e.Message;
         }
+    }
+
+    /// <summary>
+    /// The mod's version, or "" if it cannot be read.
+    ///
+    /// Empty disables the check rather than failing the connection: an
+    /// unreadable assembly version is a packaging oddity, and refusing every
+    /// seed over it would be a far worse failure than the one being guarded.
+    /// </summary>
+    private static string ModVersionOrEmpty()
+    {
+        try { return Plugin.ModVersion; }
+        catch { return ""; }
     }
 
     /// <summary>

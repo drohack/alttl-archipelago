@@ -328,6 +328,12 @@ def slot_data(world) -> Mapping[str, Any]:
     rules, so the in-game marker cannot disagree with the generator.
     """
     return {
+        # The pair check. The mod refuses a seed whose apworld version does
+        # not match its own, because location ids move between releases and a
+        # mismatched pair sends the wrong checks without ever saying so.
+        # check-version.py binds this to the mod's assembly version at build
+        # time; this is what carries it to the player's machine.
+        "world_version": data.WORLD_VERSION,
         "slots": [
             {
                 "levelId": slot.level.level_id,

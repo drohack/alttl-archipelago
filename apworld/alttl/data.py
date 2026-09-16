@@ -35,6 +35,32 @@ def _load(name: str) -> dict:
     return json.loads(raw.decode("utf-8"))
 
 
+def _world_version() -> str:
+    """This world's version, from the manifest that ships with it.
+
+    Read rather than hardcoded so it cannot drift: archipelago.json is one of
+    the three files tools/check-version.py pins together, so this is the same
+    number the mod's assembly carries. The mod compares them at connect -
+    location ids move between releases, and a mismatched pair plays a subtly
+    wrong game otherwise.
+
+    pkgutil, not open(), for the same reason as _load: a shipped world is a
+    zip and its files have no path on disk. An unreadable manifest yields ""
+    rather than raising - the mod treats an unknown version as "cannot say"
+    and allows the run, and failing to generate over a missing string would
+    be far worse than the mismatch it guards against.
+    """
+    try:
+        raw = pkgutil.get_data(__package__, "archipelago.json")
+        if raw is None:
+            return ""
+        return str(json.loads(raw.decode("utf-8")).get("world_version", ""))
+    except Exception:       # pragma: no cover - a packaging error only
+        return ""
+
+
+WORLD_VERSION: str = _world_version()
+
 _LEVELS_RAW = _load("levels.json")
 _ABILITIES_RAW = _load("abilities.json")
 _NAMES_RAW = _load("names.json")
