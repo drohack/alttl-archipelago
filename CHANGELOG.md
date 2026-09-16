@@ -9,7 +9,15 @@ refuses to connect to a seed a different apworld generated.
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
-## Unreleased
+## 0.3.4 - 2026-09-16
+
+**Location ids did NOT move.** Verified by building both id tables and
+comparing them: 18 items and 432 locations, byte-identical to 0.3.3. A seed
+generated with the 0.3.3 apworld still plays on this mod. Nothing needs
+regenerating.
+
+Two batches: an audit of the documentation, and the refactor it deferred.
+
 
 A second audit, asked for in the same spirit as the one 0.3.3 shipped: is the
 documentation true, is the project laid out sensibly, and is there dead code or
