@@ -252,7 +252,7 @@ internal static class Traps
             // the ones an ability lock had dimmed. Waiting for the once-a-
             // second pass to re-dim them shows the player a puzzle they
             // cannot actually touch, fully lit, for up to a second.
-            Abilities.HoldDim();
+            AbilityLocks.HoldDim();
 
             Plugin.Logger.LogInfo($"trap: {cats} cat(s) reset the puzzle");
         }

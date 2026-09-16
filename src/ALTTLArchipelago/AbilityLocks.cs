@@ -23,8 +23,15 @@ namespace ALTTLArchipelago;
 /// little means a player can move something logic assumed they could not, which
 /// is untidy. Locking too much means a puzzle cannot be finished, and there is
 /// nothing on screen to explain why.
+///
+/// NOT CALLED Abilities, which is what it was. That name is taken by
+/// ALTTLArchipelago.Core.Abilities - the twelve-ability CATALOGUE - and this
+/// file imports that namespace, so the local name won every unqualified
+/// mention inside this assembly. Badges.cs, the one place that wants the
+/// catalogue, was forced to write it out in full to get past the shadow. This
+/// is a dimmer, not a catalogue, and the name now says so.
 /// </summary>
-internal static class Abilities
+internal static class AbilityLocks
 {
     /// <summary>Dim grey at partial alpha, the shade S3 confirmed reads as "not yet".</summary>
     private static readonly Color Locked = new(0.55f, 0.55f, 0.55f, 0.6f);

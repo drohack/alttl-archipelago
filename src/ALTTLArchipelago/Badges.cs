@@ -857,7 +857,7 @@ internal static class Badges
 
         _pillOrder.Clear();
         _pillTiles.Clear();
-        foreach (var ability in ALTTLArchipelago.Core.Abilities.All)
+        foreach (var ability in Abilities.All)
         {
             if (seed.Abilities.Count > 0 && !seed.Abilities.ContainsKey(ability))
             {

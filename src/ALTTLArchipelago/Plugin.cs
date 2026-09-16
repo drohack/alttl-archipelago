@@ -18,7 +18,7 @@ namespace ALTTLArchipelago;
 /// This file is the lifecycle: settings, patching, the connection and its
 /// retries, the check flush, and the per-frame tick that drives everything
 /// else. What each feature DOES lives in its own file - Track, Checks,
-/// Abilities, Badges, Traps, Skips, Credits.
+/// AbilityLocks, Badges, Traps, Skips, Credits.
 ///
 /// Architecture, each point a scar from the sibling cw4 project:
 ///
@@ -957,7 +957,7 @@ public sealed class Plugin : BasePlugin
         Inventory.RestoreReceived(cache.Items);
         Inventory.Begin(slot);
 
-        Abilities.Reset();
+        AbilityLocks.Reset();
         Badges.Reset();
         Credits.Reset();
         Traps.Reset();
@@ -1038,7 +1038,7 @@ public sealed class Plugin : BasePlugin
         RunState.Begin(SaveRedirect.ActiveName ?? "run");
 
         Inventory.Begin(slot);
-        Abilities.Reset();
+        AbilityLocks.Reset();
         Badges.Reset();
         Credits.Reset();
         Traps.Reset();
@@ -1105,7 +1105,7 @@ public sealed class Ticker : MonoBehaviour
     /// This list used to be nineteen bare calls in a row with no try anywhere.
     /// One throw took out every step BELOW it, silently and for as long as the
     /// condition lasted - and the order matters: Toasts.Tick is tenth, so a
-    /// fault in Hub, Checks.TickAudit or Abilities.Tick stopped toasts
+    /// fault in Hub, Checks.TickAudit or AbilityLocks.Tick stopped toasts
     /// appearing while leaving everything above them working. "The toast
     /// message doesn't always pop up" is exactly what that looks like from the
     /// outside, with nothing in the log to say why.
@@ -1162,7 +1162,7 @@ public sealed class Ticker : MonoBehaviour
         Step("item replay", () => Plugin.TickItemReplay(dt));
         Step("check audit", () => Checks.TickAudit(dt));
         Step("empty level watch", () => Checks.TickEmptyLevelWatch(dt));
-        Step("abilities", () => Abilities.Tick(dt));
+        Step("abilities", () => AbilityLocks.Tick(dt));
         Step("toasts", () => Toasts.Tick(dt));
         Step("track integrity", () => Track.TickTrackIntegrity(dt));
         Step("badges", () => Badges.Tick(dt));
