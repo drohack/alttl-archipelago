@@ -61,9 +61,29 @@ def _build() -> dict:
     return test.multiworld.worlds[test.player].fill_slot_data()
 
 
+#: What the golden stores instead of the real world_version.
+#:
+#: The version changes every release and the golden does not otherwise, so
+#: pinning the real value would fail this test on every single bump and make
+#: "regenerate the golden" a step in the release process that someone will
+#: eventually forget - which is exactly what happened the first time, on
+#: 0.3.3, with CI going red on a release whose artifacts were fine.
+#:
+#: The golden exists to catch drift in the SHAPE and CONTENT of the payload.
+#: That world_version is present and correct is pinned separately by
+#: TestSlotDataShape.test_the_world_version_is_the_one_the_manifest_declares,
+#: which reads the manifest - a stronger check than a literal in a fixture.
+GOLDEN_VERSION = "<this release>"
+
+
+def _for_golden(payload):
+    """The payload with its version replaced, so the golden is stable."""
+    return dict(payload, world_version=GOLDEN_VERSION)
+
+
 class TestSlotDataExample(unittest.TestCase):
     def test_the_exported_example_is_current(self):
-        built = json.dumps(_build(), indent=2, sort_keys=True)
+        built = json.dumps(_for_golden(_build()), indent=2, sort_keys=True)
 
         if os.environ.get("ALTTL_WRITE_GOLDEN") == "1":
             with open(EXAMPLE_PATH, "w", encoding="utf-8", newline="\n") as fh:
