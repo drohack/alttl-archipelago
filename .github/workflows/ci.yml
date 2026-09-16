@@ -347,7 +347,13 @@ jobs:
           import worlds
           from worlds.AutoWorld import AutoWorldRegister
           AutoWorldRegister.world_types['A Little to the Left']
-          ours = [m for m in bad if 'alttl' in m or 'Little to the Left' in m]
+          # 'alttl' alone matches EVERY error on the runner, because the
+          # checkout path contains alttl-archipelago - so this caught other
+          # worlds failing on optional deps they do not have here (soe wants
+          # pyevermizer, zillion wants zilliandomizer) and failed the job for
+          # problems that are not ours and not errors.
+          ours = [m for m in bad
+                  if 'alttl.apworld' in m or 'A Little to the Left' in m]
           if ours:
               print('the loader rejected the packaged world:')
               for m in ours:
