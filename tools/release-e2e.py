@@ -1754,6 +1754,34 @@ def main():
         print("Done: install is vanilla (DevTools left in place)", flush=True)
         return 0
 
+    # THE ASSETS ARE CHECKED BEFORE THEY ARE INSTALLED.
+    #
+    # This gate calls itself "the only test that would catch a release that is
+    # broken only as a release", and it accepted whatever was in --assets. The
+    # default is release-test/, which holds the PREVIOUS release between
+    # releases - install_mod refuses two zips as ambiguous and takes one stale
+    # zip without a word. It green-lit 0.3.1's artifacts twice during 0.3.2,
+    # including the .apworld with the unreadable manifest.
+    #
+    # Checked against this checkout's version, so "they agree with each other"
+    # is not enough - last release's files agree with each other perfectly.
+    say(2, "checking the assets before installing them")
+    expected = subprocess.run(
+        [sys.executable, os.path.join(REPO, "tools", "check-version.py")],
+        capture_output=True, text=True)
+    version = ""
+    m = re.search(r"version (\d+\.\d+\.\d+)", expected.stdout)
+    if m:
+        version = m.group(1)
+    argv = [sys.executable,
+            os.path.join(REPO, "tools", "check-release-assets.py"), assets]
+    if version:
+        argv += ["--expect", version]
+    if subprocess.run(argv).returncode != 0:
+        sys.exit("REFUSING TO RUN: the assets in "
+                 f"{os.path.relpath(assets, REPO)} did not check out. Build "
+                 f"them with tools/package-release.py, or pass --assets dist.")
+
     say(2, "installing the mod from its zip")
     zip_name, dlls = install_mod(assets)
     print(f"      {zip_name} -> {len(dlls)} dll(s) in BepInEx/plugins", flush=True)

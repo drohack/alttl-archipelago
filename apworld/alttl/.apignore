@@ -1,0 +1,22 @@
+# What must NOT go into the packaged .apworld.
+#
+# Archipelago's own "Build APWorlds" launcher component reads this, and the
+# spec calls that component "the correct way to package your .apworld". Until
+# this file existed, only tools/build_apworld.py knew to leave these out - so
+# the two packagers produced DIFFERENT archives from the same source, and the
+# sanctioned one shipped a test suite and a yaml that do not belong in a
+# player's install.
+#
+# Keep it in step with EXCLUDE_TOP_LEVEL in tools/build_apworld.py.
+#
+# The global list already covers __pycache__, .DS_Store, __MACOSX, .git,
+# .gitignore, archipelago.json and .apignore itself, so this only adds ours.
+
+# The world's own tests import Archipelago's test harness, which a player's
+# install does not have on the import path.
+test/
+
+# The shipped player template is a RELEASE asset handed to the player
+# separately, not something the world imports. It lives in the package so a
+# test can hold it in step with ALTTLOptions.
+player.yaml

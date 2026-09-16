@@ -76,13 +76,35 @@ COMPATIBLE_VERSION = 7
 EXCLUDE_DIRS = {"__pycache__", ".pytest_cache", ".mypy_cache"}
 EXCLUDE_SUFFIXES = {".pyc", ".pyo"}
 
-#: The world's own tests are not shipped: they import Archipelago's test
-#: harness, which a player's install does not have on the import path.
-#: player.yaml is the shipped template, but it is a RELEASE asset handed to
-#: the player separately - not something the world imports. It lives in the
-#: package so a test can hold it in step with ALTTLOptions; it does not belong
-#: inside the archive.
-EXCLUDE_TOP_LEVEL = {"test", "player.yaml"}
+#: Always excluded, whatever .apignore says. `.apignore` is packaging
+#: instructions rather than world code, and Archipelago's own GLOBAL.apignore
+#: drops it for the same reason.
+ALWAYS_EXCLUDED = {".apignore"}
+
+
+def _apignore_excludes() -> set:
+    """Top-level names .apignore says to leave out of the archive.
+
+    READ, NOT DUPLICATED. This list used to live only here, as a Python set,
+    which meant Archipelago's own "Build APWorlds" component - the one its
+    spec calls "the correct way to package your .apworld" - knew nothing about
+    it and produced a DIFFERENT archive from the same source, shipping the
+    test suite and the player yaml into people's installs.
+
+    Adding .apignore fixed that packager and created a second copy of the same
+    knowledge, so this reads it rather than restating it. A comment saying
+    "keep these in step" is a thing to forget; one source of truth is not.
+    """
+    path = SOURCE / ".apignore"
+    if not path.is_file():
+        sys.exit(f"no {path} - Archipelago's own packager needs it to leave "
+                 f"the tests and the player yaml out of the archive")
+    names = set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.split("#")[0].strip()
+        if line:
+            names.add(line.rstrip("/"))
+    return names
 
 
 def _archipelago_container_versions(ap: pathlib.Path):
@@ -154,7 +176,8 @@ def _manifest_bytes(source_manifest: bytes, ap: pathlib.Path) -> bytes:
 
 def _wanted(path: pathlib.Path) -> bool:
     rel = path.relative_to(SOURCE)
-    if rel.parts and rel.parts[0] in EXCLUDE_TOP_LEVEL:
+    excluded = _apignore_excludes() | ALWAYS_EXCLUDED
+    if rel.parts and rel.parts[0] in excluded:
         return False
     if any(part in EXCLUDE_DIRS for part in rel.parts):
         return False

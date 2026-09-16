@@ -181,14 +181,26 @@ jobs:
         env:
           ALTTL_STRESS_SEEDS: '50'
         run: python -m unittest worlds.alttl.test.test_fill_stress
-      - name: Generate a real seed
+      - name: Generate a real seed from OUR shipped yaml
         working-directory: ap
         # The one path the unit tests do not cover: yaml parsing, output
         # writing and the playthrough calculation.
+        #
+        # FROM apworld/alttl/player.yaml, which is the file we ship. This step
+        # used to call generate_yaml_templates and then keep the file whose
+        # NAME matched ours - so it generated from ARCHIPELAGO's template and
+        # only looked like it tested ours. Nothing anywhere parsed the shipped
+        # template; test_player_yaml.py reads it with a hand-rolled line
+        # scanner that never invokes YAML.
+        #
+        # TWO COPIES, deliberately. One proves it generates; two prove the
+        # name still carries a {number} placeholder, because two slots that
+        # resolve to the same name refuse to generate at all. That is a real
+        # bug this repo shipped - `name: Player1`, hardcoded.
         run: |
           mkdir -p players out
-          python -c "from Options import generate_yaml_templates; generate_yaml_templates('players', False)"
-          find players -maxdepth 1 -name '*.yaml' ! -name 'A Little to the Left.yaml' -delete
+          cp "../apworld/alttl/player.yaml" "players/p1.yaml"
+          cp "../apworld/alttl/player.yaml" "players/p2.yaml"
           python Generate.py --player_files_path players --outputpath out --seed 20260902
           test -n "$(ls out/*.zip)"
 
@@ -314,6 +326,47 @@ jobs:
           assert w.zip_path, 'loaded from a folder, not the .apworld'
           print('loaded from', w.zip_path)
           "
+      # THE ARCHIVE MUST ALSO LOAD WITHOUT COMPLAINT.
+      #
+      # Below 0.7.0 Archipelago LOGS a bad container manifest and carries on,
+      # so the world still imports, zip_path is still truthy, and a seed still
+      # generates - every check above passes while the artifact is broken.
+      # That is exactly how the missing container keys survived three
+      # releases. This reads the loader's own diagnostics instead.
+      - name: The packaged world must load with no errors logged
+        working-directory: ap
+        run: |
+          python -c "
+          import logging, sys
+          bad = []
+          class Catch(logging.Handler):
+              def emit(self, record):
+                  if record.levelno >= logging.ERROR:
+                      bad.append(record.getMessage())
+          logging.getLogger().addHandler(Catch())
+          import worlds
+          from worlds.AutoWorld import AutoWorldRegister
+          AutoWorldRegister.world_types['A Little to the Left']
+          ours = [m for m in bad if 'alttl' in m or 'Little to the Left' in m]
+          if ours:
+              print('the loader rejected the packaged world:')
+              for m in ours:
+                  print('   ' + m)
+              sys.exit(1)
+          print('no loader errors')
+          "
+      # NO UNIT TESTS RUN AGAINST THE ARCHIVE, and they cannot: .apignore
+      # excludes test/ from it on purpose (those tests import Archipelago's
+      # test harness, which a player's install does not have), and they use
+      # package-relative imports, so there is nothing inside the artifact to
+      # run. Archipelago's own test_world_manifest skips packaged worlds for a
+      # related reason - "Only check source folders for now. Zip validation
+      # should probably be in the loader and/or installer."
+      #
+      # So the artifact is covered by three things instead, and it is worth
+      # knowing that is deliberate rather than an oversight: the loader-error
+      # check above, the manifest assertions inside build_apworld.py, and
+      # tools/check-release-assets.py on the shipped trio.
       - name: Generate a real seed from the packaged world
         working-directory: ap
         run: |

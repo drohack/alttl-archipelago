@@ -189,7 +189,8 @@ THE YAML ("A Little to the Left.yaml", shipped alongside)
   generates.
 
 The mod and the apworld carry the same version and are meant to be used
-together. A mismatch is not detected at runtime.
+together. The mod checks this when it connects and refuses a seed built by a
+different version, because the two disagree about the item table.
 """
 
 
@@ -230,6 +231,18 @@ def main() -> int:
         size = path.stat().st_size
         total += size
         print(f"  {path.name:<34} {size:>9,} bytes", flush=True)
+    # THE ARTIFACTS, NOT THE INPUTS. Everything above this line inspects the
+    # build directory and the sources; this is the only step that opens the
+    # three files a player downloads. The .apworld shipped for three releases
+    # with an unreadable manifest precisely because nothing did.
+    print("", flush=True)
+    print("[5/5] checking the shipped files", flush=True)
+    rc = subprocess.run(
+        [sys.executable, str(ROOT / "tools" / "check-release-assets.py"),
+         str(out), "--expect", version]).returncode
+    if rc != 0:
+        sys.exit("REFUSING TO PACKAGE: the assets just built do not check out")
+
     print(f"Done: 3 assets, {total:,} bytes, version {version}", flush=True)
     return 0
 
