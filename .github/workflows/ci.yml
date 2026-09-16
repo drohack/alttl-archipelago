@@ -290,7 +290,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r ap/requirements.txt
       - name: Build the apworld
-        run: python tools/build_apworld.py --out dist --install-to ap
+        # --require-ap turns "cannot confirm the container versions"
+        # from a printed note into a failure. The check was hardcoded to
+        # ./Archipelago, which is gitignored, so on a runner it silently
+        # did nothing for three releases.
+        run: python tools/build_apworld.py --out dist --install-to ap --require-ap
       - name: Confirm no loose copy can satisfy the import
         run: |
           test ! -e ap/worlds/alttl
