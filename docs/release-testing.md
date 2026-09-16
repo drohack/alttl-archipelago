@@ -104,13 +104,41 @@ A real solve needs the drag path - `DragObject` has no `OnDrag`, so synthetic
 pointer input never starts the settle tween that `Snap()` does. So this stays
 manual, once per release:
 
-> Generate a seed containing each level in `KNOWN_UNFORCEABLE`, grant every
-> ability, and finish each one by hand. Confirm the level completes, the mod
-> banks a Beaten token, and the checks reach the server.
+> Generate a seed containing each level in `KNOWN_UNFORCEABLE`, grant the
+> abilities that level's table DECLARES and no others, and finish it by hand.
+> Confirm the level completes, the mod banks a Beaten token, and the checks
+> reach the server.
 
-Skipping this is a reasonable call for a patch release that touched neither
-solve routing nor the controller table. Skipping it silently is not - say so
-in the release notes, because the gate's green does not cover it.
+`tools/setup-handtest.py` does the setup: it rolls seeds until one holds both
+levels, opens the whole run, serves it, and grants one level's declared
+abilities at a time.
+
+**Grant the declared set, not every ability**, which is the one thing worth
+being strict about. Granting everything answers "does the level work", which
+is not the risk. The risk is a table that UNDERSTATES what a level needs -
+then objects stay dimmed for a player holding exactly what it asks for, and
+the puzzle cannot be finished at all. A solve performed while holding extra
+abilities cannot see that. It is why an earlier TupperwareTower playthrough
+did not settle the question: it was done when that level's abilities were
+overstated.
+
+**Result, 2026-09-15.** Both levels beaten by hand, both with `0 locked`:
+
+| Level | Held | Outcome |
+|---|---|---|
+| TupperwareTower | Grids, Stacking | Solution 1 + Beaten, nothing dimmed |
+| Desktop Computer | Containers, Gadgets, Rotating, Swapping | 5 parts + Solution 1 + Beaten |
+
+So both tables are sufficient and both levels are sound. The Skips the gate
+spends on them are a harness limitation and nothing more - for Desktop
+Computer, specifically, `Computer Errors` is a sequence the player starts and
+finishes rather than an arrangement, so forcing its flag sets a bit for a
+sequence that never ran.
+
+Re-run this when a level's declared abilities change, or when solve routing
+does. Skipping it is a reasonable call for a patch release that touched
+neither. Skipping it silently is not - say so in the release notes, because
+the gate's green does not cover it.
 
 ## The automatic route
 

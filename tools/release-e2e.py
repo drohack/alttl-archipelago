@@ -508,21 +508,31 @@ KNOWN_UNFORCEABLE = (
     # Registers Foundation, Tower and Falling Blocks; only the Tower is an
     # objective. Solving it leaves the tower standing but the level unfinished
     # - see KNOWN_TABLE_GAPS above for why the other two are not locations.
+    #
+    # PLAYED BY HAND, 2026-09-15, holding exactly the two abilities the table
+    # declares and nothing else: "beat the level just fine, no issues moving
+    # tupperwear". The mod logged `abilities: 0 locked, 3 open` - nothing on
+    # the level was dimmed - then Solution 1 and the Beaten token. So the
+    # narrowed table is SUFFICIENT, which is the thing an earlier playthrough
+    # could not settle: that one was done while the abilities were overstated,
+    # so it was performed holding more than the level asks for.
     "TupperwareTower",
-    # WHY THIS ONE RESISTS IS NOT MEASURED. What is observed, from
-    # testserver/logs/e2e-20260914-154848.log: all six scoring controllers
-    # reach solved=True, Pannables stays false because it is scenery, and no
-    # LevelComplete follows. Two details worth the next person's attention -
-    # `Computer Errors` needed forcing TWICE before its flag stuck, and the
-    # level's own solvedNow stayed at 1 while six flags flipped, so whatever
-    # DesktopComputer counts is not the flags.
+    # ANSWERED BY HAND, 2026-09-15, and the answer is that the level is fine.
+    # droha played it holding exactly the four abilities the table declares,
+    # with `abilities: 0 locked, 7 open`, and beat it in full: all five part
+    # checks, Solution 1 and the Beaten token.
+    #
+    # The reason the harness cannot is `Computer Errors` - a sequence you
+    # START and FINISH, in droha's words, rather than an arrangement you tidy.
+    # Zero objects, dependsOn Computer Desktop, needs Gadgets. Forcing its
+    # solved flag sets a bit for a sequence that never ran, which explains all
+    # three things the gate sees: six controllers at solved=True with no
+    # LevelComplete, the flag needing to be forced twice before it stuck, and
+    # the level's own solvedNow sitting at 1 while six flags flipped.
     #
     # It is NOT a phase level - levelClass is `DesktopComputer` - and this
     # comment said "phased" for one release because that was the nearest
-    # familiar shape, not because anyone looked. The likelier story is
-    # `Computer Errors`: zero objects, dependsOn Computer Desktop, needs
-    # Gadgets, which reads as a scripted popup sequence rather than an
-    # arrangement. Untested.
+    # familiar shape, not because anyone looked.
     "Desktop Computer",
 )
 
