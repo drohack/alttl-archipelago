@@ -179,7 +179,7 @@ internal static class TitleScreen
                 var child = container.GetChild(i);
                 if (child == null || child.GetComponent<Button>() == null) continue;
                 if (!Matches(child.name, HiddenButtons)) continue;
-                Show(child, !connected, connected);
+                Show(child, !connected);
             }
 
             // The DLC block lives in its own container, not the main menu, so
@@ -187,7 +187,7 @@ internal static class TitleScreen
             foreach (var section in HiddenSections)
             {
                 var found = FindDeep(__instance.transform, section);
-                if (found != null) Show(found, !connected, connected);
+                if (found != null) Show(found, !connected);
             }
         }
         catch (Exception e)
@@ -211,7 +211,7 @@ internal static class TitleScreen
     /// Restoring matters as much as hiding: the mod must not permanently remove
     /// parts of someone's game, so everything comes back when not connected.
     /// </summary>
-    private static void Show(Transform target, bool visible, bool connected)
+    private static void Show(Transform target, bool visible)
     {
         if (target.gameObject.activeSelf == visible) return;
 

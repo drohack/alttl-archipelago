@@ -121,17 +121,4 @@ public class LocationNamesTests
         // MaxGeneratorInstances, which is a tuning decision.
         Assert.InRange(count, 300, 1200);
     }
-
-    [Fact]
-    public void ChapterBoundariesStillFollowVanillaForTheTrackLayout()
-    {
-        // Chapters no longer appear in location names, but they still lay the
-        // level-select track out and title its sections.
-        Assert.Equal(79, Chapters.TotalSlots);
-        Assert.Equal(1, Chapters.ChapterOf(19));
-        Assert.Equal(2, Chapters.ChapterOf(20));
-        Assert.Equal(5, Chapters.ChapterOf(78));
-        Assert.Equal(12, Chapters.PositionInChapter(78));
-        Assert.Throws<ArgumentOutOfRangeException>(() => Chapters.ChapterOf(79));
-    }
 }

@@ -15,6 +15,7 @@ seed-independent facts here, and put anything probabilistic there.
 from . import bases
 from .. import data
 from .. import options as apoptions
+from .. import pool
 
 
 def _addressed(test):
@@ -39,11 +40,12 @@ class TestDefaults(bases.ALTTLTestBase):
         """
         world = self.multiworld.worlds[self.player]
         self.assertEqual(apoptions.PuzzleCount.default, len(world.plan))
-        # 13, not 79/4 and no longer 14. Packs are UNIFORM now - the ramp that
+        # 13, not 70/5 and no longer 14. Packs are UNIFORM now - the ramp that
         # widened them as the run went on is gone, because a pack that varies
-        # is not the guarantee a pack is supposed to be. The size grows instead
-        # when the cap demands it: 4 open free, then thirteen packs of 6 with a
-        # short last one. See items.pack_boundaries.
+        # is not the guarantee a pack is supposed to be. At the default 70 the
+        # layout is 5 open free then thirteen packs of 5; the size grows
+        # instead, uniformly, when the cap demands it, which is what turns a
+        # 79-puzzle run into blocks of 6. See items.pack_boundaries.
         self.assertEqual(13, world.pack_total)
 
         # And uniform means uniform: every pack the same but the remainder.
@@ -207,6 +209,26 @@ class TestDefaults(bases.ALTTLTestBase):
         for text in entries.values():
             self.assertTrue(text.startswith("Ch.") or "end of the track" in text,
                             text)
+
+    def test_the_chapter_position_is_exactly_vanillas(self):
+        """The text a player reads in a hint, pinned to the value not the shape.
+
+        This used to be pinned in C# instead, by ALTTLArchipelago.Core's
+        HintText and Chapters - a second implementation of pool's own
+        _chapter_and_position that nothing shipped and that could have drifted
+        from it silently. The C# copy is gone; the assertions moved here, to
+        the implementation that actually runs.
+
+        The boundaries are FIXED at vanilla's, deliberately, and do not follow
+        puzzle_count: a hint is a human-readable pointer at the base game's
+        layout, not at this seed's.
+        """
+        self.assertEqual("Ch.1 Level 1", pool._chapter_and_position(0))
+        self.assertEqual("Ch.1 Level 20", pool._chapter_and_position(19))
+        self.assertEqual("Ch.2 Level 1", pool._chapter_and_position(20))
+        self.assertEqual("Ch.2 Level 3", pool._chapter_and_position(22))
+        self.assertEqual("Ch.5 Level 12", pool._chapter_and_position(78))
+        self.assertEqual(79, sum(pool.CHAPTER_SIZES))
 
 
 class TestNoArchive(bases.ALTTLTestBase):

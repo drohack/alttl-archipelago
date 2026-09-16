@@ -118,6 +118,13 @@ public sealed class RetryPolicy
                 ? $"Gave up after {Attempts} attempts: {LastError}"
                 : $"Gave up after {Attempts} attempts";
         }
-        return $"Reconnecting, attempt {Attempts + 1} of {_maxAttempts}";
+        // NO DENOMINATOR WHEN THERE IS NO LIMIT. The default policy is
+        // Unlimited (_maxAttempts == 0), so printing it regardless read
+        // "Reconnecting, attempt 4 of 0" on a stock install. Plugin's own
+        // AttemptLabel() already guarded this and its comment described the
+        // bug in the past tense; this copy was simply never fixed with it.
+        return IsUnlimited
+            ? $"Reconnecting, attempt {Attempts + 1}"
+            : $"Reconnecting, attempt {Attempts + 1} of {_maxAttempts}";
     }
 }

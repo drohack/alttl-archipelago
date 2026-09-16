@@ -6,7 +6,7 @@ namespace ALTTLArchipelago.Core.Tests;
 /// <summary>
 /// Parses the REAL payload the generator produces, not a hand-written mock.
 ///
-/// docs/data/slot-data-example.json is written by the apworld's own tests from
+/// fixtures/slot-data-example.json is written by the apworld's own tests from
 /// an actual generated seed. Parsing a mock would only prove the mock matches
 /// the DTO; parsing the generator's output proves the two languages agree,
 /// which is the thing that can actually break. A field renamed in Python fails

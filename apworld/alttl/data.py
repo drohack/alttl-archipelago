@@ -82,7 +82,6 @@ ABILITIES: List[str] = list(ABILITY_CLASSES)
 _CLASS_TO_ABILITY = {c: a for a, cs in ABILITY_CLASSES.items() for c in cs}
 
 #: Classes that need no ability - the baseline verbs, never items.
-BASELINE: FrozenSet[str] = frozenset(_ABILITIES_RAW["baseline"])
 
 #: Classes that are not puzzles at all, such as camera-pan helpers.
 NOT_PUZZLES: FrozenSet[str] = frozenset(_ABILITIES_RAW["notPuzzles"])
@@ -207,7 +206,6 @@ BY_ID: Dict[str, Level] = {l.level_id: l for l in LEVELS}
 
 GENERATORS: List[Level] = [l for l in LEVELS if l.source == "generator"]
 ARCHIVE: List[Level] = [l for l in LEVELS if l.source == "archive"]
-BASE: List[Level] = [l for l in LEVELS if l.source == "base"]
 
 #: Abilities some generator can produce. Everything else can only come from a
 #: hand-made level, which is why the draw reserves slots for them.

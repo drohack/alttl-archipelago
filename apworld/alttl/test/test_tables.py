@@ -67,17 +67,46 @@ class TestTables(unittest.TestCase):
                 self.assertEqual(len(bounds) - 1,
                                  items.pack_count(puzzle_count, pack_size))
 
-    def test_packs_open_puzzles_in_strictly_growing_blocks(self):
-        """The pacing contract: never narrower than the player asked for, and
-        widening as the run goes on."""
-        for puzzle_count in (20, 79):
-            for pack_size in (1, 3, 4, 10):
+    def test_every_pack_is_the_same_size(self):
+        """The pacing contract, and the whole point of a pack: it is a
+        guarantee about how much the run opens up, and a guarantee that varies
+        is not one. The free opening is one of those blocks rather than an
+        exception to them, and only the LAST may be short, because a run
+        rarely divides evenly.
+
+        WHY THIS REPLACED A WEAKER TEST. It was called
+        `test_packs_open_puzzles_in_strictly_growing_blocks` and asserted only
+        that the blocks never shrank - which the removed ramp ("every third
+        pack is one puzzle bigger") and the uniform layout that replaced it in
+        0.3.2 BOTH satisfy. So it passed unchanged across the very change it
+        looks like it exists to police, and its name and docstring went on
+        describing the old design. A test that cannot fail on the behaviour it
+        names is not pinning it.
+        """
+        for puzzle_count in (20, 70, 79):
+            for pack_size in (1, 3, 4, 5, 10):
                 bounds = items.pack_boundaries(puzzle_count, pack_size)
-                steps = [b - a for a, b in zip(bounds, bounds[1:])]
-                # The final step is a remainder and may be short.
-                for step in steps[:-1]:
-                    self.assertGreaterEqual(step, pack_size)
-                self.assertEqual(sorted(steps[:-1]), steps[:-1])
+                blocks = ([bounds[0]]
+                          + [b - a for a, b in zip(bounds, bounds[1:])])
+                where = (puzzle_count, pack_size, blocks)
+                self.assertEqual(1, len(set(blocks[:-1])), where)
+                # Never narrower than asked for. The size may GROW - uniformly,
+                # for every block - when the pack cap demands it.
+                self.assertGreaterEqual(blocks[0], pack_size, where)
+                # The remainder: short is allowed, wider or empty is not.
+                self.assertTrue(0 < blocks[-1] <= blocks[0], where)
+
+    def test_the_default_run_opens_five_at_a_time(self):
+        """The layout a player actually gets, spelled out, so a change to
+        MIN_OPENING or to the pack cap has to come here and say so.
+
+        Five free, then thirteen packs of five. Documented in player.yaml and
+        on the setup guide, both of which said something else until 0.3.4.
+        """
+        bounds = items.pack_boundaries(70, 5)
+        blocks = [bounds[0]] + [b - a for a, b in zip(bounds, bounds[1:])]
+        self.assertEqual([5] * 14, blocks)
+        self.assertEqual(13, items.pack_count(70, 5))
 
     def test_the_opening_is_never_a_single_puzzle(self):
         """A run that starts on one puzzle can be locked out by one unlucky

@@ -229,7 +229,7 @@ one):
 | Jigsaw fitting | 5 | 5 | `DraggablesJigsaw` |
 | Set-piece / bespoke | 4 | 6 | `RecordPlayer`, `HourglassController`, `ComputerErrorsController`, ... |
 
-Raw data: [docs/data/controller-survey.tsv](data/controller-survey.tsv) and
+Raw data: [fixtures/controller-survey.tsv](../fixtures/controller-survey.tsv) and
 [docs/data/level-table.json](data/level-table.json). Both are PREFAB walks and
 describe what a level was authored to contain, which is not the same as what it
 does at runtime - see the classification below before drawing a conclusion from
@@ -274,7 +274,7 @@ judgement - which is what shrank the ghost list to three.
 
 - **mutual** - two controllers naming each other, merged into one group
   (Chess Shadows, Spice Jars, Egg Cups, and the Tupperware grid pair)
-- **containment** - contents of a closed drawer, which need `Furniture` on top
+- **containment** - contents of a closed drawer, which need `Drawer` on top
   of their own ability (the three NeatStreak drawer levels)
 - **assembly** - a group that arranges what other groups build, so it needs
   their ability first (Candy Canes' `Ordered` over five jigsaw pairs, Paper
@@ -304,8 +304,10 @@ lock a level behind a total-solutions count and show it as locked.
 ## What was proven by experiment
 
 The probe (`src/ALTTLDevTools/`) is a BepInEx plugin driven by a file-command
-channel at `BepInEx/alttl-devtools-commands.txt`. Commands: `dump`, `solutions`,
-`state`, `boot:<index>[:<seed>]`, `complete`.
+channel at `BepInEx/alttl-devtools-commands.txt`. It had five commands when
+this was written - `dump`, `solutions`, `state`, `boot:<index>[:<seed>]` and
+`complete`; it has about thirty now, and [devtools.md](devtools.md) is the
+current list.
 
 | Claim | Result |
 |---|---|
@@ -317,19 +319,32 @@ channel at `BepInEx/alttl-devtools-commands.txt`. Commands: `dump`, `solutions`,
 | Force a specific procedural seed | **Works** - `state` reported `seed=424242` on the running level |
 | `GameEvent_LevelComplete` reaches a mod listener | **Works** - fired with the `LevelInterface`, after `GameEvent_LevelCompleteEarly` |
 
-### Still unproven
+### Still unproven, as of 2026-08-31
+
+**All four were settled afterwards.** Kept because what was unknown at the
+start is the reason the mod is shaped the way it is, and because the first
+three were the load-bearing risks the design was hedged against.
 
 - **A real solve reporting a real `SolutionId`.** The forced `CompleteLevel()`
   path completes the level but records no solution (`found=0`), because no
   ObjectController actually solved. Needs a human to solve one puzzle with the
   probe running and read `alttl-watch.log`.
+  *Settled: [verification-log.md](verification-log.md), S2 PASS. This is also
+  why `complete` is banned in reproducers - see
+  [release-testing.md](release-testing.md).*
 - **Whether the level-select UI honours a forced lock.** `IsUnlocked` can be
   read; nothing has yet tried to *hold a level locked* against the player.
+  *Settled: verification-log.md, S6 PASS. It is now how every locked card on
+  the track works.*
 - **Re-entering a solved level to find its other solutions.** The game clearly
   supports it (`MultipleStarTutorial`, `LevelCompletionStar`,
   `SaveData.solutions[]`, `AllSolutionsFound`), but the flow has not been
   driven end to end.
+  *Settled: every multi-solution location in the run depends on it, and the
+  release gate drives it on every run.*
 - **Enumerating solution ids ahead of time for every level.** See below.
+  *Settled by the `levelsweep` command; `apworld/alttl/data/levels.json` is
+  the result.*
 
 ### Solution id enumeration is only partly solved
 

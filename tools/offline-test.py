@@ -42,7 +42,6 @@ PORT = 38281
 SLOT = "droha"
 
 TOTAL = 5
-_step = [0]
 
 
 def say(phase, msg):

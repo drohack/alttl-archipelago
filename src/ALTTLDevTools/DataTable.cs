@@ -235,22 +235,6 @@ internal sealed class DataTable
     }
 
     /// <summary>
-    /// The level's own cat, if it has one.
-    ///
-    /// Recorded per level and keyed by level id, so the answer is the same for
-    /// every seed: which puzzles ship with a real cat event is a fact about the
-    /// game, not about a run. The trap reads it for whatever level is open.
-    ///
-    /// Scanned under the LEVEL's transform rather than the whole scene on
-    /// purpose. A scene-wide scan picks up CatAchievementTracker, which sits on
-    /// a global object and is present in every level - it would report a cat
-    /// everywhere and mean nothing.
-    ///
-    /// Inactive children are included: a cat that has not been triggered yet is
-    /// exactly the case this is looking for, and a swipe object waiting its
-    /// turn may well be switched off.
-    /// </summary>
-    /// <summary>
     /// How many hint pages a level's randomizer supplies, if it has one.
     ///
     /// <paramref name="pool"/> picks between the authored list and what this
@@ -282,6 +266,22 @@ internal sealed class DataTable
     }
 
 
+    /// <summary>
+    /// The level's own cat, if it has one.
+    ///
+    /// Recorded per level and keyed by level id, so the answer is the same for
+    /// every seed: which puzzles ship with a real cat event is a fact about the
+    /// game, not about a run. The trap reads it for whatever level is open.
+    ///
+    /// Scanned under the LEVEL's transform rather than the whole scene on
+    /// purpose. A scene-wide scan picks up CatAchievementTracker, which sits on
+    /// a global object and is present in every level - it would report a cat
+    /// everywhere and mean nothing.
+    ///
+    /// Inactive children are included: a cat that has not been triggered yet is
+    /// exactly the case this is looking for, and a swipe object waiting its
+    /// turn may well be switched off.
+    /// </summary>
     private static string CatsIn(Level? level)
     {
         var row = new StringBuilder("[");
@@ -659,16 +659,7 @@ internal sealed class DataTable
     }
 
     /// <summary>
-    /// A drawer's trigger list, as "controller#solutionId" strings.
-    ///
-    /// The element type is ObjectController.SolutionDetails, not
-    /// ObjectController - the drawer waits on a SPECIFIC solution of a
-    /// controller, not merely on the controller being solved. Worth keeping:
-    /// a multi-solution controller can open a drawer on one arrangement and
-    /// not another, and a plain controller name would lose that.
-    /// </summary>
-    /// <summary>
-    /// The same, for a plain controller list.
+    /// A drawer's trigger list, for a plain controller list.
     ///
     /// Two overloads because the two drawer lists genuinely differ:
     /// UnlockOnSolvedControllers names a specific solution, while
@@ -693,6 +684,15 @@ internal sealed class DataTable
         return sb.Append(']').ToString();
     }
 
+    /// <summary>
+    /// A drawer's trigger list, as "controller#solutionId" strings.
+    ///
+    /// The element type is ObjectController.SolutionDetails, not
+    /// ObjectController - the drawer waits on a SPECIFIC solution of a
+    /// controller, not merely on the controller being solved. Worth keeping:
+    /// a multi-solution controller can open a drawer on one arrangement and
+    /// not another, and a plain controller name would lose that.
+    /// </summary>
     private static string NamesOf(
         Il2CppSystem.Collections.Generic.List<ObjectController.SolutionDetails>? list)
     {

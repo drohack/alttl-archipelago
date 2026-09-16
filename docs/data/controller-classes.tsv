@@ -71,7 +71,7 @@ MedicineCabinet	Level	Creams Draggables Stacked	DraggablesStacked	Stacking	alway
 MedicineCabinet	Level	Tube Draggables	Draggables		always-on		
 MedicineCabinet	Level	Pump Bottle Draggables	Draggables		always-on		
 MedicineCabinet	Level	Pick Draggables	Draggables		always-on		
-MedicineCabinet	Level	Cupboard	Cupboard	Furniture	ghost		
+MedicineCabinet	Level	Cupboard	Cupboard	Drawer	ghost		
 Microscope	MicroscopeLevel	Build Snowflakes	ScrollFieldGroupsController	Gadgets	always-on		
 Mirror	Level	Books + Box StackablesY 	StackablesY	Stacking	always-on		
 Mirror	Level	CandleStateController	CandlesObjectController	Gadgets	always-on		
@@ -151,7 +151,7 @@ TupperwareTower	Level	Foundation	StackableGrid	Grids	ghost
 UtensilsDrawer	Level	Utensils Drawer	Draggables		always-on		
 Wilting Flowers	Level	Upright	AnimScrubbables	Gadgets	always-on		
 Wilting Flowers	Level	Cleanable	CleanablesController	Tidying	always-on		
-Workbench	Level	ToolsController	HangingToolsController	Furniture	always-on		
+Workbench	Level	ToolsController	HangingToolsController	Drawer	always-on		
 Workbench	Level	DraggablesForTargets	Draggables		gated	ToolsController	
 Wrong Aspect Papers	Level	Fit Rect	Draggables		always-on		
 Procedural Grid Puzzle	Level	Grid Puzzle	GridPuzzle	Grids	always-on		
@@ -205,7 +205,7 @@ MerryMess_Presents	Level	Presents Aligned	Pannables	?	non-puzzle
 MerryMess_NutCrackers	Level	Shuffle	Shuffleables	Swapping	always-on		
 NeatStreak_Paper Plane Supplies	Level	Draggables	Draggables		gated	Drawer Controller	
 NeatStreak_Paper Plane Supplies	Level	Containables	Containables	Containers	gated	Drawer Controller	
-NeatStreak_Paper Plane Supplies	Level	Drawer Controller	DrawerController	Furniture	always-on		
+NeatStreak_Paper Plane Supplies	Level	Drawer Controller	DrawerController	Drawer	always-on		
 NeatStreak_Paper Plane Supplies	Level	ChalkPurple Jigsaw	DraggablesJigsaw	Jigsaw	always-on		
 NeatStreak_Paper Plane Supplies	Level	ChalkBlue Jigsaw	DraggablesJigsaw	Jigsaw	always-on		
 NeatStreak_Paper Plane Supplies	Level	ChalkGreen Jigsaw	DraggablesJigsaw	Jigsaw	always-on		
@@ -216,10 +216,10 @@ NeatStreak_Paper Plane Supplies	Level	ChalkRed Jigsaw	DraggablesJigsaw	Jigsaw	al
 NeatStreak_Paper Plane Supplies	Level	Chalk DraggablesOrdered	DraggablesOrdered	Ordering	gated	ChalkPurple Jigsaw;ChalkBlue Jigsaw;ChalkGreen Jigsaw;ChalkMint Jigsaw;ChalkYellow Jigsaw;ChalkPink Jigsaw;ChalkRed Jigsaw	
 NeatStreak_Tool Drawer	Level	Draggables	Draggables		gated	Drawer Controller	
 NeatStreak_Tool Drawer	Level	Containables	Containables	Containers	gated	Drawer Controller	
-NeatStreak_Tool Drawer	Level	Drawer Controller	DrawerController	Furniture	always-on		
+NeatStreak_Tool Drawer	Level	Drawer Controller	DrawerController	Drawer	always-on		
 NeatStreak_Bathroom Drawer	Level	Draggables	Draggables		gated	Drawer Controller	
 NeatStreak_Bathroom Drawer	Level	Bottle Containables	Containables	Containers	gated	Drawer Controller	
-NeatStreak_Bathroom Drawer	Level	Drawer Controller	DrawerController	Furniture	always-on		
+NeatStreak_Bathroom Drawer	Level	Drawer Controller	DrawerController	Drawer	always-on		
 NeatStreak_Bathroom Drawer	Level	Indexable	Indexables	Ordering	gated	Drawer Controller	
 SnackPack Sandwich	Level	Stack Ingredients	StackablesZ	Stacking	always-on		
 SnackPack Pretzels	Level	Ordered	Shuffleables	Swapping	always-on		

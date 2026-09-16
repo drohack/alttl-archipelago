@@ -65,7 +65,7 @@ table up against the prefab survey and pins the remaining gaps, so losing more
 of them fails the build. `tools/classify-controllers.py` writes the full
 per-controller classification to `docs/data/controller-classes.tsv`.
 
-`docs/data/controller-survey.tsv` is the prefab-derived survey. It walks
+`fixtures/controller-survey.tsv` is the prefab-derived survey. It walks
 `GetComponentsInChildren<ObjectController>(true)` - note the `true`, so it
 includes inactive children - which makes it the authority on what a level was
 authored to CONTAIN, including every phase.

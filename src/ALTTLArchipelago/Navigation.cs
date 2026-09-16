@@ -272,7 +272,7 @@ internal static class Navigation
     /// "Let It Be" with no tag at all.
     ///
     /// ConnectionPane's answer was to destroy the localiser
-    /// (ConnectionPane.cs:170-183). That works and is wrong here: its label is
+    /// (ConnectionPane.SetLabel). That works and is wrong here: its label is
     /// written once and never revisited, whereas these two are permanent
     /// objects under Menus/Main Menu, so destroying their localiser would
     /// freeze both entries in whatever language was loaded at the time, for
@@ -341,7 +341,7 @@ internal static class Navigation
     /// from once a run ended.
     ///
     /// The localiser is deliberately NOT destroyed here, which is where this
-    /// started. ConnectionPane destroys it (ConnectionPane.cs:170-183) because
+    /// started. ConnectionPane destroys it (ConnectionPane.SetLabel) because
     /// its label is written once and never revisited; this one is rewritten on
     /// every menu open, so it can simply lose a race with the localiser and
     /// win it again a moment later. Destroying it would freeze these two
@@ -569,7 +569,8 @@ internal static class Navigation
     /// 0.3.1, but not this one).
     ///
     /// This is the failure class already recorded for LevelSelect in
-    /// docs/verification-log.md:300-345: the vanilla route decides where to go
+    /// docs/verification-log.md, "Beating a level can drop the run onto the
+    /// Daily Tidy page": the vanilla route decides where to go
     /// from the level's KIND, and a run's levels are reached in a way that
     /// leaves it with no answer, so it goes nowhere at all.
     ///

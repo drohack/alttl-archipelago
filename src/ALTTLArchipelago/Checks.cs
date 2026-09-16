@@ -294,13 +294,6 @@ internal static class Checks
         }
     }
 
-    internal static void LeaveSlot()
-    {
-        _currentSlot = -1;
-        _auditedCount = 0;
-    }
-
-    /// <summary>Whether the running level has been compared against the table.</summary>
     /// <summary>
     /// How many controllers the last audit compared against.
     ///
@@ -334,20 +327,6 @@ internal static class Checks
     private static readonly HashSet<string> _mismatchesReported = new(StringComparer.Ordinal);
 
 
-    /// <summary>
-    /// Compare the controllers the running level REGISTERED against the table
-    /// the generator built its logic from.
-    ///
-    /// This is the one assumption seed generation cannot test. levels.json came
-    /// from a runtime sweep, and if the running game registers a controller the
-    /// sweep never saw, our logic is looser than reality: the generator may
-    /// have assumed a check is reachable when it is not, and the seed can be
-    /// unwinnable in a way nothing else will report.
-    ///
-    /// A poll rather than an event because controllers self-register in their
-    /// own Start, so there is no single moment that is reliably "after all of
-    /// them". Running late is fine; the answer does not change.
-    /// </summary>
     /// <summary>
     /// Collect the groups that were ALREADY solved when the level opened.
     ///
@@ -414,6 +393,20 @@ internal static class Checks
         }
     }
 
+    /// <summary>
+    /// Compare the controllers the running level REGISTERED against the table
+    /// the generator built its logic from.
+    ///
+    /// This is the one assumption seed generation cannot test. levels.json came
+    /// from a runtime sweep, and if the running game registers a controller the
+    /// sweep never saw, our logic is looser than reality: the generator may
+    /// have assumed a check is reachable when it is not, and the seed can be
+    /// unwinnable in a way nothing else will report.
+    ///
+    /// A poll rather than an event because controllers self-register in their
+    /// own Start, so there is no single moment that is reliably "after all of
+    /// them". Running late is fine; the answer does not change.
+    /// </summary>
     internal static void TickAudit(float dt)
     {
         if (_slot == null) return;
@@ -559,15 +552,6 @@ internal static class Checks
     private static float _emptyFor;
 
 
-    /// <summary>
-    /// Shout if a level is on screen with nothing in it.
-    ///
-    /// A level that loads empty looks identical to a level that is still
-    /// loading, except that it never recovers and the game stops accepting
-    /// input - and there is nothing in the log to say so. That happened in play
-    /// and cost a restart to diagnose. This turns a silent hang into one line
-    /// naming the level, so the next report is actionable immediately.
-    /// </summary>
     /// <summary>How often the empty-level watch looks.</summary>
     private const float WatchInterval = 1f;
 
@@ -578,6 +562,15 @@ internal static class Checks
     /// </summary>
     private const float EmptyAfter = 6f;
 
+    /// <summary>
+    /// Shout if a level is on screen with nothing in it.
+    ///
+    /// A level that loads empty looks identical to a level that is still
+    /// loading, except that it never recovers and the game stops accepting
+    /// input - and there is nothing in the log to say so. That happened in play
+    /// and cost a restart to diagnose. This turns a silent hang into one line
+    /// naming the level, so the next report is actionable immediately.
+    /// </summary>
     internal static void TickEmptyLevelWatch(float dt)
     {
         // Only while a run is on. This watches for a bug in OUR level loading,

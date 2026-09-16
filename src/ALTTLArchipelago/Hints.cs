@@ -353,7 +353,7 @@ internal static class Hints
     /// This is the notepad, not the pause menu, and it deliberately does not
     /// use Navigation.Annotate's trick of prefixing an existing label - there
     /// is no label here to prefix, and there is room under the page for one of
-    /// our own. The menu's own scar (ConnectionPane.cs:713-726) is about
+    /// our own. The menu's own scar (ConnectionPane.AddMenuIndicator) is about
     /// right-aligned entries in an over-wide rect, which does not apply.
     /// </summary>
     private static void RefreshNote()

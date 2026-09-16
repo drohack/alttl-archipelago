@@ -25,7 +25,6 @@ import json
 import os
 import subprocess
 import sys
-import zipfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 AP = os.path.join(REPO, "Archipelago")

@@ -1,7 +1,7 @@
 # The cat trap: what it does, and the battery that proves it
 
-The cat trap is the run's only filler item, so it fires more often than
-anything else in the game. It has also been wrong three times, and each time it
+The cat trap is the run's only TRAP, and traps are drawn before hint pages and
+filler, so it fires often. It has also been wrong three times, and each time it
 passed a test first. This document records what it does now, what has actually
 been proven, and the battery that has to stay green.
 
@@ -155,9 +155,11 @@ of that level's own; otherwise fall back to the reset.
 table both the apworld and the mod already consume. It is keyed by level id and
 scanned from the level's own transform, so it is a fact about the game and the
 same for every seed. The sweep otherwise reproduced the previous table
-byte-for-byte, and the 91 apworld tests pass against the new one.
+byte-for-byte, and the apworld suite passes against the new one.
 
-**13 of 111 levels carry a cat**, and every one of them carries exactly one -
+**13 of 111 levels carry a cat** - twelve of them a real one, plus Radial
+Dance Party's opening animation, which is why the counts below say 12 - and
+every one of them carries exactly one -
 except PawPrints, whose whole level is cat-themed (70 components). So "pick a
 random valid cat for this level" turns out to be almost moot: on a level with a
 cat there is one cat to pick.

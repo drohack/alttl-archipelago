@@ -37,9 +37,16 @@ does, so `replayselect` did not land where it lands in a real run, and all
 three came back clean while the bug reproduced every time in the full e2e.
 Three false negatives in a row is what drove the twelve full runs.
 
-A `--quick` mode - two puzzles, no arrow session, keeping the error census and
-the mod-vs-harness reconciliation - would answer the common question in three
-or four minutes. It has not been built.
+`--quick` answers that question instead: three puzzles, no throwaway arrow
+session, every correctness check kept - the error census, the
+mod-versus-harness reconciliation, the campaign-save isolation. What it gives
+up is coverage of the arrow, the pause-menu Exit and the launch count, which
+are the parts that need a second session. Use it for "did this edit break
+anything"; use the full gate to sign off a release.
+
+```
+PYTHONUNBUFFERED=1 py -3.13 -u tools/release-e2e.py --quick 2>/dev/null
+```
 
 ### The gate runs a self-test first
 
@@ -164,6 +171,19 @@ So it is a release step, and it belongs here rather than in someone's memory:
 Skip it for a release that touched none of those three. Say so in the notes if
 you skip it, for the same reason as the hand-solve above.
 
+### The other two hand tests, which live in their own files
+
+Neither is automatable and neither is listed anywhere else, so they were easy
+to forget - which is the whole reason they are named here:
+
+- **[manual-hint-test.md](manual-hint-test.md)** - the Hint Page gate. Six
+  checks that need hands on a mouse, because the notepad only reveals a page
+  in response to a real click.
+- **[cat-trap-tests.md](cat-trap-tests.md)** - what the cat trap does, what has
+  actually been proven about it, and the battery that has to stay green. Worth
+  re-reading rather than re-running for a release that touched `Traps.cs`: the
+  trap has been wrong three times, and each time it passed a test first.
+
 ## The automatic route
 
 ```
@@ -171,9 +191,13 @@ PYTHONUNBUFFERED=1 py -3.13 -u tools/release-e2e.py 2>/dev/null
 ```
 
 Seven phases: clean the install to vanilla, install the mod from its zip,
-install the world from its `.apworld`, generate an 8-puzzle two-pack seed,
+install the world from its `.apworld`, generate an 8-puzzle single-pack seed,
 launch and connect, play the run to the credits, and check the campaign save
 was never written.
+
+Single-pack because the generator, not the yaml, decides: at 8 puzzles the
+pack cap is 1 and `MIN_OPENING` raises the size to 5, so a requested
+`pack_size: 2` becomes 5 open free and one pack carrying the other 3.
 
 The whole run happens in **one game launch**, and that is asserted rather than
 hoped for - it took two fixes to get there and both are easy to undo by
@@ -261,10 +285,10 @@ name, and press Connect.
 | Claim | Where you see it |
 |---|---|
 | the mod loaded | `features live: save redirect, connection pane, track, skips, hints, navigation, daily guard, title screen` in `BepInEx/LogOutput.log`, and no `PATCH FAILED` |
-| the seed came through | `connected. 8 puzzles, 2 packs of 2, beat 8 to unlock the credits` |
-| the track is gated | `track: 8 puzzles, 4 open, 2 packs` - four of eight, not all eight |
+| the seed came through | `connected. 8 puzzles, 1 packs of 2, beat 8 to unlock the credits` |
+| the track is gated | `track: 8 puzzles, 5 open, 1 packs` - five of eight, not all eight |
 | checks reach the server | `checks: sent 1, 0 still owed` |
-| packs open more | `track: 1/2 packs, 6 puzzles open (+2)` |
+| packs open more | `track: 1/1 packs, 8 puzzles open (+3)` |
 | the goal is reported | `goal: reported to the server`, and the server prints that the slot has completed |
 | the campaign is untouched | `save1.json` unchanged; the run is in `save_ap_<slot>_<seed>.json` |
 

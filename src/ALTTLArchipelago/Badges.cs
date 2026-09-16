@@ -61,13 +61,9 @@ internal static class Badges
 
 
     /// <summary>
-    /// What each card last showed, so an unchanged track is not redrawn.
-    /// Rebuilding every badge every second churns objects the game is
-    /// animating, and the card tilt would fight it.
-    /// </summary>
-    /// <summary>
     /// The badge each SLOT is currently wearing, so an unchanged card is not
-    /// repainted every tick.
+    /// repainted every tick. Rebuilding every badge every second churns
+    /// objects the game is animating, and the card tilt would fight it.
     ///
     /// Keyed by slot rather than by track position on purpose. Position is not
     /// stable: a pack arriving inserts a divider, and every card after it
@@ -542,13 +538,15 @@ internal static class Badges
     /// <summary>
     /// Three letters per mechanic. Short enough to fit, long enough to guess.
     ///
-    /// LETTERS RATHER THAN ICONS, for now. The mod ships no art at all - the
-    /// only graphic it has ever generated is the diagonal below - and the
-    /// game's own sprites are borrowed by name, which has twice been guessed
-    /// wrong in this file. droha's call: build the pills with text first,
-    /// then go looking for in-game icons that would work. The DevTools
-    /// `sprites` command exists to do that looking with real names rather
-    /// than another guess.
+    /// LETTERS FIRST, ICONS LATER, and both in the end.
+    /// droha's call was to build the pills with text first and then go looking
+    /// for icons, because the game's own sprites are borrowed by name and that
+    /// had twice been guessed wrong in this file. The looking was done with the
+    /// DevTools `sprites` and `spriteexport` commands, and it succeeded: the
+    /// mod now ships twelve icons of its own as embedded resources, which
+    /// LoadPillArt draws. See docs/data/ability-icons.md for where each picture
+    /// came from. The letters stayed: they are the caption UNDER each icon, so
+    /// a picture nobody recognises still names its mechanic.
     /// </summary>
     private static readonly Dictionary<string, string> PillText =
         new(StringComparer.Ordinal)
@@ -1735,19 +1733,6 @@ internal static class Badges
     }
 
     /// <summary>
-    /// The puzzle's name, under the card.
-    ///
-    /// The card carries no name of its own - its whole hierarchy holds only a
-    /// locked-star count and a chapter number - so in a randomized track, where
-    /// the art is the only clue and the order is not the one anyone knows,
-    /// there is no way to find a particular puzzle or to match a hint to a
-    /// card.
-    ///
-    /// Just the name. No lock state, no check counts: the badge already says
-    /// all of that, and a name with data bolted onto it stops reading as a
-    /// name.
-    /// </summary>
-    /// <summary>
     /// Whether the run holds this level in more than one slot. Answered once
     /// per level and cached, because it is asked for every card on every
     /// rebuild.
@@ -1767,6 +1752,19 @@ internal static class Badges
         return _repeated.Contains(levelId);
     }
 
+    /// <summary>
+    /// The puzzle's name, under the card.
+    ///
+    /// The card carries no name of its own - its whole hierarchy holds only a
+    /// locked-star count and a chapter number - so in a randomized track, where
+    /// the art is the only clue and the order is not the one anyone knows,
+    /// there is no way to find a particular puzzle or to match a hint to a
+    /// card.
+    ///
+    /// Just the name. No lock state, no check counts: the badge already says
+    /// all of that, and a name with data bolted onto it stops reading as a
+    /// name.
+    /// </summary>
     private static void SetName(LevelIcon icon, int slot)
     {
         try

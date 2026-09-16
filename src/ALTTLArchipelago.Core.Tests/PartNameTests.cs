@@ -81,14 +81,6 @@ public class PartNameTests
     }
 
     [Fact]
-    public void HintTextIsShortAndSaysWhere()
-    {
-        Assert.Equal("Ch.1 Level 1", HintText.ForSlot(0));
-        Assert.Equal("Ch.2 Level 3", HintText.ForSlot(22));
-        Assert.Equal("Ch.5 Level 12", HintText.ForSlot(78));
-    }
-
-    [Fact]
     public void AWholeHintLineReadsWell()
     {
         // What the server will actually print, end to end.
@@ -106,7 +98,6 @@ public class PartNameTests
         var location = LocationNames.Part(level.LevelId, 1, group.DisplayName);
 
         Assert.Equal("Medicine Cabinet - Blue Bottles", location);
-        Assert.Equal("Ch.2 Level 3", HintText.ForSlot(22));
     }
 
     [Fact]

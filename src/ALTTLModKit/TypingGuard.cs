@@ -227,6 +227,7 @@ public static class TypingGuard
     }
 
     /// <summary>
+    /// Every player's map helper, with its SetAllMapsEnabled - that is,
     /// ReInput.controllers.maps.SetAllMapsEnabled, reached by reflection.
     ///
     /// Il2CppInterop renames members unpredictably - the assembly exports
@@ -240,7 +241,6 @@ public static class TypingGuard
     /// found the pane still works and the mouse just drifts while typing, which
     /// is the bug this improves rather than a new one.
     /// </summary>
-    /// <summary>Every player's map helper, with its SetAllMapsEnabled.</summary>
     private static readonly System.Collections.Generic.List<
         (object Helper, System.Reflection.MethodInfo Method, bool KeyboardOnly)>
         _mapHelpers = new();

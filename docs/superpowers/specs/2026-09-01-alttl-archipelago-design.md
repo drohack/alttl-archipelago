@@ -1,9 +1,26 @@
 # A Little To The Left - Archipelago randomizer design
 
 Date: 2026-09-01
-Status: agreed. Phases 0-2 built (verification gate, repo skeleton, the
-apworld). The mod itself is not started. Amendments from measurement are marked
-inline and dated.
+Status: **HISTORICAL. Superseded by the shipped mod - do not read this as a
+description of current behaviour.**
+
+This is the design as agreed on 2026-09-01, when phases 0-2 were built and the
+mod itself was not started. It is kept because it records WHY the project is
+shaped the way it is, and because the SUPERSEDED blocks below are the best
+account of the decisions that were revisited.
+
+Much of it is now wrong. Among other things: the free opening is 5 rather than
+4 and every pack is the same size (the ramp described below was removed in
+0.3.2); skipped puzzles DO count towards the goal; hints ARE items; there are
+three kinds of location rather than two; the cosmetic filler items were never
+built; and the yaml block near the end names options that do not exist. For
+what is true now, read [the README](../../../README.md),
+`apworld/alttl/options.py` and `apworld/alttl/player.yaml`.
+
+The "what is verified and what is not" section near the end listed five
+load-bearing unknowns. All five were settled - see
+[verification-log.md](../../verification-log.md) - and they are the reason the
+mod is built the way it is.
 
 Supporting research: [research-findings.md](../../research-findings.md) (the
 modding surface) and [content-report.md](../../content-report.md) (what the

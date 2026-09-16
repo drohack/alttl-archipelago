@@ -41,7 +41,7 @@ the colour it lands on is chosen by how many you hold rather than by what is on
 screen, so a puzzle can end up with pieces that are hard to pick out against
 their own background.
 
-Every puzzle in the game has a hint, and a default seed holds about 110 pages
+Every puzzle in the game has a hint, and a default seed holds about 100 pages
 across them. **Hint Coverage** decides how many get an item, and defaults to
 50% - enough to open the hints you actually reach for, without the pool being
 nothing but hints. Turn it up if you would rather know every notepad in the

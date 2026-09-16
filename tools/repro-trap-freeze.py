@@ -10,7 +10,7 @@ into a `loadlevel:` reload and the trap survived it - but that window reports
 `level=null`, which even 0.3.1 treated as a miss. It never entered the state
 the game died in. The difference is that droha finished a PUZZLE: a real
 completion, a real navigation to the next slot, and a trap arriving inside it.
-DevTools `complete` does not produce that (docs/release-testing.md:35), so
+DevTools `complete` does not produce that (docs/release-testing.md, "A short reproducer must do REAL solves"), so
 this drives the puzzle the way playthrough.py does - `solve:` per controller
 group, which raises a genuine LevelComplete.
 

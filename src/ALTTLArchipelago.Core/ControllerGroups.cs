@@ -45,7 +45,7 @@ public sealed class ControllerGroup
 /// THIS COMMENT USED TO SAY "only 9 of 380 controllers declare a dependency,
 /// across 5 levels", and someone reading it to decide whether the dependency
 /// graph mattered would have concluded it barely does. Those figures describe
-/// docs/data/controller-survey.tsv - a PREFAB walk. This class reads
+/// fixtures/controller-survey.tsv - a PREFAB walk. This class reads
 /// levels.json, which is a RUNTIME sweep, and dependencies are wired up at
 /// registration rather than serialised on the prefab: the survey sees 9 edges
 /// where the runtime sees 23, and hand-authored containment and phase edges

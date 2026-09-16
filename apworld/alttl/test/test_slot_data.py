@@ -26,11 +26,14 @@ from .. import data
 EXAMPLE_SEED = 20260902
 
 def _example_path() -> str:
-    """docs/data/, deliberately NOT apworld/alttl/data/.
+    """fixtures/, deliberately NOT apworld/alttl/data/.
 
     Everything under the world package is packaged into the shipped .apworld,
-    and a 40KB test fixture has no business in a player's install. This lives
-    with the other cross-language reference data instead.
+    and a 40KB test fixture has no business in a player's install.
+
+    It used to live in docs/data/, which was wrong in the other direction: a
+    C# test project reached two directories up into docs/ for it, so editing
+    "a doc" could turn the Core suite red. fixtures/ says what it is.
 
     Found by walking up to the repo root, because the world is imported from a
     checkout here but from a zip in production, where __file__ has no usable
@@ -38,11 +41,11 @@ def _example_path() -> str:
     """
     here = os.path.dirname(os.path.abspath(__file__))
     while here != os.path.dirname(here):
-        candidate = os.path.join(here, "docs", "data")
+        candidate = os.path.join(here, "fixtures")
         if os.path.isdir(candidate):
             return os.path.join(candidate, "slot-data-example.json")
         here = os.path.dirname(here)
-    raise RuntimeError("could not locate docs/data from " + __file__)
+    raise RuntimeError("could not locate fixtures/ from " + __file__)
 
 
 EXAMPLE_PATH = _example_path()

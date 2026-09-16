@@ -42,7 +42,7 @@ import sys
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TABLE = os.path.join(REPO, "apworld", "alttl", "data", "levels.json")
 ABILITIES = os.path.join(REPO, "apworld", "alttl", "data", "abilities.json")
-SURVEY = os.path.join(REPO, "docs", "data", "controller-survey.tsv")
+SURVEY = os.path.join(REPO, "fixtures", "controller-survey.tsv")
 GENSWEEP = os.path.join(REPO, "docs", "data", "generator-sweep.tsv")
 OUT = os.path.join(REPO, "docs", "data", "controller-classes.tsv")
 

@@ -33,11 +33,6 @@ internal static class Track
     private static readonly List<int> _order = new();
 
     /// <summary>
-    /// What the card at this track position is: a slot index, or one of the
-    /// two sentinels below. Anything reading the track must go through this
-    /// rather than assume one card per slot.
-    /// </summary>
-    /// <summary>
     /// Which pack a divider card announces, 1-based, or 0 if that position is
     /// not a divider.
     ///
@@ -80,6 +75,11 @@ internal static class Track
         return -1;
     }
 
+    /// <summary>
+    /// What the card at this track position is: a slot index, or one of the
+    /// two sentinels below. Anything reading the track must go through this
+    /// rather than assume one card per slot.
+    /// </summary>
     internal static int SlotAt(int trackPosition)
         => trackPosition >= 0 && trackPosition < _plan.Count
             ? _plan[trackPosition]
@@ -315,14 +315,6 @@ internal static class Track
     }
 
     /// <summary>
-    /// The last open slot with something the player can actually do now.
-    ///
-    /// Scans from the END of the track backwards. "Can do now" is stricter than
-    /// "unfinished": a slot whose remaining checks are all blocked by an
-    /// ability or a pack is skipped, because sending someone to a puzzle they
-    /// cannot progress is worse than sending them nowhere.
-    /// </summary>
-    /// <summary>
     /// The FIRST open slot with something the player can do now.
     ///
     /// What Play should open. FarthestPlayableSlot is the right answer for
@@ -344,6 +336,14 @@ internal static class Track
         return -1;
     }
 
+    /// <summary>
+    /// The last open slot with something the player can actually do now.
+    ///
+    /// Scans from the END of the track backwards. "Can do now" is stricter than
+    /// "unfinished": a slot whose remaining checks are all blocked by an
+    /// ability or a pack is skipped, because sending someone to a puzzle they
+    /// cannot progress is worse than sending them nowhere.
+    /// </summary>
     internal static int FarthestPlayableSlot()
     {
         if (_state == null) return -1;
@@ -597,7 +597,7 @@ internal static class Track
                 //
                 // MEASURED 2026-09-09, because the surrounding claim was wrong.
                 // This used to say the track "plays its unlock animation and
-                // then CLEARS it", which contradicts content-report.md:110
+                // then CLEARS it", which contradicts content-report.md on unlockedOnLevelSelect
                 // ("this card has already played its unlock animation") and is
                 // not what happens: reading the save either side of opening the
                 // level select shows the flags unchanged, 8 true and 1 false
@@ -672,8 +672,12 @@ internal static class Track
         return select == null ? null : select.levelsTrack;
     }
 
-    /// <summary>The campaign level select, or null if it is not built yet.</summary>
-    /// <summary>The run's own level select, or null if that is not what is up.</summary>
+    /// <summary>
+    /// The campaign level select, or null if it is not built yet. During a run
+    /// this is also where the run is drawn - the mod replaces the campaign's
+    /// contents rather than adding a menu - so "campaign" here names which of
+    /// the three LevelSelects this is, not what it currently shows.
+    /// </summary>
     internal static LevelSelect? CampaignSelect() => FindCampaignSelect();
 
     private static LevelSelect? FindCampaignSelect()
@@ -1263,7 +1267,8 @@ internal static class Track
     /// transition. Returning false that late leaves the player in a transition
     /// to nothing: a flat single-colour screen with no way out. That is exactly
     /// the failure already recorded for chapter cards in
-    /// docs/verification-log.md:446-455, and these two cases were simply never
+    /// docs/verification-log.md, "Beating a level can drop the run onto the
+    /// Daily Tidy page", and these two cases were simply never
     /// moved with it.
     ///
     /// <paramref name="announce"/> is set only on the click, so a refusal
@@ -1447,26 +1452,6 @@ internal static class Track
     }
 
     /// <summary>
-    /// Which slot a launch of <paramref name="target"/> belongs to.
-    ///
-    /// This replaces a two-frame TTL on the pending slot, and the 0.3.0
-    /// playtest log says why it had to:
-    ///
-    ///     track: ignoring a pending slot 22 set 9 frames ago
-    ///     trap: 1 cat(s) reset the puzzle
-    ///
-    /// GetNextLevelIndex is a postfix, and the game calls it while building the
-    /// post-level UI - not only when launching - so finishing a puzzle armed a
-    /// slot speculatively. The old code then cleared the arm BEFORE testing its
-    /// age, so the next unrelated StartLevel ate it. A Cat Trap restart landing
-    /// in that window rebuilt the running puzzle with randomSeed -1, silently
-    /// swapping the player's seeded layout for the generator's stock one; two
-    /// instances of one generator that both hit this came out identical, which
-    /// is what was reported as "the same random level twice".
-    ///
-    /// Matching on the level index proves what the frame count only guessed at.
-    /// </summary>
-    /// <summary>
     /// Does the run hold this level index at all, and if so where?
     ///
     /// A plain membership question, unlike ResolveSlotFor, which picks the
@@ -1501,6 +1486,26 @@ internal static class Track
         return _order[_pendingSlot];
     }
 
+    /// <summary>
+    /// Which slot a launch of <paramref name="target"/> belongs to.
+    ///
+    /// This replaces a two-frame TTL on the pending slot, and the 0.3.0
+    /// playtest log says why it had to:
+    ///
+    ///     track: ignoring a pending slot 22 set 9 frames ago
+    ///     trap: 1 cat(s) reset the puzzle
+    ///
+    /// GetNextLevelIndex is a postfix, and the game calls it while building the
+    /// post-level UI - not only when launching - so finishing a puzzle armed a
+    /// slot speculatively. The old code then cleared the arm BEFORE testing its
+    /// age, so the next unrelated StartLevel ate it. A Cat Trap restart landing
+    /// in that window rebuilt the running puzzle with randomSeed -1, silently
+    /// swapping the player's seeded layout for the generator's stock one; two
+    /// instances of one generator that both hit this came out identical, which
+    /// is what was reported as "the same random level twice".
+    ///
+    /// Matching on the level index proves what the frame count only guessed at.
+    /// </summary>
     private static int ResolveSlotFor(int target)
     {
         if (_state == null) return -1;

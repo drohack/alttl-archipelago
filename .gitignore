@@ -5,7 +5,8 @@ obj/
 # Per-machine build configuration
 /src/GameDir.props
 
-# Probe output landing in the repo root (the curated copies live in docs/data/)
+# DevTools output. It is written into the game's BepInEx folder, not here, so
+# these only catch a stray copy; the curated copies live in docs/data/.
 /alttl-dump.json
 /alttl-solutions.tsv
 /alttl-events.log
@@ -59,8 +60,6 @@ __pycache__/
 
 # Local test servers and generated seeds
 /testserver/
-/testseed/
-/smoke_alttl/
 
 # Scratch install used by tools/release-e2e.py
 /release-test/

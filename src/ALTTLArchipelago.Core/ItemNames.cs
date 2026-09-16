@@ -44,13 +44,4 @@ public static class ItemNames
     /// nonsense entry in the held set on every level completed.
     /// </summary>
     public const string BeatenToken = "Level Beaten";
-
-    /// <summary>
-    /// True for the items that are not abilities. Anything else the server
-    /// sends is treated as an ability name.
-    /// </summary>
-    public static bool IsSpecial(string name)
-        => name == Pack || name == Credits || name == Skip
-           || name == CatTrap || name == BeatenToken || name == HintPage
-           || name == BackgroundTrap;
 }

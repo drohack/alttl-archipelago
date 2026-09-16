@@ -1,6 +1,9 @@
 # The credits card's icon, and what else the game has
 
-`tools/probe-credits-icon.py`. The mod sets no icon on this card - the level carries its own, and the first section names it.
+Measured 2026-09-14. The mod sets no icon on this card - the level carries its
+own, and the first section names it. That is the whole answer; the rest is the
+search that found it. The probe that produced it,
+`tools/probe-credits-icon.py`, was deleted once the question was settled.
 
 ## the credits card's own art
 

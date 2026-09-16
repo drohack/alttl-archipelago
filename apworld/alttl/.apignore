@@ -7,7 +7,10 @@
 # sanctioned one shipped a test suite and a yaml that do not belong in a
 # player's install.
 #
-# Keep it in step with EXCLUDE_TOP_LEVEL in tools/build_apworld.py.
+# THIS FILE IS THE ONE LIST. tools/build_apworld.py reads it rather than
+# keeping its own copy, which is the whole point - the two packagers
+# disagreeing is the bug this file was added to fix, and a second list to
+# 'keep in step' would reintroduce it.
 #
 # The global list already covers __pycache__, .DS_Store, __MACOSX, .git,
 # .gitignore, archipelago.json and .apignore itself, so this only adds ours.

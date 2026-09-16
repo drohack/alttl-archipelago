@@ -28,7 +28,6 @@ this whole audit was about.
 """
 import pathlib
 import re
-import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 SLOTDATA = REPO / "src" / "ALTTLArchipelago.Core" / "SlotData.cs"

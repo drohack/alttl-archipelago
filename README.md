@@ -80,13 +80,14 @@ be told apart at that size. Provenance for all twelve:
 
 - **A badge on every card**, saying whether the card is worth opening: green
   when everything left on it can be done now, green over red when only some of
-  it can, and a star when there is nothing left. A card you cannot play yet is
-  veiled - the game's own locked look means only "not reached yet", which is a
-  different thing.
+  it can, solid red when none of it can yet, and a star when there is nothing
+  left. A red card is also veiled - the game's own locked look means only "not
+  reached yet", which is a different thing.
 - **The ability strip** above, and **a progress counter** reading in the same
   terms as the goal - starred or beaten, whichever this seed asked for.
-- **An Archipelago pane on the main menu** for address, port, slot name and
-  password, so connecting never means editing a config file.
+- **An Archipelago pane on the main menu** for the server (host and port
+  together), slot name and password, so connecting never means editing a
+  config file.
 - **Toasts** for what you find and receive, coloured the way Archipelago's own
   text client colours them.
 - **Play and the next arrow** open the next puzzle the RUN wants, rather than
@@ -147,9 +148,9 @@ Details, the yaml options and troubleshooting:
 
 ## Connect
 
-Launch the game and use the **Archipelago** button on the main menu: server
-address, port, slot name, password. The run appears on the level select once
-you are connected.
+Launch the game and use the **Archipelago** button on the main menu. Three
+fields: **Server** (`host:port`, as the room page gives it), **Slot name**, and
+**Password**. The run appears on the level select once you are connected.
 
 A run also survives the server going away. If nothing answers at launch, the
 mod resumes the last run from a cache of the slot data and the received items,
@@ -181,16 +182,25 @@ queues anything you earn, and sends it on the next connection.
   This is where "is the game moddable" is answered, at length
 - `docs/content-report.md` - the content: base game, daily, archive, DLC, with
   level and solution counts
-- `docs/verification-log.md` - results of the Phase 0 verification gate, and
-  the known gaps
+- `docs/verification-log.md` - an archive of the Phase 0 gate and the bug
+  journal that followed it, to 2026-09-06. The CHANGELOG has carried this
+  record since; several source comments cite this one by name
 - `docs/in-game-testing.md` - how to test against the one real install without
   leaving a mess in it, and the harnesses that once measured nothing
 - `docs/release-testing.md` - checking a release actually works, automatically
   or by hand, and the log lines that tell you it did
-- `docs/data/` - the level table and controller survey the probe produced.
-  Reference data only: the survey walks level *prefabs*, and the runtime
-  controller set differs, so `apworld/alttl/data/levels.json` is the source of
-  truth
+- `docs/cat-trap-tests.md` - what the cat trap does and the battery that proves
+  it. The trap has been wrong three times and passed a test each time
+- `docs/manual-hint-test.md` - the Hint Page gate, which needs hands on a mouse
+- `docs/backlog.md` - what has been raised and not yet done. Currently empty,
+  and says so
+- `docs/data/` - probe output and investigation write-ups: the prefab-derived
+  level table, the generator sweep, and the notes from questions that were
+  settled by measuring. Reference and history, read by nothing
+- `fixtures/` - the two files that ARE read, by tests in both languages. See
+  `fixtures/README.md`
+- `docs/superpowers/specs/` - the original design doc, kept as history. It
+  describes a product that no longer exists and says so at the top
 - `tools/ap-sync.ps1` - copy `apworld/alttl` into the Archipelago clone
 - `tools/offline-test.py` - five phases proving a run survives the server going
   away and rejoins when it comes back, including that a regenerated seed under
@@ -209,6 +219,11 @@ queues anything you earn, and sends it on the next connection.
   version numbers disagree or the build produced a file it does not recognise
 - `tools/check-version.py` - the version lives in three files; fail when they
   drift. `--set X.Y.Z` writes all three
+- `tools/check-game-facts.py` - compare the level table with a dump from the
+  running game. A required release step that nothing invokes for you; see
+  `docs/release-testing.md`
+- `tools/deploy.sh` - build and copy the plugin into the game, closing it first
+- `tools/playthrough.py` - drive a scripted run for a harness to watch
 - `.github/workflows/ci.yml` - Core built with no game installed, Core tests,
   the world's tests against the minimum supported Archipelago version, the
   packaged apworld generating a real seed, and an ASCII-only check

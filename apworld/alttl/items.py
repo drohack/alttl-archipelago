@@ -15,8 +15,8 @@ from . import data
 
 BASE_ID = 4_050_000
 
-#: Opens the next block of puzzles - `pack_size` of them at first, widening as
-#: the run goes on; see pack_boundaries. One repeated item rather than distinct
+#: Opens the next block of puzzles - every block the same size, including the
+#: free opening; see pack_boundaries. One repeated item rather than distinct
 #: named packs, so the track always fills left to right.
 PROGRESSIVE_PACK = "Progressive Puzzle Pack"
 
@@ -26,8 +26,9 @@ PROGRESSIVE_PACK = "Progressive Puzzle Pack"
 CREDITS_ITEM = "Credits"
 
 #: Clears a puzzle. Logic-neutral - packs arrive from the multiworld rather
-#: than from beating anything, and a skipped puzzle does not count towards the
-#: credits requirement.
+#: than from beating anything. A skipped puzzle DOES count towards the credits
+#: requirement - see SkipCount in options.py for why, and for the trade that
+#: makes.
 SKIP = "Skip"
 
 #: The cat walks in and knocks your arrangement over. The game's own idea of an
@@ -111,9 +112,6 @@ _ALL_NAMES: List[str] = (
 ITEM_NAME_TO_ID: Dict[str, int] = {
     name: BASE_ID + i for i, name in enumerate(_ALL_NAMES)
 }
-
-#: Events carry no id, so they stay out of the table above.
-EVENT_ITEMS: List[str] = [BEATEN_TOKEN]
 
 
 def classification(name: str) -> ItemClassification:

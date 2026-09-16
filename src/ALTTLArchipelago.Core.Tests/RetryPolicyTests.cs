@@ -128,6 +128,24 @@ public class RetryPolicyTests
     }
 
     [Fact]
+    public void AnUnlimitedPolicyPrintsNoDenominator()
+    {
+        // THE DEFAULT POLICY, which is why this matters. Describe used to
+        // print MaxAttempts unconditionally, so a stock install - where
+        // DefaultMaxAttempts IS Unlimited - showed "attempt 2 of 0" in the
+        // connection pane. Every existing test here passed a real limit, so
+        // the one configuration every player has was the one never covered.
+        var policy = new RetryPolicy();
+        Assert.True(policy.IsUnlimited);
+
+        policy.Failed("connection refused");
+        var line = policy.Describe(false, "droha");
+
+        Assert.Equal("Reconnecting, attempt 2", line);
+        Assert.DoesNotContain(" of ", line);
+    }
+
+    [Fact]
     public void ConnectingSuccessfullyIsReportedEvenAfterFailures()
     {
         var policy = new RetryPolicy();

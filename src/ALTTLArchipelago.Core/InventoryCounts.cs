@@ -29,7 +29,7 @@ public sealed class InventoryCounts
     public int HintPages { get; }
 
     /// <summary>
-    /// Background recolour items received, counted rather than reacted to.
+    /// Background Change Traps received, counted rather than reacted to.
     ///
     /// The count IS the state: the colour shown is
     /// catalogue[count % catalogue.Count], so it is a pure function of how
@@ -38,7 +38,6 @@ public sealed class InventoryCounts
     /// on each arrival would walk it forward again on every login, landing the
     /// player on a different colour every time they started the game.
     /// </summary>
-    /// <summary>Background Change Traps received. One counter, one item.</summary>
     public int BackgroundTraps { get; }
 
     public bool HasCredits { get; }

@@ -12,7 +12,6 @@ was, so anything else is scaled to 1920x1080 first rather than cropped blind.
     py -3.13 tools/crop-ability-strip.py
 """
 import os
-import sys
 
 from PIL import Image
 

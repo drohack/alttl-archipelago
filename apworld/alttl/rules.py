@@ -21,8 +21,9 @@ from . import data, items, locations, slots
 def packs_needed(slot_index: int, boundaries: List[int]) -> int:
     """How many Progressive Puzzle Packs open the slot at this position.
 
-    `boundaries` comes from items.pack_boundaries - the opening is free, and
-    packs widen as the run goes on, so this is a lookup rather than a division.
+    `boundaries` comes from items.pack_boundaries. A lookup rather than a
+    division because the blocks are not all equal: the first is free, and the
+    last is whatever remainder is left when the run does not divide evenly.
     """
     for held, opens_up_to in enumerate(boundaries):
         if slot_index < opens_up_to:

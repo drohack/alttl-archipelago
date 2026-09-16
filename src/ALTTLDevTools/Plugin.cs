@@ -1411,17 +1411,6 @@ public class DevToolsBehaviour : MonoBehaviour
     }
 
     /// <summary>
-    /// Marks a level solved in the save exactly the way the game does, so the
-    /// unlock rule can be observed rather than guessed. "solve:INDEX" or
-    /// "solve:INDEX:solutionId".
-    /// </summary>
-    /// <summary>
-    /// "unlockto:N" gives the first N levels a LevelCompletionData entry, which
-    /// IS the unlock condition, so the level select renders them in full colour.
-    /// Needed to compare tracker markers: a fresh save shows three unlocked
-    /// cards, and the markers only matter on unlocked ones.
-    /// </summary>
-    /// <summary>
     /// "clickbutton:Name" invokes the onClick of the first Button whose
     /// GameObject is called Name. There is no synthetic mouse input here, so
     /// UI added by another plugin can be exercised from a script - which is
@@ -1793,28 +1782,6 @@ public class DevToolsBehaviour : MonoBehaviour
     }
 
     /// <summary>
-    /// The controllers the RUNNING level has registered.
-    ///
-    /// Registered, not walked from the prefab: only the registered set raises
-    /// GameEvent_ObjectControllerSolved, and the two differ - MedicineCabinet
-    /// shows 14 on the prefab and 13 at runtime. A location built from the
-    /// prefab set would include one that can never be checked.
-    /// </summary>
-    /// <summary>
-    /// Every cat-ish component in the running scene.
-    ///
-    /// The question this answers is "does THIS level have a built-in cat, and
-    /// what class is it": CatSwipe turned out to be only a config helper - it
-    /// has SetupSwipe, AddSwipeables and the mass and angular settings, but no
-    /// trigger - so whatever performs a cat event is a class the static probe
-    /// never named. Scanning a real scene names it, once, instead of guessing
-    /// class names one compile at a time.
-    ///
-    /// Deliberately a scene-wide scan rather than a walk of the level's own
-    /// object list: a cat that lives outside allLevelObjects is exactly the
-    /// case a narrower scan would miss and then report as "no cat here".
-    /// </summary>
-    /// <summary>
     /// Write the whole level's layout to a file, for diffing.
     ///
     /// Records the PARENT and the placed flag beside the position, because
@@ -1879,37 +1846,6 @@ public class DevToolsBehaviour : MonoBehaviour
     private static string Round(Vector3 v)
         => $"({v.x.ToString("F2")}, {v.y.ToString("F2")}, {v.z.ToString("F2")})";
 
-    /// <summary>
-    /// Every managed object's world bounds, grouped by controller.
-    ///
-    /// Feeds the blocking question the plan flagged and the generator audit
-    /// could not answer: an ability-locked group is dimmed and immovable, so if
-    /// one of its objects sits physically on top of a FREE group's objects, a
-    /// part check we call reachable may not be. Logic looser than the game is
-    /// the dangerous direction, because it makes a seed unwinnable.
-    ///
-    /// Bounds rather than positions, because overlap is about extent: two
-    /// objects can have distant centres and still be stacked. Renderer bounds
-    /// are already in world space, so no transform maths is needed here - and
-    /// doing it here rather than offline is what keeps this honest, since the
-    /// numbers come from the same renderer the player sees.
-    ///
-    /// This only finds CANDIDATES. Whether an overlap actually prevents solving
-    /// the free group depends on where its pieces need to travel, which needs a
-    /// person to try. Reported as a list to review, never as a verdict.
-    /// </summary>
-    /// <summary>
-    /// Every clickable control currently on screen, with its parent.
-    ///
-    /// Added after guessing control names twice and being wrong twice - the
-    /// tutorial modal's confirm reads "Okay" on screen and is not named Okay,
-    /// and the pause menu could not be found at all because it is inactive
-    /// while closed. A scripted run has to dismiss whatever a player would
-    /// dismiss, and it cannot do that by guessing what the artist called it.
-    ///
-    /// Parent as well as name because clickbutton matches either, and the
-    /// confirm on a modal keeps its Button on a child.
-    /// </summary>
     /// <summary>
     /// Click a control the way a pointer would, not by invoking onClick.
     ///
@@ -2018,20 +1954,6 @@ public class DevToolsBehaviour : MonoBehaviour
         GameEventManager.AddGameEvent<GameEventManager.GameEvent_MenuOpen>(data);
     }
 
-    /// <summary>
-    /// List a game type's members: "members:HintManager" or
-    /// "members:HintManager:hint" to filter.
-    ///
-    /// Built after guessing member names one compile at a time for the third
-    /// time in this project. The compile-error oracle works - a wrong name is a
-    /// CS1061 - but it answers one guess per build, and the interop assembly
-    /// renames things unpredictably, so the guesses are often wrong twice over.
-    /// Asking the loaded assembly is instant and exhaustive.
-    ///
-    /// Ordinary .NET reflection, because the interop assemblies ARE managed
-    /// assemblies once the process is up. That is also why this cannot be done
-    /// offline: outside the game there is nothing to reflect over.
-    /// </summary>
     /// <summary>
     /// Does the running level actually have a hint?
     ///
@@ -2238,95 +2160,6 @@ public class DevToolsBehaviour : MonoBehaviour
             + $" beingWiped={(surface == null ? "-" : Str(() => surface.IsBeingWiped().ToString()))}");
     }
 
-    /// <summary>
-    /// Force the level-select skip prompt on screen, and say what it reads.
-    ///
-    /// Written to settle a question that a hierarchy scan could not: a label
-    /// at Menus/Level Select/Levels Track/Skip Tooltip reads "Skipppable" in
-    /// the object tree, but it has a localiser and had never been activated,
-    /// so that string may be nothing more than the placeholder baked into the
-    /// prefab. What a player actually sees is only knowable by showing it.
-    /// </summary>
-    /// <summary>
-    /// Pick pieces up and drop them, for real, one after another.
-    ///
-    /// EXISTS BECAUSE A BUG NEEDED QUARTER-SECOND TIMING TO REPRODUCE.
-    /// Dropping a piece starts a LeanTween settle animation, and a cat trap
-    /// landing while one is running used to leave a dead callback throwing
-    /// every frame. Asking a human to spring a trap inside that window is not
-    /// a test; droha, reasonably: "how do I time that? It needs to be timed
-    /// to like the quarter second."
-    ///
-    /// So this drops piece after piece with a short gap, which keeps SOMETHING
-    /// settling for as long as it runs. A trap sent any time during that lands
-    /// mid-animation without anyone having to aim.
-    ///
-    /// A REAL POINTER DRAG, not a flag flip. docs/release-testing.md records
-    /// that every short reproducer written for this project used DevTools'
-    /// `complete` instead of solving, and all of them came back clean while
-    /// the bug reproduced in the full run. The settle tween only exists if a
-    /// piece is actually dragged and dropped, so this dispatches the same
-    /// pointer sequence the game gets from a mouse.
-    ///
-    ///     jiggle          every piece in the level, once
-    ///     jiggle:5        the first five
-    /// </summary>
-    /// <summary>
-    /// What the game's resolution list actually contains, with indices.
-    ///
-    /// The save stores the player's choice as an INDEX into this list, and
-    /// the list is built from the monitor the game opened on - so the same
-    /// number means different things on different displays, and a stale
-    /// index silently changes the window size. droha, who worked this out
-    /// first: "the game changes the resolution list depending on what
-    /// monitor opened it, so a number doesn't help me here."
-    ///
-    /// Printing the list is the only way to turn "index 0" into something a
-    /// person can check.
-    /// </summary>
-    /// <summary>
-    /// What screen every level ends on, for all of them at once.
-    ///
-    /// THE QUESTION THIS ANSWERS. droha: some levels finish on the
-    /// three-button panel - restart, pause menu, next arrow - and others drop
-    /// you straight into the next puzzle. Nobody knew whether that was the
-    /// game's own design or something the mod introduced, and guessing was
-    /// how the last three of these went wrong.
-    ///
-    /// NO LEVEL LOADING. LevelManager.AllLevelInterfaces holds every level's
-    /// interface at once, so the whole table can be read from the title
-    /// screen in one frame. Loading 111 levels to ask each one a question it
-    /// can answer while asleep would take an hour and prove the same thing.
-    ///
-    /// The flags, and why each is here:
-    ///   PreventRetryMenu    authored per level, in the scene data
-    ///   DoPreventRetryMenu  the computed answer - authored AND anything else
-    ///   ShowRetryMenu       what the game will actually do
-    ///   CompleteSilently    finishes with no completion beat at all
-    ///   TransitionSilently  moves on with no transition
-    ///   IsDailyTidy         the mod forces this false during a run, so a
-    ///                       daily-pool level takes a different path than it
-    ///                       does in vanilla - the one place the mod is
-    ///                       implicated
-    ///
-    /// Printed as TSV so it can go straight into docs/data/ and be diffed
-    /// against apworld/alttl/data/levels.json.
-    /// </summary>
-    /// <summary>
-    /// Every loaded sprite whose name contains a substring.
-    ///
-    /// EXISTS SO NOBODY GUESSES A SPRITE NAME AGAIN. The mod borrows the
-    /// game's art by name in two places, and the comment history on
-    /// Badges.FindStar records two wrong guesses before the right name was
-    /// found. Asking the runtime what it has costs one command.
-    ///
-    /// The immediate use is the ability strip: it draws lettered pills
-    /// because the mod ships no art, and the question of whether the game
-    /// already has a per-mechanic icon is answerable rather than arguable.
-    ///
-    ///     sprites star        everything with "star" in the name
-    ///     sprites             everything, which is a lot
-    /// </summary>
     /// <summary>
     /// Start any level by index, ignoring the run entirely.
     ///
@@ -2666,6 +2499,21 @@ public class DevToolsBehaviour : MonoBehaviour
         label.raycastTarget = false;
     }
 
+    /// <summary>
+    /// Every loaded sprite whose name contains a substring.
+    ///
+    /// EXISTS SO NOBODY GUESSES A SPRITE NAME AGAIN. The mod borrows the
+    /// game's art by name in two places, and the comment history on
+    /// Badges.FindStar records two wrong guesses before the right name was
+    /// found. Asking the runtime what it has costs one command.
+    ///
+    /// The immediate use is the ability strip: it draws lettered pills
+    /// because the mod ships no art, and the question of whether the game
+    /// already has a per-mechanic icon is answerable rather than arguable.
+    ///
+    ///     sprites star        everything with "star" in the name
+    ///     sprites             everything, which is a lot
+    /// </summary>
     private static void DumpSprites(string filter)
     {
         filter = (filter ?? "").Trim();
@@ -2703,6 +2551,34 @@ public class DevToolsBehaviour : MonoBehaviour
             + (filter.Length > 0 ? $" matching '{filter}'" : ""));
     }
 
+    /// <summary>
+    /// What screen every level ends on, for all of them at once.
+    ///
+    /// THE QUESTION THIS ANSWERS. droha: some levels finish on the
+    /// three-button panel - restart, pause menu, next arrow - and others drop
+    /// you straight into the next puzzle. Nobody knew whether that was the
+    /// game's own design or something the mod introduced, and guessing was
+    /// how the last three of these went wrong.
+    ///
+    /// NO LEVEL LOADING. LevelManager.AllLevelInterfaces holds every level's
+    /// interface at once, so the whole table can be read from the title
+    /// screen in one frame. Loading 111 levels to ask each one a question it
+    /// can answer while asleep would take an hour and prove the same thing.
+    ///
+    /// The flags, and why each is here:
+    ///   PreventRetryMenu    authored per level, in the scene data
+    ///   DoPreventRetryMenu  the computed answer - authored AND anything else
+    ///   ShowRetryMenu       what the game will actually do
+    ///   CompleteSilently    finishes with no completion beat at all
+    ///   TransitionSilently  moves on with no transition
+    ///   IsDailyTidy         the mod forces this false during a run, so a
+    ///                       daily-pool level takes a different path than it
+    ///                       does in vanilla - the one place the mod is
+    ///                       implicated
+    ///
+    /// Printed as TSV so it can go straight into docs/data/ and be diffed
+    /// against apworld/alttl/data/levels.json.
+    /// </summary>
     private static void DumpEndings()
     {
         var manager = GameManager.Instance?.levelManager;
@@ -2789,6 +2665,19 @@ public class DevToolsBehaviour : MonoBehaviour
         catch { return "?"; }
     }
 
+    /// <summary>
+    /// What the game's resolution list actually contains, with indices.
+    ///
+    /// The save stores the player's choice as an INDEX into this list, and
+    /// the list is built from the monitor the game opened on - so the same
+    /// number means different things on different displays, and a stale
+    /// index silently changes the window size. droha, who worked this out
+    /// first: "the game changes the resolution list depending on what
+    /// monitor opened it, so a number doesn't help me here."
+    ///
+    /// Printing the list is the only way to turn "index 0" into something a
+    /// person can check.
+    /// </summary>
     private static void DumpResolutions()
     {
         var all = Screen.resolutions;
@@ -3207,6 +3096,30 @@ public class DevToolsBehaviour : MonoBehaviour
         DevToolsPlugin.Log.LogInfo("clickat: dispatched");
     }
 
+    /// <summary>
+    /// Pick pieces up and drop them, for real, one after another.
+    ///
+    /// EXISTS BECAUSE A BUG NEEDED QUARTER-SECOND TIMING TO REPRODUCE.
+    /// Dropping a piece starts a LeanTween settle animation, and a cat trap
+    /// landing while one is running used to leave a dead callback throwing
+    /// every frame. Asking a human to spring a trap inside that window is not
+    /// a test; droha, reasonably: "how do I time that? It needs to be timed
+    /// to like the quarter second."
+    ///
+    /// So this drops piece after piece with a short gap, which keeps SOMETHING
+    /// settling for as long as it runs. A trap sent any time during that lands
+    /// mid-animation without anyone having to aim.
+    ///
+    /// A REAL POINTER DRAG, not a flag flip. docs/release-testing.md records
+    /// that every short reproducer written for this project used DevTools'
+    /// `complete` instead of solving, and all of them came back clean while
+    /// the bug reproduced in the full run. The settle tween only exists if a
+    /// piece is actually dragged and dropped, so this dispatches the same
+    /// pointer sequence the game gets from a mouse.
+    ///
+    ///     jiggle          every piece in the level, once
+    ///     jiggle:5        the first five
+    /// </summary>
     private static void JigglePieces(string arg)
     {
         var want = int.MaxValue;
@@ -3310,6 +3223,15 @@ public class DevToolsBehaviour : MonoBehaviour
             + "threw; anything settling now is what a trap has to survive");
     }
 
+    /// <summary>
+    /// Force the level-select skip prompt on screen, and say what it reads.
+    ///
+    /// Written to settle a question that a hierarchy scan could not: a label
+    /// at Menus/Level Select/Levels Track/Skip Tooltip reads "Skipppable" in
+    /// the object tree, but it has a localiser and had never been activated,
+    /// so that string may be nothing more than the placeholder baked into the
+    /// prefab. What a player actually sees is only knowable by showing it.
+    /// </summary>
     private static void ShowSkipTooltip()
     {
         var found = 0;
@@ -3631,6 +3553,20 @@ public class DevToolsBehaviour : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// List a game type's members: "members:HintManager" or
+    /// "members:HintManager:hint" to filter.
+    ///
+    /// Built after guessing member names one compile at a time for the third
+    /// time in this project. The compile-error oracle works - a wrong name is a
+    /// CS1061 - but it answers one guess per build, and the interop assembly
+    /// renames things unpredictably, so the guesses are often wrong twice over.
+    /// Asking the loaded assembly is instant and exhaustive.
+    ///
+    /// Ordinary .NET reflection, because the interop assemblies ARE managed
+    /// assemblies once the process is up. That is also why this cannot be done
+    /// offline: outside the game there is nothing to reflect over.
+    /// </summary>
     private static void ListMembers(string arg)
     {
         var parts = arg.Split(':');
@@ -3695,6 +3631,18 @@ public class DevToolsBehaviour : MonoBehaviour
         DevToolsPlugin.Log.LogInfo($"members: {n} shown");
     }
 
+    /// <summary>
+    /// Every clickable control currently on screen, with its parent.
+    ///
+    /// Added after guessing control names twice and being wrong twice - the
+    /// tutorial modal's confirm reads "Okay" on screen and is not named Okay,
+    /// and the pause menu could not be found at all because it is inactive
+    /// while closed. A scripted run has to dismiss whatever a player would
+    /// dismiss, and it cannot do that by guessing what the artist called it.
+    ///
+    /// Parent as well as name because clickbutton matches either, and the
+    /// confirm on a modal keeps its Button on a child.
+    /// </summary>
     private static void ListButtons()
     {
         int n = 0;
@@ -3724,6 +3672,25 @@ public class DevToolsBehaviour : MonoBehaviour
         DevToolsPlugin.Log.LogInfo($"buttons: {n} active");
     }
 
+    /// <summary>
+    /// Every managed object's world bounds, grouped by controller.
+    ///
+    /// Feeds the blocking question the plan flagged and the generator audit
+    /// could not answer: an ability-locked group is dimmed and immovable, so if
+    /// one of its objects sits physically on top of a FREE group's objects, a
+    /// part check we call reachable may not be. Logic looser than the game is
+    /// the dangerous direction, because it makes a seed unwinnable.
+    ///
+    /// Bounds rather than positions, because overlap is about extent: two
+    /// objects can have distant centres and still be stacked. Renderer bounds
+    /// are already in world space, so no transform maths is needed here - and
+    /// doing it here rather than offline is what keeps this honest, since the
+    /// numbers come from the same renderer the player sees.
+    ///
+    /// This only finds CANDIDATES. Whether an overlap actually prevents solving
+    /// the free group depends on where its pieces need to travel, which needs a
+    /// person to try. Reported as a list to review, never as a verdict.
+    /// </summary>
     private static void DumpBounds(string tag)
     {
         var li = GameManager.Instance.levelManager.ActiveLevelInterface;
@@ -3772,6 +3739,20 @@ public class DevToolsBehaviour : MonoBehaviour
             + $" for {Str(() => li!.LevelId)} -> {path}");
     }
 
+    /// <summary>
+    /// Every cat-ish component in the running scene.
+    ///
+    /// The question this answers is "does THIS level have a built-in cat, and
+    /// what class is it": CatSwipe turned out to be only a config helper - it
+    /// has SetupSwipe, AddSwipeables and the mass and angular settings, but no
+    /// trigger - so whatever performs a cat event is a class the static probe
+    /// never named. Scanning a real scene names it, once, instead of guessing
+    /// class names one compile at a time.
+    ///
+    /// Deliberately a scene-wide scan rather than a walk of the level's own
+    /// object list: a cat that lives outside allLevelObjects is exactly the
+    /// case a narrower scan would miss and then report as "no cat here".
+    /// </summary>
     private static void ListCats()
     {
         var li = GameManager.Instance.levelManager.ActiveLevelInterface;
@@ -3809,6 +3790,14 @@ public class DevToolsBehaviour : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// The controllers the RUNNING level has registered.
+    ///
+    /// Registered, not walked from the prefab: only the registered set raises
+    /// GameEvent_ObjectControllerSolved, and the two differ - MedicineCabinet
+    /// shows 14 on the prefab and 13 at runtime. A location built from the
+    /// prefab set would include one that can never be checked.
+    /// </summary>
     private static void ListControllers()
     {
         var li = GameManager.Instance.levelManager.ActiveLevelInterface;
@@ -3944,6 +3933,12 @@ public class DevToolsBehaviour : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// "unlockto:N" gives the first N levels a LevelCompletionData entry, which
+    /// IS the unlock condition, so the level select renders them in full colour.
+    /// Needed to compare tracker markers: a fresh save shows three unlocked
+    /// cards, and the markers only matter on unlocked ones.
+    /// </summary>
     private static void UnlockTo(string arg)
     {
         if (!int.TryParse(arg, NumberStyles.Integer, CultureInfo.InvariantCulture,
@@ -3975,6 +3970,11 @@ public class DevToolsBehaviour : MonoBehaviour
             + " Reopen the level select to see them.");
     }
 
+    /// <summary>
+    /// Marks a level solved in the save exactly the way the game does, so the
+    /// unlock rule can be observed rather than guessed. "solve:INDEX" or
+    /// "solve:INDEX:solutionId".
+    /// </summary>
     private static void MarkSolved(string arg)
     {
         var parts = arg.Split(':');
@@ -4129,7 +4129,6 @@ public class DevToolsBehaviour : MonoBehaviour
         DumpSections();
     }
 
-    /// <summary>Level-select sections, readable only while that menu is open.</summary>
     /// <summary>
     /// A colour as rrggbb, without ColorUtility - see DumpSections.
     /// </summary>
@@ -4141,6 +4140,7 @@ public class DevToolsBehaviour : MonoBehaviour
         return r.ToString("x2") + g.ToString("x2") + b.ToString("x2");
     }
 
+    /// <summary>Level-select sections, readable only while that menu is open.</summary>
     private static void DumpSections()
     {
         var menu = UnityEngine.Object.FindObjectOfType<LevelSelect>();

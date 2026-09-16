@@ -28,7 +28,7 @@ Drive it by writing a command into `<game>/BepInEx/alttl-devtools-commands.txt`:
 | `menu:title` / `menu:levels` / `menu:archive` / `menu:daily` | Jump to a menu |
 | `unlocks` | Write the campaign unlock/completion state and chapter membership |
 | `sections` | Log the level-select sections and every track icon's lock state |
-| `levelsweep` | Boot every level in turn and record its RUNTIME controllers to `apworld/alttl/data/levels.json`. This is the source of truth for the level table |
+| `levelsweep` | Boot every level in turn and record its RUNTIME controllers to `BepInEx/alttl-levels.json`. Copy that over `apworld/alttl/data/levels.json`, which is the source of truth for the level table - see `apworld/alttl/data/README.md` |
 | `gensweep:<index>[:<n>]` | Regenerate one procedural puzzle n times and record how its layout varies |
 | `cardlabels` / `cardlabels:off` | Put the level name under each level-select card |
 | `solve:<index>[:<solutionId>]` | Write a completion entry into the save |
@@ -47,7 +47,7 @@ Gameplay events land in `BepInEx/alttl-watch.log`, and only when the
 `WatchEvents` config setting is on - `ObjectPlaced` alone fires hundreds of
 times per level load, so it is off by default.
 
-Curated copies of the probe output are in [docs/data/](docs/data/).
+Curated copies of the probe output are in [data/](data/).
 
 ## Commands added since
 
@@ -65,6 +65,43 @@ table above, which is organised by what the research needed.
 | `shot:<path>[|<n>]` | Screenshot, optionally rendered at n times the window size |
 | `sprites <filter>` | Every loaded sprite name matching a substring |
 | `loadlevel:<index>` | `StartLevel` with a forced reload, for putting a level load in flight deliberately |
+
+## Everything else
+
+The rest of the surface, listed because it was not listed anywhere - several of
+these were documented only inside one other doc, and the table above is meant to
+be the index.
+
+### Inspecting the running game
+
+| Command | Effect |
+|---|---|
+| `members:<Type>[:<filter>]` | List a game type's members by reflection, e.g. `members:HintManager`. Built after guessing member names one compile at a time; the interop assemblies rename things unpredictably |
+| `inert:<index>` | Report a level's controllers and which of them are inert |
+| `bounds:<index>` | Every managed object's world bounds, grouped by controller. Written to find ability-locked objects sitting physically on top of free ones |
+| `layout:<tag>` | Write the whole level's layout to a file, for diffing. Records the parent and the placed flag beside the position, because position alone made two rounds of cat-trap testing lie |
+| `findtext:<text>` | Every text label whose content matches, anywhere in the loaded scene |
+| `sections` (see above) and `why:<slot>` | `why` explains what a card's badge is reading - which locations it counts and which it thinks are blocked |
+
+### Driving the UI
+
+| Command | Effect |
+|---|---|
+| `press:<name>` | Click a control the way a POINTER would, through the EventSystem. Not the same as `clickbutton`, which invokes `onClick` - the level-select tutorial's confirm is a Button with nothing on `onClick`, so `clickbutton` reported four successful clicks that did nothing |
+| `clickbutton:<name>` | Invoke the `onClick` of the first Button with that GameObject name. No synthetic input, so another plugin's UI can be driven from a script |
+| `clicktrack:<n>` | Click the nth card on the level-select track |
+| `focus:<name>` | Scroll the level select to a named icon |
+| `menu:<name>` | Go to a named menu, e.g. `menu:title`. **`play` presses Play on the TITLE menu, so it needs `menu:title` first** |
+| `jiggle[:<n>]` | Pick pieces up and drop them for real, one after another. Exists because a bug needed quarter-second timing to reproduce, which is not something to ask a human for |
+
+### Screen and sprites
+
+| Command | Effect |
+|---|---|
+| `setres[:<w>x<h>]` | Set the window resolution. Resolution INDEXES are not stable - do not use them |
+| `spriteexport:<filter>` | Write matching loaded sprites out as PNGs. How the twelve ability icons were found; see [data/ability-icons.md](data/ability-icons.md) |
+| `spritegrid:<filter>` / `spritegrid:off` | Draw matching sprites on screen in a labelled grid, so a name can be matched to a picture |
+| `bgset:<index>` | Force the level background, for checking the background trap's catalogue |
 
 ## A warning
 

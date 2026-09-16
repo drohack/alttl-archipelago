@@ -469,14 +469,6 @@ internal sealed class Connection
     }
 
     /// <summary>
-    /// Send locations, and report which ones the server accepted.
-    ///
-    /// Returns the names it actually sent so the ledger clears exactly those
-    /// and nothing else - a check earned while this call was in flight must
-    /// stay owed. Returns empty on any failure, which leaves everything owed
-    /// and lets the next flush try again.
-    /// </summary>
-    /// <summary>
     /// Send what is owed, and report back only what the server accepted.
     ///
     /// Asynchronous on purpose, twice over. The blocking overload ran on the

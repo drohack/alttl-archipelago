@@ -60,6 +60,13 @@ jobs:
       # in code needs something that actually reads both sides.
       - name: Check SlotData's defaults against the options
         run: python tools/check-slot-defaults.py
+      # Nothing validated a single .md file until 2026-09-16, and the setup
+      # guide Archipelago serves for this game had said the randomizer was
+      # unfinished since before the first release. Compliance only checks that
+      # the tutorial file EXISTS, never what is in it, so a wrong document
+      # passed every gate this project has.
+      - name: Check the documentation
+        run: python tools/check-docs.py
 
   ascii:
     # Non-ASCII characters break quietly on Windows: Python encodes redirected
@@ -81,7 +88,7 @@ jobs:
           # so a developer running this snippet locally sees what CI sees.
           # testserver/ in particular holds upstream's preset yamls, which are
           # full of BOMs and em dashes and are not ours to rewrite.
-          skip = ("/bin/", "/obj/", "/Archipelago/", "/docs/data/",
+          skip = ("/bin/", "/obj/", "/Archipelago/",
                   "/testserver/", "/dist/")
           bad = 0
           for pat in patterns:
@@ -95,7 +102,10 @@ jobs:
                                   print(f"{f}:{n}: U+{ord(ch):04X} {ch!r}")
                                   bad += 1
           if bad:
-              print(f"\n{bad} non-ASCII character(s). See the Characters rule in CLAUDE.md.")
+              print(f"\n{bad} non-ASCII character(s).")
+              print("ASCII only: no emoji, no em or en dashes, no ellipsis")
+              print("or arrow characters. They break quietly on Windows,")
+              print("where Python encodes redirected stdout as cp1252.")
               sys.exit(1)
           print("clean")
           PY
@@ -143,7 +153,8 @@ jobs:
 
   apworld:
     # Run against every version `versions` resolved - see that job. Not pinned
-    # to main. If we test
+    # to main: an unreleased branch can be red for reasons that never reach
+    # a player, and chasing it is work nobody asked for.
     needs: versions
     strategy:
       # A break on one version must not cancel the other leg. Knowing it fails

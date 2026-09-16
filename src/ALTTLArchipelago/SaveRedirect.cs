@@ -32,7 +32,6 @@ internal static class SaveRedirect
     private static bool _backupChecked;
 
     internal static string? ActiveName => _active;
-    internal static bool IsRedirected => _active != null;
 
     /// <summary>
     /// Point the game at this session's save and load it.
@@ -293,19 +292,6 @@ internal static class SaveRedirect
     }
 
     /// <summary>
-    /// The full path of the CAMPAIGN save.
-    ///
-    /// GetSavePath already returns a complete file path, filename and
-    /// extension included - despite the name, it is not a directory. Combining
-    /// it with GetSaveFilename produced ".../save1.json\save1.json", which
-    /// does not exist, so the backup silently did nothing.
-    ///
-    /// It also honours the redirect, which is exactly why the redirect works
-    /// at all: patching GetSaveFilename is enough to move every read and write.
-    /// The redirect is therefore turned off around this call so the answer is
-    /// the game's own.
-    /// </summary>
-    /// <summary>
     /// The benign "already completed" case.
     ///
     /// Matched on the MESSAGE, not the type: the exception crosses the IL2CPP
@@ -338,6 +324,19 @@ internal static class SaveRedirect
         }
     }
 
+    /// <summary>
+    /// The full path of the CAMPAIGN save.
+    ///
+    /// GetSavePath already returns a complete file path, filename and
+    /// extension included - despite the name, it is not a directory. Combining
+    /// it with GetSaveFilename produced ".../save1.json\save1.json", which
+    /// does not exist, so the backup silently did nothing.
+    ///
+    /// It also honours the redirect, which is exactly why the redirect works
+    /// at all: patching GetSaveFilename is enough to move every read and write.
+    /// The redirect is therefore turned off around this call so the answer is
+    /// the game's own.
+    /// </summary>
     private static string? CampaignSavePath()
     {
         try

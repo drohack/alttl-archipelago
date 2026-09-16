@@ -1,7 +1,14 @@
 # Verification log
 
-Results of the Phase 0 gate from the implementation plan. Each entry records
-what was asked, what happened, and what it changes.
+**ARCHIVE. Runs from 2026-08-31 to 2026-09-06; nothing has been added since,
+and the CHANGELOG has carried this record from 0.3.1 onward.** Kept because
+several source comments cite its findings by name, and because a negative
+result nothing else records is worth keeping.
+
+It began as the results of the Phase 0 gate from the implementation plan - the
+S1 to S6 entries - and then grew into a running engineering journal. Each entry
+records what was asked, what happened, and what it changes. There is no index;
+search it.
 
 **Phase 0 verdict: all six checks pass.** The design stands as specified. Four
 findings adjust details, all recorded below: dependency components, the
@@ -10,7 +17,7 @@ rather than `borderImage` (S5, resolved 2026-09-02), and the opaque solution
 id.
 
 Game build 24060652, version 3.6.1. Probe commands used are in
-[the README](../README.md).
+[devtools.md](devtools.md).
 
 ---
 
@@ -491,7 +498,7 @@ test was corrected to match the implementation, not the other way round.
 ### S4 - how common are controller dependencies? PASS
 
 Folded into the solution survey as a `dependsOn` column
-([docs/data/controller-survey.tsv](data/controller-survey.tsv)).
+([fixtures/controller-survey.tsv](../fixtures/controller-survey.tsv)).
 
 **Only 9 of 380 controllers have any dependency, across 5 levels** - and most
 are *mutual* pairs, which is more interesting than a dependency chain:
@@ -784,7 +791,7 @@ prefabs. (**219 as of 2026-09-09** - eleven restored by the phase audit, plus
 earlier restorations. The 334 also spans 186 levels including DLC; the
 in-scope survey rows are 225.) Most of the difference is legitimate - unregistered components,
 camera-pan helpers, duplicates on one GameObject - but it is a reminder that
-`docs/data/controller-survey.tsv` is reference data and
+`fixtures/controller-survey.tsv` is reference data and
 `apworld/alttl/data/levels.json` is the source of truth.
 
 ## Where a puzzle returns to, and four ideas that did not work

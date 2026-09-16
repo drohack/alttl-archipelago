@@ -78,8 +78,9 @@ SLOT = "droha"
 PUZZLES = 8
 
 #: Requested pack size. How many packs that BUYS is items._pack_cap's
-#: call, not ours - at 8 puzzles the cap is 1, so the request widens to a
-#: single pack of 4. Asserting a pack count here instead of reading the
+#: call, not ours - at 8 puzzles the cap is 1, and MIN_OPENING raises the
+#: size to 5, so the run opens 5 free and the single pack carries the
+#: remaining 3. Asserting a pack count here instead of reading the
 #: generator's boundaries is what made 'the run has 2 packs' fail on every
 #: run for as long as the cap has existed.
 PACK_SIZE = 2

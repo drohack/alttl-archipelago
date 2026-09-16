@@ -3,10 +3,109 @@
 Every release ships three files that carry the same version number and are
 meant to be used together: the mod zip, `alttl.apworld`, and the player yaml.
 A mod and an apworld that disagree about the version disagree about the item
-table, and nothing detects that at runtime - so the version is checked by
-`tools/check-version.py`, in CI, and again before a release will build.
+table, so the version is checked by `tools/check-version.py`, in CI, and again
+before a release will build. Since 0.3.3 the mod also checks it at runtime and
+refuses to connect to a seed a different apworld generated.
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
+
+## Unreleased
+
+A second audit, asked for in the same spirit as the one 0.3.3 shipped: is the
+documentation true, is the project laid out sensibly, and is there dead code or
+rotted commentary left behind. The same defect pattern turned up again - **a
+correct fix applied to one of several copies** - five more times.
+
+### The setup guide on archipelago.gg said the randomizer did not work
+
+The worst of it, and public for the whole life of the project. The Multiworld
+Setup Guide the webhost serves for this game opened with "**This randomizer is
+not finished** ... there is nothing to connect with yet". It was written
+2026-09-02 and never touched again; 0.3.0 shipped four days later.
+
+Two more errors in the same file. It said the mod release includes BepInEx,
+which it does not, and then never told the player to install BepInEx at all -
+so following it exactly produced a mod that could not load, which is the exact
+symptom its own troubleshooting section describes. And it still described packs
+as widening as the run goes on, which 0.3.2 removed.
+
+Nothing caught any of it because **nothing in this repo validated a single .md
+file**, and Archipelago's own compliance suite only asserts that the tutorial
+file exists, never what is in it. A wrong document passed CI, passed
+compliance, and passed the 23/23 release gate.
+
+`tools/check-docs.py` is the answer, and it runs in CI. It checks that every
+relative markdown link resolves, that no member carries two `<summary>`
+elements, that no comment cites a file by line number, and that prose naming a
+version agrees with the manifest. Each of the four was proved to fail on a
+deliberately broken tree before being trusted.
+
+### "Packs widen as the run goes on" had four more copies
+
+0.3.2 made packs uniform and fixed the player yaml and the game page. It missed
+the setup guide, `items.PROGRESSIVE_PACK`'s docstring - which contradicted
+`pack_boundaries` 180 lines below it in the same file - `rules.packs_needed`,
+and a test named `test_packs_open_puzzles_in_strictly_growing_blocks` whose
+assertions passed under both the old ramp and the uniform layout. That test
+pinned neither design; it is now `test_every_pack_is_the_same_size`, plus one
+that spells out the default layout of five free and thirteen packs of five.
+
+### One real bug: "Reconnecting, attempt 4 of 0"
+
+Found while checking a comment that described it in the past tense.
+`Plugin.AttemptLabel()` guards the unlimited case; `RetryPolicy.Describe` is
+the same string and was never fixed with it. The default policy IS unlimited,
+so a stock install could show that line in the connection pane. Every existing
+test passed a real attempt limit, which is why the one configuration every
+player has was the one never covered.
+
+### Comments that pointed at the wrong thing
+
+Twenty-five members carried two `<summary>` elements - invalid doc XML, where
+only the first binds. The cause is mechanical: a member moves and its doc
+comment stays behind on whatever is now underneath. `Problems()` had lost its
+docstring to `VersionMismatch()`, added by the previous audit;
+`CampaignSelect()` carried two contradictory one-liners; `AddMenuIndicator()`
+carried a description of an approach that the very next summary said had been
+tried twice and rejected.
+
+Three of seven `file:line` citations pointed at unrelated content, two of them
+into an append-only 2,910-line log where the cited ranges had drifted to other
+subjects entirely. The form is now banned rather than corrected, because
+correcting the numbers only restarts the clock.
+
+### Dead code, and two second opinions
+
+`ALTTLArchipelago.Core.HintText`, `Chapters` and `MechanicCoverage` were C#
+reimplementations of logic that actually ships in `pool.py` and `slots.py`,
+reachable only from their own tests - and both pairs had **diverged**, which
+makes them worse than dead: a second, wrong answer sitting next to the right
+one. Deleted, with the hint-position assertions moved to the Python side where
+they now pin the exact text rather than just its prefix.
+
+Also removed: `Checks.LeaveSlot`, `SaveRedirect.IsRedirected`,
+`ItemNames.IsSpecial`, `data.BASELINE`, `data.BASE`, `items.EVENT_ITEMS`, an
+unread parameter on `TitleScreen.Show`, and six unused imports. There are no
+TODO, FIXME, XXX or HACK markers anywhere, and no commented-out code; both were
+checked exhaustively rather than assumed.
+
+### Structure
+
+`controller-survey.tsv` and `slot-data-example.json` moved out of `docs/data/`
+into a new `fixtures/`. They are read by tests in BOTH languages - the Core
+csproj reached two directories up into `docs/` for one of them - so editing
+what looked like a document could turn the C# suite red.
+
+Four spent probes deleted: their questions are settled and written up, and
+`probe-tupperware-tower.py` printed verdicts its own docstring called wrong.
+Their write-ups stay, and `credits-goal.md` gained the verdict it was missing -
+it ended on a bare "no" describing a design that has since been replaced, which
+read as an open bug.
+
+The original design doc and the verification log are now labelled as history;
+the first still said "the mod itself is not started". The four docs nothing
+linked to are linked, `docs/devtools.md` gained the sixteen commands it was
+missing, and the ASCII check no longer exempts `docs/data/`.
 
 ## 0.3.3 - 2026-09-16
 
@@ -1550,7 +1649,7 @@ mod had patched was involved.
   by measuring contrast against the renderers on screen. The threshold is a
   first estimate and may want adjusting.
 
-## 0.3.0
+## 0.3.0 - 2026-09-06
 
 The first release. Everything below is what "it works" currently means.
 

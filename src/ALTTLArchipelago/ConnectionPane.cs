@@ -173,16 +173,9 @@ internal static class ConnectionPane
     }
 
     /// <summary>
-    /// A small state tag to the LEFT of the menu entry, so the connection is
-    /// visible from the title screen without opening the dialog.
-    ///
-    /// Right-aligned and hung off the button's left edge, because the menu
-    /// itself is right-aligned - anchoring it inside the button would put it
-    /// on top of the word.
-    /// </summary>
-    /// <summary>
     /// Remember the menu entry's own label so the state can be written into
-    /// it.
+    /// it, making the connection visible from the title screen without opening
+    /// the dialog.
     ///
     /// A SEPARATE text object beside the button was tried twice and fought the
     /// menu's layout both times - the entries are right-aligned inside a rect

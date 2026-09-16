@@ -47,31 +47,6 @@ public class LevelTableTests
     }
 
     /// <summary>
-    /// Levels built as bespoke Level subclasses, whose puzzle pieces are not
-    /// ordinary registered ObjectControllers. Radial Dance Party
-    /// (RadialDanceParty) registers none of its ten rings; TupperwareNesting
-    /// registers 2 of the 9 groups the prefab shows.
-    ///
-    /// IT IS A SWEEP LIMITATION AFTER ALL. This comment used to say "this is
-    /// not a sweep bug - it reproduces through the normal gameplay path", and
-    /// that reproduction was done by BOOTING the level and waiting, which is
-    /// the same measurement the sweep makes. These levels reveal controllers
-    /// as the player SOLVES them, so no amount of waiting reveals anything:
-    /// TupperwareNesting was watched registering 7 during real play, against
-    /// the 2 recorded here.
-    ///
-    /// The second claim was worse. "Nothing there is ability-gated so they
-    /// stay fully playable" followed from the empty controller list, and the
-    /// empty list was the artefact. A level whose later phases need an ability
-    /// the table never saw is one the generator believes is finishable without
-    /// it - which is how progression ends up behind a puzzle that cannot be
-    /// finished. That is what LevelInfo.ExtraAbilities now records.
-    ///
-    /// Still listed explicitly so a NEW zero-controller level fails the test
-    /// below. What has changed is that being on this list is a known GAP, not
-    /// a benign quirk.
-    /// </summary>
-    /// <summary>
     /// Levels whose puzzle pieces are not ordinary registered ObjectControllers
     /// at boot.
     ///

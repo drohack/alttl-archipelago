@@ -43,8 +43,7 @@ which appends the other four to the server's command file. The server reads
 that file through `tail -f`, so stage two needs nothing still running from
 stage one.
 
-WHAT IT LEAVES BEHIND - deliberately, like setup-credits-demo.py and unlike
-every other harness here:
+WHAT IT LEAVES BEHIND - deliberately, unlike every other harness here:
 
   - a seed containing both levels, all of it open at once, no packs to earn
   - the server up on 38281, reading testserver/handtest-commands.txt
@@ -259,8 +258,7 @@ def main():
     # take_snapshot, NOT the Environment context manager. Environment puts
     # the config back when it exits, and this script is meant to exit with the
     # game still connected to localhost - see the cleanup note in the module
-    # docstring. setup-credits-demo.py hands over the same way for the same
-    # reason.
+    # docstring.
     snap = take_snapshot("setup-handtest")
     say(f"snapshot taken: {os.path.basename(snap)}")
     set_config("droha.alttl.archipelago.cfg", {

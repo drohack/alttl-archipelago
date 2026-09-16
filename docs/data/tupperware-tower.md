@@ -19,7 +19,10 @@ never going to complete, and its not completing says nothing at all about the
 other two controllers. The question it needed to ask was whether a solved
 event ever fires for them - which is a different probe.
 
-`tools/probe-tupperware-tower.py`. Boots the level with no run and no server,
+Measured by `tools/probe-tupperware-tower.py`, since deleted - it reached
+the wrong conclusion (see above) and the right one is now pinned by
+`KNOWN_TABLE_GAPS` in `tools/release-e2e.py` and by `test_fill_stress.py`. It
+booted the level with no run and no server,
 solves only the Tower, and looks at what the other two do.
 
 ## as it loads
