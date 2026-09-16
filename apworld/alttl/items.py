@@ -7,7 +7,7 @@ Item names carry no numbers. "Skip", never "Skip x3"; the amounts that matter
 travel in slot_data, so ids stay identical whatever a player's yaml says.
 """
 
-from typing import Dict, List
+from typing import Dict, List, Set
 
 from BaseClasses import ItemClassification
 
@@ -76,6 +76,20 @@ TRAP_ITEMS: List[str] = [CAT_TRAP]
 #: counts these, which spends no pool slots and forces the fill to spread
 #: progression across the run rather than bunching it.
 BEATEN_TOKEN = "Level Beaten"
+
+#: Names a player can use anywhere a single item name works - !hint,
+#: start_inventory, item_links, plando. Without them Archipelago supplies only
+#: "Everything", so there was no way to say "any ability", which with twelve
+#: ability items is the group someone actually reaches for.
+#:
+#: Built from the same lists the pool is, so a new trap or ability joins its
+#: group without anyone remembering to add it here.
+ITEM_NAME_GROUPS: Dict[str, Set[str]] = {
+    "Abilities": set(ABILITY_ITEMS),
+    "Traps": set(TRAP_ITEMS) | {BACKGROUND_TRAP},
+    "Progression": {PROGRESSIVE_PACK, CREDITS_ITEM},
+    "Useful": {SKIP, HINT_PAGE},
+}
 
 _ALL_NAMES: List[str] = (
     [PROGRESSIVE_PACK, CREDITS_ITEM, SKIP]

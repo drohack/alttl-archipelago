@@ -18,7 +18,7 @@ so a hint reads "... at Medicine Cabinet - Blue Bottles in droha's World at
 Ch.2 Level 3".
 """
 
-from typing import Dict, List
+from typing import Dict, List, Set
 
 from . import data
 
@@ -78,6 +78,34 @@ ALL_NAMES: List[str] = _build()
 LOCATION_NAME_TO_ID: Dict[str, int] = {
     name: LOCATION_BASE_ID + i for i, name in enumerate(ALL_NAMES)
 }
+
+
+def _name_groups() -> Dict[str, Set[str]]:
+    """One group per puzzle, plus one per source.
+
+    WHY THIS IS WORTH HAVING. A run carries up to 432 location names, and
+    without groups a player wanting to exclude a puzzle they dislike has to
+    list every solution and part of it by hand. Archipelago resolves these for
+    `exclude_locations` and `priority_locations` itself - LocationSet sets
+    `convert_name_groups` - so naming the puzzle is the whole implementation.
+
+    Keyed by the puzzle's DISPLAY name, which is what a player sees on the
+    card and in the spoiler. A generator drawn several times has an instance
+    tag per copy ("Books (Randomized) #2"), and each instance is its own
+    group: they are different puzzles to play even though they share art.
+    """
+    groups: Dict[str, Set[str]] = {}
+    for level in sorted(data.LEVELS, key=lambda l: l.level_index):
+        for instance in range(1, level.max_instances + 1):
+            names = names_for(level, instance)
+            if not names:
+                continue
+            groups.setdefault(instance_tag(level, instance), set()).update(names)
+            groups.setdefault(level.source.capitalize(), set()).update(names)
+    return groups
+
+
+LOCATION_NAME_GROUPS: Dict[str, Set[str]] = _name_groups()
 
 #: Event locations carry no address, so they are deliberately absent from the
 #: id table. One per level instance, granting a Level Beaten token towards the

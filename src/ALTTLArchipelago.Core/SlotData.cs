@@ -171,6 +171,19 @@ public sealed class SlotData
     ///
     /// Only fields fixed at generation are used, so the value does not change
     /// as the run is played.
+    ///
+    /// GOAL AND LEVELS_TO_STAR ARE DELIBERATELY NOT FED, and an audit flagged
+    /// their absence, so the reasoning is here rather than waiting to be
+    /// rediscovered. Two seeds with an identical draw and different goals do
+    /// collide on one save file. That is close to harmless - the draw is the
+    /// same run, and switching goal mode keeps your progress rather than
+    /// starting you over, which is arguably the better behaviour. Against
+    /// that, feeding them would change the hash for EVERY existing seed and
+    /// orphan the save of every run in progress.
+    ///
+    /// If a future change makes the collision actually harmful, the cost of
+    /// fixing it is that one-time orphaning, and it should be taken at a
+    /// release boundary with a note in the changelog.
     /// </summary>
     public string Fingerprint()
     {

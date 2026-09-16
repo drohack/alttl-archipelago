@@ -117,8 +117,10 @@ internal static class Credits
 
             if (_latch.ShouldAnnounce(left, held))
             {
+                // The goal's own count and word, not always the beaten one.
+                var (done, _, unit) = Checks.GoalProgress(slot);
                 Plugin.Logger.LogInfo(
-                    $"credits: unlocked after {Checks.LevelsBeaten} puzzles");
+                    $"credits: unlocked after {done} puzzles {unit}");
                 Toasts.Show("The credits are unlocked - play them to finish "
                             + "the run", Toasts.Notice);
             }

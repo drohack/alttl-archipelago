@@ -169,7 +169,8 @@ public sealed class Plugin : BasePlugin
             "Which of the game's input maps to switch off while a text box in "
             + "the Archipelago dialog has focus. Leave this alone unless the "
             + "mouse or the keyboard misbehaves in that dialog; then try Off "
-            + "and report which setting works.");
+            + "and report which setting works. RESTART THE GAME after changing "
+            + "it - this is read once at startup.");
         TypingGuard.Suppression = _typingSuppression.Value;
 
         // THE SIZE, NOT THE INDEX. The game remembers the display choice as
@@ -195,7 +196,9 @@ public sealed class Plugin : BasePlugin
             "How many times to retry a lost connection before giving up. 0 "
             + "means keep trying until you press Cancel, which is the default "
             + "and what Archipelago's own client does. A refused login - bad "
-            + "slot name or password - is never retried whatever this says.");
+            + "slot name or password - is never retried whatever this says. "
+            + "RESTART THE GAME after changing it - the retry policy is built "
+            + "once at startup.");
 
         _whyProbe = Config.Bind("Diagnostics", "BadgeWhyProbe", false,
             "Watch BepInEx/alttl-why.txt and explain the tracker badge for the "

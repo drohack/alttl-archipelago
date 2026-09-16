@@ -25,6 +25,10 @@ class ALTTLWeb(WebWorld):
     theme = "stone"
     option_groups = options.option_groups
     options_presets = options.options_presets
+    #: Rendered as "Report a Bug" on the game's page. Unset, that link simply
+    #: does not appear - which is a poor look for a world whose other half is
+    #: a BepInEx plugin people will have trouble installing.
+    bug_report_page = "https://github.com/drohack/alttl-archipelago/issues"
     tutorials = [Tutorial(
         "Multiworld Setup Guide",
         "A guide to playing A Little to the Left in Archipelago.",
@@ -43,6 +47,20 @@ class ALTTLWorld(World):
 
     item_name_to_id = items.ITEM_NAME_TO_ID
     location_name_to_id = locations.LOCATION_NAME_TO_ID
+
+    #: Names a player can use wherever a single item name works: !hint,
+    #: start_inventory, item_links, plando. Without these the metaclass
+    #: supplies only "Everything", so there was no way to say "any ability"
+    #: or "any trap" - and with twelve ability items, that is the group
+    #: someone actually wants.
+    item_name_groups = items.ITEM_NAME_GROUPS
+
+    #: The same for locations, and it matters more here: a run has up to 432
+    #: location names, so `exclude_locations: [Medicine Cabinet]` covering a
+    #: whole puzzle is the difference between a usable option and an
+    #: unusable one. Archipelago resolves these itself - LocationSet sets
+    #: convert_name_groups - so this is the entire implementation.
+    location_name_groups = locations.LOCATION_NAME_GROUPS
 
     # Per-seed state, decided in generate_early and read by everything after.
     plan: List[slots.Slot]

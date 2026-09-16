@@ -140,6 +140,30 @@ does. Skipping it is a reasonable call for a patch release that touched
 neither. Skipping it silently is not - say so in the release notes, because
 the gate's green does not cover it.
 
+### The level table against the game, which nothing runs for you
+
+`tools/check-game-facts.py` compares `apworld/alttl/data/levels.json` with a
+dump taken from the running game. It fails loudly when it disagrees - and
+**nothing invokes it**: not CI, not `package-release.py`, not the gate. The
+table's agreement with the game has been a convention, not a gate, which is
+the same shape as every other finding in this file.
+
+It cannot be automated here. The dump has to be taken with the mod **moved out
+of `BepInEx/plugins` entirely**, because the daily guard answers
+`IsDailyTidy` false while a run is active - a dump taken with the mod loaded
+reports zero daily levels and looks like proof there are none. That has
+already nearly been written into `levels.json` once. Renaming the folder does
+not disable it; BepInEx scans every subdirectory.
+
+So it is a release step, and it belongs here rather than in someone's memory:
+
+> Before a release that touched `levels.json`, `names.json` or
+> `abilities.json`: park the mod, take a dump, run
+> `py -3.13 tools/check-game-facts.py`, put the mod back.
+
+Skip it for a release that touched none of those three. Say so in the notes if
+you skip it, for the same reason as the hand-solve above.
+
 ## The automatic route
 
 ```

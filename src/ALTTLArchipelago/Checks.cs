@@ -893,10 +893,15 @@ internal static class Checks
             // star seed "Puzzle beaten (12/40)" counts something the run
             // does not care about, and the credits would then open at a
             // moment the toast never predicted.
+            // And the SENTENCE matches the unit too. It used to read
+            // "Puzzle beaten (3/20 starred)" on a star seed - a count of one
+            // thing wearing the name of another, which reads as a bug even
+            // though the numbers were right.
             var (done, needed, unit) = GoalProgress(Plugin.Seed);
+            var did = unit == "starred" ? "Puzzle starred" : "Puzzle beaten";
             Toasts.Show(needed > 0
-                ? $"Puzzle beaten ({done}/{needed} {unit})"
-                : "Puzzle beaten", Toasts.Notice);
+                ? $"{did} ({done}/{needed})"
+                : did, Toasts.Notice);
             return;
         }
 
