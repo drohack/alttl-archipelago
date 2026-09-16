@@ -203,64 +203,25 @@ internal sealed class Connection
             // the work here keeps a parse failure out of the frame loop.
             var slot = ParseSlotData(success.SlotData);
 
-            // THE PAIR CHECK, BEFORE ANYTHING IS SET UP.
+            // THE CHECKS A LOGIN STILL HAS TO PASS, all of them in Core.
             //
-            // The mod and the apworld ship together and must agree about the
-            // item table. check-version.py binds them at BUILD time, across
-            // three files in one commit - and nothing checked the two things
-            // a player actually installed. A 0.3.1 mod would connect to a
-            // 0.3.2 seed without complaint and play a subtly wrong game:
-            // location ids move between releases, so it sends the wrong
-            // checks under the right names. The README admitted as much,
-            // which made it a known hole rather than an unknown one.
-            //
-            // Refused rather than warned. Everything past this line builds a
-            // run on the payload, and a run built on the wrong table cannot
-            // be walked back - checks are sent to other people's worlds. The
-            // reason is returned the same way every other refusal is, so the
-            // connection pane shows it instead of a bare failure.
-            var mismatch = slot.VersionMismatch(ModVersionOrEmpty());
-            if (mismatch != null)
+            // They used to be written out here, inline between a handshake and
+            // an event wiring, which is why they had no test: reaching them
+            // needs a live ArchipelagoSession. Both halves of the sequence had
+            // already been added in different releases for the same reason -
+            // the guard existed and was skipped exactly where it mattered - so
+            // it is the last part of this file that should be unverifiable.
+            var verdict = ConnectGuard.Evaluate(slot, ModVersionOrEmpty());
+            if (!verdict.Accepted)
             {
-                Plugin.Logger.LogError($"refusing the seed: {mismatch}");
-                LastError = mismatch;
+                Plugin.Logger.LogError($"refusing the seed: {verdict.Refusal}");
+                LastError = verdict.Refusal!;
                 Abandon();
-                return mismatch;
+                return verdict.Refusal!;
             }
-
-            // AND THE REST OF THE PAYLOAD, on the same terms.
-            //
-            // Problems() is documented as "whether the payload is coherent
-            // enough to start a run on", and two of the three callers treat it
-            // that way: the offline start and the cache write both REFUSE.
-            // This path logged a warning and then called Ready anyway - so the
-            // guard was enforced where a bad payload is merely inconvenient
-            // and skipped where it is authoritative.
-            //
-            // What got through is not cosmetic. pack_size 0 with no boundaries
-            // leaves OpenSlots at 0 forever, which is a track that never opens
-            // a single card; boundaries that stop short strand the tail of the
-            // run behind an item that does not exist; a level with no
-            // controller_groups entry can never send a group check. Each of
-            // those is a run the player cannot finish, behind one warning line
-            // in a log nobody reads during a game.
-            var problems = slot.Problems();
-            if (problems.Count > 0)
+            if (verdict.Warning != null)
             {
-                var why = "this seed cannot be played: "
-                        + string.Join("; ", problems);
-                Plugin.Logger.LogError($"refusing the seed: {why}");
-                LastError = why;
-                Abandon();
-                return why;
-            }
-
-            if (string.IsNullOrEmpty(slot.WorldVersion))
-            {
-                Plugin.Logger.LogWarning(
-                    "this seed predates the version check, so the mod cannot "
-                    + "tell whether it matches. If the run misbehaves, "
-                    + "regenerate it with the apworld from this release.");
+                Plugin.Logger.LogWarning(verdict.Warning);
             }
 
             Connected = true;
