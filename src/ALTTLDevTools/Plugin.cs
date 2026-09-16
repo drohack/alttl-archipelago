@@ -1144,10 +1144,6 @@ public partial class DevToolsBehaviour : MonoBehaviour
                 var arg = cmd.Substring("spritegrid:".Length);
                 SafeRun("spritegrid", () => ShowSpriteGrid(arg));
             }
-            else if (cmd.Equals("spritegrid:off", StringComparison.OrdinalIgnoreCase))
-            {
-                SafeRun("spritegrid", () => ShowSpriteGrid(""));
-            }
             else if (cmd.Equals("newsprites", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("newsprites", DumpNewSprites);
@@ -1183,9 +1179,10 @@ public partial class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("gensweep", () => StartGenSweep(cmd.Substring(9)));
             }
-            else if (cmd.StartsWith("solve:", StringComparison.OrdinalIgnoreCase))
+            else if (cmd.StartsWith("marksolved:", StringComparison.OrdinalIgnoreCase))
             {
-                SafeRun("solve", () => MarkSolved(cmd.Substring(6)));
+                SafeRun("marksolved",
+                        () => MarkSolved(cmd.Substring("marksolved:".Length)));
             }
             else if (cmd.StartsWith("inert:", StringComparison.OrdinalIgnoreCase))
             {

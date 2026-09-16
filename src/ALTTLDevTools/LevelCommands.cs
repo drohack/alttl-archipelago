@@ -320,8 +320,12 @@ public partial class DevToolsBehaviour
 
     /// <summary>
     /// Marks a level solved in the save exactly the way the game does, so the
-    /// unlock rule can be observed rather than guessed. "solve:INDEX" or
-    /// "solve:INDEX:solutionId".
+    /// unlock rule can be observed rather than guessed. "marksolved:INDEX" or
+    /// "marksolved:INDEX:solutionId".
+    ///
+    /// NOT "solve:", which is what it asked for and never got - SolveController
+    /// matches that token first, so this could not run at all. Two different
+    /// commands had collided on one prefix, and the ladder matches in order.
     /// </summary>
     private static void MarkSolved(string arg)
     {

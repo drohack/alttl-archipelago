@@ -31,7 +31,8 @@ Drive it by writing a command into `<game>/BepInEx/alttl-devtools-commands.txt`:
 | `levelsweep` | Boot every level in turn and record its RUNTIME controllers to `BepInEx/alttl-levels.json`. Copy that over `apworld/alttl/data/levels.json`, which is the source of truth for the level table - see `apworld/alttl/data/README.md` |
 | `gensweep:<index>[:<n>]` | Regenerate one procedural puzzle n times and record how its layout varies |
 | `cardlabels` / `cardlabels:off` | Put the level name under each level-select card |
-| `solve:<index>[:<solutionId>]` | Write a completion entry into the save |
+| `solve:<controller>` | Force a controller in the RUNNING level to its solved state |
+| `marksolved:<index>[:<solutionId>]` | Write a completion entry into the save, the way the game does. Was documented as `solve:` and could never run under that name - `solve:` matches first |
 | `resetlevels` | Reset level completion data to a fresh save |
 | `reorder:<i1,i2,...>` or `reorder:off` | Replace the level-select track with an arbitrary level list |
 | `shot:<abs path>` | Screenshot |
