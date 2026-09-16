@@ -32,11 +32,33 @@ internal static class Credits
     /// <summary>
     /// A fresh run. Called on connect, so a new seed does not inherit the last
     /// one's "already reported".
+    ///
+    /// IT CARRIES THE CREDITS-PLAYED FLAG BACK IN, and that is not optional.
+    /// Reporting the goal requires the credits to have been played, and this
+    /// method replaces the latch wholesale - so before RunState persisted the
+    /// flag, finishing a run offline, playing the credits and reconnecting
+    /// wiped the one fact the report depends on, and the goal was never sent.
+    /// The multiworld then waited forever on a slot that had genuinely
+    /// finished. Same for a relaunch between the credits and the report.
+    ///
+    /// Reset still clears "already reported", deliberately: the client
+    /// library gives no acknowledgement, so re-sending on the next connection
+    /// is how a goal that never left eventually lands. The server takes a
+    /// repeat as idempotent.
+    ///
+    /// Called AFTER RunState.Begin on both paths (Plugin.cs, the offline start
+    /// and OnReady), so the flag is loaded by the time this reads it.
     /// </summary>
     internal static void Reset()
     {
-        _latch = new GoalLatch();
+        _latch = new GoalLatch(RunState.CreditsPlayed);
         _sinceCheck = 0f;
+        if (RunState.CreditsPlayed)
+        {
+            Plugin.Logger.LogInfo(
+                "credits: this run already played them, so the goal is still "
+                + "owed to the server until a send lands");
+        }
     }
 
     /// <summary>
@@ -64,6 +86,10 @@ internal static class Credits
     {
         if (_latch.Played) return;
         _latch.CreditsPlayed();
+        // Persisted immediately rather than at the next flush: the report may
+        // not be sendable for a long time (an offline finish), and the process
+        // can end before it is.
+        RunState.NoteCreditsPlayed();
         Plugin.Logger.LogInfo("credits: played to the end");
     }
 

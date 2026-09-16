@@ -125,17 +125,59 @@ public class GoalLatchTests
     }
 
     [Fact]
-    public void AReconnectReArmsTheAnnouncementButNotTheReport()
+    public void ARunThatPlayedTheCreditsInAnEarlierSessionStillOwesTheGoal()
     {
-        var latch = Finished();
-        latch.ShouldAnnounce(0, true);
-        Assert.True(latch.ShouldReport(0, true));
-        latch.Sent();
+        // THE BUG THIS EXISTS FOR. Reporting requires the credits to have been
+        // played, and Credits.Reset() builds a new latch on every reconnect
+        // and every offline start. While the flag lived only here, a player
+        // who finished offline, played the credits and reconnected had it
+        // wiped, and the goal was never sent - a multiworld waiting forever on
+        // a slot that had genuinely finished. RunState persists it now and
+        // hands it back through this constructor.
+        var restored = new GoalLatch(creditsAlreadyPlayed: true);
 
-        latch.Reconnected();
+        Assert.True(restored.Played);
+        Assert.True(restored.ShouldReport(remaining: 0, hasCreditsItem: true));
+    }
 
-        Assert.True(latch.ShouldAnnounce(0, true));
-        Assert.False(latch.ShouldReport(0, true));
+    [Fact]
+    public void AFreshLatchDoesNotAssumeTheCreditsWerePlayed()
+    {
+        var fresh = new GoalLatch();
+
+        Assert.False(fresh.Played);
+        Assert.False(fresh.ShouldReport(remaining: 0, hasCreditsItem: true));
+    }
+
+    [Fact]
+    public void ARestoredLatchStillWaitsForTheRestOfTheGoal()
+    {
+        // Carrying the flag back must not shortcut the other condition: the
+        // credits being played says nothing about the count or the item.
+        var restored = new GoalLatch(creditsAlreadyPlayed: true);
+
+        Assert.False(restored.ShouldReport(remaining: 3, hasCreditsItem: true));
+        Assert.False(restored.ShouldReport(remaining: 0, hasCreditsItem: false));
+        Assert.True(restored.ShouldReport(remaining: 0, hasCreditsItem: true));
+    }
+
+    [Fact]
+    public void AReconnectReSendsTheGoalBecauseNothingAcknowledgesIt()
+    {
+        // Deliberate, and the opposite of what this file used to assert. The
+        // client library has no async or callback form of SetGoalAchieved, so
+        // "the send left" is all we ever know. A new session therefore starts
+        // owing the goal again and sends until one lands; the server takes a
+        // repeat as idempotent. That re-attempt is only reachable because the
+        // played flag survives, which is the test above.
+        var first = new GoalLatch(creditsAlreadyPlayed: true);
+        Assert.True(first.ShouldReport(0, true));
+        first.Sent();
+        Assert.False(first.ShouldReport(0, true));
+
+        var nextSession = new GoalLatch(creditsAlreadyPlayed: true);
+
+        Assert.True(nextSession.ShouldReport(0, true));
     }
 
     [Fact]

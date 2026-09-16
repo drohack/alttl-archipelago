@@ -7,9 +7,16 @@ namespace ALTTLArchipelago.Core;
 /// type rather than a pair of bools next to the poll:
 ///
 /// - ANNOUNCE, for the player: said once, when the credits become available.
-/// - REPORT, for the server: sent once, and only counted as sent when the send
-///   actually succeeded. A goal reached while offline must be re-attempted, so
-///   this latch closes on the acknowledgement, not on the attempt.
+/// - REPORT, for the server: sent once per session, and re-attempted on the
+///   next one until it lands.
+///
+/// THIS LATCH CANNOT CLOSE ON AN ACKNOWLEDGEMENT, and it used to claim it did.
+/// The client library exposes SetGoalAchieved with no async or callback form,
+/// so "the send left" is the strongest signal available and nothing can wait
+/// for more. What makes that safe is the other half: the credits-played flag
+/// is persisted, so a reconnect re-arms this latch and sends again, and a
+/// repeated goal is idempotent to the server. Re-attempting until it sticks is
+/// the compensation for having no ack - not a comment claiming one exists.
 ///
 /// The condition is "nothing left to beat AND the Credits item is held". That
 /// opens the credits card and is said to the player at once.
@@ -37,6 +44,16 @@ public sealed class GoalLatch
     private bool _announced;
     private bool _reported;
     private bool _played;
+
+    /// <param name="creditsAlreadyPlayed">
+    /// True when the run's saved state says the credits were played in an
+    /// earlier session. Without this a reconnect or relaunch lost the fact and
+    /// the goal could never be reported - see RunState.CreditsPlayed.
+    /// </param>
+    public GoalLatch(bool creditsAlreadyPlayed = false)
+    {
+        _played = creditsAlreadyPlayed;
+    }
 
     /// <summary>Have the credits been played?</summary>
     public bool Played => _played;
@@ -82,16 +99,6 @@ public sealed class GoalLatch
 
     /// <summary>The send succeeded. Stop asking.</summary>
     public void Sent() => _reported = true;
-
-    /// <summary>
-    /// A reconnect re-arms the announcement but NOT the report.
-    ///
-    /// Re-announcing is harmless and the player may have missed it; re-sending
-    /// a goal is not harmful either - the server takes it as idempotent - but
-    /// there is no reason to, and keeping the latch closed makes the log honest
-    /// about how many times the run was actually won.
-    /// </summary>
-    public void Reconnected() => _announced = false;
 
     private static bool IsWon(int remaining, bool hasCreditsItem)
         => remaining <= 0 && hasCreditsItem;

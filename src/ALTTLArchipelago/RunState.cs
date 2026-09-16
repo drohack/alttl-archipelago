@@ -79,6 +79,33 @@ internal static class RunState
         /// </summary>
         [JsonPropertyName("hintPages")]
         public List<string> HintPages { get; set; } = new();
+
+        /// <summary>
+        /// Whether the player has played the credits through to the end.
+        ///
+        /// THE GOAL CANNOT BE REPORTED WITHOUT THIS, which is why it has to
+        /// outlive the process. Reporting requires the credits to have been
+        /// PLAYED, and that flag lived only in GoalLatch, which
+        /// Credits.Reset() replaces wholesale on every reconnect and every
+        /// offline start. So a player who finished the run offline, played the
+        /// credits and then reconnected had the fact wiped, and the goal was
+        /// never sent - the multiworld waiting forever on a slot that had
+        /// genuinely finished. Relaunching between playing the credits and
+        /// reporting did the same thing.
+        ///
+        /// It also does the work an acknowledgement would. The client library
+        /// offers SetGoalAchieved and no async or callback form, so a send
+        /// that left is the strongest signal available and the report latch
+        /// cannot honestly wait for more. Because this survives, every
+        /// reconnect re-arms the report and sends again until one lands, and
+        /// the server takes a repeated goal as idempotent.
+        ///
+        /// A missing key deserialises to false, so run files written before
+        /// this existed stay valid - such a player re-plays the credits card,
+        /// which is a click.
+        /// </summary>
+        [JsonPropertyName("creditsPlayed")]
+        public bool CreditsPlayed { get; set; }
     }
 
     private static string? _path;
@@ -87,6 +114,17 @@ internal static class RunState
 
     internal static int SkipsUsed => _state.SkipsUsed;
     internal static int TrapsSprung => _state.TrapsSprung;
+
+    /// <summary>Have the credits been played in this run, ever?</summary>
+    internal static bool CreditsPlayed => _state.CreditsPlayed;
+
+    /// <summary>Record that the credits were played. Idempotent.</summary>
+    internal static void NoteCreditsPlayed()
+    {
+        if (_state.CreditsPlayed) return;
+        _state.CreditsPlayed = true;
+        Write();
+    }
 
     /// <summary>How many Hint Pages have been spent.</summary>
     internal static int HintPagesOpened => _state.HintPages.Count;
