@@ -107,6 +107,54 @@ the first still said "the mod itself is not started". The four docs nothing
 linked to are linked, `docs/devtools.md` gained the sixteen commands it was
 missing, and the ASCII check no longer exempts `docs/data/`.
 
+### And then the refactor the audit deferred
+
+**The Core csproj had recorded a half-applied fix for two weeks.** It names
+four Unity-free files left stranded in the plugin with no tests - the
+connection, the inventory, the goal latch and the run state - and says two of
+five bugs in a previous audit were in exactly that untested code. Two of the
+four moved to Core. Two did not, and one of those, the run state, is where
+0.3.3's worst bug lived.
+
+`RunStateData` is in Core now with 20 tests, including one that reads a real
+sidecar off disk written before `creditsPlayed` existed. `RunState` keeps the
+path and the atomic write, the same split `SlotCache` already makes against
+`CachedSession`.
+
+`Connection` did NOT move, and the reason is worth keeping. It would have
+compiled there - but reaching the part worth testing needs a live
+`ArchipelagoSession`, whose nine helper properties all have to be stubbed
+before one assertion can run. That buys compilation, not coverage. So the
+DECISION came out instead: `ConnectGuard.Evaluate(slot, modVersion)` is now the
+whole of what a successful login must pass, as a pure function, with 10 tests.
+Both halves of that sequence had been added in separate releases for the same
+reason each time - the guard existed and was skipped where it was
+authoritative - and neither could have a test where it sat.
+
+**Two files were several files.** `Badges.cs` (1849 lines) was seven unrelated
+HUD overlays; `ALTTLDevTools/Plugin.cs` (4689) was a plugin and seventy
+commands. Both split as PARTIAL CLASSES, so every name, accessibility and
+static-field identity is unchanged and no caller needed editing - which matters
+because CI cannot build either project and the release gate does not check
+badges at all. Both verified line-for-line: 1609 in and out, 4121 in and out,
+nothing lost or gained.
+
+**Two DevTools commands could never run.** The dispatch ladder matches on
+`StartsWith`, and `solve:` was claimed by one command 110 lines before a
+different command asked for it - the second being the one `docs/devtools.md`
+documented. It has its own token now. All 74 branches were checked; none is
+shadowed.
+
+**And the smaller ones.** The install path was declared in nine places and is
+now in one, with `EXE` and `SCREEN_KEY` lifted with it rather than leaving half
+the duplication behind. `release-e2e.py` and `offline-test.py` are libraries as
+well as scripts, so they are `release_e2e.py` and `offline_test.py` and four
+probes dropped their `importlib` blocks; two of those probes gained a
+`__main__` guard, which they needed the moment they became importable - without
+one, importing `probe-dead-controllers` launches the game. The plugin's
+`Abilities` class shadowed `Core.Abilities` inside a file that imports it, and
+is `AbilityLocks` now, which is what it does.
+
 ## 0.3.3 - 2026-09-16
 
 **Location ids did NOT move**, unusually for this project - the tables and the
