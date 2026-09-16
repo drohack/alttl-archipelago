@@ -107,10 +107,10 @@ public class SlotDataTests
         // then behave like the yaml default rather than like zero.
         var sparse = SlotData.FromJson("""{"slots": []}""");
 
-        Assert.Equal(4, sparse.PackSize);
+        Assert.Equal(5, sparse.PackSize);
         Assert.Equal(40, sparse.LevelsToBeat);
         Assert.True(sparse.AbilityLocks);
-        Assert.Equal(10, sparse.CatTrapChance);
+        Assert.Equal(25, sparse.CatTrapChance);
         Assert.Empty(sparse.StartingAbilities);
     }
 

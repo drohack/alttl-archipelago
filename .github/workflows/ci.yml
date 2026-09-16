@@ -54,6 +54,12 @@ jobs:
           python-version: '3.12'
       - name: Check the version and the manifest
         run: python tools/check-version.py
+      # SlotData.cs promises that every property defaults to its yaml option's
+      # default, and two had drifted - with the only test that looked at them
+      # asserting the drifted values. A rule stated in prose and contradicted
+      # in code needs something that actually reads both sides.
+      - name: Check SlotData's defaults against the options
+        run: python tools/check-slot-defaults.py
 
   ascii:
     # Non-ASCII characters break quietly on Windows: Python encodes redirected

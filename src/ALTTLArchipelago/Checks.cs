@@ -116,6 +116,8 @@ internal static class Checks
         _solutions.Clear();
         _unrouted.Clear();
         _currentSlot = -1;
+        // A new run gets a fresh chance to complain about its own table.
+        _groupsWarnedFor = "";
         Attach();
     }
 
@@ -320,6 +322,12 @@ internal static class Checks
     /// </summary>
     private static int _auditedCount;
 
+    /// <summary>
+    /// The level whose missing controller_groups entry has already been
+    /// reported, so a phased level does not repeat it on every reveal.
+    /// </summary>
+    private static string _groupsWarnedFor = "";
+
     private static float _sinceAudit;
 
     /// <summary>Levels whose mismatch has already been reported, so it is said once.</summary>
@@ -433,7 +441,33 @@ internal static class Checks
             SweepAlreadySolved(registered);
 
             var levelId = _slot.Slots[_currentSlot].LevelId;
-            if (!_slot.ControllerGroups.TryGetValue(levelId, out var known)) return;
+            if (!_slot.ControllerGroups.TryGetValue(levelId, out var known))
+            {
+                // THE WORST CASE, AND IT USED TO BE THE SILENT ONE.
+                //
+                // A level with no controller_groups entry cannot match any
+                // group the player tidies, so every part location on it is
+                // unearnable and its star is unreachable. This audit exists to
+                // shout about exactly that kind of table gap - and it returned
+                // without a word, so the one case where nothing can ever be
+                // collected was the one case that produced no log line at all.
+                // A level merely MISSING a few groups got the loud warning.
+                //
+                // SlotData.Problems() names it at connect, which is now a
+                // refusal, so reaching here at all means something got past
+                // that - a level swapped in mid-run, or a payload the refusal
+                // did not see. Said once per level, because the audit re-runs
+                // on every reveal of a phased level.
+                if (_groupsWarnedFor != levelId)
+                {
+                    _groupsWarnedFor = levelId;
+                    Plugin.Logger.LogWarning(
+                        $"UNEARNABLE LOCATIONS on {levelId}: the table has no "
+                        + $"controller_groups entry for it at all, so none of "
+                        + $"its group checks can ever be sent");
+                }
+                return;
+            }
 
             var unknown = new List<string>();
             var live = new HashSet<string>(StringComparer.Ordinal);

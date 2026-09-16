@@ -53,8 +53,16 @@ public sealed class SlotData
     public List<SlotEntry> Slots { get; set; } = new();
 
     /// <summary>Puzzles the first packs open. Later packs open more.</summary>
+    /// <remarks>
+    /// 5, matching PackSize.default in options.py - and 4 is not merely stale,
+    /// it is unreachable: items.MIN_OPENING floors a real payload at 5. This
+    /// default only applies when the key is MISSING, which is exactly the
+    /// degraded case the class exists to survive, and it feeds TrackState's
+    /// no-boundaries fallback - so it decides how much of the track opens in
+    /// the one situation where nothing else can.
+    /// </remarks>
     [JsonPropertyName("pack_size")]
-    public int PackSize { get; set; } = 4;
+    public int PackSize { get; set; } = 5;
 
     /// <summary>How many Progressive Puzzle Pack items exist in the seed.</summary>
     [JsonPropertyName("pack_total")]
@@ -149,7 +157,7 @@ public sealed class SlotData
     public Dictionary<string, Dictionary<string, string>> ControllerGroups { get; set; } = new();
 
     [JsonPropertyName("cat_trap_chance")]
-    public int CatTrapChance { get; set; } = 10;
+    public int CatTrapChance { get; set; } = 25;   // CatTrapChance.default
 
     /// <summary>
     /// A short, stable identifier for THIS seed, derived from its contents.

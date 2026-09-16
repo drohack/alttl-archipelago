@@ -228,6 +228,33 @@ internal sealed class Connection
                 return mismatch;
             }
 
+            // AND THE REST OF THE PAYLOAD, on the same terms.
+            //
+            // Problems() is documented as "whether the payload is coherent
+            // enough to start a run on", and two of the three callers treat it
+            // that way: the offline start and the cache write both REFUSE.
+            // This path logged a warning and then called Ready anyway - so the
+            // guard was enforced where a bad payload is merely inconvenient
+            // and skipped where it is authoritative.
+            //
+            // What got through is not cosmetic. pack_size 0 with no boundaries
+            // leaves OpenSlots at 0 forever, which is a track that never opens
+            // a single card; boundaries that stop short strand the tail of the
+            // run behind an item that does not exist; a level with no
+            // controller_groups entry can never send a group check. Each of
+            // those is a run the player cannot finish, behind one warning line
+            // in a log nobody reads during a game.
+            var problems = slot.Problems();
+            if (problems.Count > 0)
+            {
+                var why = "this seed cannot be played: "
+                        + string.Join("; ", problems);
+                Plugin.Logger.LogError($"refusing the seed: {why}");
+                LastError = why;
+                Abandon();
+                return why;
+            }
+
             if (string.IsNullOrEmpty(slot.WorldVersion))
             {
                 Plugin.Logger.LogWarning(
@@ -241,14 +268,7 @@ internal sealed class Connection
             LastError = "";
             Slot = slot;
 
-            _dispatch(() =>
-            {
-                foreach (var problem in slot.Problems())
-                {
-                    Plugin.Logger.LogWarning($"slot_data problem: {problem}");
-                }
-                Ready?.Invoke(slot);
-            });
+            _dispatch(() => Ready?.Invoke(slot));
 
             return "";
         }
