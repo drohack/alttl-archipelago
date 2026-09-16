@@ -65,6 +65,9 @@ import json
 import os
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from harness_env import GAME
+
 #: Read live rather than authored, so a mismatch means nothing.
 UNSTABLE = {
     "isUnlocked",
@@ -72,9 +75,7 @@ UNSTABLE = {
     "isDailyTidy",       # false cold; the levelsweep boots each level and is right
 }
 
-DEFAULT_DUMP = os.path.join(
-    r"G:\Games\Steam\steamapps\common\A Little To The Left",
-    "BepInEx", "alttl-dump.json")
+DEFAULT_DUMP = os.path.join(GAME, "BepInEx", "alttl-dump.json")
 
 TABLE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                      "apworld", "alttl", "data", "levels.json")

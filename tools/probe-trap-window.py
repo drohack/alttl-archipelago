@@ -40,11 +40,10 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from harness_env import Environment, close_game, ensure_no_steam_relaunch
+from harness_env import (EXE, Environment, GAME, close_game,
+                         ensure_no_steam_relaunch)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-GAME = r"G:/Games/Steam/steamapps/common/A Little To The Left"
-EXE = os.path.join(GAME, "A Little To The Left.exe")
 LOG = os.path.join(GAME, "BepInEx", "LogOutput.log")
 CMD = os.path.join(GAME, "BepInEx", "alttl-devtools-commands.txt")
 # .md, not .log - .gitignore drops every *.log in the tree, and this file is

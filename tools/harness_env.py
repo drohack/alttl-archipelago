@@ -50,8 +50,26 @@ import subprocess
 import sys
 import time
 
+#: The install every harness here drives.
+#:
+#: ONE COPY, and it took nine to notice. This constant was redeclared verbatim
+#: in eight other tools, all of which already imported this module for
+#: something else, plus a ninth that spelled the same path with backslashes -
+#: which is the drift a single constant exists to prevent. Moving the install
+#: meant nine edits, and missing one gave an error in whichever harness was
+#: run next rather than at the point of the change.
+#:
+#: STILL A LITERAL, and that is a real limitation rather than an oversight.
+#: _find_save_dir below DISCOVERS its path by globbing, because hardcoding
+#: that one produced a silent failure - the harness reported it had protected
+#: the environment while matching nothing. This is the same class of constant
+#: and has not had the same treatment; it is one machine's G: drive, now in
+#: one place instead of nine.
 GAME = r"G:/Games/Steam/steamapps/common/A Little To The Left"
 CONFIG_DIR = os.path.join(GAME, "BepInEx", "config")
+
+#: The executable, launched with NO arguments - see ensure_no_steam_relaunch.
+EXE = os.path.join(GAME, "A Little To The Left.exe")
 
 #: Steam's App ID for this game, from steamapps/appmanifest_1629520.acf.
 STEAM_APP_ID = "1629520"

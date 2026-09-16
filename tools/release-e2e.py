@@ -45,13 +45,11 @@ import time
 import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from harness_env import (SAVE_DIR, CONFIG_DIR, close_game,
-                         ensure_no_steam_relaunch, take_snapshot,
-                         restore_snapshot)
+from harness_env import (CONFIG_DIR, EXE, GAME, SAVE_DIR, SCREEN_KEY,
+                         close_game, ensure_no_steam_relaunch,
+                         restore_snapshot, take_snapshot)
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-GAME = r"G:/Games/Steam/steamapps/common/A Little To The Left"
-EXE = os.path.join(GAME, "A Little To The Left.exe")
 LOG = os.path.join(GAME, "BepInEx", "LogOutput.log")
 CMD = os.path.join(GAME, "BepInEx", "alttl-devtools-commands.txt")
 PLUGIN_DIR = os.path.join(GAME, "BepInEx", "plugins", "ALTTLArchipelago")
@@ -1088,9 +1086,6 @@ def solve_level(log):
 
 #: Unity FullScreenMode. 0 exclusive, 1 borderless, 2 maximised, 3 windowed.
 WINDOWED = 3
-
-#: Where Unity keeps the player's screen choice. READ ONLY - see below.
-SCREEN_KEY = r"Software\maxinferno\A Little To The Left"
 
 #: The hashed value names Unity generates. Stable for a given build.
 MODE_VALUE = "Screenmanager Fullscreen mode_h3630240806"

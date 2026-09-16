@@ -27,11 +27,9 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from harness_env import Environment, SAVE_DIR, close_game
+from harness_env import EXE, Environment, GAME, SAVE_DIR, close_game
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-GAME = r"G:/Games/Steam/steamapps/common/A Little To The Left"
-EXE = os.path.join(GAME, "A Little To The Left.exe")
 LOG = os.path.join(GAME, "BepInEx", "LogOutput.log")
 CMD = os.path.join(GAME, "BepInEx", "alttl-devtools-commands.txt")
 CACHE = os.path.join(SAVE_DIR, "alttl-last-session.json")

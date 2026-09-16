@@ -31,9 +31,8 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from harness_env import Environment
+from harness_env import Environment, GAME
 
-GAME = r"G:/Games/Steam/steamapps/common/A Little To The Left"
 LOG = os.path.join(GAME, "BepInEx", "LogOutput.log")
 CMD = os.path.join(GAME, "BepInEx", "alttl-devtools-commands.txt")
 
