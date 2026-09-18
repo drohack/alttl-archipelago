@@ -2,13 +2,22 @@
 
 Two passes, in this order and for this reason:
 
-  1. Cover the mechanics no generator can produce. Four abilities - Stacking,
-     Containers, Drawer and Jigsaw - exist only on hand-made levels, so if
-     the draw does not go looking for them they arrive by luck or not at all.
-     Ties are broken at random so the same levels do not turn up every seed.
+  1. Cover the mechanics no generator can produce. Without DLC those are
+     Stacking, Containers, Drawer and Jigsaw - abilities that exist only on
+     hand-made levels, so if the draw does not go looking for them they arrive
+     by luck or not at all. Ties are broken at random so the same levels do not
+     turn up every seed.
+
+     WHICH ONES ARE SCARCE DEPENDS ON THE YAML, and is computed from the
+     eligible pool rather than from the whole catalogue. Cupboards and Drawers
+     ships a drawer generator and Seeing Stars a jigsaw one, so a set derived
+     from every level would drop Drawer and Jigsaw for EVERY player - including
+     one who owns no DLC, whose runs would quietly lose the guarantee. Seeing
+     Stars also adds Distributing, which is scarce only when it is on.
 
   2. Fill the rest by source, generator 80 / archive 10 / base 10 by default,
-     preferring the least-used generator so no one puzzle type dominates.
+     plus a weight per enabled DLC, preferring the least-used generator so no
+     one puzzle type dominates.
 
 ALL THREE SOURCES ARE ROLLABLE. This text used to say the opposite - that
 base-campaign levels enter through pass 1 alone, "because it brings something
@@ -81,12 +90,36 @@ class Slot(NamedTuple):
     seed: int
 
 
+#: yaml option name for each DLC key. A level whose `dlc` is set is only
+#: eligible when its toggle is on, and the player has to actually own it: the
+#: mod refuses to connect to a seed wanting a DLC that is not installed.
+DLC_OPTIONS = {
+    "DLC1": "cupboards_and_drawers",
+    "DLC2": "seeing_stars",
+}
+
+
 def _eligible(world_options) -> List[data.Level]:
-    """Levels this yaml permits at all."""
+    """Levels this yaml permits at all.
+
+    The ONLY content gate in the world, and it has to run before any random
+    call - pass 1 of the draw picks by ability out of this pool without
+    looking at source, so a DLC weight of zero would not keep DLC levels out.
+    """
     enabled = set(world_options.archive_packs.value)
+    dlc_on = {
+        key for key, option in DLC_OPTIONS.items()
+        if getattr(world_options, option).value
+    }
     out = []
     for level in data.LEVELS:
         if level.source == "archive" and data.pack_of(level) not in enabled:
+            continue
+        # Keyed on `dlc`, never on source: the four randomizable DLC levels
+        # have source "generator", so a source test would let DLC2 Bread
+        # Crusts into a run belonging to someone who does not own Seeing
+        # Stars, and the level would not load.
+        if level.dlc and level.dlc not in dlc_on:
             continue
         out.append(level)
     return out
@@ -99,6 +132,18 @@ def draw(random, slots: int, coverage: int, source_weights: Dict[str, int],
     cap = min(instance_cap or data.MAX_GENERATOR_INSTANCES,
               data.MAX_GENERATOR_INSTANCES)
     pool = _eligible(options) if options is not None else list(data.LEVELS)
+
+    # Which mechanics no generator IN THIS POOL can make, so the reserve below
+    # knows what is scarce.
+    #
+    # DERIVED PER YAML, not once for the whole catalogue, and that matters as
+    # soon as a DLC ships a generator for a scarce mechanic. DLC1 Trophy
+    # Cabinet is a drawer generator, so a module-level table computed over
+    # every level would drop Drawer out of the scarce set for EVERY player -
+    # including one who owns no DLC and whose runs would quietly lose their
+    # guaranteed drawer puzzle. Computed from the eligible pool it corrects
+    # itself in both directions.
+    gap_abilities = data.gap_abilities(pool)
 
     used: Set[str] = set()              # one-shot levels already placed
     instances: Dict[str, int] = {}      # generator id -> times placed
@@ -136,7 +181,7 @@ def draw(random, slots: int, coverage: int, source_weights: Dict[str, int],
     need = {}
     if coverage > 0:
         need = {a: 1 for a in data.ABILITIES}
-        for ability in data.GAP_ABILITIES:
+        for ability in gap_abilities:
             need[ability] = coverage
     # A CEILING, BECAUSE THE GUARANTEE MUST NOT EAT THE WHOLE RUN.
     #

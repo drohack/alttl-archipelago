@@ -72,6 +72,19 @@ public static class ConnectGuard
     /// a far worse failure than the one being guarded.
     /// </param>
     public static ConnectVerdict Evaluate(SlotData slot, string modVersion)
+        => Evaluate(slot, modVersion, null);
+
+    /// <param name="installedDlc">
+    /// The DLC keys the player actually has, or null to skip the check. Passed
+    /// in because Core cannot reference the game - the same reason modVersion
+    /// is a parameter.
+    ///
+    /// NULL SKIPS RATHER THAN REFUSES. A caller that cannot read the game's
+    /// DLC list should not turn that into a refused connection; the failure it
+    /// would cause is worse than the one it guards.
+    /// </param>
+    public static ConnectVerdict Evaluate(SlotData slot, string modVersion,
+                                          IReadOnlyCollection<string>? installedDlc)
     {
         // THE PAIR CHECK, BEFORE ANYTHING ELSE.
         //
@@ -110,6 +123,29 @@ public static class ConnectGuard
                 "this seed cannot be played: " + string.Join("; ", problems));
         }
 
+        // DLC THE PLAYER DOES NOT OWN, refused rather than warned.
+        //
+        // This one has no soft failure available. A level belonging to an
+        // uninstalled DLC does not throw when the mod launches it - measured
+        // 2026-09-17, LevelManager.SetActiveLevel quietly redirects to the DLC
+        // level select instead - so a run containing one would look like the
+        // mod failing to open a puzzle, repeatedly, with nothing in the log
+        // saying why. Better to say so at connect, once, in words.
+        if (installedDlc != null)
+        {
+            var missing = slot.RequiredDlc
+                .Where(key => !installedDlc.Contains(key))
+                .Select(DlcName)
+                .ToList();
+            if (missing.Count > 0)
+            {
+                return ConnectVerdict.Refuse(
+                    "this seed was built with " + string.Join(" and ", missing)
+                    + ", which is not installed. Install it, or ask for a seed "
+                    + "generated without it.");
+            }
+        }
+
         // Allowed, not refused: a seed too old to say which version made it is
         // an UNKNOWN rather than a mismatch, and refusing would strand runs
         // that are very probably fine.
@@ -117,4 +153,12 @@ public static class ConnectGuard
             ? ConnectVerdict.Allow(UnknownVersionWarning)
             : ConnectVerdict.Allow();
     }
+
+    /// <summary>The name a player would recognise, not the internal key.</summary>
+    private static string DlcName(string key) => key switch
+    {
+        "DLC1" => "the Cupboards and Drawers DLC",
+        "DLC2" => "the Seeing Stars DLC",
+        _ => key,
+    };
 }

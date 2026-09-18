@@ -19,9 +19,17 @@ namespace ALTTLArchipelago.Core;
 public static class DisplayNames
 {
     /// <summary>
-    /// Seasonal event packs. The id prefixes the pack onto the level; a reader
-    /// wants the level first and the pack as context, so it moves to the end.
-    /// "NeatStreak" is the internal name for the pack shown as Drawer Chores.
+    /// Seasonal event packs and the two DLCs. The id prefixes the source onto
+    /// the level; a reader wants the level first and the source as context, so
+    /// it moves to the end. "NeatStreak" is the internal name for the pack
+    /// shown as Drawer Chores.
+    ///
+    /// The DLCs go through the same path for the same reason. Their ids read
+    /// "DLC1 Trophy Cabinet", which is a developer's label, not a name a
+    /// player has for a puzzle - and these strings are the ONLY words a player
+    /// ever gets for one, because the game itself never shows a level name.
+    /// Routed here they come out as "Trophy Cabinet (Cupboards and Drawers)",
+    /// which matches every event level already shipped.
     /// </summary>
     private static readonly (string Prefix, string Pack)[] Packs =
     {
@@ -31,6 +39,8 @@ public static class DisplayNames
         ("NeatStreak_", "Drawer Chores"),
         ("SomethingEggstra ", "Something Eggstra"),
         ("SnackPack ", "Snack Pack"),
+        ("DLC1 ", "Cupboards and Drawers"),
+        ("DLC2 ", "Seeing Stars"),
     };
 
     /// <summary>Ids the camel-case splitter gets wrong.</summary>

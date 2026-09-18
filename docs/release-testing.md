@@ -155,21 +155,61 @@ dump taken from the running game. It fails loudly when it disagrees - and
 table's agreement with the game has been a convention, not a gate, which is
 the same shape as every other finding in this file.
 
-It cannot be automated here. The dump has to be taken with the mod **moved out
-of `BepInEx/plugins` entirely**, because the daily guard answers
-`IsDailyTidy` false while a run is active - a dump taken with the mod loaded
-reports zero daily levels and looks like proof there are none. That has
-already nearly been written into `levels.json` once. Renaming the folder does
-not disable it; BepInEx scans every subdirectory.
+The dump has to be taken with the mod **moved out of `BepInEx/plugins`
+entirely**, because the daily guard answers `IsDailyTidy` false while a run is
+active - a dump taken with the mod loaded reports zero daily levels and looks
+like proof there are none. That has already nearly been written into
+`levels.json` once. Renaming the folder does not disable it; BepInEx scans
+every subdirectory.
+
+**`tools/levelsweep.py` does the parking now**, which is the half that used to
+be left to memory. It moves the folder out, launches with DevTools only, runs
+the command, closes, and then **reads the log back to prove the mod never
+logged a line** before restoring it. A person following the same steps cannot
+easily check that last part, and it is the part that failed.
+
+    py -3.13 tools/levelsweep.py --dump      # for check-game-facts.py
+    py -3.13 tools/levelsweep.py --survey    # the prefab walk
+    py -3.13 tools/levelsweep.py             # the runtime sweep, all levels
+    py -3.13 tools/levelsweep.py 1235 1236   # just those indices
 
 So it is a release step, and it belongs here rather than in someone's memory:
 
 > Before a release that touched `levels.json`, `names.json` or
-> `abilities.json`: park the mod, take a dump, run
-> `py -3.13 tools/check-game-facts.py`, put the mod back.
+> `abilities.json`: `py -3.13 tools/levelsweep.py --dump`, then
+> `py -3.13 tools/check-game-facts.py <the file it names>`.
 
 Skip it for a release that touched none of those three. Say so in the notes if
 you skip it, for the same reason as the hand-solve above.
+
+**Never copy a fresh sweep over `levels.json`.** A full sweep is a worse copy
+of that file than the one in the tree: it drops the phased controllers the
+2026-09-08 audit restored by hand and puts back the prefab ghosts it removed -
+measured 2026-09-17, it disagreed on five levels and the shipped side was right
+every time. Merge new rows in with `tools/merge-levels.py`, which appends only
+levels the table does not already have and refuses to write if an existing row
+would change.
+
+### DLC
+
+`tools/probe-dlc.py` covers the run-time half of DLC support in about two
+minutes, and nothing else does: it generates a Seeing Stars seed, connects,
+and launches a **star-gated** puzzle from the run's own track, checking that it
+registers controllers and sends checks.
+
+Worth running before a release that touches the level table, the track or the
+connect guard. The three things it settles were all open questions:
+
+- a DLC level plays without the game being put into DLC mode,
+- its checks reach the mod,
+- the mod clears the star gate the game puts on five Seeing Stars puzzles.
+
+That last one has a failure mode worth knowing: a locked level does **not**
+throw or return false. `LevelManager.SetActiveLevel` redirects to the DLC level
+select and returns, so a broken gate looks like a puzzle that simply never
+opens. The probe is sized so a gated level is always drawn - twenty slots from
+Seeing Stars alone, measured 20 of 20 - rather than rolling seeds and hoping,
+which an earlier version did and missed twelve times running.
 
 ### The other two hand tests, which live in their own files
 
@@ -183,6 +223,12 @@ to forget - which is the whole reason they are named here:
   actually been proven about it, and the battery that has to stay green. Worth
   re-reading rather than re-running for a release that touched `Traps.cs`: the
   trap has been wrong three times, and each time it passed a test first.
+- **[manual-container-test.md](manual-container-test.md)** - whether a drawer,
+  cupboard door or lid pays its check. ANSWERED 2026-09-17: yes, every flagged
+  group fires, and the data was right while the harness was wrong. Kept
+  because the reasoning is the useful part: a harness cannot tell "no player
+  can earn this" from "I cannot pull a drawer open", so a force-solve probe
+  must never be read as evidence that a location is dead.
 
 ## The automatic route
 
@@ -317,6 +363,36 @@ mod. The ones worth knowing about, all recorded in comments at the site:
   every start.
 - **Waiting for a header is not waiting for the list.** `controllers:` appears
   before the per-controller lines.
+- **A patched class does not mean a patch was installed.** `Plugin` patches
+  class by class from a hand-written list, and a class that is never added to
+  that list has NONE of its Harmony attributes applied - silently, with a
+  perfectly normal startup. `DlcGuard` shipped that way through the whole DLC
+  feature: two prefixes, neither ever installed, while the file accumulated
+  comments explaining why one of them "never fires". The game announced it at
+  every launch and nothing read the line:
+
+      features live: save redirect, connection pane, track, skips, hints,
+                     navigation, daily guard, title screen
+
+  Eight names, and `dlc guard` was not one of them. Two checks now cover it,
+  and BOTH are needed because each sees a failure the other cannot:
+  `tools/check-patches.py` reads the source and fails when a Harmony class is
+  never registered or a `Tick` is never called (it cannot see runtime), and
+  `release_e2e.patch_problem()` reads the launch and fails on `PATCH FAILED` /
+  `FEATURES DISABLED` or a missing feature (a class can be registered, carry
+  attributes, and still be refused at runtime - registering `DlcGuard`
+  produced `PATCH FAILED, dlc guard IS DISABLED: IL Compile Error`). Every
+  probe calls the second one before it measures anything.
+- **A green build does not mean the game is running your code.** The deploy
+  step cannot overwrite a loaded DLL, so building while the game is open
+  leaves a fresh `bin/Release/ALTTLArchipelago.dll` and a STALE one in
+  `BepInEx/plugins/`, and the build still prints "Build succeeded". Any test
+  launched afterwards measures the old mod and reports a clean, plausible,
+  wrong answer. This cost a false negative on 2026-09-18: a check for the
+  thirteenth ability icon read `badges: loaded 12 ability icon(s)`, which was
+  a correct reading of a DLL that predated the icon. When a measurement
+  disagrees with a change you just made, compare the mtime and size of the
+  deployed DLL against `bin/Release/` BEFORE debugging the change.
 - **A log line you care about can be consumed by an unrelated wait.** The pack
   announcement arrives mid-puzzle, so the harness re-derives progress from the
   whole transcript rather than the newest chunk.

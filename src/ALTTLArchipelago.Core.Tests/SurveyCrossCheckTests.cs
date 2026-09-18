@@ -126,6 +126,73 @@ public class SurveyCrossCheckTests
             "StandardObjects/Draggables",
             "Stackables (Tupperware)/StackablesY",
         },
+
+        // ---- DLC, measured 2026-09-17 -----------------------------------
+        //
+        // THE CUPBOARD GHOST, eight more of it. MedicineCabinet above is the
+        // base game's one: a prefab Cupboard that never registers at load.
+        // Every DLC cupboard level has the same component and it behaves the
+        // same way, which is what makes this a pattern rather than eight
+        // separate judgements.
+        //
+        // The ABILITY is still real and is recorded as an extraAbility on
+        // each - exactly as MedicineCabinet records Drawer. The cupboard is
+        // the door to everything inside it, so a player without Drawer cannot
+        // reach the puzzle; the component simply never pays a check itself.
+        ["DLC1 Clock Cupboard"] = new[] { "Cupboard/Cupboard" },
+        ["DLC1 Bathroom Cupboard"] = new[] { "Cupboard/Cupboard" },
+        ["DLC1 Tea Cabinet"] = new[] { "Cupboard/Cupboard" },
+        ["DLC1 Pantry"] = new[] { "Cupboard/Cupboard" },
+        ["DLC1 Media Cabinet"] = new[] { "Cupboard/Cupboard" },
+        ["DLC1 Trophy Cabinet"] = new[] { "Cupboard/Cupboard" },
+        ["DLC2 Bells"] = new[] { "Cupboard/Cupboard" },
+        ["DLC2 Whistles"] = new[] { "CupboardController/Cupboard" },
+
+        // A bare Draggables in the prefab of a level whose whole puzzle is one
+        // Distributables controller. levelClass is plain `Level`, so it
+        // declares no phases, and nothing reveals it.
+        ["DLC2 Pizza"] = new[] { "Draggables/Draggables" },
+
+        // PHASE-SUSPECTED, NOT GHOSTS, and deliberately not restored.
+        //
+        // These two are the DLC finales and their levelClass is bespoke -
+        // DrawerBossDLC1 and DrawerBossDLC2, not `Level`. The sweep knows
+        // exactly three phase mechanisms (PhasedLevel.phases,
+        // TupperwareNesting.GetPhaseControllers, RadialDanceParty.dances) and
+        // neither boss uses one, so "absent at boot and named in no phase
+        // list" does NOT prove ghost here the way it does above - it only
+        // proves the sweep cannot see them.
+        //
+        // So the conservative half is taken and the risky half is not:
+        // DLC2 Boss records Ordering and Swapping as extraAbilities, because
+        // a requirement superset only over-gates, while RESTORING these as
+        // controllers would mint locations that may be unearnable. DLC1
+        // Boss's three are plain Draggables and imply no ability at all.
+        //
+        // TO SETTLE IT: play either boss and watch the mod's CONTROLLER
+        // MISMATCH line. A phased controller appears there when it registers;
+        // a ghost never does. If they register, restore them here.
+        ["DLC1 Boss"] = new[]
+        {
+            "Dining Room Draggables/Draggables",
+            "Landscape Draggables/Draggables",
+            "Parking Lot Draggables/Draggables",
+        },
+        ["DLC2 Boss"] = new[]
+        {
+            "Compass/Shuffleables",
+            "Knives/Shuffleables",
+            "Locks/DraggablesOrdered",
+        },
+
+        // IndexControlledPhaseLevel, whose nine phases the sweep reads as
+        // unnamed. The missing controller names itself a helper - "for
+        // Bottles Target Detection" - rather than a puzzle group, and it is
+        // plain Draggables, so it implies no ability either way.
+        ["DLC2 Ghost Cat"] = new[]
+        {
+            "Draggables (for Bottles Target Detection)/Draggables",
+        },
     };
 
     /// <summary>

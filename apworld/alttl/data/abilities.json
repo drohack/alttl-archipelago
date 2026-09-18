@@ -1,5 +1,5 @@
 {
-  "_comment": "Authored, not generated from the game. The ability grouping is a design decision; levels.json is the measured half. Both the Python apworld and the C# mod read this so the two cannot drift - AbilityCatalogTests asserts the C# copy matches.",
+  "_comment": "Authored, not generated from the game. The ability grouping is a design decision; levels.json is the measured half. Both the Python apworld and the C# mod read this so the two cannot drift - AbilityCatalogTests asserts the C# copy matches. `abilities` is the base game's twelve and its KEY ORDER IS FROZEN: item ids are positional and hang off it. DLC mechanics go in `dlcAbilities`, whose items are appended after every base one, so adding a DLC moves no existing id.",
   "baseline": [
     "Draggables",
     "GenericLevelObjects"
@@ -10,6 +10,7 @@
   "abilities": {
     "Swapping": [
       "CrackersShuffleables",
+      "DLC2NanopetsShuffleables",
       "Shuffleables",
       "ShuffleablesRelative",
       "ShuffleablesRepeatingPattern"
@@ -27,6 +28,7 @@
     "Gadgets": [
       "AnimScrubbables",
       "CandlesObjectController",
+      "CatEyesController",
       "ComputerErrorsController",
       "Groupables",
       "HourglassController",
@@ -43,6 +45,7 @@
     ],
     "Grids": [
       "GridPuzzle",
+      "GridPuzzleBase",
       "StackableGrid"
     ],
     "Tidying": [
@@ -60,6 +63,7 @@
     "Drawer": [
       "Cupboard",
       "DrawerController",
+      "DrawerExpandableController",
       "HangingToolsController"
     ],
     "Sticking": [
@@ -72,5 +76,13 @@
     "Jigsaw": [
       "DraggablesJigsaw"
     ]
+  },
+  "dlcAbilities": {
+    "DLC1": {},
+    "DLC2": {
+      "Distributing": [
+        "Distributables"
+      ]
+    }
   }
 }

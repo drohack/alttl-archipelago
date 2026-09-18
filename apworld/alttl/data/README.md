@@ -2,8 +2,29 @@
 
 `levels.json` is the single source of truth about the game's content, consumed
 by **both** the Python apworld and the C# mod. It is generated, not hand
-written: run the `levelsweep` command in ALTTLDevTools and copy
-`BepInEx/alttl-levels.json` here.
+written: `py -3.13 tools/levelsweep.py` runs the sweep with the mod correctly
+parked and tells you where it put the result.
+
+**MERGE that result, do not copy it over this file.** `tools/merge-levels.py`
+appends only levels the table does not already have, and refuses to write if an
+existing row would change. A wholesale copy is a REGRESSION, not an update -
+see "The sweep is LOSSY on phased levels" below, and the five rows it disagreed
+with the shipped table about on 2026-09-17, where the shipped side was right
+every time.
+
+The file's canonical form is `json.dumps(indent=2)`, so a script that reads it
+and writes it back changes nothing but what it meant to change.
+
+### Fields worth knowing about
+
+- `source` is which pool a level is drawn from: `generator`, `archive`, `base`,
+  `dlc1` or `dlc2`.
+- `dlc` is which DLC the player must own, or absent for base content. **It is
+  not derivable from `source`**: four DLC levels carry the game's own
+  randomizer flag, so their source is `generator` while they still need the DLC
+  installed. Eligibility keys off `dlc`; weighting keys off `source`.
+- `extraAbilities` is the hand-authored escape hatch for an ability a level
+  needs but its registered controllers do not reveal.
 
 It is a **runtime** sweep, and that matters. Walking a loaded level prefab with
 `GetComponentsInChildren<ObjectController>` finds a different set than

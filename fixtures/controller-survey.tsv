@@ -319,45 +319,101 @@ levelIndex	levelId	solutionCount	controller	controllerType	setCount	solutionIds	
 1128	DLC1 Boss	1	Landscape Draggables	Draggables	0			
 1128	DLC1 Boss	1	DrawerController	DrawerController	0			
 1129	DLC1 Credits	0						|no-controllers
-1200	DLC2 Canapes	3						result-threw:Il2CppException
-1201	DLC2 Forks	5						result-threw:Il2CppException
-1202	DLC2 Mugs	4						result-threw:Il2CppException
-1203	DLC2 Corn	4						result-threw:Il2CppException
-1204	DLC2 Pressed Leaves	3						result-threw:Il2CppException
-1205	DLC2 Broken Vases	1						result-threw:Il2CppException
-1206	DLC2 Nanopets	5						result-threw:Il2CppException
-1207	DLC2 ObsoleteTech	1						result-threw:Il2CppException
-1208	DLC2 Balls	3						result-threw:Il2CppException
-1209	DLC2 Water Glasses	4						result-threw:Il2CppException
-1210	DLC2 Pizza	4						result-threw:Il2CppException
-1211	DLC2 Leftovers	5						result-threw:Il2CppException
-1212	DLC2 Windows	1						result-threw:Il2CppException
-1213	DLC2 Cacti	5						result-threw:Il2CppException
-1214	DLC2 Origami	1						result-threw:Il2CppException
-1215	DLC2 Moths	4						result-threw:Il2CppException
-1216	DLC2 Math Set	2						result-threw:Il2CppException
-1217	DLC2 Ink Bottles	2						result-threw:Il2CppException
-1218	DLC2 Material Drawers	1						result-threw:Il2CppException
-1219	DLC2 Curtains	1						result-threw:Il2CppException
-1220	DLC2 Books Stacked	5						result-threw:Il2CppException
-1221	DLC2 Sticky Drawer	1						result-threw:Il2CppException
-1222	DLC2 Bells	3						result-threw:Il2CppException
-1223	DLC2 Figurines	3						result-threw:Il2CppException
-1224	DLC2 Bookshelf	3						result-threw:Il2CppException
-1225	DLC2 Cat Eyes	1						result-threw:Il2CppException
-1226	DLC2 Junk Drawer Transforming	2						result-threw:Il2CppException
-1227	DLC2 Music Box	1						result-threw:Il2CppException
-1228	DLC2 Combs	2						result-threw:Il2CppException
-1229	DLC2 First Aid Kit	1						result-threw:Il2CppException
-1230	DLC2 Robots	2						result-threw:Il2CppException
-1231	DLC2 Boss	3						result-threw:Il2CppException
-1232	DLC2 Star Finale	0						result-threw:Il2CppException
-1233	DLC2 Credits	0						result-threw:Il2CppException
-1235	DLC2 Bread Crusts	2						result-threw:Il2CppException
-1236	DLC2 Cupcakes	3						result-threw:Il2CppException
-1237	DLC2 Markers	3						result-threw:Il2CppException
-1238	DLC2 Whistles	5						result-threw:Il2CppException
-1239	DLC2 Ghost Cat	1						result-threw:Il2CppException
+1200	DLC2 Canapes	3	Stacked Groups	StackablesZ	3	Stacked Groups_0|Stacked Groups_1|Stacked Groups_2		
+1200	DLC2 Canapes	3	Cracker Positions	Draggables	0			
+1201	DLC2 Forks	5	Shuffle	Shuffleables	0			
+1202	DLC2 Mugs	4	Grid	GridPuzzle	0			
+1203	DLC2 Corn	4	Pannables Controller	Pannables	0			
+1204	DLC2 Pressed Leaves	3	Leaves Draggables	Draggables	3	Leaves Draggables_0|Leaves Draggables_1|Leaves Draggables_2		
+1205	DLC2 Broken Vases	1	Draggables	Draggables	0			
+1205	DLC2 Broken Vases	1	Pannables (Action Only)	Pannables	0			
+1206	DLC2 Nanopets	5	Shuffle	DLC2NanopetsShuffleables	0			
+1206	DLC2 Nanopets	5	Indexables	Indexables	0			
+1207	DLC2 ObsoleteTech	1	Organizer	Draggables	0			
+1207	DLC2 ObsoleteTech	1	CellPhonesOrdered	DraggablesOrdered	0			
+1207	DLC2 ObsoleteTech	1	VHSOrdered	DraggablesOrdered	0			
+1207	DLC2 ObsoleteTech	1	CassettesOrdered	DraggablesOrdered	0			
+1207	DLC2 ObsoleteTech	1	Floppy Containables	Containables	0			
+1208	DLC2 Balls	3	Shuffle	Shuffleables	0			
+1209	DLC2 Water Glasses	4	Sorting (Type & Size)	SortingItems_Draggables	0			
+1209	DLC2 Water Glasses	4	Jigsaw	Draggables	0			
+1209	DLC2 Water Glasses	4	Water Level (Indexable)	Indexables	0			
+1210	DLC2 Pizza	4	Draggables	Draggables	0			
+1210	DLC2 Pizza	4	Distributables	Distributables	4	Distributables_0|Distributables_1|Distributables_2|Distributables_3		
+1211	DLC2 Leftovers	5	StackableGrid	StackableGrid	5	StackableGrid_0|StackableGrid_1|StackableGrid_2|StackableGrid_3|StackableGrid_4		
+1212	DLC2 Windows	1	Draggables	Draggables	1	Draggables_0		
+1213	DLC2 Cacti	5	Shuffleables Cacti	ShuffleablesRelative	0		Shuffleables Pots	
+1213	DLC2 Cacti	5	Shuffleables Pots	ShuffleablesRelative	0		Shuffleables Cacti	
+1214	DLC2 Origami	1	OrigamiPad	Draggables	0			
+1215	DLC2 Moths	4	Draggables	Draggables	0			
+1215	DLC2 Moths	4	DraggablesOrdered	DraggablesOrdered	0			
+1216	DLC2 Math Set	2	Items Placements Draggables	Draggables	0		Indexables	
+1216	DLC2 Math Set	2	Indexables	Indexables	0		Items Placements Draggables	
+1217	DLC2 Ink Bottles	2	GridPuzzleBase	GridPuzzleBase	0			
+1217	DLC2 Ink Bottles	2	Draggables - Label	Draggables	1	Draggables - Label_0		
+1217	DLC2 Ink Bottles	2	Draggables - Drips	Draggables	1	Draggables - Drips_0		
+1217	DLC2 Ink Bottles	2	Pannables	Pannables	0			
+1218	DLC2 Material Drawers	1	Drawer Draggables	Draggables	1	Drawer Draggables_0		
+1218	DLC2 Material Drawers	1	Drawer Controller	DrawerController	0			
+1218	DLC2 Material Drawers	1	Containable Controller	Containables	0			
+1219	DLC2 Curtains	1	Draggables	Draggables	0			
+1220	DLC2 Books Stacked	5	StackedGroups	StackablesZ	5	StackedGroups_0|StackedGroups_1|StackedGroups_2|StackedGroups_3|StackedGroups_4		
+1221	DLC2 Sticky Drawer	1	Stickables	Stickables	0			
+1221	DLC2 Sticky Drawer	1	Draggables	Draggables	0			
+1221	DLC2 Sticky Drawer	1	DrawerController	DrawerController	0			
+1222	DLC2 Bells	3	Cupboard	Cupboard	0			
+1222	DLC2 Bells	3	OrderedGroups	DraggablesOrdered	3	OrderedGroups_0|OrderedGroups_1|OrderedGroups_2		
+1223	DLC2 Figurines	3	SortingItemsDraggables	SortingItems_Draggables	0			
+1223	DLC2 Figurines	3	Draggables	Draggables	0			
+1223	DLC2 Figurines	3	Groupables (Achievement)	Groupables	0			
+1224	DLC2 Bookshelf	3	Shuffle - Top Left	Shuffleables	0		Shuffle - Top Right|Shuffle - Mid Left|Shuffle - Mid Right|Shuffle - Bottom Left|Shuffle - Bottom Right	
+1224	DLC2 Bookshelf	3	Shuffle - Top Right	Shuffleables	0		Shuffle - Top Left|Shuffle - Mid Left|Shuffle - Mid Right|Shuffle - Bottom Left|Shuffle - Bottom Right	
+1224	DLC2 Bookshelf	3	Shuffle - Mid Left	Shuffleables	0		Shuffle - Top Left|Shuffle - Top Right|Shuffle - Mid Right|Shuffle - Bottom Left|Shuffle - Bottom Right	
+1224	DLC2 Bookshelf	3	Shuffle - Mid Right	Shuffleables	0		Shuffle - Top Left|Shuffle - Top Right|Shuffle - Mid Left|Shuffle - Bottom Left|Shuffle - Bottom Right	
+1224	DLC2 Bookshelf	3	Shuffle - Bottom Left	Shuffleables	0		Shuffle - Top Left|Shuffle - Top Right|Shuffle - Mid Left|Shuffle - Mid Right|Shuffle - Bottom Right	
+1224	DLC2 Bookshelf	3	Shuffle - Bottom Right	Shuffleables	0		Shuffle - Top Left|Shuffle - Top Right|Shuffle - Mid Left|Shuffle - Mid Right|Shuffle - Bottom Left	
+1225	DLC2 Cat Eyes	1	CatEyesController	CatEyesController	0		IndexablesController	
+1225	DLC2 Cat Eyes	1	IndexablesController	Indexables	0			
+1226	DLC2 Junk Drawer Transforming	2	IndexedDraggables	Draggables	0		Indexables|Stamps Draggables|Ticket Stubs Draggables	
+1226	DLC2 Junk Drawer Transforming	2	Indexables	Indexables	0		IndexedDraggables|Stamps Draggables|Ticket Stubs Draggables	
+1226	DLC2 Junk Drawer Transforming	2	Stamps Draggables	Draggables	0		Indexables|Ticket Stubs Draggables|IndexedDraggables	
+1226	DLC2 Junk Drawer Transforming	2	Ticket Stubs Draggables	Draggables	0		Indexables|Stamps Draggables|IndexedDraggables	
+1226	DLC2 Junk Drawer Transforming	2	Drawer Controller	DrawerController	0			
+1227	DLC2 Music Box	1	Organizer	Draggables	0			
+1227	DLC2 Music Box	1	StateController	Indexables	0			
+1228	DLC2 Combs	2	Drawer	DrawerController	0			
+1228	DLC2 Combs	2	Draggables	Draggables	0		Indexables	
+1228	DLC2 Combs	2	Indexables	Indexables	0		Draggables	
+1229	DLC2 First Aid Kit	1	Draggables	Draggables	0			
+1229	DLC2 First Aid Kit	1	Wipe Containables	Containables	0			
+1229	DLC2 First Aid Kit	1	Bottle Containables	Containables	0			
+1229	DLC2 First Aid Kit	1	Pump State Controller	Indexables	0			
+1230	DLC2 Robots	2	IndexedDraggables	Draggables	0		Indexables	
+1230	DLC2 Robots	2	Indexables	Indexables	0		IndexedDraggables	
+1230	DLC2 Robots	2	Containables	Containables	0			
+1230	DLC2 Robots	2	Spring Containable	Containables	0			
+1230	DLC2 Robots	2	Spring Draggable	Draggables	0			
+1231	DLC2 Boss	3	Hub	Draggables	0			
+1231	DLC2 Boss	3	Compass	Shuffleables	0			
+1231	DLC2 Boss	3	Knives	Shuffleables	0			
+1231	DLC2 Boss	3	Locks	DraggablesOrdered	0			
+1231	DLC2 Boss	3	Drawer Controller	DrawerController	0			
+1232	DLC2 Star Finale	0	Star	Draggables	0			
+1232	DLC2 Star Finale	0	Fragments	Draggables	0			
+1233	DLC2 Credits	0						|no-controllers
+1235	DLC2 Bread Crusts	2	ConcentricCrustDraggables	DraggablesJigsaw	0			
+1235	DLC2 Bread Crusts	2	BreadLoopDraggables	DraggablesJigsaw	0			
+1236	DLC2 Cupcakes	3	Shuffleables Wrappers	ShuffleablesRelative	2	Shuffleables Wrappers_0|Shuffleables Wrappers_1	Shuffleables Cupcakes|Shuffleables Candles	
+1236	DLC2 Cupcakes	3	Shuffleables Cupcakes	ShuffleablesRelative	2	Shuffleables Cupcakes_0|Shuffleables Cupcakes_1	Shuffleables Candles|Shuffleables Wrappers	
+1236	DLC2 Cupcakes	3	Shuffleables Candles	ShuffleablesRelative	2	Shuffleables Candles_0|Shuffleables Candles_1	Shuffleables Cupcakes|Shuffleables Wrappers	
+1236	DLC2 Cupcakes	3	Draggables Colors	Draggables	1	Draggables Colors_0		
+1237	DLC2 Markers	3	Markers Ordered	DraggablesOrdered	3	Markers Ordered_0|Markers Ordered_1|Markers Ordered_2	Marker Lids	
+1237	DLC2 Markers	3	Marker Lids	Containables	0		Markers Ordered	
+1238	DLC2 Whistles	5	DraggablesOrdered	DraggablesOrdered	5	DraggablesOrdered_0|DraggablesOrdered_1|DraggablesOrdered_2|DraggablesOrdered_3|DraggablesOrdered_4	HangingToolsController	
+1238	DLC2 Whistles	5	HangingToolsController	HangingToolsController	0		DraggablesOrdered	
+1238	DLC2 Whistles	5	CupboardController	Cupboard	0		DraggablesOrdered	
+1239	DLC2 Ghost Cat	1	Draggables (for Bottles Target Detection)	Draggables	0			
+1239	DLC2 Ghost Cat	1	Indexables	Indexables	0			
 1020	NeatStreak_Paper Plane Supplies	1	Draggables	Draggables	0			
 1020	NeatStreak_Paper Plane Supplies	1	Containables	Containables	0			
 1020	NeatStreak_Paper Plane Supplies	1	Drawer Controller	DrawerController	0			

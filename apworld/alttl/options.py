@@ -14,7 +14,7 @@ House rules, following cw4:
 from dataclasses import dataclass
 
 from Options import (Choice, DefaultOnToggle, OptionGroup, OptionSet,
-                     PerGameCommonOptions, Range)
+                     PerGameCommonOptions, Range, Toggle)
 
 from . import data
 
@@ -105,20 +105,79 @@ class BaseWeight(Range):
     default = 10
 
 
+class CupboardsAndDrawers(Toggle):
+    """Include the Cupboards and Drawers DLC.
+
+    Twenty-five more puzzles, built around cupboards, drawers and nested
+    containers. Off by default because a seed containing them cannot be played
+    without the DLC - the mod refuses to connect rather than hand you a puzzle
+    that will not load.
+
+    Turn this on only if you own it. Whoever generates the multiworld does not
+    have to.
+    """
+    display_name = "Cupboards and Drawers DLC"
+
+
+class SeeingStars(Toggle):
+    """Include the Seeing Stars DLC.
+
+    Thirty-seven more puzzles and a hundred more solutions - more alternate
+    solutions than the entire base campaign has, which makes this the DLC that
+    changes a Star Levels goal most. Five of its puzzles are the ones the game
+    itself locks behind a star total; the mod opens those for you.
+
+    Off by default because a seed containing them cannot be played without the
+    DLC. Turn it on only if you own it.
+    """
+    display_name = "Seeing Stars DLC"
+
+
+class CupboardsWeight(Range):
+    """How strongly to favour Cupboards and Drawers puzzles.
+
+    Ignored unless that DLC is turned on. Weighed against the generator, event
+    and campaign weights above, on the same scale: these are RELATIVE weights,
+    so what matters is the ratio between them.
+    """
+    display_name = "Cupboards and Drawers Weight"
+    range_start = 0
+    range_end = 100
+    default = 10
+
+
+class StarsWeight(Range):
+    """How strongly to favour Seeing Stars puzzles.
+
+    Ignored unless that DLC is turned on. Worth more than its share if you are
+    playing a Star Levels goal, since its puzzles carry most of the game's
+    alternate solutions.
+    """
+    display_name = "Seeing Stars Weight"
+    range_start = 0
+    range_end = 100
+    default = 10
+
+
 class MechanicCoverage(Range):
     """How many puzzles are guaranteed for each mechanic no generator can make.
 
-    Stacking, containers, drawers and jigsaws only exist as hand-made puzzles.
-    Without this they turn up by luck or not at all. Raising it makes the run's
-    mechanics more even and brings in more base-game puzzles; 4 uses up every
-    jigsaw puzzle in the game and 5 every drawer one, so every run would
-    contain all of them.
+    Some mechanics only exist as hand-made puzzles, so without this they turn
+    up by luck or not at all. Raising it makes the run's mechanics more even
+    and brings in more hand-made puzzles; 4 uses up every jigsaw puzzle in the
+    base game and 5 every drawer one, so every run would contain all of them.
+
+    WITHOUT DLC the scarce ones are stacking, containers, drawers and jigsaws.
+    Turning on a DLC that brings a generator for one of those takes it off the
+    list rather than reserving puzzles for something no longer rare: Cupboards
+    and Drawers brings a drawer generator, Seeing Stars a jigsaw one. Seeing
+    Stars also adds distributing, which nothing generates.
 
     ABOVE ZERO, EVERY MECHANIC IS GUARANTEED AT LEAST ONE PUZZLE - not only
-    these four. The other eight come from generators and turn up on their own
+    the scarce ones. The rest come from generators and turn up on their own
     in a full-length run, but a short one can miss them by chance: at 20
     puzzles, Rotating was absent from half the seeds measured. This number is
-    the count for the four scarce mechanics; the rest get one each.
+    the count for the scarce ones; the rest get one each.
 
     Set it to 0 for a simpler run: that turns the whole reserve off, including
     the one-of-each floor, and leaves every mechanic to the weighted draw.
@@ -303,6 +362,10 @@ class ALTTLOptions(PerGameCommonOptions):
     mechanic_coverage: MechanicCoverage
     generator_repeat_limit: GeneratorRepeatLimit
     archive_packs: ArchivePacks
+    cupboards_and_drawers: CupboardsAndDrawers
+    seeing_stars: SeeingStars
+    cupboards_weight: CupboardsWeight
+    stars_weight: StarsWeight
     ability_locks: AbilityLocks
     starting_abilities: StartingAbilities
     guaranteed_open_slots: GuaranteedOpenSlots
@@ -329,6 +392,10 @@ option_groups = [
         MechanicCoverage,
         GeneratorRepeatLimit,
         ArchivePacks,
+        CupboardsAndDrawers,
+        CupboardsWeight,
+        SeeingStars,
+        StarsWeight,
     ], start_collapsed=True),
     OptionGroup("Abilities", [
         AbilityLocks,

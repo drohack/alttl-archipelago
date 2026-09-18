@@ -153,8 +153,59 @@ internal static class Track
         Plugin.Logger.LogInfo(
             $"track: {_order.Count} puzzles, {_state.OpenSlots} open, "
             + $"{_state.PackTotal} packs");
+        OpenStarGates();
         ApplyUnlocks();
         Rebuild();
+    }
+
+    /// <summary>
+    /// Drop the star requirement on any slot the game gates behind one.
+    ///
+    /// Seeing Stars locks five of its puzzles behind a running total of
+    /// solution stars - 50, 60, 70, 80 and 90 - which is the only place the
+    /// base game's NumStarsReqToUnlock mechanism is used for real. That total
+    /// is the DLC's own progression and has nothing to do with a run's packs,
+    /// so a slot drawn from those five would sit unopenable behind a counter
+    /// the run never touches.
+    ///
+    /// AND IT WOULD NOT LOOK LIKE A LOCK. Measured 2026-09-17: asking for a
+    /// gated level does not throw or return false - LevelManager.SetActiveLevel
+    /// redirects to the DLC level select and returns, so the puzzle simply
+    /// never opens and nothing says why. That is the failure this prevents.
+    ///
+    /// Only the run's own slots, and only in memory. NumStarsReqToUnlock has a
+    /// setter and IsUnlocked derives from it, so zeroing it is the whole
+    /// unlock; nothing is written to disk and the player's real star count is
+    /// neither read nor changed.
+    /// </summary>
+    private static void OpenStarGates()
+    {
+        if (_state == null) return;
+
+        try
+        {
+            var manager = GameManager.Instance?.levelManager;
+            if (manager == null) return;
+
+            var opened = 0;
+            foreach (var index in _order)
+            {
+                var li = manager.GetLevelInterface(index);
+                if (li == null || li.NumStarsReqToUnlock <= 0) continue;
+                li.NumStarsReqToUnlock = 0;
+                opened++;
+            }
+            if (opened > 0)
+                Plugin.Logger.LogInfo(
+                    $"track: cleared the star gate on {opened} puzzle(s)");
+        }
+        catch (Exception e)
+        {
+            // Not fatal on its own: only the five Seeing Stars bonus levels
+            // are gated, and a run that drew none is unaffected. Logged rather
+            // than thrown so a run that drew none still starts.
+            Plugin.Logger.LogWarning($"track: could not clear a star gate: {e}");
+        }
     }
 
     internal static void End()
@@ -1165,6 +1216,13 @@ internal static class Track
     ///
     /// Located by its own IsCredits flag rather than a hardcoded index, so it
     /// survives the game adding content ahead of it.
+    ///
+    /// THERE ARE THREE OF THEM once the DLCs are installed - the base game's
+    /// at index 84, DLC1's at 1129 and DLC2's at 1233 - and the run wants the
+    /// base game's, because that is the card the track ends on. Taking the
+    /// first match used to be enough only because 84 happens to come first in
+    /// the array; the DLC ones are skipped explicitly now, so it does not
+    /// depend on that ordering holding.
     /// </summary>
     private static LevelInterface? CreditsLevel(LevelManager manager)
     {
@@ -1177,7 +1235,11 @@ internal static class Track
             for (int i = 0; i < (all == null ? 0 : all.Count); i++)
             {
                 var level = all![i];
-                if (level != null && level.IsCredits) { _credits = level; break; }
+                if (level == null || !level.IsCredits) continue;
+                // A DLC's own credits, which is not the run's ending.
+                if (IsDlcLevel(level)) continue;
+                _credits = level;
+                break;
             }
 
             if (_credits == null) Plugin.Logger.LogWarning("track: no credits level found");
@@ -1187,6 +1249,17 @@ internal static class Track
             Plugin.Logger.LogWarning($"track: could not find the credits: {e.Message}");
         }
         return _credits;
+    }
+
+    /// <summary>Whether a level belongs to a DLC rather than the base game.</summary>
+    internal static bool IsDlcLevel(LevelInterface level)
+    {
+        try
+        {
+            var details = level.DLCDetails;
+            return details != null && !string.IsNullOrEmpty(details.key);
+        }
+        catch { return false; }
     }
 
     /// <summary>

@@ -31,6 +31,92 @@ public class ConnectGuardTests
     /// tests write, so "accepted" means a seed a player could actually be
     /// handed. Each call reparses, so a test may mutate its copy freely.
     /// </summary>
+    // ---- DLC ------------------------------------------------------------
+
+    [Fact]
+    public void ASeedNeedingNoDlcConnectsOnAMachineWithNone()
+    {
+        var verdict = ConnectGuard.Evaluate(Playable(), "0.3.3",
+                                            Array.Empty<string>());
+        Assert.Null(verdict.Refusal);
+    }
+
+    [Fact]
+    public void ASeedNeedingADlcThePlayerLacksIsRefusedByName()
+    {
+        var slot = Playable();
+        slot.SeeingStars = true;
+
+        var verdict = ConnectGuard.Evaluate(slot, "0.3.3", new[] { "DLC1" });
+
+        Assert.NotNull(verdict.Refusal);
+        // The name a player would recognise from their store page, not DLC2.
+        Assert.Contains("Seeing Stars", verdict.Refusal);
+    }
+
+    [Fact]
+    public void BothMissingDlcsAreNamed()
+    {
+        var slot = Playable();
+        slot.CupboardsAndDrawers = true;
+        slot.SeeingStars = true;
+
+        var verdict = ConnectGuard.Evaluate(slot, "0.3.3", Array.Empty<string>());
+
+        Assert.NotNull(verdict.Refusal);
+        Assert.Contains("Cupboards and Drawers", verdict.Refusal);
+        Assert.Contains("Seeing Stars", verdict.Refusal);
+    }
+
+    [Fact]
+    public void OwningTheDlcTheSeedNeedsConnects()
+    {
+        var slot = Playable();
+        slot.CupboardsAndDrawers = true;
+
+        var verdict = ConnectGuard.Evaluate(slot, "0.3.3",
+                                            new[] { "DLC1", "DLC2" });
+
+        Assert.Null(verdict.Refusal);
+    }
+
+    /// <summary>
+    /// A caller that cannot read the game's DLC list must not turn that into a
+    /// refused connection - the failure it would cause is worse than the one
+    /// it guards against.
+    /// </summary>
+    [Fact]
+    public void AnUnknownDlcListSkipsTheCheckRatherThanRefusing()
+    {
+        var slot = Playable();
+        slot.CupboardsAndDrawers = true;
+        slot.SeeingStars = true;
+
+        Assert.Null(ConnectGuard.Evaluate(slot, "0.3.3", null).Refusal);
+        // And the two-argument overload behaves the same way, so no existing
+        // caller starts refusing seeds because this field was added.
+        Assert.Null(ConnectGuard.Evaluate(slot, "0.3.3").Refusal);
+    }
+
+    /// <summary>
+    /// The flags decide, not the draw.
+    ///
+    /// A seed generated with a DLC enabled can draw none of its levels by
+    /// chance. It is still a seed built for someone who owns that DLC, and
+    /// deciding from the slots instead would let the same yaml connect on one
+    /// machine and not another depending on the roll.
+    /// </summary>
+    [Fact]
+    public void TheFlagsDecideEvenWhenNoSlotDrewADlcLevel()
+    {
+        var slot = Playable();
+        slot.SeeingStars = true;
+        Assert.DoesNotContain(slot.Slots, s => s.Dlc == "DLC2");
+
+        Assert.NotNull(ConnectGuard.Evaluate(slot, "0.3.3",
+                                             Array.Empty<string>()).Refusal);
+    }
+
     private static SlotData Playable(string worldVersion = "0.3.3")
     {
         var slot = ExampleSeed.Load();

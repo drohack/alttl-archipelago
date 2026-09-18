@@ -94,6 +94,14 @@ def decide(world) -> None:
         # and the only other door was the mechanic-coverage reserve in pass 1.
         "base": o.base_weight.value,
     }
+    # The DLC sources, and ONLY when their toggle is on. A weight left here
+    # for content _eligible has filtered out makes pass 2 roll a source with
+    # no candidates and fall through to the repeatable-generator backstop,
+    # which quietly skews the mix away from what the yaml asked for.
+    if o.cupboards_and_drawers.value:
+        source_weights["dlc1"] = o.cupboards_weight.value
+    if o.seeing_stars.value:
+        source_weights["dlc2"] = o.stars_weight.value
     if not any(source_weights.values()):
         # ALL of them zeroed. Generators are the only source that can always
         # supply a slot - they repeat, the other two are one-shot - so fall
@@ -122,7 +130,10 @@ def decide(world) -> None:
     # Jigsaw level with no Jigsaw item would be unsolvable; a Jigsaw item with
     # no Jigsaw level is a dead item taking a slot from something useful.
     live = slots.abilities_in(world.plan) if ability_locks else set()
-    world.live_abilities = [a for a in data.ABILITIES if a in live]
+    # ALL_ABILITIES, so a DLC mechanic can become an item. Filtering through
+    # data.ABILITIES alone would silently drop Distributing from the pool
+    # while rules.py still required it, leaving DLC2 Pizza unreachable.
+    world.live_abilities = [a for a in data.ALL_ABILITIES if a in live]
 
     count = min(o.starting_abilities.value, len(world.live_abilities))
     world.starting_abilities = world.random.sample(world.live_abilities, count) \
@@ -340,6 +351,11 @@ def slot_data(world) -> Mapping[str, Any]:
                 "levelIndex": slot.level.level_index,
                 "instance": slot.instance,
                 "source": slot.level.source,
+                # Which DLC the level needs, "" for base content. Separate
+                # from source because the four randomizable DLC levels are
+                # sourced "generator" and would otherwise look like base
+                # content to the mod.
+                "dlc": slot.level.dlc,
                 "seed": slot.seed,
             }
             for slot in world.plan
@@ -364,10 +380,17 @@ def slot_data(world) -> Mapping[str, Any]:
         # if it ever wants to and so a payload is readable on its own.
         "levels_to_star": world.levels_to_star,
         "ability_locks": bool(world.options.ability_locks.value),
-        "abilities": {a: data.ABILITY_CLASSES[a] for a in world.live_abilities},
+        "abilities": {a: data.classes_for(a) for a in world.live_abilities},
         "starting_abilities": sorted(world.starting_abilities),
         "requirements": world.requirements,
         "cat_trap_chance": world.options.cat_trap_chance.value,
+        # Which DLCs this seed was built for. The mod checks these against
+        # what the player actually has installed and refuses to connect on a
+        # mismatch, because a DLC level that is not installed does not throw -
+        # it silently redirects to the DLC level select, which would look like
+        # the mod failing to launch the puzzle.
+        "cupboards_and_drawers": bool(world.options.cupboards_and_drawers.value),
+        "seeing_stars": bool(world.options.seeing_stars.value),
         # Controller GameObject name -> group display name, for the levels this
         # run actually uses.
         #

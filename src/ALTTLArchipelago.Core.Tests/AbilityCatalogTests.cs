@@ -22,6 +22,8 @@ public class AbilityCatalogTests
         public List<string> baseline { get; set; } = new();
         public List<string> notPuzzles { get; set; } = new();
         public Dictionary<string, List<string>> abilities { get; set; } = new();
+        public Dictionary<string, Dictionary<string, List<string>>> dlcAbilities
+        { get; set; } = new();
     }
 
     private static Catalog Load()
@@ -46,6 +48,55 @@ public class AbilityCatalogTests
                 classes.OrderBy(c => c, StringComparer.Ordinal),
                 Abilities.ClassesFor(ability).OrderBy(c => c, StringComparer.Ordinal));
         }
+    }
+
+    /// <summary>
+    /// The DLC blocks agree too, including the empty one.
+    ///
+    /// DLC1 is listed with no abilities rather than left out, and that is the
+    /// case worth testing: an absent key and an empty one look the same to a
+    /// reader and mean different things to a merge. Asserting the key exists
+    /// keeps "this DLC adds no mechanic" a recorded answer rather than a gap.
+    /// </summary>
+    [Fact]
+    public void TheDlcAbilityBlocksAgree()
+    {
+        var json = Load();
+
+        Assert.Equal(
+            json.dlcAbilities.Keys.OrderBy(k => k, StringComparer.Ordinal),
+            Abilities.Dlc.Keys.OrderBy(k => k, StringComparer.Ordinal));
+
+        foreach (var (dlc, abilities) in json.dlcAbilities)
+        {
+            Assert.Equal(
+                abilities.Keys.OrderBy(k => k, StringComparer.Ordinal),
+                Abilities.Dlc[dlc].OrderBy(k => k, StringComparer.Ordinal));
+
+            foreach (var (ability, classes) in abilities)
+            {
+                Assert.Equal(
+                    classes.OrderBy(c => c, StringComparer.Ordinal),
+                    Abilities.ClassesFor(ability)
+                             .OrderBy(c => c, StringComparer.Ordinal));
+            }
+        }
+    }
+
+    /// <summary>
+    /// DLC abilities come after every base one, because that is what makes
+    /// adding a DLC safe: item ids are positional, so a thirteenth name
+    /// inserted among the twelve renumbers Cat Trap, Background Change Trap
+    /// and Hint Page and repoints every seed in flight.
+    /// </summary>
+    [Fact]
+    public void EveryDlcAbilityIsAppendedAfterTheBaseTwelve()
+    {
+        Assert.Equal(Abilities.All, Abilities.AllWithDlc.Take(Abilities.All.Count));
+        Assert.Equal(
+            Abilities.AllWithDlc.Skip(Abilities.All.Count).OrderBy(a => a, StringComparer.Ordinal),
+            Abilities.Dlc.SelectMany(kv => kv.Value).OrderBy(a => a, StringComparer.Ordinal));
+        Assert.Empty(Abilities.All.Intersect(Abilities.Dlc.SelectMany(kv => kv.Value)));
     }
 
     [Fact]

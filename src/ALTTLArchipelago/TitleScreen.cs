@@ -40,8 +40,13 @@ internal static class TitleScreen
     ///
     /// The DLC block is hidden entire - heading, both entries and its arrows -
     /// rather than button by button, which would leave a heading over nothing.
-    /// No DLC level can appear in a run: the level table is base, archive and
-    /// generator only, so these lead nowhere a run can use.
+    ///
+    /// STILL HIDDEN NOW THAT DLC LEVELS CAN BE IN A RUN, and for the same
+    /// reason the Archive and Daily buttons are: these open the DLC's OWN
+    /// campaign and its own save, which is the vanilla game running beside the
+    /// run rather than part of it. A run's DLC puzzles are launched from the
+    /// run's own track, exactly like every other slot, so nothing here is a
+    /// route the player needs.
     /// </summary>
     private static readonly string[] HiddenSections = { "DLC Menu" };
 

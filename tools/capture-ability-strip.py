@@ -1,11 +1,17 @@
 """Photograph the level select twice: abilities all locked, then all held.
 
 The README needs to show what the level select looks like when a run is
-carrying ability locks, and the strip only means anything as a pair - twelve
-dim icons say "here is everything still to find", the same twelve lit say
+carrying ability locks, and the strip only means anything as a pair - a row of
+dim icons says "here is everything still to find", the same ones lit say
 "here is what you have". Either one on its own reads as a bug.
 
-WHY A REAL GAME AND NOT A COMPOSITE. The icons are twelve PNGs in the mod and
+HOW MANY ICONS DEPENDS ON THE SEED. A base-game run draws on twelve abilities
+in two rows of six; a run with Seeing Stars on can also need Distributing,
+which wraps the strip to a third row of one. The count is not fixed anywhere
+in this script - see _abilities() - so point it at whichever seed you mean to
+photograph.
+
+WHY A REAL GAME AND NOT A COMPOSITE. The icons are PNGs in the mod and
 it would be a five-minute job to paste them onto a canvas in two rows. That
 picture would be a drawing OF the feature rather than the feature, and it
 would go stale the first time a layout constant moved without anyone noticing.
@@ -37,6 +43,7 @@ config back.
 """
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import time
@@ -53,11 +60,30 @@ OUT = os.path.join(ROOT, "docs", "images", "raw")
 SLOT = "droha"
 PORT = 38281
 
-ABILITIES = [
-    "Swapping", "Stacking", "Ordering", "Gadgets",
-    "Rotating", "Grids", "Tidying", "Containers",
-    "Drawer", "Sticking", "Symmetry", "Jigsaw",
-]
+def _abilities():
+    """The base twelve, then any DLC ones, read rather than retyped.
+
+    This was a hardcoded list of twelve until the DLCs landed a thirteenth
+    (Distributing, from DLC2's Pizza). A literal list silently photographs a
+    stale strip: the shot still comes out, it just leaves the new ability dim
+    forever and nobody looking at the picture can tell.
+
+    ORDER MATTERS, and not for looks. The wait below is for the LAST item to
+    arrive, so the last name has to be one the slot certainly has. DLC
+    abilities go first and the base twelve last, which keeps a no-DLC seed
+    waiting on exactly the item it waited on before.
+    """
+    import json
+    path = os.path.join(ROOT, "apworld", "alttl", "data", "abilities.json")
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    base = list(data["abilities"])
+    dlc = [a for _key, block in sorted(data.get("dlcAbilities", {}).items())
+           for a in block]
+    return dlc + base
+
+
+ABILITIES = _abilities()
 
 
 def say(step, what):
@@ -182,7 +208,12 @@ def shoot(name, step):
 
 
 def main():
-    zip_path = sys.argv[1] if len(sys.argv) > 1 else newest_zip()
+    # Absolute, always: MultiServer is started with cwd=Archipelago, so a
+    # relative path given on the command line resolves somewhere else and the
+    # server dies before it binds. newest_zip() already returns absolute, so
+    # this only ever bit a hand-passed argument - which is the normal way to
+    # use this script.
+    zip_path = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else newest_zip()
     save = zip_path[:-4] + ".apsave"
     parked = save + ".parked"
 
@@ -212,16 +243,39 @@ def main():
                 Host="localhost", Port=str(PORT),
                 SlotName=SLOT, AutoConnect="true",
             )
+            # Popen returns the moment the process starts, which is well
+            # before MultiServer is listening - and the mod gives up on a
+            # closed port immediately, prints "no server at launch", and
+            # RESUMES AN OLD OFFLINE ROOM instead. That failure is quiet: the
+            # game comes up, plays, and shows a stale strip, and the only
+            # sign is that "connected" never appears. Measured 2026-09-18.
+            for _ in range(60):
+                with socket.socket() as s:
+                    s.settimeout(0.5)
+                    if s.connect_ex(("127.0.0.1", PORT)) == 0:
+                        break
+                time.sleep(1.0)
+            else:
+                raise SystemExit(f"MultiServer never opened port {PORT}")
             say(2, f"server up on {PORT}, launching the game")
 
             ensure_no_steam_relaunch()
             log = Log()
             subprocess.Popen([EXE], cwd=GAME)
-            log.wait(["connected. ", "Archipelago refused"], 180, 3,
-                     "the mod to connect")
+            text = log.wait(["connected. ", "Archipelago refused"], 180, 3,
+                            "the mod to connect")
             # The rebuild that follows the connection is what undid the first
             # attempt's navigation. Wait for its last line before moving.
-            log.wait(["toasts: overlay ready"], 60, 3, "the title to settle")
+            #
+            # CHECK THE TEXT ALREADY READ FIRST. log.wait returns everything
+            # it consumed, and on a fast connect the overlay line arrives
+            # inside that same chunk - waiting again then blocks for the full
+            # sixty seconds on a line that has already gone past. This is the
+            # "a line you care about can be eaten by an unrelated wait" trap
+            # that release-testing.md records; it cost a run on 2026-09-18.
+            if "toasts: overlay ready" not in text:
+                log.wait(["toasts: overlay ready"], 60, 3,
+                         "the title to settle")
             time.sleep(3.0)
             say(3, "connected, title settled")
 
@@ -232,7 +286,7 @@ def main():
             for ability in ABILITIES:
                 server.stdin.write(f"/send {SLOT} {ability}\n")
             server.stdin.flush()
-            say(6, "cheated in all twelve abilities")
+            say(6, f"cheated in all {len(ABILITIES)} abilities")
 
             log.wait([f"received item: {ABILITIES[-1]}"], 90, 7,
                      "the abilities to arrive")

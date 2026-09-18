@@ -68,6 +68,16 @@ jobs:
       - name: Check the documentation
         run: python tools/check-docs.py
 
+      # DlcGuard was written with two Harmony prefixes and never added to the
+      # list of classes Plugin patches, so none of them were ever installed -
+      # through a whole feature's development, while the file grew comments
+      # explaining why its prefix "never fires". The game printed the answer
+      # in its "features live" line at every launch and nothing read it. CI
+      # cannot run the game, but it can read the source and say that a patch
+      # exists which nothing installs.
+      - name: Check every patch and tick is wired in
+        run: python tools/check-patches.py
+
   ascii:
     # Non-ASCII characters break quietly on Windows: Python encodes redirected
     # stdout as cp1252, so a single em dash in a progress line kills a script.

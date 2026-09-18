@@ -29,6 +29,17 @@ internal static class Navigation
     internal static void Reset() => _home = null;
 
     /// <summary>
+    /// The campaign level to hand the game's routing when we want the run's
+    /// own track, for callers outside this file.
+    ///
+    /// Exposed for DlcGuard, which needs exactly the level this file already
+    /// picks - one that is NOT in the run, so it cannot be mistaken for a slot
+    /// if it ends up as the active level interface.
+    /// </summary>
+    internal static LevelInterface? CampaignLevelForRouting()
+        => CampaignLevel(GameManager.Instance?.levelManager);
+
+    /// <summary>
     /// Any ordinary campaign level, used only as the level we claim to be
     /// leaving so the game routes us to the campaign track.
     ///
@@ -497,6 +508,29 @@ internal static class Navigation
     /// The pause menu's LevelSelect keeps its redirect: it fires mid-level,
     /// where there is no completion to route from and the kind-based routing
     /// never applied.
+///
+    /// KNOWN GAP, MEASURED 2026-09-17: a DLC puzzle lands on THAT DLC's own
+    /// level select, because the game routes by the level. A run made of
+    /// Seeing Stars puzzles drops the player into the Seeing Stars menu after
+    /// every puzzle, with the finished level still loaded behind it, and the
+    /// mod then tries to paint the run's cards onto a track it does not own:
+    ///
+    ///     track: card at position 17 but the plan covers 0 (39 cards on the track)
+    ///
+    /// REDIRECTING HERE DOES NOT FIX IT. Sending only the DLC case through
+    /// GoToTrack was tried and reintroduced exactly the failure described
+    /// above, in full: "no active control named Close Button" on every press,
+    /// then
+    ///
+    ///     menu failed: Il2CppException: NullReferenceException
+    ///       at MenuManager.TransitionMenuOut
+    ///       at MenuManager.CloseActiveMenu
+    ///
+    /// The half-built menu is a property of GoToLevelSelectForLevel, not of
+    /// which level was passed to it, so "only for DLC levels" bought nothing.
+    /// A fix has to come from somewhere other than this redirect - suppressing
+    /// the DLC routing at its source, or switching the track after the game's
+    /// own menu has opened cleanly.
     /// </summary>
     [HarmonyPatch(typeof(ReplayMenu), nameof(ReplayMenu.LevelSelect))]
     [HarmonyPrefix]

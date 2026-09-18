@@ -37,6 +37,9 @@ internal sealed class DataTable
     private int _lastCount = -1;
     private int _stable;
 
+    /// <summary>Levels that never became active, so have no row.</summary>
+    private readonly List<int> _skipped = new();
+
     /// <summary>Frames the controller count must hold steady before reading.</summary>
     private const int StableFrames = 45;
 
@@ -57,10 +60,31 @@ internal sealed class DataTable
     private static string GameDir => Path.GetDirectoryName(Application.dataPath)!;
     private static string OutFile => Path.Combine(GameDir, "BepInEx", "alttl-levels.json");
 
-    internal void Start()
+    internal void Start() => Start("");
+
+    /// <summary>
+    /// Sweep every level, or only the comma-separated indices in
+    /// <paramref name="only"/>.
+    ///
+    /// The subset exists because a full sweep is 173 level boots and around
+    /// twenty minutes. Re-measuring a handful after a fix should not cost
+    /// that, and a table merged from a subset is the normal case anyway: a
+    /// fresh full sweep REGRESSES the hand-audited phased levels, so the
+    /// shipped table is maintained by merging rows rather than replacing it.
+    /// </summary>
+    internal void Start(string only)
     {
+        var wanted = new HashSet<int>();
+        foreach (var part in (only ?? "").Split(','))
+        {
+            if (int.TryParse(part.Trim(), out var n)) wanted.Add(n);
+        }
+
         var lm = GameManager.Instance.levelManager;
         var all = lm.AllLevelInterfaces(false);
+        var installed = InstalledDlc();
+        DevToolsPlugin.Log.LogInfo("-- DLC installed: " + (installed.Count == 0
+            ? "none" : string.Join(", ", installed)) + " --");
         _queue = new List<int>();
 
         for (int i = 0; i < (all == null ? 0 : all.Length); i++)
@@ -73,15 +97,22 @@ internal sealed class DataTable
             try { idx = li.LevelIndex; solutions = li.SolutionCount; credits = li.IsCredits; }
             catch { continue; }
 
-            // Base game only for v1. DLC levels are defined in the build even
-            // when not installed, and loading an uninstalled one throws.
-            if (idx >= 1100) continue;
+            // A DLC level the player does not own throws on load, so it is
+            // skipped - but one they DO own is swept like any other level.
+            // The old guard was a blanket "index >= 1100, skip", which also
+            // skipped the DLC the player had installed.
+            var dlc = DlcKeyOf(li);
+            if (dlc != null && !installed.Contains(dlc)) continue;
             // Chapter markers and credits carry no checks.
             if (solutions <= 0 || credits) continue;
+            if (wanted.Count > 0 && !wanted.Contains(idx)) continue;
             _queue.Add(idx);
         }
 
+        OpenStarGates();
+
         _out.Clear();
+        _skipped.Clear();
         _out.AppendLine("{");
         _out.AppendLine("  \"generatedBy\": \"ALTTLDevTools levelsweep\",");
         _out.AppendLine($"  \"gameVersion\": {Json(Application.version)},");
@@ -105,6 +136,16 @@ internal sealed class DataTable
             _out.AppendLine("}");
             File.WriteAllText(OutFile, _out.ToString());
             _running = false;
+            if (_skipped.Count > 0)
+            {
+                // Loud, and BEFORE the completion line, because the completion
+                // line is what a harness waits for and a short table otherwise
+                // looks like a finished one.
+                DevToolsPlugin.Log.LogError(
+                    $"levelsweep: {_skipped.Count} level(s) never loaded and "
+                    + "are ABSENT from the table: "
+                    + string.Join(", ", _skipped));
+            }
             DevToolsPlugin.Log.LogInfo($"levelsweep complete: {OutFile}");
             return;
         }
@@ -200,7 +241,7 @@ internal sealed class DataTable
         _stable++;
         if (_stable < StableFrames && _wait < 900) return;
 
-        Record(index);
+        if (!Record(index)) _skipped.Add(index);
         Teardown();
         _task = null;
         _pos++;
@@ -321,18 +362,48 @@ internal sealed class DataTable
         return row.Append(']').ToString();
     }
 
-    private void Record(int index)
+    /// <summary>
+    /// Write one level's row. False means it never loaded and nothing was
+    /// written.
+    ///
+    /// WHY THE FALSE MATTERS. A level that does not activate leaves
+    /// ActiveLevelInterface null, and every field below then falls back: the
+    /// id becomes "?", the counts become zero, the controller list becomes
+    /// empty. That is a row of plausible-looking nothing, and the table has no
+    /// way to say it is nothing.
+    ///
+    /// It happens for real. The five star-gated DLC2 bonus levels are locked
+    /// until the player has 50-90 solution stars, and SetActiveLevel on a
+    /// locked one does not throw or return false - it redirects to the DLC
+    /// level select (GoToLevelSelectForLevel -> DLCLevels_GameState). The
+    /// sweep sees a level that simply never arrived, and the first run with
+    /// DLC installed wrote five such rows.
+    /// </summary>
+    private bool Record(int index)
     {
         var lm = GameManager.Instance.levelManager;
         var li = lm.ActiveLevelInterface;
         var level = li == null ? null : li.Level;
+
+        if (li == null)
+        {
+            DevToolsPlugin.Log.LogError(
+                $"levelsweep: level {index} never became active, so no row was "
+                + "written. A locked level redirects to the level select "
+                + "instead of loading.");
+            return false;
+        }
 
         var row = new StringBuilder();
         row.Append("    {");
         row.Append($"\"levelIndex\": {index}");
         row.Append($", \"levelId\": {Json(Str(() => li == null ? "?" : li.LevelId))}");
         row.Append($", \"source\": {Json(SourceOf(index))}");
-        row.Append($", \"solutionCount\": {Str(() => li == null ? "0" : li.SolutionCount.ToString())}");
+        // Which DLC a level needs, separately from which pool it is drawn
+        // from. A randomizable DLC level has source "generator", so source
+        // alone cannot say whether a seed containing it is playable.
+        row.Append($", \"dlc\": {Json(Str(() => li == null ? "" : DlcKeyOf(li) ?? ""))}");
+        row.Append($", \"solutionCount\": {Num(() => li!.SolutionCount, "solutionCount", index)}");
         row.Append($", \"isRandomizable\": {Bool(() => li != null && li.IsRandomizable)}");
         row.Append($", \"isArchived\": {Bool(() => li != null && li.IsArchived)}");
         row.Append($", \"isDailyTidy\": {Bool(() => li != null && li.IsDailyTidy)}");
@@ -445,7 +516,7 @@ internal sealed class DataTable
         // a fact about the level and belongs in the table beside its
         // controllers. Recorded after a claim was made off a sample of three.
         row.Append($", \"hintAvailable\": {Bool(() => li!.HintAvailable)}");
-        row.Append($", \"hintImages\": {Str(() => (li!.HintImages == null ? 0 : li.HintImages.Count).ToString())}");
+        row.Append($", \"hintImages\": {Num(() => li!.HintImages == null ? 0 : li.HintImages.Count, "hintImages", index)}");
 
         // The SECOND source of hint pages, and the reason hintImages alone was
         // wrong. A LevelRandomizer carries its own List<Sprite>
@@ -455,8 +526,8 @@ internal sealed class DataTable
         // for a puzzle with two real pages, and the mod told the player it had
         // no hint at all. Both numbers are recorded because they disagree:
         // the field is the authored pool, the method is what THIS layout uses.
-        row.Append($", \"randomizerHintPool\": {Str(() => RandomizerHintCount(level, pool: true).ToString())}");
-        row.Append($", \"randomizerHints\": {Str(() => RandomizerHintCount(level, pool: false).ToString())}");
+        row.Append($", \"randomizerHintPool\": {Num(() => RandomizerHintCount(level, pool: true), "randomizerHintPool", index)}");
+        row.Append($", \"randomizerHints\": {Num(() => RandomizerHintCount(level, pool: false), "randomizerHints", index)}");
         row.Append(", \"cats\": ");
         row.Append(CatsIn(level));
         row.Append('}');
@@ -464,12 +535,102 @@ internal sealed class DataTable
         if (!_first) _out.AppendLine(",");
         _out.Append(row);
         _first = false;
+        return true;
+    }
+
+    /// <summary>
+    /// Drop the star requirement on every queued level, so a locked one loads.
+    ///
+    /// DLC2's five bonus levels are locked until the player has 50, 60, 70, 80
+    /// or 90 solution stars, and a locked level does NOT throw when you ask
+    /// for it: LevelManager.SetActiveLevel redirects to the DLC level select
+    /// (GoToLevelSelectForLevel -> DLCLevels_GameState) and returns. The sweep
+    /// then reads a level that never arrived. The first DLC sweep recorded
+    /// five rows of fallback values that way, and they looked like data.
+    ///
+    /// NumStarsReqToUnlock has a setter and IsUnlocked is derived from it, so
+    /// zeroing it is the whole unlock. This edits the in-memory
+    /// ScriptableObject for this session only - nothing is written to disk,
+    /// and the player's own star count is neither read nor changed.
+    /// </summary>
+    private void OpenStarGates()
+    {
+        var lm = GameManager.Instance.levelManager;
+        var opened = 0;
+        foreach (var index in _queue)
+        {
+            try
+            {
+                var li = lm.GetLevelInterface(index);
+                if (li == null || li.NumStarsReqToUnlock <= 0) continue;
+                DevToolsPlugin.Log.LogInfo(
+                    $"levelsweep: level {index} needs "
+                    + $"{li.NumStarsReqToUnlock} star(s); clearing the gate "
+                    + "for this session so it can be read");
+                li.NumStarsReqToUnlock = 0;
+                opened++;
+            }
+            catch (Exception e)
+            {
+                DevToolsPlugin.Log.LogWarning(
+                    $"levelsweep: could not clear the star gate on {index}: "
+                    + e.Message);
+            }
+        }
+        if (opened > 0)
+            DevToolsPlugin.Log.LogInfo($"-- star gates cleared: {opened} --");
+    }
+
+    /// <summary>
+    /// The DLC keys the player actually owns, from the game's own record.
+    ///
+    /// Every DLC level is DEFINED in the build whether or not it is installed
+    /// - all 186 LevelInterfaces exist either way - and loading one the player
+    /// does not own throws Il2CppException. So the sweep has to ask rather
+    /// than assume, and this is the only thing that can answer.
+    /// </summary>
+    internal static HashSet<string> InstalledDlc()
+    {
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        try
+        {
+            var info = GameManager.Instance.DLCManager.DLCInfo;
+            for (int i = 0; i < (info == null ? 0 : info.Count); i++)
+            {
+                var d = info![i];
+                if (d != null && d.Installed && !string.IsNullOrEmpty(d.key))
+                    keys.Add(d.key);
+            }
+        }
+        catch (Exception e)
+        {
+            // Empty, so every DLC level is skipped. Failing closed is right
+            // here: the alternative is booting a level that throws, which
+            // ends the sweep partway through and writes a short table that
+            // looks complete.
+            DevToolsPlugin.Log.LogError($"InstalledDlc: {e}");
+        }
+        return keys;
+    }
+
+    /// <summary>The DLC a level belongs to ("DLC1"), or null for base game.</summary>
+    internal static string? DlcKeyOf(LevelInterface li)
+    {
+        try
+        {
+            var details = li.DLCDetails;
+            var key = details == null ? null : details.key;
+            return string.IsNullOrEmpty(key) ? null : key;
+        }
+        catch { return null; }
     }
 
     /// <summary>
     /// Which pool a level is drawn from. Indices are the game's own: the base
     /// campaign is below 100, the daily-exclusive generators are 995-1000, and
-    /// the seasonal event packs are flagged IsArchived.
+    /// the seasonal event packs are flagged IsArchived. DLC content occupies
+    /// reserved blocks at 1100+ and 1200+ and is named by its own key rather
+    /// than by index.
     /// </summary>
     private static string SourceOf(int index)
     {
@@ -479,8 +640,15 @@ internal sealed class DataTable
         {
             if (li != null && li.IsArchived) return "archive";
             // A campaign level that carries a randomizer is a generator too -
-            // the daily reuses it with a fresh seed.
+            // the daily reuses it with a fresh seed. This branch deliberately
+            // runs BEFORE the DLC one, so the four randomizable DLC levels
+            // (DLC1 Trophy Cabinet, DLC2 Water Glasses, Figurines and Bread
+            // Crusts) are generators like any other. Which DLC they need is
+            // carried by the separate "dlc" field, precisely because "source"
+            // can no longer answer it for them.
             if (li != null && li.IsRandomizable) return "generator";
+            var dlc = li == null ? null : DlcKeyOf(li);
+            if (dlc != null) return dlc.ToLowerInvariant();
         }
         catch { }
         return index < 100 ? "base" : "other";
@@ -737,6 +905,30 @@ internal sealed class DataTable
     private static string Bool(Func<bool> f)
     {
         try { return f() ? "true" : "false"; } catch { return "false"; }
+    }
+
+    /// <summary>
+    /// A numeric field, which must stay numeric even when reading it throws.
+    ///
+    /// Str returns "&lt;err:NullReferenceException&gt;" on a throw, which is
+    /// fine inside a quoted string and fatal outside one: emitted bare after
+    /// `"hintImages":` it makes the entire 173-level table unparseable, and
+    /// the damage is not local - a single bad field costs every row. That is
+    /// exactly what the first DLC sweep produced.
+    ///
+    /// -1 rather than 0, because 0 is a legitimate answer for every count here
+    /// and would be indistinguishable from a real reading.
+    /// </summary>
+    private static string Num(Func<int> f, string field, int index)
+    {
+        try { return f().ToString(CultureInfo.InvariantCulture); }
+        catch (Exception e)
+        {
+            DevToolsPlugin.Log.LogWarning(
+                $"levelsweep: {field} on {index} threw ({e.GetType().Name}); "
+                + "recorded as -1");
+            return "-1";
+        }
     }
 
     private static string Str(Func<string> f)

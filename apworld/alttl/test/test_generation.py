@@ -16,6 +16,7 @@ from . import bases
 from .. import data
 from .. import options as apoptions
 from .. import pool
+from .. import slots
 
 
 def _addressed(test):
@@ -90,7 +91,7 @@ class TestDefaults(bases.ALTTLTestBase):
         one campaign puzzle that serves no gap ability is in a default run.
         """
         world = self.multiworld.worlds[self.player]
-        gaps = set(data.GAP_ABILITIES)
+        gaps = set(data.gap_abilities(slots._eligible(world.options)))
         ordinary = [s.level.level_id for s in world.plan
                     if s.level.source == "base" and not (s.level.abilities & gaps)]
         self.assertTrue(
@@ -264,7 +265,7 @@ class TestGeneratorsOnly(bases.ALTTLTestBase):
 
     def test_the_four_gap_abilities_are_gone(self):
         world = self.multiworld.worlds[self.player]
-        for ability in data.GAP_ABILITIES:
+        for ability in data.gap_abilities(slots._eligible(world.options)):
             self.assertNotIn(ability, world.live_abilities)
 
 

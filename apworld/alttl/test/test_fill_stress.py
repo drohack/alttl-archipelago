@@ -106,6 +106,43 @@ CONFIGURATIONS = {
     # puzzle and so stars it - which would hide a broken star goal behind
     # twenty free stars.
     "star levels, no skips": {"goal": "star_levels", "skip_count": 0},
+    # ---- DLC ------------------------------------------------------------
+    #
+    # Both alone and together, because they are not symmetric: Cupboards and
+    # Drawers brings a drawer generator (so Drawer stops being scarce) while
+    # Seeing Stars brings a jigsaw one and the only Distributing level in the
+    # game. A sweep that only ever ran them together would not catch a rule
+    # that depends on which one is on.
+    "cupboards only": {"cupboards_and_drawers": True},
+    "seeing stars only": {"seeing_stars": True},
+    "both dlc": {"cupboards_and_drawers": True, "seeing_stars": True},
+    # The DLC as the dominant source, which is where a source with too few
+    # one-shot levels would exhaust and fall through to the generator backstop.
+    "cupboards heavy": {"cupboards_and_drawers": True, "cupboards_weight": 90,
+                        "generator_weight": 10, "archive_weight": 0,
+                        "base_weight": 0, "archive_packs": []},
+    "stars heavy": {"seeing_stars": True, "stars_weight": 90,
+                    "generator_weight": 10, "archive_weight": 0,
+                    "base_weight": 0, "archive_packs": []},
+    # DLC content with the toggle on but no weight of its own: it can still
+    # arrive through the mechanic-coverage reserve, which is source-blind.
+    "dlc on, no weight": {"cupboards_and_drawers": True, "seeing_stars": True,
+                          "cupboards_weight": 0, "stars_weight": 0},
+    # A tiny run drawn from DLC only - the shape most likely to run out of
+    # eligible content partway through the draw.
+    "tiny run, dlc only": {"puzzle_count": 8, "seeing_stars": True,
+                           "stars_weight": 100, "generator_weight": 0,
+                           "archive_weight": 0, "base_weight": 0,
+                           "archive_packs": []},
+    # Seeing Stars exists for its alternate solutions, so the star goal is the
+    # configuration it changes most - and the one where a missing solution
+    # location would show up as an unwinnable seed.
+    "stars dlc, star goal": {"seeing_stars": True, "goal": "star_levels",
+                             "levels_to_star": 40, "skip_count": 0},
+    # Everything on at once, at full length.
+    "both dlc, long run": {"cupboards_and_drawers": True, "seeing_stars": True,
+                           "puzzle_count": 79, "levels_to_beat": 79},
+
     # Deliberately hostile: the thinnest content with the tightest gates.
     "worst case": {"pack_size": 1, "starting_abilities": 0,
                    "guaranteed_open_slots": 0, "mechanic_coverage": 0,
@@ -442,6 +479,21 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # It invented a Containers requirement on Stack 2, Stack 3 and Tray that
         # the game does not have, and pushed the grid group to three abilities.
         # Reading the declaration instead of inferring it took all of that back.
+        # DLC, measured 2026-09-17. Three groups, all from Seeing Stars,
+        # and all three pair Ordering with the mechanic that holds the things
+        # being ordered - which is the shape this set already collects.
+        #
+        # Cat Eyes: CatEyesController declares dependsOn IndexablesController
+        # in the level data, so the closure adds Ordering to its own Gadgets.
+        # An edge read from the game rather than inferred, which is exactly
+        # what went wrong the last time this set grew.
+        ("DLC2 Cat Eyes", "Cat Eyes"),
+        # Markers: order the markers, then cap them. Containables for the
+        # lids, Ordering for the sequence they cap.
+        ("DLC2 Markers", "Marker Lids"),
+        # Whistles: a rack of hanging tools, so Drawer to work the rack and
+        # Ordering to arrange what hangs on it.
+        ("DLC2 Whistles", "DraggablesOrdered"),
         ("TupperwareNesting", "(Large Square)"),
         # Phase six, the last link in the chain. Food is a plain Draggables and
         # needs nothing of its own; it carries Grids and Stacking because it
@@ -474,15 +526,27 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
                          "before accepting")
 
     def test_the_measured_split_holds(self):
-        free = need_one = 0
-        for level in data.LEVELS:
-            if not level.has_parts:
-                continue
-            for abilities in level.part_abilities.values():
-                if abilities:
-                    need_one += 1
-                else:
-                    free += 1
+        """Measured over the BASE GAME, then over everything.
+
+        Split in two when the DLCs landed, and the base-only figure kept its
+        original value on purpose: it is the anchor for the whole history
+        below, and holding it proves the DLC content was appended rather than
+        allowed to disturb what was already measured. A DLC number moving is
+        news about the DLC; the base number moving is news about a bug.
+        """
+        def split(levels):
+            free = need_one = 0
+            for level in levels:
+                if not level.has_parts:
+                    continue
+                for abilities in level.part_abilities.values():
+                    if abilities:
+                        need_one += 1
+                    else:
+                        free += 1
+            return free, need_one
+
+        free, need_one = split(l for l in data.LEVELS if not l.dlc)
         # Was (32, 74) before 0.3.1, then (28, 78). Four groups that needed
         # nothing at all - the loose contents of the three drawer levels and
         # Workbench's draggables - now inherit Drawer from the container
@@ -540,8 +604,24 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # other two never checked at all. They were locations the card
         # advertised and the puzzle never offered.
         self.assertEqual((24, 91), (free, need_one),
-                         "part requirement split changed; regenerate "
-                         "names.json and re-measure before accepting")
+                         "the BASE GAME part requirement split changed; "
+                         "regenerate names.json and re-measure before "
+                         "accepting. The DLCs must not move this number - if "
+                         "they did, content was inserted rather than appended")
+
+        # And the DLCs, measured 2026-09-17. Recorded per DLC rather than only
+        # as a total, so a future change says which content moved.
+        base = [l for l in data.LEVELS if not l.dlc]
+        dlc1 = [l for l in data.LEVELS if l.dlc == "DLC1"]
+        dlc2 = [l for l in data.LEVELS if l.dlc == "DLC2"]
+
+        # Cupboards and Drawers is the drawer DLC, so most of its groups are
+        # gated: +42 free, +51 needing one.
+        self.assertEqual((66, 142), split(base + dlc1))
+        # Seeing Stars leans on multiple solutions rather than on containers,
+        # so proportionally more of its groups are free: +14 free, +34 gated.
+        self.assertEqual((38, 125), split(base + dlc2))
+        self.assertEqual((80, 176), split(data.LEVELS))
 
     def test_a_part_never_asks_for_more_than_its_level(self):
         """The sanity direction: narrowing must not invent a requirement."""

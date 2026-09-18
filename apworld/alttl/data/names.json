@@ -376,6 +376,1668 @@
         }
       }
     },
+    "DLC1 Bathroom Cupboard": {
+      "display": "Bathroom Cupboard (Cupboards and Drawers)",
+      "parts": {
+        "Broom/Dustpan Containables": {
+          "display": "Broom/Dustpan",
+          "abilities": [
+            "Containers"
+          ],
+          "members": [
+            "Broom/Dustpan Containables"
+          ]
+        },
+        "Glove Hanging Controller": {
+          "display": "Glove Hanging",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Glove Hanging Controller"
+          ]
+        },
+        "Items Draggables": {
+          "display": "Items",
+          "abilities": [],
+          "members": [
+            "Items Draggables"
+          ]
+        }
+      }
+    },
+    "DLC1 Boss": {
+      "display": "Boss (Cupboards and Drawers)",
+      "parts": {
+        "DrawerController": {
+          "display": "Drawer",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "DrawerController"
+          ]
+        },
+        "KeysDraggables": {
+          "display": "Keys",
+          "abilities": [],
+          "members": [
+            "KeysDraggables"
+          ]
+        }
+      }
+    },
+    "DLC1 Clock Cupboard": {
+      "display": "Clock Cupboard (Cupboards and Drawers)",
+      "parts": {
+        "Cupboard Doors": {
+          "display": "Cupboard Doors",
+          "abilities": [
+            "Gadgets"
+          ],
+          "members": [
+            "Cupboard Doors"
+          ]
+        },
+        "Items Placements Draggables": {
+          "display": "Items Placements",
+          "abilities": [],
+          "members": [
+            "Items Placements Draggables"
+          ]
+        }
+      }
+    },
+    "DLC1 Coin Box": {
+      "display": "Coin Box (Cupboards and Drawers)",
+      "parts": {
+        "Match-Lines": {
+          "display": "Match-Lines",
+          "abilities": [
+            "Grids"
+          ],
+          "members": [
+            "Match-Lines"
+          ]
+        }
+      }
+    },
+    "DLC1 Craft Supplies": {
+      "display": "Craft Supplies (Cupboards and Drawers)",
+      "parts": {
+        "Brushes DraggablesOrdered": {
+          "display": "Brushes",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "Brushes DraggablesOrdered"
+          ]
+        },
+        "Drawers": {
+          "display": "Drawers",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Drawers"
+          ]
+        },
+        "Highlighters DraggablesOrdered": {
+          "display": "Highlighters",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "Highlighters DraggablesOrdered"
+          ]
+        },
+        "Misc Draggables": {
+          "display": "Misc",
+          "abilities": [],
+          "members": [
+            "Misc Draggables"
+          ]
+        },
+        "Paints DraggablesOrdered": {
+          "display": "Paints",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "Paints DraggablesOrdered"
+          ]
+        }
+      }
+    },
+    "DLC1 Daggers": {
+      "display": "Daggers (Cupboards and Drawers)",
+      "parts": {
+        "Draggables": {
+          "display": "Draggables",
+          "abilities": [],
+          "members": [
+            "Draggables"
+          ]
+        },
+        "Drawers": {
+          "display": "Drawers",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Drawers"
+          ]
+        },
+        "Drawers Draggables": {
+          "display": "Drawers Draggables",
+          "abilities": [],
+          "members": [
+            "Drawers Draggables"
+          ]
+        }
+      }
+    },
+    "DLC1 Filing Cabinet": {
+      "display": "Filing Cabinet (Cupboards and Drawers)",
+      "parts": {
+        "FolderShuffleables": {
+          "display": "Folder",
+          "abilities": [
+            "Swapping"
+          ],
+          "members": [
+            "FolderShuffleables"
+          ]
+        }
+      }
+    },
+    "DLC1 Fossils": {
+      "display": "Fossils (Cupboards and Drawers)",
+      "parts": {
+        "Dragonfly Fossil Jigsaw": {
+          "display": "Dragonfly Fossil",
+          "abilities": [
+            "Jigsaw"
+          ],
+          "members": [
+            "Dragonfly Fossil Jigsaw"
+          ]
+        },
+        "Drawers": {
+          "display": "Drawers",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Drawers"
+          ]
+        },
+        "Fern Fossil Jigsaw": {
+          "display": "Fern Fossil",
+          "abilities": [
+            "Jigsaw"
+          ],
+          "members": [
+            "Fern Fossil Jigsaw"
+          ]
+        },
+        "Fish Fossil Jigsaw": {
+          "display": "Fish Fossil",
+          "abilities": [
+            "Jigsaw"
+          ],
+          "members": [
+            "Fish Fossil Jigsaw"
+          ]
+        },
+        "Leaf Fossil Jigsaw": {
+          "display": "Leaf Fossil",
+          "abilities": [
+            "Jigsaw"
+          ],
+          "members": [
+            "Leaf Fossil Jigsaw"
+          ]
+        },
+        "Shell Fossil Jigsaw": {
+          "display": "Shell Fossil",
+          "abilities": [
+            "Jigsaw"
+          ],
+          "members": [
+            "Shell Fossil Jigsaw"
+          ]
+        },
+        "Snake Fossil Jigsaw": {
+          "display": "Snake Fossil",
+          "abilities": [
+            "Jigsaw"
+          ],
+          "members": [
+            "Snake Fossil Jigsaw"
+          ]
+        }
+      }
+    },
+    "DLC1 Fountain Pens": {
+      "display": "Fountain Pens (Cupboards and Drawers)",
+      "parts": {
+        "Containables": {
+          "display": "Containables",
+          "abilities": [
+            "Containers"
+          ],
+          "members": [
+            "Containables"
+          ]
+        },
+        "Draggables Ordered": {
+          "display": "Ordered",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "Draggables Ordered"
+          ]
+        }
+      }
+    },
+    "DLC1 Game Pieces": {
+      "display": "Game Pieces (Cupboards and Drawers)",
+      "parts": {
+        "Bottom Drawer Draggables": {
+          "display": "Bottom Drawer",
+          "abilities": [],
+          "members": [
+            "Bottom Drawer Draggables"
+          ]
+        },
+        "Center Tiles Draggables": {
+          "display": "Center Tiles",
+          "abilities": [],
+          "members": [
+            "Center Tiles Draggables"
+          ]
+        },
+        "Drawers": {
+          "display": "Drawers",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Drawers"
+          ]
+        },
+        "Heart Containables": {
+          "display": "Heart",
+          "abilities": [
+            "Containers"
+          ],
+          "members": [
+            "Heart Containables"
+          ]
+        },
+        "Left Drawer Draggables": {
+          "display": "Left Drawer",
+          "abilities": [],
+          "members": [
+            "Left Drawer Draggables"
+          ]
+        },
+        "Right Drawer Draggables": {
+          "display": "Right Drawer",
+          "abilities": [],
+          "members": [
+            "Right Drawer Draggables"
+          ]
+        },
+        "Top Drawer Draggables": {
+          "display": "Top Drawer",
+          "abilities": [],
+          "members": [
+            "Top Drawer Draggables"
+          ]
+        }
+      }
+    },
+    "DLC1 Jewelry Box": {
+      "display": "Jewelry Box (Cupboards and Drawers)",
+      "parts": {
+        "Brooches Draggables": {
+          "display": "Brooches",
+          "abilities": [],
+          "members": [
+            "Brooches Draggables"
+          ]
+        },
+        "Cameos Draggables": {
+          "display": "Cameos",
+          "abilities": [],
+          "members": [
+            "Cameos Draggables"
+          ]
+        },
+        "Drawers": {
+          "display": "Drawers",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Drawers"
+          ]
+        },
+        "Gold Bars Draggables": {
+          "display": "Gold Bars",
+          "abilities": [],
+          "members": [
+            "Gold Bars Draggables"
+          ]
+        },
+        "Locket Containables": {
+          "display": "Locket",
+          "abilities": [
+            "Containers"
+          ],
+          "members": [
+            "Locket Containables"
+          ]
+        },
+        "Radiolaria Draggables": {
+          "display": "Radiolaria",
+          "abilities": [],
+          "members": [
+            "Radiolaria Draggables"
+          ]
+        },
+        "Rings Draggables": {
+          "display": "Rings",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "Rings Draggables"
+          ]
+        },
+        "Watches Draggables": {
+          "display": "Watches",
+          "abilities": [],
+          "members": [
+            "Watches Draggables"
+          ]
+        }
+      }
+    },
+    "DLC1 Junk Drawer 2": {
+      "display": "Junk Drawer 2 (Cupboards and Drawers)",
+      "parts": {
+        "Draggables": {
+          "display": "Draggables",
+          "abilities": [],
+          "members": [
+            "Draggables"
+          ]
+        },
+        "Shuffleables": {
+          "display": "Shuffleables",
+          "abilities": [
+            "Swapping"
+          ],
+          "members": [
+            "Shuffleables"
+          ]
+        }
+      }
+    },
+    "DLC1 Kitchen Hanging Tools 1": {
+      "display": "Kitchen Hanging Tools 1 (Cupboards and Drawers)",
+      "parts": {
+        "GuidingTargets": {
+          "display": "Guiding Targets",
+          "abilities": [],
+          "members": [
+            "GuidingTargets"
+          ]
+        },
+        "HangingObjectsController": {
+          "display": "Hanging Objects",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "HangingObjectsController"
+          ]
+        },
+        "Knives Draggables": {
+          "display": "Knives",
+          "abilities": [],
+          "members": [
+            "Knives Draggables"
+          ]
+        }
+      }
+    },
+    "DLC1 Kitchen Hanging Tools 2": {
+      "display": "Kitchen Hanging Tools 2 (Cupboards and Drawers)",
+      "parts": {
+        "DraggablesForConsoleController": {
+          "display": "Draggables For Console",
+          "abilities": [],
+          "members": [
+            "DraggablesForConsoleController"
+          ]
+        },
+        "HangingObjectsController": {
+          "display": "Hanging Objects",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "HangingObjectsController"
+          ]
+        }
+      }
+    },
+    "DLC1 Kitchen Utensils Drawers": {
+      "display": "Kitchen Utensils Drawers (Cupboards and Drawers)",
+      "parts": {
+        "Bottom Drawer": {
+          "display": "Bottom Drawer",
+          "abilities": [],
+          "members": [
+            "Bottom Drawer"
+          ]
+        },
+        "Drawers": {
+          "display": "Drawers",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Drawers"
+          ]
+        },
+        "Top Drawer": {
+          "display": "Top Drawer",
+          "abilities": [],
+          "members": [
+            "Top Drawer"
+          ]
+        }
+      }
+    },
+    "DLC1 Lunch Tray": {
+      "display": "Lunch Tray (Cupboards and Drawers)",
+      "parts": {
+        "BroccoliOrganizer": {
+          "display": "Broccoli Organizer",
+          "abilities": [],
+          "members": [
+            "BroccoliOrganizer"
+          ]
+        },
+        "CeleryController": {
+          "display": "Celery",
+          "abilities": [],
+          "members": [
+            "CeleryController"
+          ]
+        },
+        "CrackerController": {
+          "display": "Cracker",
+          "abilities": [],
+          "members": [
+            "CrackerController"
+          ]
+        },
+        "PeasController": {
+          "display": "Peas",
+          "abilities": [],
+          "members": [
+            "PeasController"
+          ]
+        },
+        "Sandwich Controller": {
+          "display": "Sandwich",
+          "abilities": [],
+          "members": [
+            "Sandwich Controller"
+          ]
+        },
+        "TrayOrganizer": {
+          "display": "Tray Organizer",
+          "abilities": [],
+          "members": [
+            "TrayOrganizer"
+          ]
+        },
+        "Trays": {
+          "display": "Trays",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Trays"
+          ]
+        }
+      }
+    },
+    "DLC1 Media Cabinet": {
+      "display": "Media Cabinet (Cupboards and Drawers)",
+      "parts": {
+        "DVD DraggablesOrdered": {
+          "display": "DVD",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "DVD DraggablesOrdered"
+          ]
+        },
+        "Joysticks \u002B Gameboy Draggables": {
+          "display": "Joysticks \u002B Gameboy",
+          "abilities": [],
+          "members": [
+            "Joysticks \u002B Gameboy Draggables"
+          ]
+        },
+        "NES Stack": {
+          "display": "NES Stack",
+          "abilities": [
+            "Stacking"
+          ],
+          "members": [
+            "NES Stack"
+          ]
+        },
+        "Rubix Stack": {
+          "display": "Rubix Stack",
+          "abilities": [
+            "Stacking"
+          ],
+          "members": [
+            "Rubix Stack"
+          ]
+        }
+      }
+    },
+    "DLC1 Nested Drawers": {
+      "display": "Nested Drawers (Cupboards and Drawers)",
+      "parts": {
+        "Draggables": {
+          "display": "Draggables",
+          "abilities": [],
+          "members": [
+            "Draggables"
+          ]
+        },
+        "Drawers": {
+          "display": "Drawers",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Drawers"
+          ]
+        }
+      }
+    },
+    "DLC1 Nesting Boxes": {
+      "display": "Nesting Boxes (Cupboards and Drawers)",
+      "parts": {
+        "BoxOrganizer": {
+          "display": "Box Organizer",
+          "abilities": [],
+          "members": [
+            "BoxOrganizer"
+          ]
+        },
+        "Boxes": {
+          "display": "Boxes",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Boxes"
+          ]
+        },
+        "CatOrganizer": {
+          "display": "Cat Organizer",
+          "abilities": [],
+          "members": [
+            "CatOrganizer"
+          ]
+        }
+      }
+    },
+    "DLC1 Pantry": {
+      "display": "Pantry (Cupboards and Drawers)",
+      "parts": {
+        "Apple Basket Containables": {
+          "display": "Apple Basket",
+          "abilities": [
+            "Containers"
+          ],
+          "members": [
+            "Apple Basket Containables"
+          ]
+        },
+        "Can Stacks": {
+          "display": "Can Stacks",
+          "abilities": [
+            "Stacking"
+          ],
+          "members": [
+            "Can Stacks"
+          ]
+        },
+        "Items Placements Draggables": {
+          "display": "Items Placements",
+          "abilities": [],
+          "members": [
+            "Items Placements Draggables"
+          ]
+        },
+        "Mixer Containables": {
+          "display": "Mixer",
+          "abilities": [
+            "Containers"
+          ],
+          "members": [
+            "Mixer Containables"
+          ]
+        },
+        "Mixing Bowl Containables": {
+          "display": "Mixing Bowl",
+          "abilities": [
+            "Containers"
+          ],
+          "members": [
+            "Mixing Bowl Containables"
+          ]
+        },
+        "Potato Crate Containables": {
+          "display": "Potato Crate",
+          "abilities": [
+            "Containers"
+          ],
+          "members": [
+            "Potato Crate Containables"
+          ]
+        }
+      }
+    },
+    "DLC1 Pressed Flowers": {
+      "display": "Pressed Flowers (Cupboards and Drawers)",
+      "parts": {
+        "Flower Shapes": {
+          "display": "Flower Shapes",
+          "abilities": [],
+          "members": [
+            "Flower Shapes"
+          ]
+        }
+      }
+    },
+    "DLC1 Sewing Box": {
+      "display": "Sewing Box (Cupboards and Drawers)",
+      "parts": {
+        "Buttons Sortable": {
+          "display": "Buttons Sortable",
+          "abilities": [
+            "Sticking"
+          ],
+          "members": [
+            "Buttons Sortable"
+          ]
+        },
+        "Curved Needles Containables": {
+          "display": "Curved Needles",
+          "abilities": [
+            "Containers"
+          ],
+          "members": [
+            "Curved Needles Containables"
+          ]
+        },
+        "Drawers": {
+          "display": "Drawers",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Drawers"
+          ]
+        },
+        "Large Spools Draggables": {
+          "display": "Large Spools",
+          "abilities": [],
+          "members": [
+            "Large Spools Draggables"
+          ]
+        },
+        "Safety Pin DraggablesOrdered": {
+          "display": "Safety Pin",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "Safety Pin DraggablesOrdered"
+          ]
+        },
+        "Scissors Draggables": {
+          "display": "Scissors",
+          "abilities": [],
+          "members": [
+            "Scissors Draggables"
+          ]
+        },
+        "Small Spools Draggables": {
+          "display": "Small Spools",
+          "abilities": [],
+          "members": [
+            "Small Spools Draggables"
+          ]
+        },
+        "Supplies Draggables": {
+          "display": "Supplies",
+          "abilities": [],
+          "members": [
+            "Supplies Draggables"
+          ]
+        },
+        "Top Drawer Draggables": {
+          "display": "Top Drawer",
+          "abilities": [],
+          "members": [
+            "Top Drawer Draggables"
+          ]
+        },
+        "Zipper DraggablesOrdered": {
+          "display": "Zipper",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "Zipper DraggablesOrdered"
+          ]
+        }
+      }
+    },
+    "DLC1 Tackle Box": {
+      "display": "Tackle Box (Cupboards and Drawers)",
+      "parts": {
+        "Bugs DraggableOrdered": {
+          "display": "Bugs Draggable Ordered",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "Bugs DraggableOrdered"
+          ]
+        },
+        "Supplies Draggables": {
+          "display": "Supplies",
+          "abilities": [],
+          "members": [
+            "Supplies Draggables"
+          ]
+        },
+        "Weight Draggables": {
+          "display": "Weight",
+          "abilities": [],
+          "members": [
+            "Weight Draggables"
+          ]
+        }
+      }
+    },
+    "DLC1 Tea Cabinet": {
+      "display": "Tea Cabinet (Cupboards and Drawers)",
+      "parts": {
+        "Cupboard Doors": {
+          "display": "Cupboard Doors",
+          "abilities": [
+            "Gadgets"
+          ],
+          "members": [
+            "Cupboard Doors"
+          ]
+        },
+        "Cupcake Containables": {
+          "display": "Cupcake",
+          "abilities": [
+            "Containers"
+          ],
+          "members": [
+            "Cupcake Containables"
+          ]
+        },
+        "Items Placements Draggables": {
+          "display": "Items Placements",
+          "abilities": [],
+          "members": [
+            "Items Placements Draggables"
+          ]
+        },
+        "Jam Jars Stack": {
+          "display": "Jam Jars Stack",
+          "abilities": [
+            "Stacking"
+          ],
+          "members": [
+            "Jam Jars Stack"
+          ]
+        },
+        "Spoon Containables": {
+          "display": "Spoon",
+          "abilities": [
+            "Containers"
+          ],
+          "members": [
+            "Spoon Containables"
+          ]
+        },
+        "Teacup Stack": {
+          "display": "Teacup Stack",
+          "abilities": [
+            "Stacking"
+          ],
+          "members": [
+            "Teacup Stack"
+          ]
+        },
+        "Teapot Stack": {
+          "display": "Teapot Stack",
+          "abilities": [
+            "Stacking"
+          ],
+          "members": [
+            "Teapot Stack"
+          ]
+        }
+      }
+    },
+    "DLC1 Trophy Cabinet": {
+      "display": "Trophy Cabinet (Cupboards and Drawers)",
+      "parts": {
+        "Cupboard Doors": {
+          "display": "Cupboard Doors",
+          "abilities": [
+            "Gadgets"
+          ],
+          "members": [
+            "Cupboard Doors"
+          ]
+        },
+        "Items Placements Draggables": {
+          "display": "Items Placements",
+          "abilities": [],
+          "members": [
+            "Items Placements Draggables"
+          ]
+        }
+      }
+    },
+    "DLC2 Balls": {
+      "display": "Balls (Seeing Stars)",
+      "parts": {
+        "Shuffle": {
+          "display": "Shuffle",
+          "abilities": [
+            "Swapping"
+          ],
+          "members": [
+            "Shuffle"
+          ]
+        }
+      }
+    },
+    "DLC2 Bells": {
+      "display": "Bells (Seeing Stars)",
+      "parts": {
+        "OrderedGroups": {
+          "display": "Ordered Groups",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "OrderedGroups"
+          ]
+        }
+      }
+    },
+    "DLC2 Books Stacked": {
+      "display": "Books Stacked (Seeing Stars)",
+      "parts": {
+        "StackedGroups": {
+          "display": "Stacked Groups",
+          "abilities": [
+            "Stacking"
+          ],
+          "members": [
+            "StackedGroups"
+          ]
+        }
+      }
+    },
+    "DLC2 Bookshelf": {
+      "display": "Bookshelf (Seeing Stars)",
+      "parts": {
+        "Shuffle - Bottom Left": {
+          "display": "Shuffle - Bottom Left",
+          "abilities": [
+            "Swapping"
+          ],
+          "members": [
+            "Shuffle - Bottom Left",
+            "Shuffle - Bottom Right",
+            "Shuffle - Mid Left",
+            "Shuffle - Mid Right",
+            "Shuffle - Top Left",
+            "Shuffle - Top Right"
+          ]
+        }
+      }
+    },
+    "DLC2 Boss": {
+      "display": "Boss (Seeing Stars)",
+      "parts": {
+        "Drawer Controller": {
+          "display": "Drawer",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Drawer Controller"
+          ]
+        },
+        "Hub": {
+          "display": "Hub",
+          "abilities": [],
+          "members": [
+            "Hub"
+          ]
+        }
+      }
+    },
+    "DLC2 Bread Crusts": {
+      "display": "Bread Crusts (Seeing Stars)",
+      "parts": {
+        "BreadLoopDraggables": {
+          "display": "Bread Loop",
+          "abilities": [
+            "Jigsaw"
+          ],
+          "members": [
+            "BreadLoopDraggables"
+          ]
+        },
+        "ConcentricCrustDraggables": {
+          "display": "Concentric Crust",
+          "abilities": [
+            "Jigsaw"
+          ],
+          "members": [
+            "ConcentricCrustDraggables"
+          ]
+        }
+      }
+    },
+    "DLC2 Broken Vases": {
+      "display": "Broken Vases (Seeing Stars)",
+      "parts": {
+        "Draggables": {
+          "display": "Draggables",
+          "abilities": [],
+          "members": [
+            "Draggables"
+          ]
+        }
+      }
+    },
+    "DLC2 Cacti": {
+      "display": "Cacti (Seeing Stars)",
+      "parts": {
+        "Shuffleables Cacti": {
+          "display": "Cacti",
+          "abilities": [
+            "Swapping"
+          ],
+          "members": [
+            "Shuffleables Cacti",
+            "Shuffleables Pots"
+          ]
+        }
+      }
+    },
+    "DLC2 Canapes": {
+      "display": "Canapes (Seeing Stars)",
+      "parts": {
+        "Cracker Positions": {
+          "display": "Cracker Positions",
+          "abilities": [],
+          "members": [
+            "Cracker Positions"
+          ]
+        },
+        "Stacked Groups": {
+          "display": "Stacked Groups",
+          "abilities": [
+            "Stacking"
+          ],
+          "members": [
+            "Stacked Groups"
+          ]
+        }
+      }
+    },
+    "DLC2 Cat Eyes": {
+      "display": "Cat Eyes (Seeing Stars)",
+      "parts": {
+        "CatEyesController": {
+          "display": "Cat Eyes",
+          "abilities": [
+            "Gadgets",
+            "Ordering"
+          ],
+          "members": [
+            "CatEyesController"
+          ]
+        },
+        "IndexablesController": {
+          "display": "Indexables",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "IndexablesController"
+          ]
+        }
+      }
+    },
+    "DLC2 Combs": {
+      "display": "Combs (Seeing Stars)",
+      "parts": {
+        "Draggables": {
+          "display": "Draggables",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "Draggables",
+            "Indexables"
+          ]
+        },
+        "Drawer": {
+          "display": "Drawer",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Drawer"
+          ]
+        }
+      }
+    },
+    "DLC2 Corn": {
+      "display": "Corn (Seeing Stars)",
+      "parts": {}
+    },
+    "DLC2 Cupcakes": {
+      "display": "Cupcakes (Seeing Stars)",
+      "parts": {
+        "Draggables Colors": {
+          "display": "Colors",
+          "abilities": [],
+          "members": [
+            "Draggables Colors"
+          ]
+        },
+        "Shuffleables Candles": {
+          "display": "Candles",
+          "abilities": [
+            "Swapping"
+          ],
+          "members": [
+            "Shuffleables Candles",
+            "Shuffleables Cupcakes",
+            "Shuffleables Wrappers"
+          ]
+        }
+      }
+    },
+    "DLC2 Curtains": {
+      "display": "Curtains (Seeing Stars)",
+      "parts": {
+        "Draggables": {
+          "display": "Draggables",
+          "abilities": [],
+          "members": [
+            "Draggables"
+          ]
+        }
+      }
+    },
+    "DLC2 Figurines": {
+      "display": "Figurines (Seeing Stars)",
+      "parts": {
+        "Draggables": {
+          "display": "Draggables",
+          "abilities": [],
+          "members": [
+            "Draggables"
+          ]
+        },
+        "Groupables (Achievement)": {
+          "display": "Groupables (Achievement)",
+          "abilities": [
+            "Gadgets"
+          ],
+          "members": [
+            "Groupables (Achievement)"
+          ]
+        },
+        "SortingItemsDraggables": {
+          "display": "Sorting Items",
+          "abilities": [
+            "Sticking"
+          ],
+          "members": [
+            "SortingItemsDraggables"
+          ]
+        }
+      }
+    },
+    "DLC2 First Aid Kit": {
+      "display": "First Aid Kit (Seeing Stars)",
+      "parts": {
+        "Bottle Containables": {
+          "display": "Bottle",
+          "abilities": [
+            "Containers"
+          ],
+          "members": [
+            "Bottle Containables"
+          ]
+        },
+        "Draggables": {
+          "display": "Draggables",
+          "abilities": [],
+          "members": [
+            "Draggables"
+          ]
+        },
+        "Pump State Controller": {
+          "display": "Pump State",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "Pump State Controller"
+          ]
+        },
+        "Wipe Containables": {
+          "display": "Wipe",
+          "abilities": [
+            "Containers"
+          ],
+          "members": [
+            "Wipe Containables"
+          ]
+        }
+      }
+    },
+    "DLC2 Forks": {
+      "display": "Forks (Seeing Stars)",
+      "parts": {
+        "Shuffle": {
+          "display": "Shuffle",
+          "abilities": [
+            "Swapping"
+          ],
+          "members": [
+            "Shuffle"
+          ]
+        }
+      }
+    },
+    "DLC2 Ghost Cat": {
+      "display": "Ghost Cat (Seeing Stars)",
+      "parts": {
+        "Indexables": {
+          "display": "Indexables",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "Indexables"
+          ]
+        }
+      }
+    },
+    "DLC2 Ink Bottles": {
+      "display": "Ink Bottles (Seeing Stars)",
+      "parts": {
+        "Draggables - Drips": {
+          "display": "Drips",
+          "abilities": [],
+          "members": [
+            "Draggables - Drips"
+          ]
+        },
+        "Draggables - Label": {
+          "display": "Label",
+          "abilities": [],
+          "members": [
+            "Draggables - Label"
+          ]
+        },
+        "GridPuzzleBase": {
+          "display": "Grid Puzzle Base",
+          "abilities": [
+            "Grids"
+          ],
+          "members": [
+            "GridPuzzleBase"
+          ]
+        }
+      }
+    },
+    "DLC2 Junk Drawer Transforming": {
+      "display": "Junk Drawer Transforming (Seeing Stars)",
+      "parts": {
+        "Drawer Controller": {
+          "display": "Drawer",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Drawer Controller"
+          ]
+        },
+        "Indexables": {
+          "display": "Indexables",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "Indexables",
+            "IndexedDraggables",
+            "Stamps Draggables",
+            "Ticket Stubs Draggables"
+          ]
+        }
+      }
+    },
+    "DLC2 Leftovers": {
+      "display": "Leftovers (Seeing Stars)",
+      "parts": {
+        "StackableGrid": {
+          "display": "Stackable Grid",
+          "abilities": [
+            "Grids"
+          ],
+          "members": [
+            "StackableGrid"
+          ]
+        }
+      }
+    },
+    "DLC2 Markers": {
+      "display": "Markers (Seeing Stars)",
+      "parts": {
+        "Marker Lids": {
+          "display": "Marker Lids",
+          "abilities": [
+            "Containers",
+            "Ordering"
+          ],
+          "members": [
+            "Marker Lids",
+            "Markers Ordered"
+          ]
+        }
+      }
+    },
+    "DLC2 Material Drawers": {
+      "display": "Material Drawers (Seeing Stars)",
+      "parts": {
+        "Containable Controller": {
+          "display": "Containable",
+          "abilities": [
+            "Containers"
+          ],
+          "members": [
+            "Containable Controller"
+          ]
+        },
+        "Drawer Controller": {
+          "display": "Drawer Controller",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Drawer Controller"
+          ]
+        },
+        "Drawer Draggables": {
+          "display": "Drawer Draggables",
+          "abilities": [],
+          "members": [
+            "Drawer Draggables"
+          ]
+        }
+      }
+    },
+    "DLC2 Math Set": {
+      "display": "Math Set (Seeing Stars)",
+      "parts": {
+        "Indexables": {
+          "display": "Indexables",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "Indexables",
+            "Items Placements Draggables"
+          ]
+        }
+      }
+    },
+    "DLC2 Moths": {
+      "display": "Moths (Seeing Stars)",
+      "parts": {
+        "Draggables": {
+          "display": "Draggables",
+          "abilities": [],
+          "members": [
+            "Draggables"
+          ]
+        },
+        "DraggablesOrdered": {
+          "display": "DraggablesOrdered",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "DraggablesOrdered"
+          ]
+        }
+      }
+    },
+    "DLC2 Mugs": {
+      "display": "Mugs (Seeing Stars)",
+      "parts": {
+        "Grid": {
+          "display": "Grid",
+          "abilities": [
+            "Grids"
+          ],
+          "members": [
+            "Grid"
+          ]
+        }
+      }
+    },
+    "DLC2 Music Box": {
+      "display": "Music Box (Seeing Stars)",
+      "parts": {
+        "Organizer": {
+          "display": "Organizer",
+          "abilities": [],
+          "members": [
+            "Organizer"
+          ]
+        },
+        "StateController": {
+          "display": "State",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "StateController"
+          ]
+        }
+      }
+    },
+    "DLC2 Nanopets": {
+      "display": "Nanopets (Seeing Stars)",
+      "parts": {
+        "Indexables": {
+          "display": "Indexables",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "Indexables"
+          ]
+        },
+        "Shuffle": {
+          "display": "Shuffle",
+          "abilities": [
+            "Swapping"
+          ],
+          "members": [
+            "Shuffle"
+          ]
+        }
+      }
+    },
+    "DLC2 ObsoleteTech": {
+      "display": "Obsolete Tech (Seeing Stars)",
+      "parts": {
+        "CassettesOrdered": {
+          "display": "Cassettes Ordered",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "CassettesOrdered"
+          ]
+        },
+        "CellPhonesOrdered": {
+          "display": "Cell Phones Ordered",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "CellPhonesOrdered"
+          ]
+        },
+        "Floppy Containables": {
+          "display": "Floppy",
+          "abilities": [
+            "Containers"
+          ],
+          "members": [
+            "Floppy Containables"
+          ]
+        },
+        "Organizer": {
+          "display": "Organizer",
+          "abilities": [],
+          "members": [
+            "Organizer"
+          ]
+        },
+        "VHSOrdered": {
+          "display": "VHSOrdered",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "VHSOrdered"
+          ]
+        }
+      }
+    },
+    "DLC2 Origami": {
+      "display": "Origami (Seeing Stars)",
+      "parts": {
+        "OrigamiPad": {
+          "display": "Origami Pad",
+          "abilities": [],
+          "members": [
+            "OrigamiPad"
+          ]
+        }
+      }
+    },
+    "DLC2 Pizza": {
+      "display": "Pizza (Seeing Stars)",
+      "parts": {
+        "Distributables": {
+          "display": "Distributables",
+          "abilities": [
+            "Distributing"
+          ],
+          "members": [
+            "Distributables"
+          ]
+        }
+      }
+    },
+    "DLC2 Pressed Leaves": {
+      "display": "Pressed Leaves (Seeing Stars)",
+      "parts": {
+        "Leaves Draggables": {
+          "display": "Leaves",
+          "abilities": [],
+          "members": [
+            "Leaves Draggables"
+          ]
+        }
+      }
+    },
+    "DLC2 Robots": {
+      "display": "Robots (Seeing Stars)",
+      "parts": {
+        "Containables": {
+          "display": "Containables",
+          "abilities": [
+            "Containers"
+          ],
+          "members": [
+            "Containables"
+          ]
+        },
+        "Indexables": {
+          "display": "Indexables",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "Indexables",
+            "IndexedDraggables"
+          ]
+        },
+        "Spring Containable": {
+          "display": "Spring Containable",
+          "abilities": [
+            "Containers"
+          ],
+          "members": [
+            "Spring Containable"
+          ]
+        },
+        "Spring Draggable": {
+          "display": "Spring",
+          "abilities": [],
+          "members": [
+            "Spring Draggable"
+          ]
+        }
+      }
+    },
+    "DLC2 Sticky Drawer": {
+      "display": "Sticky Drawer (Seeing Stars)",
+      "parts": {
+        "Draggables": {
+          "display": "Draggables",
+          "abilities": [],
+          "members": [
+            "Draggables"
+          ]
+        },
+        "DrawerController": {
+          "display": "Drawer",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "DrawerController"
+          ]
+        },
+        "Stickables": {
+          "display": "Stickables",
+          "abilities": [
+            "Sticking"
+          ],
+          "members": [
+            "Stickables"
+          ]
+        }
+      }
+    },
+    "DLC2 Water Glasses": {
+      "display": "Water Glasses (Seeing Stars)",
+      "parts": {
+        "Jigsaw": {
+          "display": "Jigsaw",
+          "abilities": [],
+          "members": [
+            "Jigsaw"
+          ]
+        },
+        "Sorting (Type \u0026 Size)": {
+          "display": "Sorting (Type \u0026 Size)",
+          "abilities": [
+            "Sticking"
+          ],
+          "members": [
+            "Sorting (Type \u0026 Size)"
+          ]
+        },
+        "Water Level (Indexable)": {
+          "display": "Water Level (Indexable)",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "Water Level (Indexable)"
+          ]
+        }
+      }
+    },
+    "DLC2 Whistles": {
+      "display": "Whistles (Seeing Stars)",
+      "parts": {
+        "DraggablesOrdered": {
+          "display": "DraggablesOrdered",
+          "abilities": [
+            "Drawer",
+            "Ordering"
+          ],
+          "members": [
+            "DraggablesOrdered",
+            "HangingToolsController"
+          ]
+        }
+      }
+    },
+    "DLC2 Windows": {
+      "display": "Windows (Seeing Stars)",
+      "parts": {
+        "Draggables": {
+          "display": "Draggables",
+          "abilities": [],
+          "members": [
+            "Draggables"
+          ]
+        }
+      }
+    },
     "Desktop Computer": {
       "display": "Desktop Computer",
       "parts": {

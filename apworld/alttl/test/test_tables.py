@@ -43,8 +43,36 @@ class TestTables(unittest.TestCase):
                 self.assertNotEqual(locations.BEATEN, part)
 
     def test_gap_abilities_are_the_measured_four(self):
+        """Without DLC, the scarce mechanics are still exactly these four.
+
+        This is the assertion the per-yaml gap set had to keep passing
+        UNCHANGED. Deriving the set from the whole catalogue instead would
+        have dropped Drawer and Jigsaw from it - DLC1 Trophy Cabinet is a
+        drawer generator and DLC2 Bread Crusts a jigsaw one - and silently
+        taken the guaranteed drawer and jigsaw puzzles away from every player
+        who owns no DLC.
+        """
+        base = [l for l in data.LEVELS if not l.dlc]
         self.assertEqual({"Stacking", "Containers", "Drawer", "Jigsaw"},
-                         set(data.GAP_ABILITIES))
+                         set(data.gap_abilities(base)))
+
+    def test_a_dlc_generator_removes_its_mechanic_from_the_scarce_set(self):
+        """And with DLC on, the set corrects itself rather than over-reserving.
+
+        The other half of the same rule: once a generator exists for a
+        mechanic, reserving hand-made levels for it is wasted pinning.
+        """
+        base = [l for l in data.LEVELS if not l.dlc]
+        with_dlc1 = base + [l for l in data.LEVELS if l.dlc == "DLC1"]
+        with_dlc2 = base + [l for l in data.LEVELS if l.dlc == "DLC2"]
+
+        self.assertNotIn("Drawer", data.gap_abilities(with_dlc1))
+        self.assertNotIn("Jigsaw", data.gap_abilities(with_dlc2))
+
+        # And an ability no level in the pool has is absent, not scarce:
+        # reserving for it is a request the draw can never satisfy.
+        self.assertNotIn("Distributing", data.gap_abilities(base))
+        self.assertIn("Distributing", data.gap_abilities(with_dlc2))
 
     def test_every_ability_has_at_least_one_level(self):
         for ability in data.ABILITIES:
@@ -142,10 +170,25 @@ class TestTables(unittest.TestCase):
         If this set changes, do not update the expectation - find out what the
         game actually does with the new member, and start with whether it
         declares phases.
+
+        DLC2 CORN JOINED IT ON 2026-09-17, and was checked against exactly
+        that instruction rather than pasted in:
+
+        - levelClass is plain `Level` and it declares no phases, so it is not
+          a Radial Dance Party hiding behind a single-look sweep.
+        - the PREFAB survey - which walks inactive children too, so it cannot
+          miss a late arrival - lists one controller for it and one only:
+          `Pannables Controller/Pannables`. Nothing is being revealed later,
+          because there is nothing else there.
+
+        That is the same shape as the other two, down to the controller class.
+        Its four solutions are unconditionally free in logic, which is correct
+        for the reason above: with no puzzle controller there is nothing for
+        the mod to dim.
         """
         ungrouped = {level.level_id for level in data.LEVELS if not level.parts}
         self.assertEqual(
-            {"Drink Glasses", "MerryMess_Presents"},
+            {"Drink Glasses", "MerryMess_Presents", "DLC2 Corn"},
             ungrouped,
             "the set of levels with no controller groups moved; see the docstring")
 

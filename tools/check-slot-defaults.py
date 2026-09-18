@@ -44,6 +44,7 @@ NO_OPTION = {
     "starting_abilities": "which ones were drawn, not how many",
     "requirements": "generated access rules",
     "controller_groups": "the level table",
+    "dlc": "which DLC a level needs, a property of the level not a setting",
 }
 
 
@@ -51,7 +52,13 @@ def csharp_defaults(text):
     """[(json_name, csharp_literal)] for properties with a literal default."""
     out = []
     pattern = re.compile(
-        r'\[JsonPropertyName\("([a-z_]+)"\)\]\s*\n'
+        # [a-z_0-9]+, not [a-z_]+. A json name containing a digit was
+        # invisible here and was skipped WITHOUT SAYING SO - the exact
+        # 'quietly compares nothing' failure this file exists against.
+        # Found when dlc1 and dlc2 were added and neither showed up in
+        # the output at all, not even as a skip. They have since been
+        # renamed to match their options, but the blind spot was real.
+        r'\[JsonPropertyName\("([a-z_0-9]+)"\)\]\s*\n'
         r'\s*public\s+(?:int|bool|string)\s+\w+\s*\{\s*get;\s*set;\s*\}'
         r'\s*=\s*([^;]+);')
     for name, literal in pattern.findall(text):

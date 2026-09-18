@@ -52,7 +52,7 @@ internal static partial class Badges
     /// for icons, because the game's own sprites are borrowed by name and that
     /// had twice been guessed wrong in this file. The looking was done with the
     /// DevTools `sprites` and `spriteexport` commands, and it succeeded: the
-    /// mod now ships twelve icons of its own as embedded resources, which
+    /// mod now ships thirteen icons of its own as embedded resources, which
     /// LoadPillArt draws. See docs/data/ability-icons.md for where each picture
     /// came from. The letters stayed: they are the caption UNDER each icon, so
     /// a picture nobody recognises still names its mechanic.
@@ -72,6 +72,9 @@ internal static partial class Badges
             ["Sticking"] = "STI",
             ["Symmetry"] = "SYM",
             ["Jigsaw"] = "JIG",
+            // Seeing Stars. The only DLC mechanic with no base-game
+            // equivalent, so the only one that needed a new pill.
+            ["Distributing"] = "DST",
         };
 
     /// <summary>
@@ -113,6 +116,13 @@ internal static partial class Badges
             ["Sticking"] = "Stickers",
             ["Symmetry"] = "Wreath",
             ["Jigsaw"] = "Gingerbread",
+            // Seeing Stars. The pizza BASE rather than a topping, even though
+            // the toppings are what the mechanic distributes: all 48 of them
+            // are small discs - pepperoni, olive, jalapeno - and a disc reads
+            // as a generic dot at 36 pixels, which is how the hammer, the
+            // nails and the callipers were rejected. The pan has a silhouette
+            // and a colour nothing else in the strip uses.
+            ["Distributing"] = "Pizza",
         };
 
     /// <summary>
@@ -237,6 +247,9 @@ internal static partial class Badges
     /// of the screen; six by two is a block the eye takes in at once, and it
     /// leaves the corner it sits in looking like one thing rather than a
     /// banner. droha's call.
+    ///
+    /// The row count is derived, not fixed, so a seed carrying Seeing Stars'
+    /// Distributing wraps to a third row by itself - six, six and one.
     /// </summary>
     private const int PillsPerRow = 6;
 
@@ -357,10 +370,17 @@ internal static partial class Badges
     /// <summary>
     /// Build the strip once, from the seed's own ability catalogue.
     ///
-    /// Ordered by Core.Abilities.All rather than by the dictionary, so the
-    /// pills sit in the same places on every seed and a player learns where
-    /// to look. Returns false if the pieces are not ready yet, and the poll
-    /// tries again.
+    /// Ordered by Core.Abilities.AllWithDlc rather than by the dictionary, so
+    /// the pills sit in the same places on every seed and a player learns
+    /// where to look. Returns false if the pieces are not ready yet, and the
+    /// poll tries again.
+    ///
+    /// AllWithDlc, not All: a DLC mechanic is an ability item like any other
+    /// and needs a pill. Iterating the base twelve would have drawn a strip
+    /// with no Distributing pill while the item existed and gated DLC2 Pizza,
+    /// so the one thing the strip is for - seeing what you hold - would have
+    /// been silently wrong for that mechanic. The DLC pills sort after the
+    /// base twelve, so a base-game seed's strip is unchanged.
     /// </summary>
     private static bool BuildPills()
     {
@@ -370,7 +390,7 @@ internal static partial class Badges
 
         _pillOrder.Clear();
         _pillTiles.Clear();
-        foreach (var ability in Abilities.All)
+        foreach (var ability in Abilities.AllWithDlc)
         {
             if (seed.Abilities.Count > 0 && !seed.Abilities.ContainsKey(ability))
             {

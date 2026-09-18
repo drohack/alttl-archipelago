@@ -53,7 +53,7 @@ public class DisplayNameTests
         // Collisions would merge two levels' locations into one.
         var dupes = names.GroupBy(n => n).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
         Assert.True(dupes.Count == 0, "Duplicate display names: " + string.Join(", ", dupes));
-        Assert.Equal(111, names.Count);
+        Assert.Equal(173, names.Count);
     }
 
     [Fact]

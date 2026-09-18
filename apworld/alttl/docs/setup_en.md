@@ -3,7 +3,8 @@
 ## Required Software
 
 - [A Little to the Left](https://store.steampowered.com/app/1629520/) on PC.
-  Only the base game is needed - DLC is not used.
+  The base game is enough. Both DLCs are supported and both are **off by
+  default** - see DLC below.
 - The A Little to the Left Archipelago mod, from the
   [releases page](https://github.com/drohack/alttl-archipelago/releases).
 - [BepInEx 6 for Unity IL2CPP, x64](https://builds.bepinex.dev/projects/bepinex_be).
@@ -61,17 +62,45 @@ playing a subtly wrong run.
   a run rarely divides evenly. Read the number as a floor rather than a
   promise: below 5 the run still opens 5, and because a run carries at most 14
   packs, packs of your size that would need more than that all grow together.
-- **Mechanic Coverage** is the main variety lever. Four mechanics - stacking,
-  containers, drawers and jigsaws - have no procedural generator, so hand-made
-  campaign puzzles are the only way to see them. This setting is how many
-  puzzles are guaranteed for each. It is a floor, not the only door: campaign
-  puzzles are also drawn by their own weight, so setting this to 0 makes those
-  four mechanics merely unguaranteed rather than absent.
+- **Mechanic Coverage** is the main variety lever. Some mechanics have no
+  procedural generator, so hand-made puzzles are the only way to see them -
+  without DLC those are stacking, containers, drawers and jigsaws. This setting
+  is how many puzzles are guaranteed for each. It is a floor, not the only
+  door: campaign puzzles are also drawn by their own weight, so setting this to
+  0 makes those mechanics merely unguaranteed rather than absent.
+
+  Which mechanics are scarce depends on what you enabled, and it works itself
+  out: Cupboards and Drawers brings a drawer generator and Seeing Stars a
+  jigsaw one, so turning those on takes drawers and jigsaws off the scarce
+  list rather than reserving puzzles for something no longer rare.
 - **Ability Locks** off makes every mechanic work from the start, leaving the
   packs as the only gate. Puzzles can no longer be partly solved.
-- **Event Packs** chooses which seasonal Archive packs may appear. Jigsaws only
-  exist in event packs, so turning enough of them off drops jigsaws from the
-  run and the ability with them.
+- **Event Packs** chooses which seasonal Archive packs may appear. Without DLC,
+  jigsaws only exist in event packs, so turning enough of them off drops
+  jigsaws from the run and the ability with them.
+
+### DLC
+
+Both DLCs are supported and both are **off by default**. Turn one on only if
+you own it.
+
+| Setting | Adds | Solutions |
+|---|---|---|
+| **Cupboards and Drawers DLC** | 25 puzzles | 32 |
+| **Seeing Stars DLC** | 37 puzzles | 100 |
+
+Each has its own weight, on the same relative scale as the generator, event and
+campaign weights, deciding how much of the run it fills.
+
+Seeing Stars carries more alternate solutions than the entire base campaign, so
+it is the one that changes a **Star Levels** goal most. Five of its puzzles are
+locked by the game itself behind a running total of stars; the mod opens those,
+so they play like any other slot.
+
+**Only the player needs the DLC.** Whoever generates the multiworld does not,
+and other players in the room are unaffected. If you ask for a DLC you do not
+have installed, the mod says so when you connect and refuses the seed rather
+than handing you a puzzle that will not open.
 
 ## Joining a MultiWorld Game
 

@@ -17,7 +17,7 @@ called.
 
 import json
 import pkgutil
-from typing import Dict, FrozenSet, List, Optional
+from typing import Dict, FrozenSet, Iterable, List, Optional
 
 
 def _load(name: str) -> dict:
@@ -72,14 +72,36 @@ MAX_GENERATOR_INSTANCES: int = _NAMES_RAW["maxGeneratorInstances"]
 
 CREDITS: str = _NAMES_RAW["credits"]
 
-#: Ability name -> the ObjectController classes it unlocks.
+#: Ability name -> the ObjectController classes it unlocks. The BASE GAME's
+#: twelve only; DLC mechanics are below.
 ABILITY_CLASSES: Dict[str, List[str]] = _ABILITIES_RAW["abilities"]
 
 #: Ability names in a stable order. Item ids hang off this, so it must not be
 #: reordered once shipped.
 ABILITIES: List[str] = list(ABILITY_CLASSES)
 
-_CLASS_TO_ABILITY = {c: a for a, cs in ABILITY_CLASSES.items() for c in cs}
+#: DLC key -> the abilities that DLC introduces -> their controller classes.
+#: A DLC with no new mechanic is present with an empty mapping rather than
+#: absent, so "this DLC adds nothing" is recorded rather than missing.
+DLC_ABILITY_CLASSES: Dict[str, Dict[str, List[str]]] =     _ABILITIES_RAW.get("dlcAbilities", {})
+
+#: Every DLC ability, base-twelve order first then DLC by key. This ORDER is
+#: what items.py appends after every base item name, so it carries the same
+#: no-reordering rule for the same reason.
+DLC_ABILITIES: List[str] = [
+    a for key in sorted(DLC_ABILITY_CLASSES)
+    for a in DLC_ABILITY_CLASSES[key]
+]
+
+#: Base twelve, then DLC. Anything asking "what abilities exist" wants this;
+#: anything allocating an item id wants the two lists separately.
+ALL_ABILITIES: List[str] = ABILITIES + DLC_ABILITIES
+
+_ALL_ABILITY_CLASSES: Dict[str, List[str]] = dict(ABILITY_CLASSES)
+for _key in sorted(DLC_ABILITY_CLASSES):
+    _ALL_ABILITY_CLASSES.update(DLC_ABILITY_CLASSES[_key])
+
+_CLASS_TO_ABILITY = {c: a for a, cs in _ALL_ABILITY_CLASSES.items() for c in cs}
 
 #: Classes that need no ability - the baseline verbs, never items.
 
@@ -90,14 +112,22 @@ NOT_PUZZLES: FrozenSet[str] = frozenset(_ABILITIES_RAW["notPuzzles"])
 class Level:
     """One level, with everything the generator needs to place it."""
 
-    __slots__ = ("level_id", "level_index", "source", "solution_count",
+    __slots__ = ("level_id", "level_index", "source", "dlc", "solution_count",
                  "display", "parts", "part_abilities", "abilities",
                  "controller_group", "hint_images")
 
     def __init__(self, raw: dict):
         self.level_id: str = raw["levelId"]
         self.level_index: int = raw["levelIndex"]
-        self.source: str = raw["source"]          # generator | archive | base
+        # generator | archive | base | dlc1 | dlc2
+        self.source: str = raw["source"]
+
+        # Which DLC the player must own, or "" for base content. NOT derivable
+        # from source: four DLC levels carry the game's randomizer flag, so
+        # their source is "generator" while they still need Seeing Stars or
+        # Cupboards and Drawers installed.
+        self.dlc: str = raw.get("dlc", "")
+
         self.solution_count: int = raw["solutionCount"]
 
         names = _NAMES_RAW["levels"][self.level_id]
@@ -213,10 +243,38 @@ GENERATOR_ABILITIES: FrozenSet[str] = frozenset(
     a for l in GENERATORS for a in l.abilities
 )
 
-#: Stacking, Containers, Drawer and Jigsaw in the base game. Derived rather
-#: than hardcoded so adding DLC - which does have stacking and container
-#: generators - corrects it by itself.
-GAP_ABILITIES: List[str] = [a for a in ABILITIES if a not in GENERATOR_ABILITIES]
+
+def gap_abilities(pool: Iterable[Level]) -> List[str]:
+    """Abilities no generator IN THIS POOL can make.
+
+    Stacking, Containers, Drawer and Jigsaw for the base game. The draw
+    reserves slots for these, because a mechanic only hand-made levels have
+    turns up by luck or not at all.
+
+    A FUNCTION OF THE POOL, not a constant over the whole catalogue, and the
+    DLCs are why. DLC1 Trophy Cabinet is a drawer generator: computed over
+    every level in the table it would take Drawer out of this list for
+    everyone, so a player who owns no DLC would silently lose the guaranteed
+    drawer puzzle that mechanic_coverage promises them. Computed over what a
+    yaml actually enabled, it shrinks only for the players who really did gain
+    a generator for it.
+    """
+    present = frozenset(a for l in pool for a in l.abilities)
+    made = frozenset(a for l in pool if l.repeatable for a in l.abilities)
+    # PRESENT AND NOT MADE. An ability no level in the pool has at all is not
+    # scarce, it is absent, and reserving for it is a request the draw can
+    # never satisfy - the reserve loop would then run to its cap chasing it.
+    # Distributing is exactly that case for any run without Seeing Stars.
+    return [a for a in ALL_ABILITIES if a in present and a not in made]
+
+
+def classes_for(ability: str) -> List[str]:
+    """The ObjectController classes an ability unlocks, base or DLC.
+
+    ABILITY_CLASSES alone would KeyError on a DLC ability, and slot_data asks
+    this for every ability the run actually uses.
+    """
+    return _ALL_ABILITY_CLASSES[ability]
 
 
 def levels_with(ability: str) -> List[Level]:

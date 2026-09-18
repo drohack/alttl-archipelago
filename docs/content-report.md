@@ -263,14 +263,36 @@ Both DLCs are defined in the base build whether or not they are installed, so
 adding them later is a data change, not a code change. Their controllers are
 all classes the base game already uses, plus a handful of bespoke ones.
 
-NEITHER DLC IS IMPLEMENTED. No DLC level is placed in a run, whichever ones
-the player owns. The counts below are what the build defines, not what the
-randomizer uses.
+BOTH DLCS ARE IMPLEMENTED as of 2026-09-17, each behind its own yaml toggle,
+both off by default. The counts below were measured by a sweep taken with both
+installed, and they are what the randomizer uses.
 
 | DLC | App ID | Implemented | Levels | Solutions | Notes |
 |---|---|---|---:|---:|---|
-| DLC1 *Cupboards & Drawers* | 2343790 | no | 25 puzzles (+4 cat interludes, +1 credits) | 32 | |
-| DLC2 *Seeing Stars* | 2828160 | no | 37 | 100 | 5 bonus levels gated on 50/60/70/80/90 solution-stars |
+| DLC1 *Cupboards & Drawers* | 2343790 | yes | 25 puzzles (+4 cat interludes, +1 credits) | 32 | |
+| DLC2 *Seeing Stars* | 2828160 | yes | 37 | 100 | 5 bonus levels gated on 50/60/70/80/90 solution-stars |
+
+The interludes and credits carry no solutions, so the sweep drops them and
+they are not slots. With both on the table is **173 levels and 294 solutions**,
+against 111 and 162 without.
+
+Four DLC levels carry the game's own randomizer flag and are therefore
+generators, repeating with a fresh seed like any other: DLC1 Trophy Cabinet,
+DLC2 Water Glasses, DLC2 Figurines and DLC2 Bread Crusts. Their `source` is
+`generator` rather than `dlc1`/`dlc2`, which is why a level also records which
+DLC it needs in a separate `dlc` field - source cannot answer that for these
+four.
+
+Trophy Cabinet is a drawer generator and Bread Crusts a jigsaw one, so enabling
+a DLC takes its mechanic off the list `mechanic_coverage` reserves for. That
+list is therefore computed per yaml rather than once for the catalogue.
+
+Five controller classes are new. Four sit in existing abilities -
+`DrawerExpandableController` is a drawer, `DLC2NanopetsShuffleables` a
+Shuffleables subtype, `GridPuzzleBase` what `GridPuzzle` derives from, and
+`CatEyesController` a bespoke one-level gadget. Only `Distributables` (DLC2
+Pizza) has no base-game equivalent, and it is the sole DLC ability item,
+**Distributing**.
 
 DLC2 is the interesting one for two reasons: it is more solutions than the
 base campaign has, and its five bonus levels are the only shipped example of
@@ -279,6 +301,19 @@ a level locked behind a **total solution count**
 in-engine precedent for a randomizer goal condition, with a "locked, needs N
 stars" presentation already drawn.
 
-Trying to load an uninstalled DLC's level throws `Il2CppException`, so
-availability must be checked via `DLCManager.DLCInfo[].Installed` before a
-level is offered.
+The mod clears that gate for the run's own slots: `NumStarsReqToUnlock` has a
+setter and `IsUnlocked` derives from it, so zeroing it in memory is the whole
+unlock. Nothing is written to disk and the player's real star count is neither
+read nor changed.
+
+**A locked level does not fail loudly.** Measured 2026-09-17: asking for one
+does not throw or return false - `LevelManager.SetActiveLevel` redirects to the
+DLC level select (`GoToLevelSelectForLevel` -> `DLCLevels_GameState`) and
+returns. The first DLC sweep recorded five rows of fallback values for exactly
+this and they looked like data. Anything driving a locked level has to check
+that it arrived, not that the call returned.
+
+Loading a level from a DLC that is not INSTALLED throws `Il2CppException`
+instead, so availability is checked via `DLCManager.DLCInfo[].Installed`: the
+sweep skips what is not owned, and the mod refuses a seed at connect rather
+than launching a level that cannot open.

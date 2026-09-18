@@ -9,6 +9,143 @@ refuses to connect to a seed a different apworld generated.
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
+## 0.4.0 - 2026-09-18
+
+**LOCATION IDS GREW BUT DID NOT MOVE.** The table goes from 432 locations to
+845 and from 18 items to 19, and every id 0.3.4 handed out still means exactly
+what it meant. A 0.3.4 seed's ids are all still valid - but the mod and the
+apworld must still be used as a pair, because the datapackage now contains the
+new names.
+
+### Both DLCs, each behind its own toggle
+
+`cupboards_and_drawers` and `seeing_stars`, **both off by default**, each with
+its own weight beside the generator, archive and campaign ones. Turning one on
+adds its puzzles to the draw; leaving both off is byte-for-byte the run 0.3.4
+produced.
+
+| | Cupboards and Drawers | Seeing Stars |
+|---|---:|---:|
+| puzzles | 25 | 37 |
+| solutions | 32 | 100 |
+
+The level table goes from 111 levels and 162 solutions to **173 and 294**, and
+the location table from 432 to 845.
+
+**No id moved.** Every one of the 432 location ids and 18 item ids from 0.3.4
+still means exactly what it meant, which is checked rather than asserted:
+`fixtures/id-table-0.3.4.json` is a frozen record of the pre-DLC tables and
+`test_regression.py` holds the current ones against it. Two orderings make that
+true - the Credits location is now emitted BEFORE the DLC block rather than
+after every level, and DLC ability items are appended after Hint Page instead
+of into the middle of the ability list. `fixtures/plan-0.3.4.json` pins the
+same thing for the draw: with both toggles off, 114 configuration/seed pairs
+draw byte-identical runs.
+
+### What the DLCs turned out to need
+
+- **A `dlc` field on each level, separate from `source`.** Four DLC levels
+  carry the game's own randomizer flag - Trophy Cabinet, Water Glasses,
+  Figurines and Bread Crusts - so they are generators and repeat with a fresh
+  seed. Their source says `generator`, which means source alone cannot answer
+  "does this need a DLC".
+- **The scarce-mechanic list is now computed per yaml.** Trophy Cabinet is a
+  drawer generator and Bread Crusts a jigsaw one, so a list derived from the
+  whole catalogue would have dropped Drawer and Jigsaw for *every* player,
+  including one who owns no DLC - quietly removing the guarantee
+  `mechanic_coverage` exists to make.
+- **One new ability item, Distributing**, for DLC2 Pizza. The other four new
+  controller classes belong to abilities that already exist.
+- **The five star-gated Seeing Stars puzzles are opened by the mod.** The game
+  locks them behind 50 to 90 solution stars, a total a run never touches.
+
+### Two bugs the DLC exposed in the sweep
+
+- A numeric field that threw was written to the level table unquoted, as
+  `<err:NullReferenceException>`, which made the whole 173-level file
+  unparseable. One field cost every row.
+- A level that never loaded still got a row, filled entirely with fallback
+  values - an id of `?`, zero counts, no controllers. Five such rows were
+  written and they looked like data. They came from the star-gated levels,
+  which do not fail loudly: asking for a locked level does not throw, it
+  silently redirects to the DLC level select.
+
+### A guard that was never installed, and the comments written about it
+
+`DlcGuard` shipped with two Harmony prefixes and was never added to the list
+of classes `Plugin` patches, so **neither was ever applied**. Only its `Tick`,
+which `Update` calls directly, ever ran - which is why the guard did work, and
+why the measurements of it were real. What was not real was the explanation:
+the file recorded that its `SetGameState` prefix "sees NOTHING on the DLC
+route ... so every one of them came through the generic overload", which reads
+like a measurement and was a story about a patch that had never been
+installed. Two later comments were written on top of it.
+
+The game said so at every launch and nothing read the line:
+
+    features live: save redirect, connection pane, track, skips, hints,
+                   navigation, daily guard, title screen
+
+Eight names, and `dlc guard` was not among them. Adding it then produced
+`PATCH FAILED, dlc guard IS DISABLED: IL Compile Error` and took the whole
+class down, so the prefix is deleted rather than reinstated.
+
+Two checks now cover it, and both are needed because each sees a failure the
+other cannot: `tools/check-patches.py` reads the source and fails when a
+Harmony class is never registered or a `Tick` is never called, and the release
+gate reads the launch and fails on `PATCH FAILED` / a missing feature - a
+class can be registered, carry attributes, and still be refused at runtime.
+Every probe now makes the runtime check before it measures anything.
+
+### After a DLC puzzle, two level selects rendered at once
+
+The post-level routes send a DLC puzzle to its own DLC menu. `DlcGuard` caught
+that and switched the state to `Levels_GameState`, which every log assertion
+read as correct - and switching state does not close a menu the game has
+already built. Both level selects drew on top of each other: the DLC's title
+and its `1/17 (6%)` header over the run's track, two progress strips, two sets
+of cards, with the finished level still loaded. The state was right and the
+screen was wrong, and it took a screenshot to see it.
+
+`DlcGuard.Open` now asks the game's own `GoToLevelSelectForLevel` for a
+campaign level instead of switching state underneath. That routine does the
+teardown, the transition and the menu setup - `Navigation`'s pause-menu route
+already relied on exactly that. Measured over a full DLC gate run: the guard
+fired fourteen times, with one track build per navigation instead of two, no
+`card at position ... but the plan covers` warnings, and no exceptions.
+
+### A Skip could be spent on a puzzle with nothing left to find
+
+It was taken, written to disk with no refund path, and granted nothing -
+`skip: spent one, 0 left` followed by `sent 0 remaining location(s)`.
+`Skips.BeforeSkipLevel` now refuses instead, and says so.
+
+The related claim that a Skip on an ALREADY-BEATEN puzzle grants nothing,
+recorded in `release_e2e.py` and `manual-container-test.md`, is **false** and
+both have been corrected. Re-entering a beaten puzzle reloads it, and a
+reloaded level completes and skips like any other; measured against a pre-fix
+build, skipping a beaten DLC1 Filing Cabinet sent Solutions 2 and 3. The
+premise had to be wrong, because the only way to press Skip is to be standing
+in a loaded level.
+
+### Repeated generator instances were never broken
+
+Carried as a known bug: "`#2` checks have never been earned in any run". The
+evidence was that no `check:` line in any saved log contained a `#` - and every
+one of those runs came from a gate yaml with `generator_weight: 0`, so no level
+ever repeated in any of them. Absence of a second instance, not absence of a
+payout. Measured against an unmodified build, a single-solution generator drawn
+twice pays out both `<Level> - Solution 1` and `<Level> #2 - Solution 1`. Two
+candidate fixes were written, measured to change nothing, and reverted rather
+than shipped on a theory. `tools/probe-instance-checks.py` now pins the
+behaviour.
+
+### New probes
+
+`probe-skip-beaten.py`, `probe-instance-checks.py` and `probe-dlc-nav.py`.
+The last photographs the screen at each stage, because every log assertion it
+makes passed while the game was visibly showing two level selects at once.
+
 ## 0.3.4 - 2026-09-16
 
 **Location ids did NOT move.** Verified by building both id tables and
@@ -1762,4 +1899,4 @@ The first release. Everything below is what "it works" currently means.
 - Leaving an offline run for the vanilla campaign means turning `AutoConnect`
   off in the Archipelago dialog and relaunching. There is no in-session route.
 - DLC2 *Seeing Stars* is not supported; it was not owned when the content was
-  surveyed.
+  surveyed. (Both DLCs are supported as of the next release.)

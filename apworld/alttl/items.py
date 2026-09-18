@@ -44,6 +44,12 @@ HINT_PAGE = "Hint Page"
 
 ABILITY_ITEMS: List[str] = list(data.ABILITIES)
 
+#: Abilities the DLCs introduce. Appended after every base item name below,
+#: never merged into ABILITY_ITEMS: that list sits in the middle of the id
+#: sequence, so a thirteenth name inside it would move Cat Trap, Background
+#: Change Trap and Hint Page down one and repoint every seed in flight.
+DLC_ABILITY_ITEMS: List[str] = list(data.DLC_ABILITIES)
+
 #: Recolours every backdrop in the game - the puzzle, the pause screen and the
 #: level select - using the game's own palette so the result never looks
 #: foreign.
@@ -86,7 +92,7 @@ BEATEN_TOKEN = "Level Beaten"
 #: Built from the same lists the pool is, so a new trap or ability joins its
 #: group without anyone remembering to add it here.
 ITEM_NAME_GROUPS: Dict[str, Set[str]] = {
-    "Abilities": set(ABILITY_ITEMS),
+    "Abilities": set(ABILITY_ITEMS) | set(DLC_ABILITY_ITEMS),
     "Traps": set(TRAP_ITEMS) | {BACKGROUND_TRAP},
     "Progression": {PROGRESSIVE_PACK, CREDITS_ITEM},
     "Useful": {SKIP, HINT_PAGE},
@@ -107,6 +113,9 @@ _ALL_NAMES: List[str] = (
     # id down by one. That is why world_version is bumped alongside; there is
     # no way to shrink an earlier list and leave later ids alone.
     + [HINT_PAGE]
+    # DLC abilities last, after every base name. Ids are positional, so this
+    # is the only place a new ability can go without moving an existing id.
+    + DLC_ABILITY_ITEMS
 )
 
 ITEM_NAME_TO_ID: Dict[str, int] = {
@@ -123,7 +132,7 @@ def classification(name: str) -> ItemClassification:
     """
     if name in (PROGRESSIVE_PACK, CREDITS_ITEM):
         return ItemClassification.progression
-    if name in ABILITY_ITEMS:
+    if name in ABILITY_ITEMS or name in DLC_ABILITY_ITEMS:
         return ItemClassification.progression
     if name in TRAP_ITEMS:
         return ItemClassification.trap

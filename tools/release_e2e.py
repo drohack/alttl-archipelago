@@ -106,6 +106,16 @@ CREDITS_LEVEL_INDEX = 84
 MAX_ROUNDS = 60
 QUICK = False
 
+#: --dlc plays the same run out of DLC content instead of the base game.
+#:
+#: The whole gate over DLC puzzles, which is what tools/probe-dlc.py does
+#: not cover: that probe launches one level and stops, where this plays a
+#: run to the credits and asserts the goal reaches the server. The parts
+#: most likely to differ are the ones AFTER a solve - pack progression,
+#: the beaten count, the credits card - and none of those care which
+#: puzzle it was until they do.
+DLC = False
+
 TOTAL = 7
 
 
@@ -212,7 +222,30 @@ def read_save(path):
 #: other progress field are compared, the daily count is pinned separately,
 #: and SettingsSpliceTests in Core asserts the splice touches playerPrefs and
 #: nothing else - which is the property that makes ignoring it safe here.
-IGNORED_CAMPAIGN_FIELDS = ("saveTimestamp", "dailyTidyProgress", "playerPrefs")
+#: Fields in the campaign save that are not campaign PROGRESS, so a run
+#: touching them is not the failure this check exists to catch.
+#:
+#: Everything that carries progress is still compared: levelCompletionData,
+#: archiveCompletionData, lastPlayedLevels, newGamePlus and the rest. Each
+#: name below is here because it moved for a reason that had nothing to do
+#: with the run, and left this check crying wolf.
+#:
+#: installedDlc is the newest, added 2026-09-17. The game records which DLC
+#: it authenticated at startup, so the FIRST launch after buying one
+#: rewrites it - which looked exactly like a run writing to the campaign
+#: save. It is not:
+#:
+#:   - the mod never writes it. Its only mention of DLC installation is
+#:     Connection.InstalledDlcOrNull, which READS DLCManager.DLCInfo to
+#:     decide whether to refuse a seed.
+#:   - the game saves without the mod at all. tools/levelsweep.py parks the
+#:     plugin out of BepInEx entirely and the game still logs "Game Saved
+#:     to: save1.json" during those runs.
+#:
+#: So it is the game keeping its own books about what the player owns, and
+#: nothing the mod could prevent or should be blamed for.
+IGNORED_CAMPAIGN_FIELDS = ("saveTimestamp", "dailyTidyProgress",
+                           "playerPrefs", "installedDlc")
 
 
 def campaign_progress(path):
@@ -253,6 +286,31 @@ def campaign_diff(before, after):
     b = json.loads(after)
     moved = sorted(k for k in set(a) | set(b) if a.get(k) != b.get(k))
     return ", ".join(moved) if moved else "nothing"
+
+
+def dlc_completions(path):
+    """DLC puzzles recorded in a save, by level id.
+
+    THERE IS NO SEPARATE DLC SAVE, and that is worth stating because the
+    obvious assumption is the opposite. The game keeps one file and
+    levelCompletionData is a flat list with no scoping - campaign chapters and
+    DLC puzzles sit in the same array, distinguished only by a "DLC1 " or
+    "DLC2 " prefix on the level id. So SaveRedirect, which rewrites
+    GetSavePath wholesale, protects DLC progress for free and there is no
+    second path to patch.
+
+    campaign_progress already compares levelCompletionData, so a leak would
+    fail the untouched check anyway. This exists to make the failure SAY so:
+    "a DLC puzzle was written to the campaign save" is a diagnosis, while
+    "the campaign progress is untouched: FAIL" is an alarm that has already
+    fired twice for things that were not this.
+    """
+    data = read_save(path)
+    if data is None:
+        return None
+    rows = data.get("levelCompletionData") or []
+    return sorted(r.get("levelId", "") for r in rows
+                  if str(r.get("levelId", "")).startswith("DLC"))
 
 
 def daily_completions(path):
@@ -722,6 +780,80 @@ def generate():
         for f in os.listdir(d):
             os.remove(os.path.join(d, f))
 
+    # Under --dlc every source but the two DLCs is switched off, so every
+    # slot is a DLC puzzle and the run cannot pass on base-game content by
+    # accident. Appended AFTER the block below rather than spliced into it:
+    # a `+` in the middle of adjacent string literals ends the implicit
+    # concatenation and every literal after it becomes a syntax error.
+    dlc = ("  cupboards_and_drawers: true\n"
+           "  seeing_stars: true\n"
+           "  cupboards_weight: 50\n"
+           "  stars_weight: 50\n"
+           "  generator_weight: 0\n"
+           "  archive_weight: 0\n"
+           "  base_weight: 0\n"
+           "  mechanic_coverage: 0\n"
+           "  archive_packs: []\n"
+           # FOUR SKIPS IN HAND, and this is about the harness rather
+           # than the content. Drawer and cupboard levels are common
+           # in Cupboards and Drawers, and the harness cannot pull a
+           # drawer open - it sets a controller's solved flag, and a
+           # drawer is an interaction, not an arrangement. So a level
+           # can be beaten with one of its locations unearned, and an
+           # item placed there strands the run.
+           #
+           # A PLAYER NEVER HITS THIS: droha played Game Pieces, Tea
+           # Cabinet and Robots by hand on 2026-09-17 and every one of
+           # those locations fired. The Skips exist so the harness can
+           # work around its own limitation, the same way
+           # KNOWN_UNFORCEABLE already does for TupperwareTower.
+           #
+           # GRANTED UP FRONT rather than raising skip_count, because
+           # a Skip placed behind a closed slot is no use to a run that
+           # is stuck precisely because its slots will not open. The
+           # first attempt at this failed exactly there: "there is no
+           # Skip to spend yet", eight rounds running.
+           "  start_inventory:\n"
+           "    Skip: 4\n"
+           # LOCATIONS THE HARNESS CANNOT EARN, kept clear of
+           # progression. Every one is a container - a drawer you pull
+           # open, a cupboard door you swing - and the harness solves
+           # by setting a controller's solved flag, which is not the
+           # same thing. The group therefore never reports.
+           #
+           # A PLAYER EARNS THESE NORMALLY. droha played Game Pieces,
+           # Tea Cabinet and Robots by hand on 2026-09-17 and every one
+           # of these locations fired; see docs/manual-container-test.md.
+           # So this is not a statement about the game, it is the
+           # harness declaring its own blind spot so the generator does
+           # not put the run's only Puzzle Pack behind it - which is
+           # exactly what stranded three slots twice running.
+           #
+           # A Skip DOES rescue it, and this comment used to say the
+           # opposite. It claimed the payout was filled from the
+           # LevelComplete a skip triggers and that "a level that is
+           # already beaten never fires one again". Measured 2026-09-18
+           # by tools/probe-skip-beaten.py: it fires. Re-entering a
+           # beaten puzzle reloads it, and a reloaded level completes
+           # and skips like any other, so the remaining locations are
+           # sent. The premise had to be wrong - the only way to press
+           # Skip is to be standing in a loaded level.
+           "  exclude_locations:\n"
+           "    - Clock Cupboard (Cupboards and Drawers) - Cupboard Doors\n"
+           "    - Craft Supplies (Cupboards and Drawers) - Drawers\n"
+           "    - Daggers (Cupboards and Drawers) - Drawers\n"
+           "    - Game Pieces (Cupboards and Drawers) - Drawers\n"
+           "    - Jewelry Box (Cupboards and Drawers) - Drawers\n"
+           "    - Nested Drawers (Cupboards and Drawers) - Drawers\n"
+           "    - Sewing Box (Cupboards and Drawers) - Drawers\n"
+           "    - Tea Cabinet (Cupboards and Drawers) - Cupboard Doors\n"
+           "    - Combs (Seeing Stars) - Drawer\n"
+           "    - Junk Drawer Transforming (Seeing Stars) - Drawer\n"
+           "    - Material Drawers (Seeing Stars) - Drawer Controller\n"
+           "    - Robots (Seeing Stars) - Spring\n"
+           "    - Robots (Seeing Stars) - Spring Containable\n"
+           "    - Sticky Drawer (Seeing Stars) - Drawer\n") if DLC else ""
+
     with open(os.path.join(yaml_dir, "e2e.yaml"), "w", encoding="utf-8") as f:
         f.write(
             f"name: {SLOT}\n"
@@ -762,7 +894,8 @@ def generate():
             "  hint_coverage: 50\n"
             "  skip_count: 2\n"
             "  progression_balancing: 0\n"
-            "  accessibility: full\n")
+            "  accessibility: full\n"
+            + dlc)
 
     r = subprocess.run(
         [sys.executable, "Generate.py", "--player_files_path", yaml_dir,
@@ -1131,6 +1264,56 @@ def display_setting():
         return None
 
 
+#: Every feature Plugin patches. If one is missing from "features live", it
+#: was defined and never installed; if it appears after "FEATURES DISABLED",
+#: the patch threw at runtime and the whole class is off.
+EXPECTED_FEATURES = ("save redirect", "connection pane", "track", "skips",
+                     "hints", "navigation", "daily guard", "title screen")
+
+
+def whole_log():
+    """The whole of the last session's log, for questions about startup.
+
+    The Log class hands out new text since the last read, which is right for
+    waiting on something and wrong for asking "what did this launch say about
+    itself" - the startup lines were consumed long before step 7.
+    """
+    try:
+        with open(LOG, "r", encoding="utf-8", errors="replace") as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def patch_problem(text):
+    """What a launch says about its own patching, or None if all is well.
+
+    THE CHECK NOBODY WAS DOING. DlcGuard spent an entire feature's development
+    with its Harmony attributes never installed, because it was missing from
+    Plugin's patch list - and the game announced that at every single launch
+    in the "features live" line, which no test ever read. Registering it then
+    produced "PATCH FAILED, dlc guard IS DISABLED: IL Compile Error", which a
+    STATIC check cannot see at all: the class is registered and carries
+    attributes, and the patcher still refuses it at runtime.
+
+    tools/check-patches.py covers the static half. This is the other half, and
+    both are needed - each catches a failure the other cannot.
+    """
+    if "PATCH FAILED" in text or "FEATURES DISABLED" in text:
+        for line in text.splitlines():
+            if "PATCH FAILED" in line or "FEATURES DISABLED" in line:
+                return line.split("] ", 1)[-1].strip()
+        return "a patch failed"
+
+    live = line_with(text, "features live:")
+    if not live:
+        return "the launch never said which features are live"
+    missing = [f for f in EXPECTED_FEATURES if f not in live]
+    if missing:
+        return f"features never installed: {', '.join(missing)}"
+    return None
+
+
 def describe_display():
     """One line for the log, and whether it is going to take the screen."""
     now = display_setting()
@@ -1441,7 +1624,14 @@ def play(log, plan):
     attempts = collections.Counter()
     #: Slots a Skip has already been spent on - one each, at most.
     skipped = set()
-    #: [(level_id, was_still_ability_gated)] for every Skip actually spent.
+    #: Beaten slots the run is stuck behind, to be cleared with a Skip.
+    #: See the stall handler below for when this is populated.
+    skip_anyway = set()
+    #: [(level_id, was_still_ability_gated, reason)] for every Skip spent.
+    #: reason is "unforceable" - the level could not be beaten - or
+    #: "unreachable-check" - it was beaten and an item sat on one of its
+    #: locations the harness cannot work. Only the first kind is judged
+    #: against KNOWN_UNFORCEABLE.
     #: The gate asserts against this rather than letting a skipped level read
     #: as an ordinary win, which is how "2 of 8 were never solved" stayed
     #: buried in the transcript.
@@ -1539,6 +1729,36 @@ def play(log, plan):
                     say(6, f"round {step}: all beaten but the credits are not "
                            f"open - revisiting for checks that were gated")
 
+            # LAST RESORT, and the reason it exists is a real stall.
+            #
+            # A level can be BEATEN while one of its locations stays unearned,
+            # because the harness solves by setting a controller's solved flag
+            # and some controllers are interactions rather than arrangements -
+            # a drawer you pull open, a cupboard door you swing. Forcing the
+            # flag sets a bit for something that never happened, so the group
+            # never reports. `docs/release-testing.md` already records that
+            # shape for Desktop Computer's `Computer Errors`.
+            #
+            # If an ITEM sits on such a location the run simply stops: the
+            # 0.4.0 DLC gate lost three slots because the only Progressive
+            # Puzzle Pack was on `Game Pieces - Drawers`. A Skip grants every
+            # location on the puzzle it clears, so spending one there releases
+            # the item and the run continues.
+            #
+            # Only while slots are still closed, which is what distinguishes
+            # "the run is stuck" from "the run is finished". A skip spent here
+            # is reported separately from an unforceable one - they mean
+            # different things and only the other kind is allowlisted.
+            if not candidates and open_slots < len(slots):
+                stuck = [i for i in sorted(beaten) if i not in skipped]
+                if stuck:
+                    candidates = stuck
+                    skip_anyway.update(stuck)
+                    say(6, f"round {step}: {open_slots} of {len(slots)} slots "
+                           f"open and nothing solvable - an item is on a "
+                           f"location the harness cannot reach; spending a "
+                           f"Skip to release it")
+
             if not candidates:
                 say(6, f"round {step}: {len(beaten)}/{len(slots)} beaten and "
                        f"{open_slots} open - nothing left to try")
@@ -1624,7 +1844,8 @@ def play(log, plan):
         # unsolved is a level the harness gave up on, and skipping that
         # would hide a real routing or gating bug behind a green run.
         exhausted = EXHAUSTED_MARK in chunk
-        if not done and exhausted and current not in skipped:
+        forced = current in skip_anyway and current not in skipped
+        if forced or (not done and exhausted and current not in skipped):
             # READ THE GATING BEFORE SPENDING, because spending destroys the
             # evidence: a Skip grants every location on the slot, so once it
             # lands there is no way to tell whether the level was unfinishable
@@ -1648,7 +1869,9 @@ def play(log, plan):
                 # to spend, and was never offered another chance across the
                 # next seventeen rounds while two Skips sat in the inventory.
                 skipped.add(current)
-                spent.append((level_id, gated))
+                spent.append((level_id, gated,
+                              "unreachable-check" if forced
+                              else "unforceable"))
                 say(6, f"slot {current} {level_id} cannot be force-solved; "
                        f"spent a Skip"
                        + (" WHILE STILL ABILITY-GATED" if gated else ""))
@@ -1717,10 +1940,25 @@ def play(log, plan):
         # player makes.
         if credits:
             say(6, "playing the credits, which is what reports the goal")
-            dev("menu:levels", 3.0)
-            log.new()
-            dev(f"clickcard:{CREDITS_LEVEL_INDEX}", 6.0)
-            transcript += log.new()
+            # RETRIED, because a fixed settle is a guess about how long the
+            # level select takes to build and the guess has been wrong. A DLC
+            # run lost the goal report on 2026-09-17 to exactly this: three
+            # seconds after menu:levels, clickcard answered "open menu:levels
+            # first" and the credits were never played, so the run finished
+            # 21/23 with two failures that had nothing to do with the mod.
+            #
+            # The click reports its own refusal, so retry on that rather than
+            # on a longer sleep - which would only move the guess.
+            for attempt in range(3):
+                dev("menu:levels", 3.0 + 2.0 * attempt)
+                log.new()
+                dev(f"clickcard:{CREDITS_LEVEL_INDEX}", 6.0)
+                clicked = log.new()
+                transcript += clicked
+                if "open menu:levels first" not in clicked:
+                    break
+                say(6, f"the level select was not ready for the credits card; "
+                       f"retrying ({attempt + 1}/3)")
 
         say(6, "staying connected for the goal report")
         transcript += log.wait(["goal: reported to the server"], 60, 6,
@@ -1741,10 +1979,19 @@ def main():
     parser.add_argument("--quick", action="store_true",
                         help="three puzzles, no arrow session - for iterating. "
                              "The full run is the release gate.")
+    parser.add_argument("--dlc", action="store_true",
+                        help="draw every puzzle from the two DLCs. Needs "
+                             "both installed. Run this AS WELL AS the "
+                             "ordinary gate, never instead of it - the "
+                             "ordinary one is the regression run.")
     args = parser.parse_args()
     assets = os.path.join(REPO, args.assets)
 
-    global QUICK
+    global QUICK, DLC
+    if args.dlc:
+        DLC = True
+        print("DLC MODE: every puzzle drawn from Cupboards and Drawers "
+              "or Seeing Stars. Both must be installed.", flush=True)
     if args.quick:
         QUICK = True
         print("QUICK MODE: no arrow session, ability locks off, no cat traps. "
@@ -1758,6 +2005,7 @@ def main():
 
     campaign_before = campaign_progress(CAMPAIGN)
     dailies_before = daily_completions(CAMPAIGN)
+    dlc_before = dlc_completions(CAMPAIGN)
 
     say(1, "cleaning the install back to vanilla")
     for item in clean():
@@ -1960,16 +2208,22 @@ def main():
         if spent:
             print(f"      {len(spent)} of {len(beaten)} beaten by spending a "
                   f"Skip, never solved:", flush=True)
-            for level_id, gated in spent:
+            for level_id, gated, reason in spent:
                 note = " STILL ABILITY-GATED" if gated else ""
-                known = "" if level_id in KNOWN_UNFORCEABLE else " UNEXPECTED"
-                print(f"         {level_id}{known}{note}", flush=True)
+                if reason == "unreachable-check":
+                    # Not a surprise and not allowlisted: the level was beaten
+                    # and an item sat on a location the harness cannot work.
+                    why = " (beaten; an item was on a check out of reach)"
+                else:
+                    why = "" if level_id in KNOWN_UNFORCEABLE else " UNEXPECTED"
+                print(f"         {level_id}{why}{note}", flush=True)
 
         # 1. Only levels already known to need one. A NEW name here is the
         #    signal worth having: the harness could force that level last
         #    release and cannot now, which points at solve routing or at the
         #    controller table, not at the level.
-        surprises = [l for l, _ in spent if l not in KNOWN_UNFORCEABLE]
+        surprises = [l for l, _, reason in spent
+                     if reason == "unforceable" and l not in KNOWN_UNFORCEABLE]
         results.append(("a Skip was spent only where one is known to be "
                         "needed", not surprises))
 
@@ -1979,7 +2233,7 @@ def main():
         #    player can reach is solved - so without this, a mod that wrongly
         #    withheld an ability would be PAPERED OVER by the Skip and the run
         #    would pass. The harness must never buy its way past a gating bug.
-        papered = [l for l, gated in spent if gated]
+        papered = [l for l, gated, _ in spent if gated]
         results.append(("no Skip covered for a level the mod was still "
                         "gating", not papered))
 
@@ -2038,6 +2292,13 @@ def main():
                     campaign_after == campaign_before))
     results.append(("the run credited no real daily",
                     daily_completions(CAMPAIGN) == dailies_before))
+    results.append(("no DLC puzzle was written to the campaign save",
+                    dlc_completions(CAMPAIGN) == dlc_before))
+    problem = patch_problem(whole_log())
+    if problem:
+        print(f"      patching: {problem}", flush=True)
+    results.append(("every feature the mod ships was actually patched in",
+                    problem is None))
     results.append(("the run wrote its own save instead",
                     any(f.startswith("save_ap_") for f in os.listdir(SAVE_DIR))))
 

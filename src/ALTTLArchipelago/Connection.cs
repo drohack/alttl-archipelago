@@ -211,7 +211,8 @@ internal sealed class Connection
             // already been added in different releases for the same reason -
             // the guard existed and was skipped exactly where it mattered - so
             // it is the last part of this file that should be unverifiable.
-            var verdict = ConnectGuard.Evaluate(slot, ModVersionOrEmpty());
+            var verdict = ConnectGuard.Evaluate(slot, ModVersionOrEmpty(),
+                                                InstalledDlcOrNull());
             if (!verdict.Accepted)
             {
                 Plugin.Logger.LogError($"refusing the seed: {verdict.Refusal}");
@@ -253,6 +254,52 @@ internal sealed class Connection
     {
         try { return Plugin.ModVersion; }
         catch { return ""; }
+    }
+
+    /// <summary>
+    /// The DLC keys the player owns, or null when the game never said.
+    ///
+    /// READ FROM DlcState, NOT FROM THE GAME. This runs on the login task -
+    /// see ConnectAsync, whose docstring is "never touch Unity from here" -
+    /// and reading GameManager.Instance.DLCManager from that thread threw
+    /// NullReferenceException on every connect. Because the read fails open,
+    /// the only symptom was one warning line and a guard that had quietly
+    /// stopped guarding.
+    ///
+    /// AND IT WAITS, which the first version of this did not. DlcState cannot
+    /// answer until the game has authenticated its DLC, and AuthenticateAllDLCs
+    /// is a coroutine: with AutoConnect the login begins while the title
+    /// screen is still coming up, so the answer arrived AFTER the guard had
+    /// already given up on it. Measured 2026-09-17 - "not reported yet" at the
+    /// connect, "DLC installed: DLC1, DLC2" seventeen lines later. Fixing the
+    /// crash without fixing the timing left the check exactly as skipped.
+    ///
+    /// Waiting is safe here precisely BECAUSE this is not the main thread:
+    /// the game keeps rendering and DlcState keeps polling while this blocks.
+    ///
+    /// NULL, NOT EMPTY, when it never answers. Empty means "the player owns
+    /// none", which would refuse every DLC seed; null tells the guard to skip
+    /// the check.
+    /// </summary>
+    private static IReadOnlyCollection<string>? InstalledDlcOrNull()
+    {
+        // Generous, because the cost of waiting is a slower connect and the
+        // cost of not waiting is an unchecked seed. DlcState polls once a
+        // second, so this is twenty attempts.
+        const int WaitMs = 20_000;
+        const int StepMs = 100;
+
+        for (var waited = 0; waited < WaitMs; waited += StepMs)
+        {
+            var ready = DlcState.Installed;
+            if (ready != null) return ready;
+            System.Threading.Thread.Sleep(StepMs);
+        }
+
+        Plugin.Logger.LogWarning(
+            "the game never reported which DLC is installed, so this seed's "
+            + "DLC requirement is not being checked");
+        return null;
     }
 
     /// <summary>

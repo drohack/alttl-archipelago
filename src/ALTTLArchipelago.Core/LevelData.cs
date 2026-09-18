@@ -27,8 +27,27 @@ public sealed class LevelInfo
     [JsonPropertyName("levelIndex")] public int LevelIndex { get; set; }
     [JsonPropertyName("levelId")] public string LevelId { get; set; } = "";
 
-    /// <summary>"generator", "archive" or "base".</summary>
+    /// <summary>
+    /// Which pool the level is drawn from: "generator", "archive", "base",
+    /// "dlc1" or "dlc2".
+    /// </summary>
     [JsonPropertyName("source")] public string Source { get; set; } = "";
+
+    /// <summary>
+    /// The DLC this level needs ("DLC1", "DLC2"), or empty for base content.
+    ///
+    /// SEPARATE FROM Source ON PURPOSE, and the four levels where they
+    /// disagree are the reason. DLC1 Trophy Cabinet, DLC2 Water Glasses,
+    /// Figurines and Bread Crusts all carry the game's randomizer flag, so
+    /// their source is "generator" - they repeat with a fresh seed like any
+    /// other generator. Source alone would therefore say nothing about
+    /// whether a player needs to own Seeing Stars to play them, and a seed
+    /// built on that would hand someone a level that cannot load.
+    ///
+    /// Empty rather than null so a table written before this field existed
+    /// reads as base content, which is what it was.
+    /// </summary>
+    [JsonPropertyName("dlc")] public string Dlc { get; set; } = "";
 
     [JsonPropertyName("solutionCount")] public int SolutionCount { get; set; }
     [JsonPropertyName("isRandomizable")] public bool IsRandomizable { get; set; }

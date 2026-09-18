@@ -303,6 +303,7 @@ public partial class DevToolsBehaviour : MonoBehaviour
         var seedCount = int.TryParse(arg, out var n) ? Math.Max(1, n) : 6;
         var lm = GameManager.Instance.levelManager;
         var all = lm.AllLevelInterfaces(false);
+        var installed = DataTable.InstalledDlc();
 
         _sweepJobs = new List<(int, int)>();
         for (int i = 0; i < (all == null ? 0 : all.Length); i++)
@@ -314,8 +315,11 @@ public partial class DevToolsBehaviour : MonoBehaviour
             try { randomizable = li.IsRandomizable; idx = li.LevelIndex; }
             catch { continue; }
             if (!randomizable) continue;
-            // Skip DLC levels; an uninstalled DLC throws on load.
-            if (idx >= 1100) continue;
+            // An uninstalled DLC throws on load, so its levels are skipped -
+            // but an owned one is swept. Four DLC levels are randomizable and
+            // belong in this sweep exactly like the base game's.
+            var dlc = DataTable.DlcKeyOf(li);
+            if (dlc != null && !installed.Contains(dlc)) continue;
             for (int s = 0; s < seedCount; s++)
             {
                 _sweepJobs.Add((idx, 1000 + s * 7919));
@@ -1203,6 +1207,14 @@ public partial class DevToolsBehaviour : MonoBehaviour
             else if (cmd.Equals("cardlabels:off", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("cardlabels", () => CardLabels.Apply(false));
+            }
+            // Before the bare form: "levelsweep:1235" must not be eaten by
+            // an Equals that can never match it, and putting the specific
+            // branch first is how this ladder states that.
+            else if (cmd.StartsWith("levelsweep:", StringComparison.OrdinalIgnoreCase))
+            {
+                var only = cmd.Substring("levelsweep:".Length);
+                SafeRun("levelsweep", () => _dataTable.Start(only));
             }
             else if (cmd.Equals("levelsweep", StringComparison.OrdinalIgnoreCase))
             {

@@ -28,6 +28,26 @@ public static class Abilities
     public const string Symmetry = "Symmetry";
     public const string Jigsaw = "Jigsaw";
 
+    // ---- DLC abilities -----------------------------------------------------
+    //
+    // Kept separate from the twelve above, and listed per DLC, because the
+    // twelve are a closed set that item ids hang off: ABILITY_ITEMS sits in
+    // the middle of the item name list, so inserting a thirteenth there would
+    // renumber Cat Trap, Background Change Trap and Hint Page and silently
+    // repoint every seed in flight. DLC abilities are appended after all of
+    // them instead.
+    //
+    // Only a mechanic with no base-game equivalent earns one. Of the five
+    // controller classes the DLCs add, four already had a home:
+    // DrawerExpandableController is a drawer, DLC2NanopetsShuffleables is a
+    // Shuffleables subtype, GridPuzzleBase is what GridPuzzle derives from,
+    // and CatEyesController is a one-level bespoke gadget - which is exactly
+    // what Gadgets already collects for Candles, Hourglass, Matchboxes and
+    // Record Player.
+
+    /// <summary>DLC2's pizza: 48 objects spread across slices, no base analogue.</summary>
+    public const string Distributing = "Distributing";
+
     /// <summary>Controller classes that need no ability. Never items.</summary>
     public static readonly IReadOnlySet<string> Baseline = new HashSet<string>
     {
@@ -53,6 +73,7 @@ public static class Abilities
     private static readonly Dictionary<string, string> ClassToAbility = new()
     {
         ["Shuffleables"] = Swapping,
+        ["DLC2NanopetsShuffleables"] = Swapping,
         ["ShuffleablesRelative"] = Swapping,
         ["ShuffleablesRepeatingPattern"] = Swapping,
         ["CrackersShuffleables"] = Swapping,
@@ -65,6 +86,10 @@ public static class Abilities
         ["DraggablesOrdered"] = Ordering,
         ["Indexables"] = Ordering,
 
+        // DLC2 Pizza. The only controller on its level, and the only DLC class
+        // that is not a variation on something the base game already does.
+        ["Distributables"] = Distributing,
+
         ["RecordPlayer"] = Gadgets,
         ["ComputerErrorsController"] = Gadgets,
         ["HourglassController"] = Gadgets,
@@ -75,12 +100,16 @@ public static class Abilities
         ["ScrollFieldGroupsController"] = Gadgets,
         ["TelescopeDraggables"] = Gadgets,
         ["CandlesObjectController"] = Gadgets,
+        // DLC2 Cat Eyes. A bespoke one-level mechanic, which is what this
+        // bucket is for.
+        ["CatEyesController"] = Gadgets,
 
         ["Rotateables"] = Rotating,
         ["Frame_Rotateables"] = Rotating,
         ["RadialDance"] = Rotating,
 
         ["GridPuzzle"] = Grids,
+        ["GridPuzzleBase"] = Grids,
         ["StackableGrid"] = Grids,
 
         ["Removables"] = Tidying,
@@ -94,6 +123,7 @@ public static class Abilities
         ["TupperwareNesting"] = Containers,
 
         ["DrawerController"] = Drawer,
+        ["DrawerExpandableController"] = Drawer,
         ["Cupboard"] = Drawer,
         ["HangingToolsController"] = Drawer,
 
@@ -105,12 +135,37 @@ public static class Abilities
         ["DraggablesJigsaw"] = Jigsaw,
     };
 
-    /// <summary>Every ability name, in a stable order.</summary>
+    /// <summary>
+    /// The base game's twelve, in a stable order. MUST NOT be reordered or
+    /// extended: item ids are positional and hang off exactly this sequence.
+    /// </summary>
     public static readonly IReadOnlyList<string> All = new[]
     {
         Swapping, Stacking, Ordering, Gadgets, Rotating, Grids,
         Tidying, Containers, Drawer, Sticking, Symmetry, Jigsaw,
     };
+
+    /// <summary>
+    /// Abilities each DLC introduces, appended after the twelve. A DLC with
+    /// no new mechanic is listed with an empty set rather than left out, so
+    /// the answer to "what does this DLC add" is always stated.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> Dlc =
+        new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
+        {
+            // Cupboards and Drawers adds DrawerExpandableController, which is
+            // a drawer. Nothing new to unlock.
+            ["DLC1"] = new string[0],
+            ["DLC2"] = new[] { Distributing },
+        };
+
+    /// <summary>
+    /// Every ability, base twelve first and DLC ones after, in the order item
+    /// ids are allocated.
+    /// </summary>
+    public static readonly IReadOnlyList<string> AllWithDlc =
+        All.Concat(Dlc.OrderBy(kv => kv.Key, StringComparer.Ordinal)
+                      .SelectMany(kv => kv.Value)).ToList();
 
     /// <summary>
     /// The ability a controller class needs, or null when it needs none -

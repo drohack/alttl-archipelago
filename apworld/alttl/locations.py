@@ -63,14 +63,28 @@ def names_for(level: data.Level, instance: int) -> List[str]:
 
 
 def _build() -> List[str]:
-    names: List[str] = []
-    # Ordered by the game's own level index so the sequence is stable against
-    # anything we might later change about display names or sorting.
+    """Every location name any yaml could produce, in id order.
+
+    BASE CONTENT, THEN CREDITS, THEN DLC - and the odd-looking placement of
+    Credits is the whole point. It used to be appended after every level, so
+    adding 62 DLC levels ahead of it would have pushed it 413 places down and
+    moved the one id that every seed in flight uses to finish. Putting the DLC
+    block after it instead makes the whole change a pure append: all 432 ids
+    the pre-DLC table handed out still mean exactly what they meant.
+
+    Within each block, ordered by the game's own level index, so the sequence
+    is stable against anything we might later change about display names or
+    sorting. DLC indices start at 1100, well past the base game's highest at
+    1022, so the two blocks do not interleave anyway - the split is about
+    where Credits sits, not about the levels.
+    """
+    base: List[str] = []
+    dlc: List[str] = []
     for level in sorted(data.LEVELS, key=lambda l: l.level_index):
+        target = dlc if level.dlc else base
         for instance in range(1, level.max_instances + 1):
-            names.extend(names_for(level, instance))
-    names.append(data.CREDITS)
-    return names
+            target.extend(names_for(level, instance))
+    return base + [data.CREDITS] + dlc
 
 
 ALL_NAMES: List[str] = _build()

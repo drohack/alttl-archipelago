@@ -161,6 +161,42 @@ public sealed class SlotData
     public int CatTrapChance { get; set; } = 25;   // CatTrapChance.default
 
     /// <summary>
+    /// Whether this seed contains Cupboards and Drawers puzzles.
+    ///
+    /// Named after its yaml option rather than after the DLC key, like every
+    /// other field here - pack_size is PackSize, cat_trap_chance is
+    /// CatTrapChance. check-slot-defaults.py pairs the two BY NAME, so a field
+    /// called dlc1 would be a default that nothing compares.
+    /// </summary>
+    [JsonPropertyName("cupboards_and_drawers")]
+    public bool CupboardsAndDrawers { get; set; } = false;
+
+    /// <summary>Whether this seed contains Seeing Stars puzzles.</summary>
+    [JsonPropertyName("seeing_stars")]
+    public bool SeeingStars { get; set; } = false;
+
+    /// <summary>
+    /// The DLC keys this seed needs, from the two flags above.
+    ///
+    /// Read the FLAGS rather than scanning the slots, deliberately. A seed
+    /// generated with a DLC enabled can draw none of its levels by chance, and
+    /// it is still a seed built for a player who owns it - refusing to say so
+    /// would let the same yaml connect on one machine and not another
+    /// depending on the roll.
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyList<string> RequiredDlc
+    {
+        get
+        {
+            var keys = new List<string>();
+            if (CupboardsAndDrawers) keys.Add("DLC1");
+            if (SeeingStars) keys.Add("DLC2");
+            return keys;
+        }
+    }
+
+    /// <summary>
     /// A short, stable identifier for THIS seed, derived from its contents.
     ///
     /// Exists because the server's own seed string could not be relied on:
@@ -360,9 +396,20 @@ public sealed class SlotEntry
     [JsonPropertyName("instance")]
     public int Instance { get; set; } = 1;
 
-    /// <summary>generator | archive | base.</summary>
+    /// <summary>generator | archive | base | dlc1 | dlc2.</summary>
     [JsonPropertyName("source")]
     public string Source { get; set; } = "";
+
+    /// <summary>
+    /// The DLC this level needs ("DLC1", "DLC2"), or empty for base content.
+    ///
+    /// NOT derivable from Source: four DLC levels carry the game's own
+    /// randomizer flag, so their source is "generator" while they still need
+    /// the DLC installed. Empty by default, so a payload generated before
+    /// this field existed reads as base content - which is what it was.
+    /// </summary>
+    [JsonPropertyName("dlc")]
+    public string Dlc { get; set; } = "";
 
     /// <summary>
     /// Procedural seed for a generator slot, or -1 for a fixed level.

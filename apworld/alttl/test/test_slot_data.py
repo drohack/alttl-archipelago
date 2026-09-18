@@ -19,36 +19,17 @@ import unittest
 
 from Fill import distribute_items_restrictive
 from test.bases import WorldTestBase
+from . import bases
 from .. import data
 
 #: Fixed so the example is stable; a churning golden file teaches people to
 #: regenerate it without reading the diff, which defeats the point.
 EXAMPLE_SEED = 20260902
 
-def _example_path() -> str:
-    """fixtures/, deliberately NOT apworld/alttl/data/.
-
-    Everything under the world package is packaged into the shipped .apworld,
-    and a 40KB test fixture has no business in a player's install.
-
-    It used to live in docs/data/, which was wrong in the other direction: a
-    C# test project reached two directories up into docs/ for it, so editing
-    "a doc" could turn the Core suite red. fixtures/ says what it is.
-
-    Found by walking up to the repo root, because the world is imported from a
-    checkout here but from a zip in production, where __file__ has no usable
-    parent on disk.
-    """
-    here = os.path.dirname(os.path.abspath(__file__))
-    while here != os.path.dirname(here):
-        candidate = os.path.join(here, "fixtures")
-        if os.path.isdir(candidate):
-            return os.path.join(candidate, "slot-data-example.json")
-        here = os.path.dirname(here)
-    raise RuntimeError("could not locate fixtures/ from " + __file__)
-
-
-EXAMPLE_PATH = _example_path()
+#: The example lives in fixtures/ rather than in the world package, so it is
+#: not packaged into a player's install. bases.fixture_path finds it from a
+#: checkout; see its docstring for why the walk is needed.
+EXAMPLE_PATH = bases.fixture_path("slot-data-example.json")
 
 
 def _build() -> dict:
@@ -128,17 +109,38 @@ class TestSlotDataShape(unittest.TestCase):
              "slots", "pack_size", "pack_total", "pack_boundaries",
              "goal", "levels_to_beat", "levels_to_star", "ability_locks",
              "abilities", "starting_abilities", "requirements",
-             "cat_trap_chance", "controller_groups"},
+             "cat_trap_chance", "controller_groups",
+             "cupboards_and_drawers", "seeing_stars"},
             set(self.payload))
 
     def test_every_slot_carries_what_the_mod_needs_to_launch_it(self):
         for slot in self.payload["slots"]:
             self.assertEqual({"levelId", "levelIndex", "instance", "source",
-                              "seed"}, set(slot))
+                              "dlc", "seed"}, set(slot))
             self.assertIsInstance(slot["levelIndex"], int)
-            self.assertIn(slot["source"], ("generator", "archive", "base"))
+            self.assertIn(slot["source"],
+                          ("generator", "archive", "base", "dlc1", "dlc2"))
+            self.assertIn(slot["dlc"], ("", "DLC1", "DLC2"))
             # -1 means "not a generator, do not force a seed".
             self.assertTrue(slot["seed"] == -1 or slot["seed"] > 0)
+
+    def test_no_slot_needs_a_dlc_the_seed_did_not_ask_for(self):
+        """A slot's `dlc` must be one the payload's own flags turned on.
+
+        The check that matters, because source cannot do it: four DLC levels
+        are sourced "generator", so a payload could carry DLC2 Bread Crusts
+        while dlc2 is false and nothing in the shape would object. The mod
+        would then launch a level the player cannot load.
+        """
+        allowed = {""}
+        if self.payload["cupboards_and_drawers"]:
+            allowed.add("DLC1")
+        if self.payload["seeing_stars"]:
+            allowed.add("DLC2")
+        for slot in self.payload["slots"]:
+            self.assertIn(slot["dlc"], allowed,
+                          f"{slot['levelId']} needs {slot['dlc']}, which this "
+                          "seed did not enable")
 
     def test_generator_slots_have_a_seed_and_fixed_levels_do_not(self):
         for slot in self.payload["slots"]:

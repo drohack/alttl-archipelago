@@ -145,6 +145,28 @@ A Little to the Left:
     - something_eggstra
     - snack_pack
 
+  # ---- DLC -------------------------------------------------------------
+
+  # The two DLCs, both OFF by default. Turn one on only if you own it: a seed
+  # that contains its puzzles cannot be played without it, and the mod refuses
+  # to connect rather than hand you a level that will not load.
+  #
+  # Whoever generates the multiworld does not need to own either one.
+  #
+  #   cupboards_and_drawers   25 puzzles,  32 solutions
+  #   seeing_stars            37 puzzles, 100 solutions
+  #
+  # Seeing Stars carries more alternate solutions than the whole base campaign,
+  # so it is the one that changes a star_levels goal most. Five of its puzzles
+  # are locked by the game behind a star total; the mod opens those for you.
+  cupboards_and_drawers: false
+  seeing_stars: false
+
+  # Their share of the run, on the same relative scale as the three weights
+  # above. Ignored while the matching toggle is off.
+  cupboards_weight: 10
+  stars_weight: 10
+
   # ---- Abilities -------------------------------------------------------
 
   # Lock puzzle mechanics behind items. On, objects for a mechanic you have

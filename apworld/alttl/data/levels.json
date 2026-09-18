@@ -3837,6 +3837,2452 @@
       "randomizerHints": 0,
       "isHolidayDaily": false,
       "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1100,
+      "levelId": "DLC1 Clock Cupboard",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Items Placements Draggables",
+          "type": "Draggables",
+          "objects": 9,
+          "dependsOn": []
+        },
+        {
+          "name": "Cupboard Doors",
+          "type": "AnimScrubbables",
+          "objects": 4,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level",
+      "extraAbilities": [
+        "Drawer"
+      ]
+    },
+    {
+      "levelIndex": 1101,
+      "levelId": "DLC1 Craft Supplies",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Drawers",
+          "type": "DrawerController",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Misc Draggables",
+          "type": "Draggables",
+          "objects": 22,
+          "dependsOn": []
+        },
+        {
+          "name": "Paints DraggablesOrdered",
+          "type": "DraggablesOrdered",
+          "objects": 6,
+          "dependsOn": []
+        },
+        {
+          "name": "Brushes DraggablesOrdered",
+          "type": "DraggablesOrdered",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "Highlighters DraggablesOrdered",
+          "type": "DraggablesOrdered",
+          "objects": 2,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1102,
+      "levelId": "DLC1 Fountain Pens",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 4,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Draggables Ordered",
+          "type": "DraggablesOrdered",
+          "objects": 7,
+          "dependsOn": []
+        },
+        {
+          "name": "Containables",
+          "type": "Containables",
+          "objects": 7,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 4,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1103,
+      "levelId": "DLC1 Pressed Flowers",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Flower Shapes",
+          "type": "Draggables",
+          "objects": 39,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1104,
+      "levelId": "DLC1 Bathroom Cupboard",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Items Draggables",
+          "type": "Draggables",
+          "objects": 16,
+          "dependsOn": []
+        },
+        {
+          "name": "Glove Hanging Controller",
+          "type": "HangingToolsController",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Broom/Dustpan Containables",
+          "type": "Containables",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1106,
+      "levelId": "DLC1 Lunch Tray",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Trays",
+          "type": "DrawerController",
+          "objects": 5,
+          "dependsOn": []
+        },
+        {
+          "name": "TrayOrganizer",
+          "type": "Draggables",
+          "objects": 6,
+          "dependsOn": []
+        },
+        {
+          "name": "BroccoliOrganizer",
+          "type": "Draggables",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "CeleryController",
+          "type": "Draggables",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "CrackerController",
+          "type": "Draggables",
+          "objects": 7,
+          "dependsOn": []
+        },
+        {
+          "name": "Sandwich Controller",
+          "type": "Draggables",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "PeasController",
+          "type": "Draggables",
+          "objects": 4,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1107,
+      "levelId": "DLC1 Kitchen Hanging Tools 1",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Knives Draggables",
+          "type": "Draggables",
+          "objects": 5,
+          "dependsOn": []
+        },
+        {
+          "name": "HangingObjectsController",
+          "type": "HangingToolsController",
+          "objects": 10,
+          "dependsOn": []
+        },
+        {
+          "name": "GuidingTargets",
+          "type": "Draggables",
+          "objects": 10,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1108,
+      "levelId": "DLC1 Kitchen Utensils Drawers",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Drawers",
+          "type": "DrawerController",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "Top Drawer",
+          "type": "Draggables",
+          "objects": 22,
+          "dependsOn": []
+        },
+        {
+          "name": "Bottom Drawer",
+          "type": "Draggables",
+          "objects": 22,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1109,
+      "levelId": "DLC1 Tea Cabinet",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Items Placements Draggables",
+          "type": "Draggables",
+          "objects": 10,
+          "dependsOn": []
+        },
+        {
+          "name": "Teapot Stack",
+          "type": "DraggablesStacked",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Teacup Stack",
+          "type": "DraggablesStacked",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Jam Jars Stack",
+          "type": "DraggablesStacked",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Cupcake Containables",
+          "type": "Containables",
+          "objects": 6,
+          "dependsOn": []
+        },
+        {
+          "name": "Spoon Containables",
+          "type": "Containables",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "Cupboard Doors",
+          "type": "AnimScrubbables",
+          "objects": 3,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level",
+      "extraAbilities": [
+        "Drawer"
+      ]
+    },
+    {
+      "levelIndex": 1110,
+      "levelId": "DLC1 Kitchen Hanging Tools 2",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "HangingObjectsController",
+          "type": "HangingToolsController",
+          "objects": 14,
+          "dependsOn": []
+        },
+        {
+          "name": "DraggablesForConsoleController",
+          "type": "Draggables",
+          "objects": 14,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1111,
+      "levelId": "DLC1 Pantry",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Items Placements Draggables",
+          "type": "Draggables",
+          "objects": 12,
+          "dependsOn": []
+        },
+        {
+          "name": "Mixer Containables",
+          "type": "Containables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Mixing Bowl Containables",
+          "type": "Containables",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "Potato Crate Containables",
+          "type": "Containables",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "Apple Basket Containables",
+          "type": "Containables",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Can Stacks",
+          "type": "DraggablesStacked",
+          "objects": 20,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level",
+      "extraAbilities": [
+        "Drawer"
+      ]
+    },
+    {
+      "levelIndex": 1113,
+      "levelId": "DLC1 Junk Drawer 2",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Draggables",
+          "type": "Draggables",
+          "objects": 30,
+          "dependsOn": []
+        },
+        {
+          "name": "Shuffleables",
+          "type": "Shuffleables",
+          "objects": 5,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1114,
+      "levelId": "DLC1 Filing Cabinet",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "FolderShuffleables",
+          "type": "Shuffleables",
+          "objects": 11,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1115,
+      "levelId": "DLC1 Fossils",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Drawers",
+          "type": "DrawerController",
+          "objects": 2,
+          "dependsOn": []
+        },
+        {
+          "name": "Fern Fossil Jigsaw",
+          "type": "DraggablesJigsaw",
+          "objects": 11,
+          "dependsOn": []
+        },
+        {
+          "name": "Snake Fossil Jigsaw",
+          "type": "DraggablesJigsaw",
+          "objects": 10,
+          "dependsOn": []
+        },
+        {
+          "name": "Dragonfly Fossil Jigsaw",
+          "type": "DraggablesJigsaw",
+          "objects": 6,
+          "dependsOn": []
+        },
+        {
+          "name": "Fish Fossil Jigsaw",
+          "type": "DraggablesJigsaw",
+          "objects": 6,
+          "dependsOn": []
+        },
+        {
+          "name": "Leaf Fossil Jigsaw",
+          "type": "DraggablesJigsaw",
+          "objects": 6,
+          "dependsOn": []
+        },
+        {
+          "name": "Shell Fossil Jigsaw",
+          "type": "DraggablesJigsaw",
+          "objects": 6,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1116,
+      "levelId": "DLC1 Media Cabinet",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Joysticks + Gameboy Draggables",
+          "type": "Draggables",
+          "objects": 6,
+          "dependsOn": []
+        },
+        {
+          "name": "DVD DraggablesOrdered",
+          "type": "DraggablesOrdered",
+          "objects": 9,
+          "dependsOn": []
+        },
+        {
+          "name": "Rubix Stack",
+          "type": "DraggablesStacked",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "NES Stack",
+          "type": "DraggablesStacked",
+          "objects": 9,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level",
+      "extraAbilities": [
+        "Drawer"
+      ]
+    },
+    {
+      "levelIndex": 1117,
+      "levelId": "DLC1 Game Pieces",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Drawers",
+          "type": "DrawerController",
+          "objects": 5,
+          "dependsOn": []
+        },
+        {
+          "name": "Center Tiles Draggables",
+          "type": "Draggables",
+          "objects": 16,
+          "dependsOn": []
+        },
+        {
+          "name": "Top Drawer Draggables",
+          "type": "Draggables",
+          "objects": 6,
+          "dependsOn": []
+        },
+        {
+          "name": "Bottom Drawer Draggables",
+          "type": "Draggables",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "Left Drawer Draggables",
+          "type": "Draggables",
+          "objects": 10,
+          "dependsOn": []
+        },
+        {
+          "name": "Right Drawer Draggables",
+          "type": "Draggables",
+          "objects": 14,
+          "dependsOn": []
+        },
+        {
+          "name": "Heart Containables",
+          "type": "Containables",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1118,
+      "levelId": "DLC1 Tackle Box",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Supplies Draggables",
+          "type": "Draggables",
+          "objects": 47,
+          "dependsOn": []
+        },
+        {
+          "name": "Bugs DraggableOrdered",
+          "type": "DraggablesOrdered",
+          "objects": 5,
+          "dependsOn": []
+        },
+        {
+          "name": "Weight Draggables",
+          "type": "Draggables",
+          "objects": 4,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1120,
+      "levelId": "DLC1 Coin Box",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Match-Lines",
+          "type": "GridPuzzle",
+          "objects": 21,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1121,
+      "levelId": "DLC1 Sewing Box",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Drawers",
+          "type": "DrawerController",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Scissors Draggables",
+          "type": "Draggables",
+          "objects": 9,
+          "dependsOn": []
+        },
+        {
+          "name": "Large Spools Draggables",
+          "type": "Draggables",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Small Spools Draggables",
+          "type": "Draggables",
+          "objects": 9,
+          "dependsOn": []
+        },
+        {
+          "name": "Supplies Draggables",
+          "type": "Draggables",
+          "objects": 9,
+          "dependsOn": []
+        },
+        {
+          "name": "Top Drawer Draggables",
+          "type": "Draggables",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Zipper DraggablesOrdered",
+          "type": "DraggablesOrdered",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Safety Pin DraggablesOrdered",
+          "type": "DraggablesOrdered",
+          "objects": 7,
+          "dependsOn": []
+        },
+        {
+          "name": "Curved Needles Containables",
+          "type": "Containables",
+          "objects": 3,
+          "dependsOn": []
+        },
+        {
+          "name": "Buttons Sortable",
+          "type": "SortingItems_Draggables",
+          "objects": 20,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1122,
+      "levelId": "DLC1 Jewelry Box",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Drawers",
+          "type": "DrawerController",
+          "objects": 5,
+          "dependsOn": []
+        },
+        {
+          "name": "Watches Draggables",
+          "type": "Draggables",
+          "objects": 6,
+          "dependsOn": []
+        },
+        {
+          "name": "Rings Draggables",
+          "type": "DraggablesOrdered",
+          "objects": 7,
+          "dependsOn": []
+        },
+        {
+          "name": "Radiolaria Draggables",
+          "type": "Draggables",
+          "objects": 5,
+          "dependsOn": []
+        },
+        {
+          "name": "Brooches Draggables",
+          "type": "Draggables",
+          "objects": 5,
+          "dependsOn": []
+        },
+        {
+          "name": "Gold Bars Draggables",
+          "type": "Draggables",
+          "objects": 8,
+          "dependsOn": []
+        },
+        {
+          "name": "Cameos Draggables",
+          "type": "Draggables",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "Locket Containables",
+          "type": "Containables",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1124,
+      "levelId": "DLC1 Daggers",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Drawers",
+          "type": "DrawerExpandableController",
+          "objects": 5,
+          "dependsOn": []
+        },
+        {
+          "name": "Draggables",
+          "type": "Draggables",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "Drawers Draggables",
+          "type": "Draggables",
+          "objects": 4,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1125,
+      "levelId": "DLC1 Trophy Cabinet",
+      "source": "generator",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Items Placements Draggables",
+          "type": "Draggables",
+          "objects": 16,
+          "dependsOn": []
+        },
+        {
+          "name": "Cupboard Doors",
+          "type": "AnimScrubbables",
+          "objects": 22,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level",
+      "extraAbilities": [
+        "Drawer"
+      ]
+    },
+    {
+      "levelIndex": 1126,
+      "levelId": "DLC1 Nesting Boxes",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Boxes",
+          "type": "DrawerController",
+          "objects": 13,
+          "dependsOn": []
+        },
+        {
+          "name": "BoxOrganizer",
+          "type": "Draggables",
+          "objects": 12,
+          "dependsOn": []
+        },
+        {
+          "name": "CatOrganizer",
+          "type": "Draggables",
+          "objects": 9,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1127,
+      "levelId": "DLC1 Nested Drawers",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Drawers",
+          "type": "DrawerController",
+          "objects": 7,
+          "dependsOn": []
+        },
+        {
+          "name": "Draggables",
+          "type": "Draggables",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1128,
+      "levelId": "DLC1 Boss",
+      "source": "dlc1",
+      "dlc": "DLC1",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "KeysDraggables",
+          "type": "Draggables",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "DrawerController",
+          "type": "DrawerController",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "DrawerBossDLC1"
+    },
+    {
+      "levelIndex": 1200,
+      "levelId": "DLC2 Canapes",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Stacked Groups",
+          "type": "StackablesZ",
+          "objects": 9,
+          "dependsOn": []
+        },
+        {
+          "name": "Cracker Positions",
+          "type": "Draggables",
+          "objects": 3,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1201,
+      "levelId": "DLC2 Forks",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 5,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Shuffle",
+          "type": "Shuffleables",
+          "objects": 11,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 5,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1202,
+      "levelId": "DLC2 Mugs",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 4,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Grid",
+          "type": "GridPuzzle",
+          "objects": 9,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 4,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1203,
+      "levelId": "DLC2 Corn",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 4,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Pannables Controller",
+          "type": "Pannables",
+          "objects": 7,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 4,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1204,
+      "levelId": "DLC2 Pressed Leaves",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Leaves Draggables",
+          "type": "Draggables",
+          "objects": 17,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1205,
+      "levelId": "DLC2 Broken Vases",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Draggables",
+          "type": "Draggables",
+          "objects": 15,
+          "dependsOn": []
+        },
+        {
+          "name": "Pannables (Action Only)",
+          "type": "Pannables",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1206,
+      "levelId": "DLC2 Nanopets",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 5,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Shuffle",
+          "type": "DLC2NanopetsShuffleables",
+          "objects": 5,
+          "dependsOn": []
+        },
+        {
+          "name": "Indexables",
+          "type": "Indexables",
+          "objects": 0,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 5,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1207,
+      "levelId": "DLC2 ObsoleteTech",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Organizer",
+          "type": "Draggables",
+          "objects": 14,
+          "dependsOn": []
+        },
+        {
+          "name": "CellPhonesOrdered",
+          "type": "DraggablesOrdered",
+          "objects": 5,
+          "dependsOn": []
+        },
+        {
+          "name": "VHSOrdered",
+          "type": "DraggablesOrdered",
+          "objects": 5,
+          "dependsOn": []
+        },
+        {
+          "name": "CassettesOrdered",
+          "type": "DraggablesOrdered",
+          "objects": 7,
+          "dependsOn": []
+        },
+        {
+          "name": "Floppy Containables",
+          "type": "Containables",
+          "objects": 4,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1208,
+      "levelId": "DLC2 Balls",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Shuffle",
+          "type": "Shuffleables",
+          "objects": 10,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1209,
+      "levelId": "DLC2 Water Glasses",
+      "source": "generator",
+      "dlc": "DLC2",
+      "solutionCount": 4,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Sorting (Type & Size)",
+          "type": "SortingItems_Draggables",
+          "objects": 9,
+          "dependsOn": []
+        },
+        {
+          "name": "Jigsaw",
+          "type": "Draggables",
+          "objects": 36,
+          "dependsOn": []
+        },
+        {
+          "name": "Water Level (Indexable)",
+          "type": "Indexables",
+          "objects": 0,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 4,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1210,
+      "levelId": "DLC2 Pizza",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 4,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Distributables",
+          "type": "Distributables",
+          "objects": 48,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 4,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1211,
+      "levelId": "DLC2 Leftovers",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 5,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "StackableGrid",
+          "type": "StackableGrid",
+          "objects": 15,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 5,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1212,
+      "levelId": "DLC2 Windows",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Draggables",
+          "type": "Draggables",
+          "objects": 6,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1213,
+      "levelId": "DLC2 Cacti",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 5,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Shuffleables Cacti",
+          "type": "ShuffleablesRelative",
+          "objects": 5,
+          "dependsOn": [
+            "Shuffleables Pots"
+          ]
+        },
+        {
+          "name": "Shuffleables Pots",
+          "type": "ShuffleablesRelative",
+          "objects": 5,
+          "dependsOn": [
+            "Shuffleables Cacti"
+          ]
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 5,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1214,
+      "levelId": "DLC2 Origami",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "OrigamiPad",
+          "type": "Draggables",
+          "objects": 24,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1215,
+      "levelId": "DLC2 Moths",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 4,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Draggables",
+          "type": "Draggables",
+          "objects": 8,
+          "dependsOn": []
+        },
+        {
+          "name": "DraggablesOrdered",
+          "type": "DraggablesOrdered",
+          "objects": 8,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 4,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1216,
+      "levelId": "DLC2 Math Set",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Items Placements Draggables",
+          "type": "Draggables",
+          "objects": 20,
+          "dependsOn": [
+            "Indexables"
+          ]
+        },
+        {
+          "name": "Indexables",
+          "type": "Indexables",
+          "objects": 0,
+          "dependsOn": [
+            "Items Placements Draggables"
+          ]
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1217,
+      "levelId": "DLC2 Ink Bottles",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "GridPuzzleBase",
+          "type": "GridPuzzleBase",
+          "objects": 9,
+          "dependsOn": []
+        },
+        {
+          "name": "Draggables - Label",
+          "type": "Draggables",
+          "objects": 9,
+          "dependsOn": []
+        },
+        {
+          "name": "Draggables - Drips",
+          "type": "Draggables",
+          "objects": 9,
+          "dependsOn": []
+        },
+        {
+          "name": "Pannables",
+          "type": "Pannables",
+          "objects": 9,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1218,
+      "levelId": "DLC2 Material Drawers",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Drawer Draggables",
+          "type": "Draggables",
+          "objects": 49,
+          "dependsOn": []
+        },
+        {
+          "name": "Drawer Controller",
+          "type": "DrawerController",
+          "objects": 5,
+          "dependsOn": []
+        },
+        {
+          "name": "Containable Controller",
+          "type": "Containables",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1219,
+      "levelId": "DLC2 Curtains",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Draggables",
+          "type": "Draggables",
+          "objects": 4,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1220,
+      "levelId": "DLC2 Books Stacked",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 5,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "StackedGroups",
+          "type": "StackablesZ",
+          "objects": 12,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 5,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1221,
+      "levelId": "DLC2 Sticky Drawer",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Stickables",
+          "type": "Stickables",
+          "objects": 12,
+          "dependsOn": []
+        },
+        {
+          "name": "Draggables",
+          "type": "Draggables",
+          "objects": 19,
+          "dependsOn": []
+        },
+        {
+          "name": "DrawerController",
+          "type": "DrawerController",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1222,
+      "levelId": "DLC2 Bells",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "OrderedGroups",
+          "type": "DraggablesOrdered",
+          "objects": 12,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level",
+      "extraAbilities": [
+        "Drawer"
+      ]
+    },
+    {
+      "levelIndex": 1223,
+      "levelId": "DLC2 Figurines",
+      "source": "generator",
+      "dlc": "DLC2",
+      "solutionCount": 3,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "SortingItemsDraggables",
+          "type": "SortingItems_Draggables",
+          "objects": 22,
+          "dependsOn": []
+        },
+        {
+          "name": "Draggables",
+          "type": "Draggables",
+          "objects": 22,
+          "dependsOn": []
+        },
+        {
+          "name": "Groupables (Achievement)",
+          "type": "Groupables",
+          "objects": 22,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1224,
+      "levelId": "DLC2 Bookshelf",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Shuffle - Top Left",
+          "type": "Shuffleables",
+          "objects": 48,
+          "dependsOn": [
+            "Shuffle - Top Right",
+            "Shuffle - Mid Left",
+            "Shuffle - Mid Right",
+            "Shuffle - Bottom Left",
+            "Shuffle - Bottom Right"
+          ]
+        },
+        {
+          "name": "Shuffle - Top Right",
+          "type": "Shuffleables",
+          "objects": 48,
+          "dependsOn": [
+            "Shuffle - Top Left",
+            "Shuffle - Mid Left",
+            "Shuffle - Mid Right",
+            "Shuffle - Bottom Left",
+            "Shuffle - Bottom Right"
+          ]
+        },
+        {
+          "name": "Shuffle - Mid Left",
+          "type": "Shuffleables",
+          "objects": 48,
+          "dependsOn": [
+            "Shuffle - Top Left",
+            "Shuffle - Top Right",
+            "Shuffle - Mid Right",
+            "Shuffle - Bottom Left",
+            "Shuffle - Bottom Right"
+          ]
+        },
+        {
+          "name": "Shuffle - Mid Right",
+          "type": "Shuffleables",
+          "objects": 48,
+          "dependsOn": [
+            "Shuffle - Top Left",
+            "Shuffle - Top Right",
+            "Shuffle - Mid Left",
+            "Shuffle - Bottom Left",
+            "Shuffle - Bottom Right"
+          ]
+        },
+        {
+          "name": "Shuffle - Bottom Left",
+          "type": "Shuffleables",
+          "objects": 48,
+          "dependsOn": [
+            "Shuffle - Top Left",
+            "Shuffle - Top Right",
+            "Shuffle - Mid Left",
+            "Shuffle - Mid Right",
+            "Shuffle - Bottom Right"
+          ]
+        },
+        {
+          "name": "Shuffle - Bottom Right",
+          "type": "Shuffleables",
+          "objects": 48,
+          "dependsOn": [
+            "Shuffle - Top Left",
+            "Shuffle - Top Right",
+            "Shuffle - Mid Left",
+            "Shuffle - Mid Right",
+            "Shuffle - Bottom Left"
+          ]
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1225,
+      "levelId": "DLC2 Cat Eyes",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "CatEyesController",
+          "type": "CatEyesController",
+          "objects": 7,
+          "dependsOn": [
+            "IndexablesController"
+          ]
+        },
+        {
+          "name": "IndexablesController",
+          "type": "Indexables",
+          "objects": 0,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [
+        {
+          "type": "CatEyesController",
+          "name": "CatEyesController",
+          "active": true
+        }
+      ],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1226,
+      "levelId": "DLC2 Junk Drawer Transforming",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "IndexedDraggables",
+          "type": "Draggables",
+          "objects": 10,
+          "dependsOn": [
+            "Indexables",
+            "Stamps Draggables",
+            "Ticket Stubs Draggables"
+          ]
+        },
+        {
+          "name": "Indexables",
+          "type": "Indexables",
+          "objects": 0,
+          "dependsOn": [
+            "IndexedDraggables",
+            "Stamps Draggables",
+            "Ticket Stubs Draggables"
+          ]
+        },
+        {
+          "name": "Stamps Draggables",
+          "type": "Draggables",
+          "objects": 3,
+          "dependsOn": [
+            "Indexables",
+            "Ticket Stubs Draggables",
+            "IndexedDraggables"
+          ]
+        },
+        {
+          "name": "Ticket Stubs Draggables",
+          "type": "Draggables",
+          "objects": 4,
+          "dependsOn": [
+            "Indexables",
+            "Stamps Draggables",
+            "IndexedDraggables"
+          ]
+        },
+        {
+          "name": "Drawer Controller",
+          "type": "DrawerController",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1227,
+      "levelId": "DLC2 Music Box",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Organizer",
+          "type": "Draggables",
+          "objects": 38,
+          "dependsOn": []
+        },
+        {
+          "name": "StateController",
+          "type": "Indexables",
+          "objects": 0,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1228,
+      "levelId": "DLC2 Combs",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Drawer",
+          "type": "DrawerController",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Draggables",
+          "type": "Draggables",
+          "objects": 24,
+          "dependsOn": [
+            "Indexables"
+          ]
+        },
+        {
+          "name": "Indexables",
+          "type": "Indexables",
+          "objects": 0,
+          "dependsOn": [
+            "Draggables"
+          ]
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1229,
+      "levelId": "DLC2 First Aid Kit",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Draggables",
+          "type": "Draggables",
+          "objects": 24,
+          "dependsOn": []
+        },
+        {
+          "name": "Wipe Containables",
+          "type": "Containables",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "Bottle Containables",
+          "type": "Containables",
+          "objects": 4,
+          "dependsOn": []
+        },
+        {
+          "name": "Pump State Controller",
+          "type": "Indexables",
+          "objects": 0,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 1,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1230,
+      "levelId": "DLC2 Robots",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 2,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "IndexedDraggables",
+          "type": "Draggables",
+          "objects": 9,
+          "dependsOn": [
+            "Indexables"
+          ]
+        },
+        {
+          "name": "Indexables",
+          "type": "Indexables",
+          "objects": 0,
+          "dependsOn": [
+            "IndexedDraggables"
+          ]
+        },
+        {
+          "name": "Containables",
+          "type": "Containables",
+          "objects": 10,
+          "dependsOn": []
+        },
+        {
+          "name": "Spring Containable",
+          "type": "Containables",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Spring Draggable",
+          "type": "Draggables",
+          "objects": 1,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1231,
+      "levelId": "DLC2 Boss",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Drawer Controller",
+          "type": "DrawerController",
+          "objects": 1,
+          "dependsOn": []
+        },
+        {
+          "name": "Hub",
+          "type": "Draggables",
+          "objects": 16,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "DrawerBossDLC2",
+      "extraAbilities": [
+        "Ordering",
+        "Swapping"
+      ]
+    },
+    {
+      "levelIndex": 1235,
+      "levelId": "DLC2 Bread Crusts",
+      "source": "generator",
+      "dlc": "DLC2",
+      "solutionCount": 2,
+      "isRandomizable": true,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "ConcentricCrustDraggables",
+          "type": "DraggablesJigsaw",
+          "objects": 12,
+          "dependsOn": []
+        },
+        {
+          "name": "BreadLoopDraggables",
+          "type": "DraggablesJigsaw",
+          "objects": 12,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 2,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1236,
+      "levelId": "DLC2 Cupcakes",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Shuffleables Wrappers",
+          "type": "ShuffleablesRelative",
+          "objects": 5,
+          "dependsOn": [
+            "Shuffleables Cupcakes",
+            "Shuffleables Candles"
+          ]
+        },
+        {
+          "name": "Shuffleables Cupcakes",
+          "type": "ShuffleablesRelative",
+          "objects": 5,
+          "dependsOn": [
+            "Shuffleables Candles",
+            "Shuffleables Wrappers"
+          ]
+        },
+        {
+          "name": "Shuffleables Candles",
+          "type": "ShuffleablesRelative",
+          "objects": 5,
+          "dependsOn": [
+            "Shuffleables Cupcakes",
+            "Shuffleables Wrappers"
+          ]
+        },
+        {
+          "name": "Draggables Colors",
+          "type": "Draggables",
+          "objects": 5,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1237,
+      "levelId": "DLC2 Markers",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 3,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Markers Ordered",
+          "type": "DraggablesOrdered",
+          "objects": 14,
+          "dependsOn": [
+            "Marker Lids"
+          ]
+        },
+        {
+          "name": "Marker Lids",
+          "type": "Containables",
+          "objects": 14,
+          "dependsOn": [
+            "Markers Ordered"
+          ]
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 3,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1238,
+      "levelId": "DLC2 Whistles",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 5,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "DraggablesOrdered",
+          "type": "DraggablesOrdered",
+          "objects": 20,
+          "dependsOn": [
+            "HangingToolsController"
+          ]
+        },
+        {
+          "name": "HangingToolsController",
+          "type": "HangingToolsController",
+          "objects": 20,
+          "dependsOn": [
+            "DraggablesOrdered"
+          ]
+        }
+      ],
+      "hintAvailable": true,
+      "hintImages": 5,
+      "cats": [],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "Level"
+    },
+    {
+      "levelIndex": 1239,
+      "levelId": "DLC2 Ghost Cat",
+      "source": "dlc2",
+      "dlc": "DLC2",
+      "solutionCount": 1,
+      "isRandomizable": false,
+      "isArchived": false,
+      "isDailyTidy": false,
+      "controllers": [
+        {
+          "name": "Indexables",
+          "type": "Indexables",
+          "objects": 0,
+          "dependsOn": []
+        }
+      ],
+      "hintAvailable": false,
+      "hintImages": 0,
+      "cats": [
+        {
+          "type": "IndexedCatAnimationManager",
+          "name": "CatManagement",
+          "active": true
+        },
+        {
+          "type": "CatMatchInterlude",
+          "name": "Phase 1 Exit",
+          "active": true
+        },
+        {
+          "type": "CatMatchInterlude",
+          "name": "Phase 2 Exit",
+          "active": true
+        },
+        {
+          "type": "CatMatchInterlude",
+          "name": "Phase 3 Exit",
+          "active": true
+        },
+        {
+          "type": "CatMatchInterlude",
+          "name": "Phase 4 Exit",
+          "active": true
+        },
+        {
+          "type": "CatMatchInterlude",
+          "name": "Phase 5 Exit",
+          "active": true
+        },
+        {
+          "type": "CatMatchInterlude",
+          "name": "Phase 6 Exit",
+          "active": true
+        },
+        {
+          "type": "CatMatchInterlude",
+          "name": "Phase 7 Exit",
+          "active": true
+        },
+        {
+          "type": "CatMatchInterlude",
+          "name": "Phase 8 Exit",
+          "active": true
+        },
+        {
+          "type": "CatMatchInterlude",
+          "name": "Phase 9 Exit",
+          "active": true
+        },
+        {
+          "type": "CatMatchInterlude",
+          "name": "Cats Exit",
+          "active": true
+        }
+      ],
+      "randomizerHintPool": 0,
+      "randomizerHints": 0,
+      "isHolidayDaily": false,
+      "levelClass": "IndexControlledPhaseLevel",
+      "phases": [
+        "(none)",
+        "(none)",
+        "(none)",
+        "(none)",
+        "(none)",
+        "(none)",
+        "(none)",
+        "(none)",
+        "(none)"
+      ]
     }
   ]
 }

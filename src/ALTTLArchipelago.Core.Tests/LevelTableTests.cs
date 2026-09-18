@@ -22,10 +22,18 @@ public class LevelTableTests
         return LevelTable.FromJson(File.ReadAllText(path));
     }
 
+    /// <summary>
+    /// 173 = the base game's 111 plus 62 from the two DLCs, measured
+    /// 2026-09-17 by a sweep taken with both installed.
+    ///
+    /// The 62 are 25 from Cupboards and Drawers and 37 from Seeing Stars.
+    /// Neither DLC's cat interludes, boss credits or Star Finale are here:
+    /// they carry no solutions, and the sweep drops anything with none.
+    /// </summary>
     [Fact]
     public void TheTableCoversEveryInScopeLevel()
     {
-        Assert.Equal(111, Table().Levels.Count);
+        Assert.Equal(173, Table().Levels.Count);
     }
 
     [Fact]
@@ -36,14 +44,57 @@ public class LevelTableTests
             .ToDictionary(g => g.Key, g => g.Count());
 
         Assert.Equal(69, bySource["base"]);
-        Assert.Equal(16, bySource["generator"]);
         Assert.Equal(26, bySource["archive"]);
+
+        // 20, not 16: four DLC levels carry the game's own randomizer flag
+        // (DLC1 Trophy Cabinet, DLC2 Water Glasses, Figurines and Bread
+        // Crusts), so they are generators like any other and repeat with a
+        // fresh seed. That is why generator is not simply the base sixteen.
+        Assert.Equal(20, bySource["generator"]);
+
+        // The DLC sources, which exist so a yaml can weight each DLC
+        // separately. A randomizable DLC level is NOT here - its source says
+        // generator - which is exactly why levels also carry a `dlc` field:
+        // source answers "which pool", dlc answers "which DLC is required",
+        // and for those four the answers differ.
+        Assert.Equal(24, bySource["dlc1"]);
+        Assert.Equal(34, bySource["dlc2"]);
     }
 
+    /// <summary>
+    /// 294 = the base game's 162, plus 32 from Cupboards and Drawers and 100
+    /// from Seeing Stars. Seeing Stars alone carries more solutions than the
+    /// whole base campaign, which is what makes it the DLC that matters most
+    /// to a star goal.
+    /// </summary>
     [Fact]
     public void TotalSolutionsMatchTheContentReport()
     {
-        Assert.Equal(162, Table().Levels.Sum(l => l.SolutionCount));
+        Assert.Equal(294, Table().Levels.Sum(l => l.SolutionCount));
+    }
+
+    /// <summary>
+    /// Every level that needs a DLC says so, and no other level does.
+    ///
+    /// The one that would slip through without this is a randomizable DLC
+    /// level: its source is "generator", so anything keying eligibility off
+    /// source alone would put DLC2 Bread Crusts in a run belonging to a player
+    /// who does not own Seeing Stars, and the level would not load.
+    /// </summary>
+    [Fact]
+    public void EveryDlcLevelDeclaresWhichDlcItNeeds()
+    {
+        var levels = Table().Levels;
+
+        Assert.All(levels.Where(l => l.LevelIndex >= 1100),
+                   l => Assert.False(string.IsNullOrEmpty(l.Dlc),
+                                     $"{l.LevelId} is DLC content with no dlc field"));
+        Assert.All(levels.Where(l => l.LevelIndex < 1100),
+                   l => Assert.True(string.IsNullOrEmpty(l.Dlc),
+                                    $"{l.LevelId} is base content claiming dlc {l.Dlc}"));
+
+        Assert.Equal(25, levels.Count(l => l.Dlc == "DLC1"));
+        Assert.Equal(37, levels.Count(l => l.Dlc == "DLC2"));
     }
 
     /// <summary>
@@ -133,7 +184,12 @@ public class LevelTableTests
     public void EveryAbilityGatesAtLeastOneLevel()
     {
         var t = Table();
-        var gated = Abilities.All.ToDictionary(a => a, _ => 0);
+        // AllWithDlc, not All: a DLC level reports the DLC's own abilities, so
+        // keying on the base twelve alone threw KeyNotFoundException the
+        // moment Distributing appeared. An ability that gates nothing is a
+        // dead item whichever list it came from, so the check widens rather
+        // than filters.
+        var gated = Abilities.AllWithDlc.ToDictionary(a => a, _ => 0);
 
         foreach (var l in t.Levels)
         {

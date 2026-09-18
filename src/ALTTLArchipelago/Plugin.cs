@@ -29,7 +29,7 @@ namespace ALTTLArchipelago;
 ///   thread through Hub. Unity is never touched off-thread.
 /// - The MonoBehaviour injected into IL2CPP holds no state and no logic.
 /// </summary>
-[BepInPlugin(Guid, "A Little To The Left Archipelago", "0.3.4")]
+[BepInPlugin(Guid, "A Little To The Left Archipelago", "0.4.0")]
 public sealed class Plugin : BasePlugin
 {
     internal const string Guid = "droha.alttl.archipelago";
@@ -1155,6 +1155,7 @@ public sealed class Ticker : MonoBehaviour
         var dt = Time.unscaledDeltaTime;
 
         Step("hub", () => Hub.Tick());
+        Step("dlc state", () => DlcState.Tick(dt));
         Step("retry", () => Plugin.TickRetry(dt));
         Step("checks", () => Plugin.TickChecks(dt));
         Step("offline start", () => Plugin.TickOfflineStart(dt));
@@ -1174,6 +1175,7 @@ public sealed class Ticker : MonoBehaviour
         Step("credits card", () => Track.TickCreditsCard());
         Step("track scroll", () => Track.TickScroll(dt));
         Step("daily rescue", () => DailyGuard.TickRescue(dt));
+        Step("dlc guard", () => DlcGuard.Tick(dt));
         Step("prompt memory", () => PromptMemory.Tick(dt));
         Step("connected tag", () => Badges.TickConnectedTag());
         Step("title state", () => TitleScreen.TickState());

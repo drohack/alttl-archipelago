@@ -32,7 +32,7 @@ rather than two.
   size, the free opening included, and only the last is short.
 - **The twelve mechanics**, one item each: Swapping, Stacking, Ordering,
   Gadgets, Rotating, Grids, Tidying, Containers, Drawer, Sticking, Symmetry
-  and Jigsaw.
+  and Jigsaw. Seeing Stars adds a thirteenth, Distributing, when it is on.
 - **Credits.** A real item in the pool, so it can be anywhere in the
   multiworld, including in somebody else's world.
 - **Skips.** Clears a puzzle you are stuck on. It finishes the puzzle and
@@ -59,9 +59,9 @@ come back to when the missing ability arrives.
 
 ### Ability locks
 
-Twelve of the game's own mechanics are items. The level select carries all
-twelve as a strip, so what is still out there is visible rather than something
-to keep a list of.
+Twelve of the base game's own mechanics are items. The level select carries
+all twelve as a strip, so what is still out there is visible rather than
+something to keep a list of.
 
 Dim is a mechanic you have not found yet:
 
@@ -75,6 +75,13 @@ The icons are the game's own art rather than anything drawn for the mod - a
 badge element, a puzzle piece or a level's object, one per mechanic, chosen to
 be told apart at that size. Provenance for all twelve:
 [docs/data/ability-icons.md](docs/data/ability-icons.md).
+
+Seeing Stars adds a thirteenth. Distributing is the one DLC mechanic the base
+game has no equivalent of - it governs a single puzzle, the pizza - so it
+appears only in a run that drew that level, and the strip wraps to a third row
+to hold it:
+
+![The Distributing icon, a whole pizza, labelled DST](docs/images/ability-distributing.png)
 
 ### What the mod puts on screen
 
@@ -114,12 +121,22 @@ All set in the yaml. The ones that change a run most:
 - `skip_count`, `hint_coverage`, `cat_trap_chance` - how many Skips exist,
   what share of this seed's hint pages become items, and what share of the
   filler is the cat.
-- `archive_packs` - which seasonal packs are in. Jigsaws exist only in four of
-  them, so dropping those four removes the mechanic and its item with it.
+- `archive_packs` - which seasonal packs are in. Without DLC, jigsaws exist
+  only in four of them, so dropping those four removes the mechanic and its
+  item with it.
 - `generator_repeat_limit` - how often one generated puzzle may repeat.
+- `cupboards_and_drawers`, `seeing_stars` - the two DLCs, both off by default,
+  each with its own weight beside the three above.
 
-**Neither DLC is implemented.** No DLC puzzle is placed in a run, whichever
-ones you own.
+**Both DLCs are supported, and both are off by default.** Cupboards and Drawers
+adds 25 puzzles and 32 solutions; Seeing Stars adds 37 puzzles and 100
+solutions - more alternate solutions than the whole base campaign, which makes
+it the one that changes a star goal most. Five of its puzzles are locked by the
+game behind a star total, and the mod opens those.
+
+Only the player needs the DLC: the generator does not, and the mod refuses a
+seed asking for one that is not installed rather than handing over a puzzle
+that cannot open.
 
 Full detail, including every option and what each item does:
 [the world's game page](apworld/alttl/docs/en_A_Little_to_the_Left.md).

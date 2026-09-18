@@ -1,4 +1,4 @@
-# The twelve ability icons
+# The thirteen ability icons
 
 What the level-select ability strip draws, where each picture came from,
 and what was tried and rejected. Written down because the search was the
@@ -11,8 +11,13 @@ nothing to look up, only things to borrow.
 
 ## What ships
 
-`src/ALTTLArchipelago/Icons/*.png`, embedded in the DLL, 129 KB for all
-twelve. Loaded by `Badges.LoadPillArt`.
+`src/ALTTLArchipelago/Icons/*.png`, embedded in the DLL, 145 KB for all
+thirteen. Loaded by `Badges.LoadPillArt`.
+
+Twelve shipped with the base game's mechanics. The thirteenth, Distributing,
+arrived with Seeing Stars and is the only DLC mechanic with no base-game
+equivalent - the other four new controller classes are a drawer, a Shuffleables
+subtype, what GridPuzzle derives from, and a one-level gadget.
 
 | Ability | File | Source sprite | Where it came from |
 |---|---|---|---|
@@ -28,6 +33,7 @@ twelve. Loaded by `Badges.LoadPillArt`.
 | Drawer | `Drawer.png` | `Drawer-Top+Bottom` | Tool Drawer (Drawer Chores) |
 | Symmetry | `Wreath.png` | `Wreath` | Wreath (Good Tidings) |
 | Jigsaw | `Gingerbread.png` | `GingerbreadMan` | Cookies Jigsaw (Good Tidings) |
+| Distributing | `Pizza.png` | `Pizza` | Pizza (Seeing Stars) |
 
 Two kinds, and the distinction matters:
 
@@ -99,6 +105,12 @@ Recorded so nobody spends the time again.
 - **`badge7-spider` is not the symmetry puzzle.** Symmetry is `Shells`,
   `Clover`, `Seed Pods` and `Wreath (Good Tidings)`.
 - **`Gems (Jigsaw)` is a Grids puzzle**, despite the name.
+- **The pizza TOPPINGS, all forty-eight of them.** Pepperoni, jalapeno,
+  mushroom, olive, basil and bacon are what Distributing actually moves, and
+  every one is a small disc - at icon size they are dots, indistinguishable
+  from each other and from anything else round. The pizza in its pan is the
+  surface rather than the distributables, and it is the picture that reads.
+  The mapping was always a metaphor; a record is not rotation either.
 - **Badge elements too thin or too low-contrast to survive 32 pixels**,
   tested on screen: `Badge5-hammer`, `Badge4-Nails`, `Badge5-Callipers`,
   `Badge4-keys2`, `badge3-dice`, `badge3-Scissors`, `Badge5-Cord`,

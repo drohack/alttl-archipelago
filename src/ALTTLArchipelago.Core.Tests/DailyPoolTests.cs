@@ -62,9 +62,16 @@ public class DailyPoolTests
         Assert.Equal(0, both);      // the game keeps the two kinds disjoint
         Assert.Equal(36, pool);
 
-        // A third of the run, which is the fact that makes this a common case
-        // rather than an edge one.
-        Assert.Equal(111, levels.Count);
+        // Unchanged by the DLCs, which is worth stating because it was
+        // guessed the other way. A COLD dump reports dailyDateCount > 0 for
+        // four DLC levels, which reads as "the DLCs add holiday dailies"; the
+        // sweep, which boots each level and is the authority the README names,
+        // reports neither daily flag on any of the 62. The pool is still 36.
+        Assert.Equal(0, levels.Count(l => !string.IsNullOrEmpty(l.Dlc) && l.InDailyPool));
+
+        // No longer a third of the run - 36 of 173 - but still the common case
+        // it was measured to be.
+        Assert.Equal(173, levels.Count);
     }
 
     /// <summary>

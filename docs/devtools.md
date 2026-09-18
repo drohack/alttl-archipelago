@@ -28,7 +28,8 @@ Drive it by writing a command into `<game>/BepInEx/alttl-devtools-commands.txt`:
 | `menu:title` / `menu:levels` / `menu:archive` / `menu:daily` | Jump to a menu |
 | `unlocks` | Write the campaign unlock/completion state and chapter membership |
 | `sections` | Log the level-select sections and every track icon's lock state |
-| `levelsweep` | Boot every level in turn and record its RUNTIME controllers to `BepInEx/alttl-levels.json`. Copy that over `apworld/alttl/data/levels.json`, which is the source of truth for the level table - see `apworld/alttl/data/README.md` |
+| `levelsweep` | Boot every level in turn and record its RUNTIME controllers to `BepInEx/alttl-levels.json`. MERGE that into `apworld/alttl/data/levels.json` with `tools/merge-levels.py` rather than copying it over - a fresh sweep regresses the hand-audited phased levels. See `apworld/alttl/data/README.md` |
+| `levelsweep:<i1,i2,...>` | The same, for just those level indices. Re-measuring a handful costs two minutes instead of twenty |
 | `gensweep:<index>[:<n>]` | Regenerate one procedural puzzle n times and record how its layout varies |
 | `cardlabels` / `cardlabels:off` | Put the level name under each level-select card |
 | `solve:<controller>` | Force a controller in the RUNNING level to its solved state |
