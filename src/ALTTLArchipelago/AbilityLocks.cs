@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
+using Il2CppInterop.Runtime.InteropTypes;
 using ALTTLArchipelago.Core;
+using HarmonyLib;
 using UnityEngine;
 
 namespace ALTTLArchipelago;
@@ -31,6 +34,7 @@ namespace ALTTLArchipelago;
 /// catalogue, was forced to write it out in full to get past the shadow. This
 /// is a dimmer, not a catalogue, and the name now says so.
 /// </summary>
+[HarmonyPatch]
 internal static class AbilityLocks
 {
     /// <summary>Dim grey at partial alpha, the shade S3 confirmed reads as "not yet".</summary>
@@ -64,15 +68,57 @@ internal static class AbilityLocks
         // reused, so a stale entry would answer for the wrong object.
         _original.Clear();
         _classes.Clear();
+        _colliders.Clear();
+        _bodies.Clear();
     }
 
     /// <summary>
-    /// A slow poll rather than a hook on level load.
+    /// Lock the moment a controller registers, not on the next poll.
     ///
-    /// Controllers self-register in their own Start, so there is no single
-    /// moment that is reliably after all of them - and an ability can arrive at
-    /// any time while a level is open. Polling covers both without needing to
-    /// know which happened.
+    /// PATCHED ON THE CONTROLLER, NOT THE LEVEL, and that distinction cost
+    /// DevTools a 111-level sweep to learn: Level.RegisterObjectController and
+    /// LevelInterface.RegisterObjectController both exist and both look like
+    /// the funnel, and a patch on the Level one installs cleanly and records
+    /// nothing at all. Controllers register THEMSELVES through this no-argument
+    /// method. See RegistrationLog in ALTTLDevTools, which found it.
+    ///
+    /// WHY THIS REPLACED THE POLL. Locks used to land only on the once-a-second
+    /// pass, so every level opened with up to a second of everything live.
+    /// droha, testing Fruit Stickers: "for a second when the level loaded i was
+    /// able to move one, then it stopped." A second is enough to pick a piece
+    /// up and put it somewhere, which is the exact thing the lock exists to
+    /// prevent.
+    ///
+    /// HoldDim rather than a single pass, because a controller's ManagedObjects
+    /// need not be populated by the time it registers, and half a second of
+    /// per-frame passes settles that without this method having to know the
+    /// order. It is also what already handles a level rebuilding itself.
+    ///
+    /// A postfix, and it cannot throw out: a level must still build itself if
+    /// the dimmer has a bad day.
+    /// </summary>
+    [HarmonyPatch(typeof(ObjectController), nameof(ObjectController.RegisterObjectController))]
+    [HarmonyPostfix]
+    private static void AfterRegister()
+    {
+        try
+        {
+            var state = Inventory.Abilities;
+            if (state == null || !state.LocksEnabled) return;
+            HoldDim();
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"abilities: register hook failed: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// The backstop, now that AfterRegister does the arriving.
+    ///
+    /// Still a poll, because an ability can arrive from the server at any time
+    /// while a level sits open and nothing registers to announce it. What it no
+    /// longer has to do is be the thing that locks a level in the first place.
     /// </summary>
     internal static void Tick(float dt)
     {
@@ -220,12 +266,46 @@ internal static class AbilityLocks
                                 Dictionary<int, bool> wanted,
                                 Dictionary<int, LevelObject> byId)
     {
-        var managed = controller.ManagedObjects;
-        if (managed == null) return;
+        Note(controller.ManagedObjects, isLocked, wanted, byId);
 
-        for (int i = 0; i < managed.Count; i++)
+        // AND ANYTHING THE SUBCLASS KEEPS TO ITSELF. See ExtraLists.
+        var (concrete, extras) = ExtraLists(controller);
+        if (extras.Length == 0) return;
+
+        var self = Recast(controller, concrete);
+        if (self == null) return;
+
+        foreach (var extra in extras)
         {
-            var obj = managed[i];
+            try
+            {
+                Note(extra.GetValue(self), isLocked, wanted, byId);
+            }
+            catch
+            {
+                // A property that throws on read must not cost us the level.
+            }
+        }
+    }
+
+    /// <summary>
+    /// Note every LevelObject in a list, however that list has to be read.
+    ///
+    /// TAKES object RATHER THAN A TYPED LIST ON PURPOSE. An Il2Cpp collection
+    /// wrapper does not reliably implement the MANAGED IEnumerable&lt;T&gt; -
+    /// it may only carry the Il2Cpp-side interface - so a typed parameter
+    /// would compile, cast to null at runtime, and silently lock nothing. The
+    /// fast path is tried first and Count/indexer reflection is the fallback,
+    /// so this works whichever interface the wrapper happens to expose.
+    /// </summary>
+    private static void Note(object? list, bool isLocked,
+                             Dictionary<int, bool> wanted,
+                             Dictionary<int, LevelObject> byId)
+    {
+        if (list == null) return;
+
+        foreach (var obj in Walk(list))
+        {
             if (obj == null) continue;
             try
             {
@@ -239,6 +319,422 @@ internal static class AbilityLocks
             }
         }
     }
+
+    /// <summary>
+    /// Yield a list's LevelObjects, by interface if possible and by Count and
+    /// indexer if not. Anything that is not a LevelObject is skipped.
+    /// </summary>
+    private static IEnumerable<LevelObject> Walk(object list)
+    {
+        if (list is IEnumerable<LevelObject> typed)
+        {
+            foreach (var obj in typed) yield return obj;
+            yield break;
+        }
+
+        var type = list.GetType();
+        var countProp = type.GetProperty("Count");
+        var itemProp = type.GetProperty("Item");
+        if (countProp == null || itemProp == null) yield break;
+
+        int count;
+        try { count = (int)(countProp.GetValue(list) ?? 0); }
+        catch { yield break; }
+
+        for (int i = 0; i < count; i++)
+        {
+            LevelObject? obj = null;
+            try { obj = itemProp.GetValue(list, new object[] { i }) as LevelObject; }
+            catch { /* a hole in the list is not the end of the level */ }
+            if (obj != null) yield return obj;
+        }
+    }
+
+    /// <summary>
+    /// The object lists a controller declares itself, beyond ManagedObjects.
+    ///
+    /// MANAGEDOBJECTS IS NOT ALWAYS A CONTROLLER'S FULL SET, and assuming it
+    /// was left a whole puzzle playable while it looked locked. droha, on
+    /// Coins 2 (Dirtyness) with no abilities at all: "coins are dimmed
+    /// (instant), but i can click on them to change their color? and i was
+    /// able to get a solution."
+    ///
+    /// Dirtyables declares its own dirtyObjects and cleanerObjects and handles
+    /// ObjectClicked itself; ManagedObjects held exactly ONE object, which is
+    /// why the lock report said objects=1 for a level full of coins. Every
+    /// coin still went grey, because the tint walks subrenderers - so the
+    /// level looked completely locked and was completely playable. That
+    /// combination is the worst case: the screen says one thing, the game
+    /// does another, and nothing in a log disagrees.
+    ///
+    /// Found by REFLECTION rather than by naming Dirtyables, for the same
+    /// reason the collider is taken from every class rather than from
+    /// stickers: the bug is an assumption about the base class, so anything
+    /// that assumption is wrong about should be covered, including whatever a
+    /// future game update adds. Filtered to lists whose element type really is
+    /// a LevelObject, so a list of solutions or hints is not swept in.
+    ///
+    /// Cached per TYPE, not per instance - it is the same answer for every
+    /// controller of a class, and the lookup is pure reflection.
+    /// </summary>
+    private static (Type?, PropertyInfo[]) ExtraLists(ObjectController controller)
+    {
+        var cls = ClassOf(controller);
+        if (_extraLists.TryGetValue(cls, out var known)) return known;
+
+        // GetType() IS NOT THE CONTROLLER'S CLASS, and believing it was is why
+        // the first attempt at this found nothing at all. Every controller
+        // here comes out of Level.objectControllers, a list of ObjectController
+        // wrappers, so the MANAGED type is always the base regardless of what
+        // the object really is - reflection on it can never see dirtyObjects.
+        // The Il2Cpp side knows the truth, which is what ClassOf already asks
+        // for, and the wrapper type has to be found from that name and cast to.
+        var concrete = WrapperFor(cls, typeof(ObjectController));
+        var found = new List<PropertyInfo>();
+
+        if (concrete != null)
+        {
+            try
+            {
+                const BindingFlags Declared = BindingFlags.Public | BindingFlags.NonPublic
+                                            | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+                foreach (var p in concrete.GetProperties(Declared))
+                {
+                    if (p.GetIndexParameters().Length > 0) continue;
+                    if (!HoldsLevelObjects(p.PropertyType)) continue;
+                    found.Add(p);
+                }
+            }
+            catch (Exception e)
+            {
+                Plugin.Logger.LogWarning(
+                    $"abilities: could not inspect {cls}, locking only its "
+                    + $"ManagedObjects: {e.Message}");
+            }
+        }
+
+        if (found.Count > 0)
+        {
+            Plugin.Logger.LogInfo(
+                $"abilities: {cls} keeps objects outside ManagedObjects: "
+                + string.Join(", ", found.ConvertAll(p => p.Name)));
+        }
+
+        var answer = (concrete, found.ToArray());
+        _extraLists[cls] = answer;
+        return answer;
+    }
+
+    private static readonly Dictionary<string, (Type?, PropertyInfo[])> _extraLists = new();
+
+    /// <summary>The managed wrapper Type for an Il2Cpp class name, or null.</summary>
+    private static Type? WrapperFor(string cls, Type mustDeriveFrom)
+    {
+        if (string.IsNullOrEmpty(cls)) return null;
+
+        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            Type?[] types;
+            try { types = asm.GetTypes(); }
+            catch (ReflectionTypeLoadException e) { types = e.Types; }
+            catch { continue; }
+
+            foreach (var t in types)
+            {
+                if (t != null && t.Name == cls && mustDeriveFrom.IsAssignableFrom(t))
+                {
+                    return t;
+                }
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// The same object, seen as its real class, so its own members can be
+    /// reached. TryCast is the interop idiom used throughout this mod.
+    /// </summary>
+    private static object? Recast(Il2CppObjectBase controller, Type? concrete)
+    {
+        if (concrete == null) return null;
+        try
+        {
+            var cast = typeof(Il2CppObjectBase)
+                .GetMethod(nameof(Il2CppObjectBase.TryCast))
+                ?.MakeGenericMethod(concrete);
+            return cast?.Invoke(controller, null);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Is this a collection of LevelObjects?
+    ///
+    /// Checks the GENERIC ARGUMENT rather than asking whether the type is an
+    /// IEnumerable&lt;LevelObject&gt;, because Il2CppSystem's List does not
+    /// necessarily implement the managed interface - see Note. A subclass
+    /// element type counts: Dirtyables' coins are not plain LevelObjects.
+    /// </summary>
+    private static bool HoldsLevelObjects(Type type)
+    {
+        if (typeof(IEnumerable<LevelObject>).IsAssignableFrom(type)) return true;
+        if (!type.IsGenericType) return false;
+
+        var args = type.GetGenericArguments();
+        return args.Length == 1 && typeof(LevelObject).IsAssignableFrom(args[0]);
+    }
+
+    /// <summary>
+    /// Take the collider away so nothing can click it, and stop the rigidbody
+    /// so it cannot fall while the collider is gone.
+    ///
+    /// BOTH HALVES WERE LEARNED THE HARD WAY, an hour apart.
+    ///
+    /// The collider is the half that works. Flags alone do not stop an
+    /// interaction on every class: a sticker's real drag lives on a separate
+    /// PluckObject, StickerObject redeclares PreventSelection as a get-only
+    /// property that cannot be written, and no combination of the flags this
+    /// dimmer can reach moves either of them. A pointer cannot hit what has no
+    /// collider, whatever a subclass overrides, so this holds everywhere
+    /// rather than per class. droha, on Calendar, after a fix that set every
+    /// flag correctly: "stickers still moveable, but dimmed."
+    ///
+    /// The rigidbody is the half that stops the cure being worse. A collider
+    /// is also what holds a physics object up, and the first version of this
+    /// removed it alone. droha, on SomethingEggstra Fridge: "i saw the eggs in
+    /// the background be dimmed and fall off of the screen." Five of six eggs
+    /// left the level. Stopping simulation pins the object exactly where it
+    /// is, so a locked puzzle piece stays part of the puzzle.
+    ///
+    /// Both originals are remembered ONCE. Re-locking runs every pass, and a
+    /// second pass must not record "already disabled" as the state to put
+    /// back when the ability finally arrives.
+    /// </summary>
+    private static void Freeze(LevelObject obj, bool isLocked)
+    {
+        var col = obj.collider;
+        var rb = obj.rigidbody;
+
+        if (isLocked)
+        {
+            // Rigidbody first: stop it moving BEFORE removing what holds it.
+            if (rb != null)
+            {
+                var rid = rb.GetInstanceID();
+                if (!_bodies.ContainsKey(rid)) _bodies[rid] = rb.simulated;
+                rb.simulated = false;
+            }
+            if (col != null)
+            {
+                var cid = col.GetInstanceID();
+                if (!_colliders.ContainsKey(cid)) _colliders[cid] = col.enabled;
+                col.enabled = false;
+            }
+            return;
+        }
+
+        // Unlocking reverses the order: give it something to stand on first.
+        if (col != null && _colliders.TryGetValue(col.GetInstanceID(), out var wasOn))
+        {
+            col.enabled = wasOn;
+            _colliders.Remove(col.GetInstanceID());
+        }
+        if (rb != null && _bodies.TryGetValue(rb.GetInstanceID(), out var wasSim))
+        {
+            rb.simulated = wasSim;
+            _bodies.Remove(rb.GetInstanceID());
+        }
+    }
+
+    /// <summary>What each collider and body was before we touched it.</summary>
+    private static readonly Dictionary<int, bool> _colliders = new();
+    private static readonly Dictionary<int, bool> _bodies = new();
+
+    /// <summary>
+    /// Set the flags on the object's OWN class, not just the base class.
+    ///
+    /// WHY THIS IS NOT JUST obj.SetInteractable. droha found Fruit Stickers'
+    /// objects greyed out and draggable anyway, and the game's class layout
+    /// explains it: StickerObject derives from LevelObject and re-declares
+    /// SetInteractable and PreventSelection as NEW rather than override.
+    /// Calling them through a LevelObject reference writes the base class's
+    /// fields while the sticker reads its own, so every flag is set and
+    /// nothing consults them. The object still went grey, because the tint is
+    /// on the renderer and that is not shadowed - which is precisely why this
+    /// looked correct for so long.
+    ///
+    /// It is the SAME MISTAKE as the one ExtraLists fixes, one level down:
+    /// a base-typed reference cannot see what a subclass redeclares. So the
+    /// cure is the same - find the real class, cast to it, and call the
+    /// members that actually belong to the object.
+    ///
+    /// WHAT THIS REPLACED, AND WHY IT HAD TO GO. The first fix disabled each
+    /// locked object's Collider2D instead. It did stop the sticker drag, and
+    /// eleven of twelve controller classes passed by hand - but colliders are
+    /// also what holds a physics object up. droha, on SomethingEggstra Fridge:
+    /// "i saw the eggs in the background be dimmed and fall off of the
+    /// screen." Five of the six eggs left the level. A lock that deletes the
+    /// puzzle is worse than one that does not hold, so nothing here touches
+    /// colliders any more.
+    ///
+    /// Cached per CLASS. Most classes shadow nothing and cost one lookup ever.
+    /// </summary>
+    private static void SetFlagsOnOwnClass(LevelObject obj, bool isLocked, int depth = 0)
+    {
+        var (concrete, gates, nested) = Shadowed(obj);
+        if (gates.Count == 0 && nested.Length == 0) return;
+
+        var self = Recast(obj, concrete);
+        if (self == null) return;
+
+        foreach (var (member, whenLocked) in gates)
+        {
+            var want = isLocked ? whenLocked : !whenLocked;
+            try
+            {
+                if (member is PropertyInfo prop) prop.SetValue(self, want);
+                else if (member is MethodInfo call) call.Invoke(self, new object[] { want });
+            }
+            catch
+            {
+                // The base call already ran. Fail open, never half-locked.
+            }
+        }
+
+        // DELIBERATELY NOT FOLLOWED: the LevelObjects this one holds.
+        //
+        // An earlier version walked them, reasoning that a sticker's drag
+        // lives on its pluckObj. It was unnecessary - the collider freeze
+        // already stops the sticker - and it was actively dangerous. The log
+        // it printed gave the game away: "ContainableObject holds its own
+        // LevelObject(s): _Container_k__BackingField, StartContainer,
+        // Container". An egg's container on SomethingEggstra Fridge is the
+        // strawberry basket, which belongs to the UNLOCKED Draggables group,
+        // so following the reference locked a piece the player had every
+        // right to move.
+        //
+        // That is the direction with teeth. Locking too little leaves a check
+        // earnable early; locking too much can make a puzzle impossible with
+        // nothing on screen to explain why. The reference graph does not
+        // respect the group boundaries the gate is defined in terms of, so it
+        // is not something to walk.
+        _ = nested;
+        _ = depth;
+    }
+
+    /// <summary>
+    /// Every interaction gate the object's OWN class redeclares.
+    ///
+    /// SEARCHES PROPERTIES AS WELL AS METHODS, and that distinction is the
+    /// whole bug. The first attempt looked only for SetInteractable and
+    /// SetPreventSelection methods, found none on StickerObject, and reported
+    /// success while Calendar's stickers stayed draggable. What StickerObject
+    /// actually redeclares is the PROPERTY PreventSelection - LevelObject
+    /// declares one too, so the base call writes the base's copy and the
+    /// sticker goes on reading its own.
+    ///
+    /// The value each gate wants while locked differs - PreventSelection
+    /// true, Interactable and Selectable false - so it is carried alongside
+    /// the member rather than assumed.
+    /// </summary>
+    private static (Type?, List<(MemberInfo, bool)>, PropertyInfo[]) Shadowed(LevelObject obj)
+    {
+        string cls;
+        try { cls = obj.GetIl2CppType()?.Name ?? ""; }
+        catch { return (null, NoGates, NoNested); }
+
+        if (_shadowed.TryGetValue(cls, out var known)) return known;
+
+        Type? concrete = null;
+        var gates = new List<(MemberInfo, bool)>();
+        var nested = new List<PropertyInfo>();
+        try
+        {
+            concrete = WrapperFor(cls, typeof(LevelObject));
+            if (concrete != null && concrete != typeof(LevelObject))
+            {
+                const BindingFlags Declared = BindingFlags.Public | BindingFlags.NonPublic
+                                            | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+                var oneBool = new[] { typeof(bool) };
+
+                foreach (var (name, whenLocked) in Gates)
+                {
+                    var prop = concrete.GetProperty(name, Declared);
+                    if (prop != null && prop.PropertyType == typeof(bool) && prop.CanWrite)
+                    {
+                        gates.Add((prop, whenLocked));
+                        continue;
+                    }
+
+                    var call = concrete.GetMethod("Set" + name, Declared, null, oneBool, null);
+                    if (call != null) gates.Add((call, whenLocked));
+                }
+
+                foreach (var prop in concrete.GetProperties(Declared))
+                {
+                    if (prop.GetIndexParameters().Length > 0) continue;
+                    if (!prop.CanRead) continue;
+                    if (!typeof(LevelObject).IsAssignableFrom(prop.PropertyType)) continue;
+                    nested.Add(prop);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning(
+                $"abilities: could not inspect {cls}, using the base flags only: {e.Message}");
+        }
+
+        if (gates.Count > 0)
+        {
+            var names = new List<string>();
+            foreach (var (member, _) in gates) names.Add(member.Name);
+            Plugin.Logger.LogInfo(
+                $"abilities: {cls} redeclares {string.Join(", ", names)}; "
+                + "setting them on the object's own class");
+        }
+        else
+        {
+            // ONCE PER CLASS, and worth the line. Twice now a fix has been
+            // declared working on the strength of an absent log line, when
+            // the truth was that the class never reached this code at all.
+            // Saying what WAS seen makes the difference visible.
+            Plugin.Logger.LogInfo(
+                $"abilities: {cls} -> base flags only"
+                + (concrete == null ? " (no wrapper type found)" : ""));
+        }
+
+        if (nested.Count > 0)
+        {
+            var held = new List<string>();
+            foreach (var prop in nested) held.Add(prop.Name);
+            Plugin.Logger.LogInfo(
+                $"abilities: {cls} holds its own LevelObject(s): {string.Join(", ", held)}");
+        }
+
+        var answer = (concrete, gates, nested.ToArray());
+        _shadowed[cls] = answer;
+        return answer;
+    }
+
+    /// <summary>
+    /// The interaction gates worth chasing onto a subclass, and what each one
+    /// reads while an object is locked.
+    /// </summary>
+    private static readonly (string Name, bool WhenLocked)[] Gates =
+    {
+        ("PreventSelection", true),
+        ("Interactable", false),
+        ("Selectable", false),
+    };
+
+    private static readonly List<(MemberInfo, bool)> NoGates = new();
+    private static readonly PropertyInfo[] NoNested = new PropertyInfo[0];
+
+    private static readonly Dictionary<string, (Type?, List<(MemberInfo, bool)>, PropertyInfo[])> _shadowed = new();
 
     /// <summary>
     /// Apply the settled state, once per object. Returns how many were touched.
@@ -259,6 +755,8 @@ internal static class AbilityLocks
             {
                 obj.SetInteractable(!isLocked);
                 obj.SetPreventSelection(isLocked);
+                SetFlagsOnOwnClass(obj, isLocked);
+                Freeze(obj, isLocked);
                 Tint(obj, isLocked);
                 touched++;
             }

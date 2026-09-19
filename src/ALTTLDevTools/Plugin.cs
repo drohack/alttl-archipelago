@@ -135,6 +135,7 @@ public class DevToolsPlugin : BasePlugin
         // did not exist at runtime.
         harmony.PatchAll(typeof(RegistrationLog));
         harmony.PatchAll(typeof(LaunchTrace));
+        harmony.PatchAll(typeof(ZoomFocusGuard));
         foreach (var m in harmony.GetPatchedMethods())
         {
             Log.LogInfo($"patched {m.DeclaringType?.Name}.{m.Name}");
@@ -955,6 +956,13 @@ public partial class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("controllers", ListControllers);
             }
+            else if (cmd.Equals("locks", StringComparison.OrdinalIgnoreCase))
+            {
+                // What the ability locks did to the objects on screen, asked
+                // on demand. See ReportLocks for why the mod's own log line is
+                // not a usable signal.
+                SafeRun("locks", ReportLocks);
+            }
             else if (cmd.Equals("skip", StringComparison.OrdinalIgnoreCase))
             {
                 // The game's own SkipLevel, which is where our gate lives.
@@ -1187,6 +1195,12 @@ public partial class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("marksolved",
                         () => MarkSolved(cmd.Substring("marksolved:".Length)));
+            }
+            else if (cmd.StartsWith("freeze:", StringComparison.OrdinalIgnoreCase))
+            {
+                // Does removing the collider stop a pickup where the
+                // interactable flag did not? See Freeze.
+                SafeRun("freeze", () => Freeze(cmd.Substring(7)));
             }
             else if (cmd.StartsWith("inert:", StringComparison.OrdinalIgnoreCase))
             {

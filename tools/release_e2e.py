@@ -1093,6 +1093,62 @@ def unsolved_controllers(text):
     return todo
 
 
+#: A row of the DevTools `locks` report.
+LOCK_ROW = re.compile(
+    r"\[(\d+)\] (.*?) type=(\S+) objects=(\d+) blocked=(\d+) dimmed=(\d+) "
+    r"shared=(\d+) norenderer=(\d+) solved=(\S+)")
+
+#: Written into the transcript when a level was refused because the run does
+#: not hold its abilities. Distinct from EXHAUSTED_MARK, which means tried and
+#: failed - a gated level has NOT been tried, must never buy a Skip, and comes
+#: back on its own once the item arrives.
+GATED_MARK = "harness: level gated, not attempted"
+
+#: Which controller indexes had been forced when the completion fired.
+SOLVED_MARK = "harness: completed after solving "
+
+
+def locked_controllers(log):
+    """Which controllers on the loaded level the player cannot touch.
+
+    ASKED, NOT INFERRED. The obvious alternative is to map each controller's
+    class through abilities.json and compare against the held set - and that
+    re-derives the answer from the very table this is meant to audit, so it
+    would agree with a wrong one every time.
+
+    The mod's own "abilities: N locked" line is no better: it is emitted only
+    when the summary CHANGES, once a second, and not at all when locks are off
+    or nothing is connected, so its absence means four different things - and
+    boot_level consumes it before this would ever see it.
+
+    So the game is asked directly. `dimmed` counts objects wearing the exact
+    grey AbilityLocks paints, which nothing else writes.
+
+    THE LOAD RACE IS GONE, and this used to warn about it. AbilityLocks now
+    applies on a postfix over ObjectController.RegisterObjectController, so a
+    level is locked by the time it is on screen rather than on the next
+    once-a-second pass. Confirmed by hand over nine levels on 2026-09-19:
+    "instantly dimmed" every time. The poll survives only as a backstop, for
+    an ability that arrives from the server while a level sits open.
+
+    Still deliberately optimistic about a miss: reading an empty list for a
+    level that is in fact gated costs one round and the level comes straight
+    back, which is cheaper than a slower gate.
+    """
+    log.new()
+    dev("locks", 1.0)
+    out = log.wait(["locks: "], 15, 6, "the lock report")
+    time.sleep(1.5)                      # the header is not the list
+    out += log.new()
+
+    locked = {}
+    for line in out.splitlines():
+        m = LOCK_ROW.search(line)
+        if m and int(m.group(6)) > 0:
+            locked[int(m.group(1))] = m.group(3)
+    return locked, out
+
+
 def solve_level(log):
     """Solve every controller until the level reports complete.
 
@@ -1106,8 +1162,32 @@ def solve_level(log):
     So each pass asks which controllers are actually unsolved and solves those,
     up to five times. Traps are deliberately left on at their default rate:
     a run where the cat never interferes is not the run players get.
+
+    IT ALSO REFUSES A PUZZLE THE RUN HAS NOT UNLOCKED, which it did not used to
+    and which made every ability gate in a run invisible to this harness.
+    `solve:` sets a controller's solved flag and dispatches its event; the
+    dimmer only ever touches the LevelObjects. The two never meet, so a forced
+    solve walks straight through a gate - droha watched the gate finish DLC2
+    Pizza with all 48 of its toppings greyed out on screen.
     """
     text = ""
+
+    # PER CONTROLLER, NOT PER LEVEL, and the difference is the whole run.
+    #
+    # Refusing the whole level was written first and measured: the gate stalled
+    # at 1 of 8 puzzles with 16 refusals, because a partially gated level still
+    # has checks a player can earn. A part location needs only ITS OWN group's
+    # abilities (see rules.part_requirements) while the solution and Beaten
+    # whole union, so the right behaviour is to solve what is reachable, bank
+    # those parts, and leave the level unfinished - which is exactly what a
+    # player does. Refusing the lot forfeits the very checks that would have
+    # unlocked the rest of the run, and starves it.
+    gated, seen = locked_controllers(log)
+    text += seen
+    if gated:
+        say(6, "not forcing " + ", ".join(sorted(set(gated.values())))
+               + " - the run cannot touch "
+               + ("them" if len(gated) > 1 else "it"))
 
     # A CAT TRAP MUST NOT COST A PASS.
     #
@@ -1126,6 +1206,7 @@ def solve_level(log):
     # So a pass that a trap interrupted is refunded. The budget still exists
     # for a level that genuinely will not finish; it is just no longer spent on
     # the game doing what the game is supposed to do.
+    solved_so_far = []
     budget = 5
     refunds = 0
     MAX_REFUNDS = 6
@@ -1166,6 +1247,23 @@ def solve_level(log):
 
         todo = unsolved_controllers(out)
 
+        # DROP THE ONES THE RUN CANNOT REACH. Forcing them is what let the gate
+        # walk through every ability gate in the run; leaving them is what a
+        # player has to do. The level then simply does not complete, which is
+        # the honest outcome and not an error.
+        if gated:
+            blocked_now = [i for i in todo if i in gated]
+            todo = [i for i in todo if i not in gated]
+            if blocked_now and not todo:
+                # Nothing reachable is left undone, so this visit has taken the
+                # level as far as the run's abilities allow. NOT exhausted -
+                # that would buy a Skip, and a Skip must never paper over a
+                # gate (see the "no Skip covered for a level the mod was still
+                # gating" assertion).
+                say(6, "everything still unsolved here is locked; leaving it "
+                       "for when the abilities arrive")
+                return False, text + GATED_MARK
+
         if not todo and "solved=" not in out:
             # No listing arrived at all - do not read that as "all solved".
             say(6, "the controller listing did not arrive; retrying")
@@ -1195,11 +1293,30 @@ def solve_level(log):
         trapped = False
         for i in todo:
             dev(f"solve:{i}", 0.9)
+            solved_so_far.append(i)
             chunk = log.new()
             text += chunk
             if "cat(s) reset the puzzle" in chunk:
                 trapped = True
             if "LevelComplete " in chunk or "no level running" in chunk:
+                # WHAT THE LEVEL ACTUALLY NEEDED. The completion arrived after
+                # these controllers and no others, so anything the level lists
+                # beyond them was not required to finish it. That is the
+                # measurement behind "TupperwareTower declares four abilities
+                # and hand-testing suggested fewer" - recorded rather than
+                # argued about.
+                # WHY a controller went unforced matters as much as that it
+                # did. "Not forced" covers two different things: LOCKED, so we
+                # would not touch it, and ALREADY SOLVED when the level
+                # loaded, so there was nothing to do. Only the first says
+                # anything about what the level requires, and the first
+                # version of this report conflated them - MedicineCabinet
+                # looked like it completed without controller [0] when [0] is
+                # Draggables, the baseline verb, which can never be locked.
+                forced = ",".join(str(x) for x in solved_so_far)
+                was_locked = ",".join(str(x) for x in sorted(gated)) or "none"
+                text += ("\n" + SOLVED_MARK + forced
+                         + " | locked: " + was_locked + "\n")
                 return True, text
 
         # The puzzle was knocked over while we were solving it. That is the
@@ -1269,6 +1386,43 @@ def display_setting():
 #: the patch threw at runtime and the whole class is off.
 EXPECTED_FEATURES = ("save redirect", "connection pane", "track", "skips",
                      "hints", "navigation", "daily guard", "title screen")
+
+
+def why_no_connection(text):
+    """Why the mod did not connect, in a sentence, or None if it did.
+
+    THE FAILURE THIS EXISTS FOR looks like nothing at all: a 150-second
+    countdown and "never connected". Measured 2026-09-18 - with the Steam
+    client closed, the game's DLCManager reports no DLC at all, so the mod
+    refuses any seed built with one and never connects. Both a gate run and a
+    probe died that way in a row, and the first suspect was a Harmony patch
+    added minutes earlier, because nothing read the two lines that said
+    exactly what had happened:
+
+        DLC installed: none
+        refusing the seed: this seed was built with ... which is not installed
+
+    The tell in the DevTools dump is the daily count - 16 instead of 36.
+
+    Launching the exe directly is still correct; it avoids the "no license"
+    failure that steam:// gives on a family-shared copy. But DLC are
+    entitlements, and only a running Steam client can vouch for them.
+    """
+    if "connected. " in text:
+        return None
+
+    refusal = line_with(text, "refusing the seed")
+    if refusal:
+        if "DLC installed: none" in text:
+            return ("the game reports no DLC installed, so the mod refused a "
+                    "DLC seed - START STEAM, or generate without DLC. " +
+                    refusal.split("refusing the seed: ", 1)[-1].strip())
+        return refusal.split("] ", 1)[-1].strip()
+
+    if "no server at launch" in text:
+        return ("the game found no server when it launched - it was started "
+                "before MultiServer was listening")
+    return None
 
 
 def whole_log():
@@ -1636,6 +1790,7 @@ def play(log, plan):
     #: as an ordinary win, which is how "2 of 8 were never solved" stayed
     #: buried in the transcript.
     spent = []
+    needed = []
     #: Slots gone back to after everything was beaten, to pick up checks that
     #: were gated by an ability at the time. One pass each; see the revisit
     #: block below for why it exists and why it cannot spin.
@@ -1816,6 +1971,16 @@ def play(log, plan):
         tail = log.wait(["beaten:", "check:", "credits:"], 10, 6, "the check")
         transcript += tail
 
+        # WHAT THIS LEVEL ACTUALLY NEEDED. solve_level records which
+        # controllers had been forced when the completion fired; only here is
+        # the level's NAME known, so the two are joined up now. A level that
+        # completes after fewer controllers than it declares abilities for is
+        # declaring a requirement it does not have - the TupperwareTower
+        # question, answered by measurement.
+        if SOLVED_MARK in chunk:
+            forced = chunk.split(SOLVED_MARK, 1)[1].split("\n")[0].strip()
+            needed.append((level_id, forced))
+
         # A LEVEL THAT CANNOT BE FORCED GETS SKIPPED, ONCE.
         #
         # solve: sets a controller's solved flag and dispatches the event.
@@ -1969,6 +2134,11 @@ def play(log, plan):
             credits = True
 
     close_game()
+    if needed:
+        say(6, "what each level actually needed to complete:")
+        for level_id, forced in needed:
+            say(6, f"  {level_id}: forced {forced}")
+
     return list(beaten.values()), credits, transcript, open_slots, first, spent
 
 
@@ -2156,6 +2326,18 @@ def main():
                             got is not None and got == expected))
 
         results.append(("no solve threw inside the game", threw == 0))
+
+        # HOW OFTEN THE RUN ACTUALLY MET A LOCKED PUZZLE. Reported rather than
+        # asserted, because a run can legitimately never meet one - it depends
+        # what the draw put in the opening. What would be worth alarm is the
+        # opposite of a number: before this existed the harness forced its way
+        # through every gate in the run and the count was invisible, so a mod
+        # that stopped locking anything at all would have read exactly the same
+        # as one that locked correctly.
+        refusals = whole.count(GATED_MARK)
+        say(6, f"ability gates met and refused: {refusals}"
+               + ("" if refusals else
+                  " (this run never opened a puzzle it could not play)"))
 
         # EVERY error, not just the one kind this harness happened to grep for.
         #

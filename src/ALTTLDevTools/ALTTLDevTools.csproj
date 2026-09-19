@@ -69,6 +69,12 @@
       <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.UIModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- Collider2D, for freeze:. The interactable flag does not stop a drag -
+         measured on Calendar - and the collider is what a pointer hits. -->
+    <Reference Include="UnityEngine.Physics2DModule">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.Physics2DModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>

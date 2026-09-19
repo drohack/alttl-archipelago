@@ -95,6 +95,15 @@
       <HintPath>$(GameDir)\BepInEx\interop\Assembly-CSharp.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- Collider2D and Rigidbody2D. A locked object has its collider taken
+         away, because that is the only thing measured to stop a click on
+         every class, and its rigidbody stopped at the same moment so it
+         cannot fall once the collider holding it up is gone. See
+         AbilityLocks.Freeze, and the eggs that taught us the second half. -->
+    <Reference Include="UnityEngine.Physics2DModule">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.Physics2DModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>

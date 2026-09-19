@@ -225,6 +225,7 @@ public sealed class Plugin : BasePlugin
                      ("navigation", typeof(Navigation)),
                      ("daily guard", typeof(DailyGuard)),
                      ("title screen", typeof(TitleScreen)),
+                     ("ability locks", typeof(AbilityLocks)),
                  })
         {
             try

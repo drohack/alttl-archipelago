@@ -311,6 +311,271 @@ public partial class DevToolsBehaviour
         }
     }
 
+    /// <summary>Has this object any SpriteRenderer the dimmer could paint?</summary>
+    private static bool HasAnyRenderer(LevelObject obj)
+    {
+        if (obj.renderer != null) return true;
+        var subs = obj.subrenderers;
+        for (int i = 0; i < (subs == null ? 0 : subs.Count); i++)
+        {
+            if (subs![i] != null) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Is this object wearing the randomizer's "locked" grey?
+    ///
+    /// The shade is AbilityLocks.Locked - (0.55, 0.55, 0.55, 0.6). Compared
+    /// with a tolerance because a colour that has been through a float round
+    /// trip is not reliably equal to the constant that set it.
+    /// </summary>
+    private static bool IsDimmed(LevelObject obj)
+    {
+        // THE SUBRENDERERS COUNT TOO, and missing them produced three
+        // false findings. The randomizer paints obj.renderer AND every entry
+        // in obj.subrenderers; an object whose visual lives only on the
+        // subrenderers has a null renderer, so checking the main one alone
+        // reported it as untouched. Measured on AnimScrubbables,
+        // ScrollFieldGroupsController and CandlesObjectController, all three
+        // of which read "0 dimmed" while being perfectly well locked.
+        if (IsDimColour(obj.renderer)) return true;
+        var subs = obj.subrenderers;
+        for (int i = 0; i < (subs == null ? 0 : subs.Count); i++)
+        {
+            if (IsDimColour(subs![i])) return true;
+        }
+        return false;
+    }
+
+    private static bool IsDimColour(SpriteRenderer? r)
+    {
+        if (r == null) return false;
+        var c = r.color;
+        return Near(c.r, 0.55f) && Near(c.g, 0.55f)
+            && Near(c.b, 0.55f) && Near(c.a, 0.6f);
+    }
+
+    private static bool Near(float a, float b) => Math.Abs(a - b) < 0.01f;
+
+    /// <summary>
+    /// Try HARDER to stop an object being picked up, and find out what works.
+    ///
+    /// WHY THIS EXISTS. The randomizer's ability locks call
+    /// SetInteractable(false), SetPreventSelection(true) and paint the object
+    /// grey - and droha demonstrated on Calendar that a fully "locked" sticker
+    /// still drags, unsticks and re-sticks. DevTools' own inert: makes the
+    /// same three calls and behaves the same way, so the mechanism itself is
+    /// cosmetic rather than the mod misusing it.
+    ///
+    /// LevelObject also carries a Collider2D. Dragging starts from a pointer
+    /// hit, so removing the collider should stop the pickup outright where a
+    /// flag did not. This command exists to have that confirmed by hand before
+    /// AbilityLocks is changed to rely on it - the flags were never verified
+    /// that way, which is exactly how the locks came to be cosmetic.
+    ///
+    ///   freeze:&lt;controller&gt;   disable the colliders of its objects
+    ///   freeze:off             put every collider back
+    /// </summary>
+    private static readonly Dictionary<int, bool> _frozen = new();
+
+    private static void Freeze(string arg)
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        var level = li == null ? null : li.Level;
+        if (level == null || level.objectControllers == null)
+        {
+            DevToolsPlugin.Log.LogWarning("freeze: no level running");
+            return;
+        }
+
+        var off = arg.Equals("off", StringComparison.OrdinalIgnoreCase);
+        var list = level.objectControllers;
+        var touched = 0;
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            var oc = list[i];
+            if (oc == null) continue;
+            var name = Str(() => oc.gameObject.name);
+            if (!off && !name.Equals(arg, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var managed = oc.ManagedObjects;
+            for (int j = 0; j < (managed == null ? 0 : managed.Count); j++)
+            {
+                var obj = managed![j];
+                if (obj == null) continue;
+                try
+                {
+                    var col = obj.collider;
+                    if (col == null) continue;
+                    var id = col.GetInstanceID();
+                    if (off)
+                    {
+                        if (_frozen.TryGetValue(id, out var was))
+                        {
+                            col.enabled = was;
+                        }
+                    }
+                    else
+                    {
+                        if (!_frozen.ContainsKey(id)) _frozen[id] = col.enabled;
+                        col.enabled = false;
+                    }
+                    touched++;
+                }
+                catch
+                {
+                    // One awkward object must not abandon the rest.
+                }
+            }
+        }
+
+        if (off) _frozen.Clear();
+        DevToolsPlugin.Log.LogInfo(
+            $"freeze: {(off ? "restored" : "disabled")} {touched} collider(s)");
+    }
+
+    /// <summary>
+    /// What the ability locks have actually done to this level's objects.
+    ///
+    /// WHY THIS IS NOT `controllers`. That command reports each controller's
+    /// class and solved flag, which is enough to GUESS at gating by mapping the
+    /// class through the ability table - and a harness that guesses that way is
+    /// re-deriving the answer from the same table it is supposed to be
+    /// auditing. It would agree with a wrong table every time.
+    ///
+    /// This reports what is on the screen instead. The randomizer's dimmer
+    /// gates a puzzle by calling SetInteractable(false) / SetPreventSelection
+    /// (true) on the LevelObjects a controller manages; those are the game's
+    /// own properties, so reading them back says what the PLAYER can touch,
+    /// whatever any table claims.
+    ///
+    /// DEVTOOLS STILL DOES NOT KNOW THE RANDOMIZER EXISTS, deliberately - see
+    /// the note on this assembly. Nothing here references the mod; it reads
+    /// game state that happens to be what the mod wrote.
+    ///
+    /// THE OTHER REASON THIS EXISTS: the mod's own "abilities: N locked" log
+    /// line is emitted only when the summary CHANGES, once a second, and not at
+    /// all when locks are off or no run is connected. Absence of that line
+    /// means four different things, and an incremental log reader races it.
+    /// This is asked for on demand and answers about right now.
+    /// </summary>
+    private static void ReportLocks()
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        var level = li == null ? null : li.Level;
+        if (level == null || level.objectControllers == null)
+        {
+            DevToolsPlugin.Log.LogWarning("locks: no level running");
+            return;
+        }
+
+        var list = level.objectControllers;
+        var totalObjects = 0;
+        var totalBlocked = 0;
+        var totalDimmed = 0;
+
+        // WHICH OBJECTS TWO CONTROLLERS BOTH CLAIM. The randomizer's dimmer
+        // merges per object and lets UNLOCKED WIN, so an object held by a
+        // locked controller and an open one is left fully playable. A
+        // controller can therefore declare an ability and gate nothing at all,
+        // which is the difference between what a level's table says it needs
+        // and what it actually needs. Counting the overlap is what makes that
+        // difference visible instead of looking like a broken lock.
+        var owners = new Dictionary<int, int>();
+        for (int i = 0; i < list.Count; i++)
+        {
+            var oc = list[i];
+            if (oc == null) continue;
+            var managed = oc.ManagedObjects;
+            for (int j = 0; j < (managed == null ? 0 : managed.Count); j++)
+            {
+                var obj = managed![j];
+                if (obj == null) continue;
+                try
+                {
+                    var id = obj.GetInstanceID();
+                    owners[id] = owners.TryGetValue(id, out var n) ? n + 1 : 1;
+                }
+                catch { }
+            }
+        }
+
+        var lines = new List<string>();
+        for (int i = 0; i < list.Count; i++)
+        {
+            var oc = list[i];
+            if (oc == null) continue;
+
+            var objects = 0;
+            var blocked = 0;
+            var dimmed = 0;
+            var shared = 0;
+            var norenderer = 0;
+            var managed = oc.ManagedObjects;
+            for (int j = 0; j < (managed == null ? 0 : managed.Count); j++)
+            {
+                var obj = managed![j];
+                if (obj == null) continue;
+                objects++;
+                try
+                {
+                    // TWO DIFFERENT QUESTIONS, and conflating them produced a
+                    // wrong answer the first time this ran.
+                    //
+                    // `blocked` is "the player cannot touch this", which the
+                    // GAME also causes on its own - measured: plain Draggables
+                    // objects inside a closed drawer read non-interactive with
+                    // no ability lock anywhere near them, and every such level
+                    // looked like a table mismatch.
+                    //
+                    // `dimmed` is the randomizer's own signature: it repaints a
+                    // locked object's renderer to a specific grey. Nothing else
+                    // writes that exact colour, so this is the count that
+                    // answers "did the ability lock do this".
+                    if (!obj.Interactable || obj.PreventSelection) blocked++;
+                    if (IsDimmed(obj)) dimmed++;
+                    // NOTHING TO TINT. An object with no SpriteRenderer on it
+                    // or its subrenderers cannot be greyed however correctly it
+                    // is locked - it would be non-interactive and look
+                    // completely normal, which is a lock with no feedback.
+                    // Counted so "not dimmed" can be told apart from "not
+                    // dimmable".
+                    if (!HasAnyRenderer(obj)) norenderer++;
+                    if (owners.TryGetValue(obj.GetInstanceID(), out var n)
+                        && n > 1) shared++;
+                }
+                catch
+                {
+                    // One awkward object must not abandon the rest of the level.
+                }
+            }
+
+            totalObjects += objects;
+            totalBlocked += blocked;
+            totalDimmed += dimmed;
+            lines.Add($"  [{i}] {Str(() => oc.gameObject.name)}"
+                      + $" type={Str(() => oc.GetIl2CppType().Name)}"
+                      + $" objects={objects} blocked={blocked} dimmed={dimmed}"
+                      + $" shared={shared} norenderer={norenderer}"
+                      + $" solved={Str(() => oc.IsSolved.ToString())}");
+        }
+
+        // The header first, so a harness can wait on one line and then read the
+        // list - the same shape as `controllers`, whose header/list split is
+        // already documented as a trap for anything that waits on the header
+        // and reads immediately.
+        DevToolsPlugin.Log.LogInfo(
+            $"locks: {Str(() => li!.LevelId)} {list.Count} controller(s),"
+            + $" {totalDimmed} of {totalObjects} object(s) dimmed,"
+            + $" {totalBlocked} not interactive");
+        foreach (var line in lines) DevToolsPlugin.Log.LogInfo(line);
+    }
+
     /// <summary>How many more frames the watcher has to run, and its state.</summary>
     private static int _watchFrames;
 
