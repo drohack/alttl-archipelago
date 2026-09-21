@@ -402,6 +402,48 @@ harness, so the claim reduces to how many times `launch_and_connect` is
 called - twice, by `check_arrow` and by `play` - plus the guard against
 Steam relaunching. Three unit tests, no launch.
 
+### Both gates clean, 2026-09-21
+
+    DLC   25/25   the first clean DLC run there has ever been
+    base  25/25
+
+Neither run discovered anything. All 25 assertions had already been
+measured individually - 9 by unit tests with no game, 16 by a probe
+taking one slot or one session - so the gates only confirmed the parts
+compose, which is the only job a gate should have.
+
+The DLC log shows the two fixes doing exactly what they were for:
+
+    slot 2 DLC1 Clock Cupboard was beaten in an earlier session
+        - not demanding a second token
+    slot 6 DLC1 Filing Cabinet cannot be force-solved; spent a Skip
+
+The first is the `restored` fix. The second is the Skip landing on the
+card holding `Containers` on `Solution 2`, which freed it and let DLC1
+Bathroom Cupboard be beaten for the first time.
+
+### The launch-count flake, named at last
+
+One base run scored 24/25 on `launches: 3` with everything else green
+and 8 of 8 beaten. THE SAME ASSERTION FIRED ONCE DURING 0.4.0 and the
+explanation offered then was wrong; the assertion was changed to print
+the count it saw so the next occurrence would name itself. It did.
+
+Measured rather than excused this time:
+
+  * `tools/probe-launch-count.py` (new) does what the gate does - two
+    launches, a close between - and counts loaded lines PER SESSION,
+    which the gate cannot because `Log.before_launch` deletes the log
+    each time and only the last session survives. Result `[1, 1]`, no
+    leftover process, steam_appid.txt present.
+  * the base gate rerun on identical code: `launches: 2`, 25/25.
+  * the DLC gate fifteen minutes earlier on identical code: 2.
+
+So: transient, not systematic, and not the harness - which is verified
+twice over, by source (one launch site, called twice) and by
+measurement (one game per launch). If it returns, the probe is the
+thing to run, and the count is now in the report rather than lost.
+
 ## Verified
 
 - Base-game gate 25/25, 8 puzzles beaten (2026-09-20).
