@@ -1081,6 +1081,10 @@ public partial class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("cats", ListCats);
             }
+            else if (cmd.StartsWith("sharing:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("sharing", () => DumpSharing(cmd.Substring("sharing:".Length)));
+            }
             else if (cmd.StartsWith("layout:", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("layout", () => DumpLayout(cmd.Substring("layout:".Length)));

@@ -78,6 +78,14 @@ be the index.
 
 | Command | Effect |
 |---|---|
+| `controllers` | The active level's object controllers, with type and solved flag. This is what the release harness reads to decide what is left to solve |
+| `locks` | Per controller, how many of its objects the ability locks have dimmed and frozen. Walks the controller's FULL object set, not just `ManagedObjects` - Dirtyables, Containables, Stickables and StackablesY keep their own lists, and reading only the one missed them |
+| `sharing:<tag>` | Object-to-controller membership for the active level. Written to find gates that are bypassable because their objects are shared with a group that is not locked; see [gate-sharing.md](gate-sharing.md) |
+| `freeze:<controller>` | Dim, disable and physically freeze one controller's objects the way an ability lock does, on demand. Stops the rigidbody before removing the collider, or unsupported objects fall |
+| `cats` | Every cat-event object in the loaded scene. Scanning a real scene names the class that performs a cat event, which no static probe ever found |
+| `hints` | Whether the running level actually has a hint |
+| `contextual` | Ask the running gameplay state where it would return to |
+| `resolutions` | The game's current resolution list. Resolution INDEXES are not stable and must never be used as information - the list changes with the display |
 | `members:<Type>[:<filter>]` | List a game type's members by reflection, e.g. `members:HintManager`. Built after guessing member names one compile at a time; the interop assemblies rename things unpredictably |
 | `inert:<index>` | Report a level's controllers and which of them are inert |
 | `bounds:<index>` | Every managed object's world bounds, grouped by controller. Written to find ability-locked objects sitting physically on top of free ones |
@@ -95,6 +103,18 @@ be the index.
 | `focus:<name>` | Scroll the level select to a named icon |
 | `menu:<name>` | Go to a named menu, e.g. `menu:title`. **`play` presses Play on the TITLE menu, so it needs `menu:title` first** |
 | `jiggle[:<n>]` | Pick pieces up and drop them for real, one after another. Exists because a bug needed quarter-second timing to reproduce, which is not something to ask a human for |
+| `play` | Press Play on the TITLE menu. Needs `menu:title` first - there is no live TitleMenu anywhere else |
+| `pause` | Open the pause menu through `PostOpenMenuEvent`. Calling `ShowHideMenuItems` directly throws, because the game dereferences a GameEventData a caller cannot construct |
+| `showpause` / `pausebuttons` | Report the pause MainMenu and list its buttons. Both use `FindObjectsOfTypeAll`, because the pause menu is inactive while closed and an ordinary find cannot see it |
+| `leave` | Press the pause menu's own Level Select button - the route a player takes out of a puzzle. Asking the game where it WOULD go proved nothing |
+| `next` / `replayselect` | The post-level ReplayMenu's Continue arrow, and its Level Select button |
+| `buttons` | Every clickable control in the loaded scene, by GameObject name and on-screen label. The two differ: the tutorial modal's confirm reads "Okay" and is not named Okay |
+| `titlebuttons` / `titletree` | The title menu's buttons, and its whole object tree |
+| `menus` | Every menu the game knows about, and its state |
+| `skip` | Press the game's own `SkipLevel` - the path the randomizer's skip gate hooks |
+| `skiptip` | Force the level-select skip prompt on screen and report what it reads |
+| `hinttaken` | Raise `LevelInterface.HintTaken` directly. The postfix has never been seen to fire from a synthetic drag, which is what this exists to work around |
+| `erase` | Drag the eraser for real. Reading `CanBeWiped` from a probe answers a different question - it exercises the getter with no wipe in progress |
 
 ### Screen and sprites
 
@@ -104,6 +124,17 @@ be the index.
 | `spriteexport:<filter>` | Write matching loaded sprites out as PNGs. How the twelve ability icons were found; see [data/ability-icons.md](data/ability-icons.md) |
 | `spritegrid:<filter>` / `spritegrid:off` | Draw matching sprites on screen in a labelled grid, so a name can be matched to a picture |
 | `bgset:<index>` | Force the level background, for checking the background trap's catalogue |
+| `bgcatalogue` | The game's own palette of level background colours |
+| `menubg` | What actually draws the pause screen's background. Do not assume it is one Image |
+| `newsprites` | Sprite names that have appeared since the last time this was run |
+
+### Tracing and one-off probes
+
+| Command | Effect |
+|---|---|
+| `launchtrace` | Toggle a trace of the launch sequence |
+| `regstart` / `regstop` | Start and stop recording object-controller registrations, to see what a level registers and when. Registration order is why the ability locks needed a register-time hook rather than a single pass |
+| `resettest` | Does `ObjectController.Reset` actually move objects back? Written to settle exactly that |
 
 ## A warning
 

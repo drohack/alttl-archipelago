@@ -7,7 +7,9 @@ using BepInEx;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
+using System.Reflection;
 using Il2CppInterop.Runtime.Injection;
+using Il2CppInterop.Runtime.InteropTypes;
 using ALTTLModKit;
 using UnityEngine;
 
@@ -440,6 +442,207 @@ public partial class DevToolsBehaviour
     }
 
     /// <summary>
+    /// Every LevelObject a controller manages, including the ones it keeps to
+    /// itself.
+    ///
+    /// MANAGEDOBJECTS IS NOT THE FULL SET, and reporting as though it were is
+    /// what let a broken lock look healthy. Dirtyables registers ONE object
+    /// and keeps its coins in dirtyObjects/cleanerObjects; Containables hides
+    /// three more lists, Stickables and StackablesY one each. The `locks`
+    /// command counted only ManagedObjects and so reported "objects=1" for a
+    /// level full of coins, every one of them freely clickable.
+    ///
+    /// GetType() IS NOT THE CONTROLLER'S CLASS. Everything in
+    /// Level.objectControllers is an ObjectController wrapper whatever it
+    /// really is, so reflection over the managed type can never see a
+    /// subclass's members. The real class comes from GetIl2CppType().Name,
+    /// and the wrapper for it has to be found by name and cast to.
+    ///
+    /// DUPLICATED FROM AbilityLocks ON PURPOSE. DevTools does not reference
+    /// the randomizer - see the note on this assembly - and an instrument
+    /// that imported the thing it measures would agree with it by
+    /// construction. This is the one kind of duplication worth having.
+    /// </summary>
+    private static List<LevelObject> AllObjects(ObjectController oc)
+    {
+        var found = new List<LevelObject>();
+        var seen = new HashSet<int>();
+
+        void Take(object? list)
+        {
+            if (list == null) return;
+            var type = list.GetType();
+            var countProp = type.GetProperty("Count");
+            var itemProp = type.GetProperty("Item");
+            if (countProp == null || itemProp == null) return;
+
+            int count;
+            try { count = (int)(countProp.GetValue(list) ?? 0); }
+            catch { return; }
+
+            for (int i = 0; i < count; i++)
+            {
+                try
+                {
+                    if (itemProp.GetValue(list, new object[] { i }) is not LevelObject obj
+                        || obj == null) continue;
+                    if (seen.Add(obj.GetInstanceID())) found.Add(obj);
+                }
+                catch { }
+            }
+        }
+
+        Take(oc.ManagedObjects);
+
+        var (concrete, extras) = ExtraLists(oc);
+        if (extras.Length == 0 || concrete == null) return found;
+
+        object? self;
+        try
+        {
+            var cast = typeof(Il2CppObjectBase)
+                .GetMethod(nameof(Il2CppObjectBase.TryCast))
+                ?.MakeGenericMethod(concrete);
+            self = cast?.Invoke(oc, null);
+        }
+        catch { return found; }
+        if (self == null) return found;
+
+        foreach (var prop in extras)
+        {
+            try { Take(prop.GetValue(self)); }
+            catch { }
+        }
+        return found;
+    }
+
+    /// <summary>The LevelObject collections a controller class declares itself.</summary>
+    private static (Type?, PropertyInfo[]) ExtraLists(ObjectController oc)
+    {
+        string cls;
+        try { cls = oc.GetIl2CppType()?.Name ?? ""; }
+        catch { return (null, NoExtras); }
+
+        if (_extraLists.TryGetValue(cls, out var known)) return known;
+
+        Type? concrete = null;
+        var found = new List<PropertyInfo>();
+        try
+        {
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                Type?[] types;
+                try { types = asm.GetTypes(); }
+                catch (ReflectionTypeLoadException e) { types = e.Types; }
+                catch { continue; }
+                foreach (var t in types)
+                {
+                    if (t != null && t.Name == cls
+                        && typeof(ObjectController).IsAssignableFrom(t))
+                    {
+                        concrete = t;
+                        break;
+                    }
+                }
+                if (concrete != null) break;
+            }
+
+            if (concrete != null)
+            {
+                const BindingFlags Declared = BindingFlags.Public | BindingFlags.NonPublic
+                                            | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+                foreach (var prop in concrete.GetProperties(Declared))
+                {
+                    if (prop.GetIndexParameters().Length > 0 || !prop.CanRead) continue;
+                    var pt = prop.PropertyType;
+                    if (!pt.IsGenericType) continue;
+                    var args = pt.GetGenericArguments();
+                    if (args.Length == 1 && typeof(LevelObject).IsAssignableFrom(args[0]))
+                    {
+                        found.Add(prop);
+                    }
+                }
+            }
+        }
+        catch { }
+
+        var answer = (concrete, found.ToArray());
+        _extraLists[cls] = answer;
+        return answer;
+    }
+
+    private static readonly PropertyInfo[] NoExtras = new PropertyInfo[0];
+    private static readonly Dictionary<string, (Type?, PropertyInfo[])> _extraLists = new();
+
+    /// <summary>
+    /// Dump which controllers claim which objects, for the open level.
+    ///
+    /// WHY A DUMP RATHER THAN A COUNT. `locks` reports `shared` as a number,
+    /// which says an object is claimed twice but not by WHOM - and the
+    /// question that matters is whether a gated group's objects are all also
+    /// held by a group the player can unlock some other way. Books 3 leaks
+    /// because its Shuffleables books are all held by a baseline Draggables
+    /// group; Spoons leaks only once you hold ONE of its two abilities.
+    ///
+    /// The second shape cannot be seen in a zero-ability run at all, and it
+    /// cannot be brute-forced either: Archipelago items cannot be un-sent, so
+    /// every partial holding would need its own server session - about 35 of
+    /// them for the non-DLC levels alone.
+    ///
+    /// Membership makes it a static question. Given which controllers hold
+    /// which objects, "is group X freed when the player holds Y" is
+    /// arithmetic over the ability table, answerable for every subset at
+    /// once, offline, from one sweep with nothing sent.
+    ///
+    ///   sharing:new     start a fresh file
+    ///   sharing:append  add this level to it
+    /// </summary>
+    private static void DumpSharing(string tag)
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        var level = li == null ? null : li.Level;
+        if (level == null || level.objectControllers == null)
+        {
+            DevToolsPlugin.Log.LogWarning("sharing: no level running");
+            return;
+        }
+
+        var levelId = Str(() => li!.LevelId);
+        var path = Path.Combine(GameDir, "BepInEx", "alttl-sharing.tsv");
+        var fresh = !File.Exists(path)
+            || tag.Trim().Equals("new", StringComparison.OrdinalIgnoreCase);
+
+        var rows = new List<string>();
+        if (fresh) rows.Add("level\tcontroller\ttype\tobjectId\tobjectName");
+
+        var list = level.objectControllers;
+        var wrote = 0;
+        for (int i = 0; i < list.Count; i++)
+        {
+            var oc = list[i];
+            if (oc == null) continue;
+            var cname = Str(() => oc.gameObject.name);
+            var ctype = Str(() => oc.GetIl2CppType().Name);
+            foreach (var obj in AllObjects(oc))
+            {
+                rows.Add(string.Join("\t", new[]
+                {
+                    levelId, cname, ctype,
+                    Str(() => obj.GetInstanceID().ToString()),
+                    Str(() => obj.gameObject.name),
+                }));
+                wrote++;
+            }
+        }
+
+        if (fresh) File.WriteAllLines(path, rows);
+        else File.AppendAllLines(path, rows);
+
+        DevToolsPlugin.Log.LogInfo(
+            $"sharing: {levelId} wrote {wrote} row(s) from {list.Count} controller(s) -> {path}");
+    }
+
+    /// <summary>
     /// What the ability locks have actually done to this level's objects.
     ///
     /// WHY THIS IS NOT `controllers`. That command reports each controller's
@@ -491,7 +694,7 @@ public partial class DevToolsBehaviour
         {
             var oc = list[i];
             if (oc == null) continue;
-            var managed = oc.ManagedObjects;
+            var managed = AllObjects(oc);
             for (int j = 0; j < (managed == null ? 0 : managed.Count); j++)
             {
                 var obj = managed![j];
@@ -516,8 +719,8 @@ public partial class DevToolsBehaviour
             var dimmed = 0;
             var shared = 0;
             var norenderer = 0;
-            var managed = oc.ManagedObjects;
-            for (int j = 0; j < (managed == null ? 0 : managed.Count); j++)
+            var managed = AllObjects(oc);
+            for (int j = 0; j < managed.Count; j++)
             {
                 var obj = managed![j];
                 if (obj == null) continue;
