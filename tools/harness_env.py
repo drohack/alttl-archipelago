@@ -276,6 +276,81 @@ def _write_screen_values(values):
     return put
 
 
+#: A sensible window for a harness run. Small enough to leave the
+#: screen usable, large enough that the game's own UI still lays out.
+TEST_SIZE = (1280, 720)
+
+
+def _decode_save(path):
+    """The game's saves are UTF-8 with every codepoint shifted up by 11."""
+    try:
+        text = open(path, encoding="utf-8-sig").read()
+        return json.loads("".join(chr(ord(c) - 11) for c in text))
+    except Exception:
+        return None
+
+
+def _encode_save(path, data):
+    """Write one back, same obfuscation, same BOM."""
+    text = json.dumps(data, separators=(",", ":"))
+    with open(path, "w", encoding="utf-8-sig") as fh:
+        fh.write("".join(chr(ord(c) + 11) for c in text))
+
+
+def set_window(index, saves=None):
+    """Ask for a smaller window by writing the saved resolution CHOICE.
+
+    WHY THE SAVE AND NOT THE REGISTRY. Forcing the Screenmanager keys
+    was tried and did not work: the game applies its own playerPrefs
+    after startup and overwrote them, while the harness printed
+    "windowed 1280x720" on the strength of having written the registry.
+    The save is what the game actually obeys.
+
+    WHY AN INDEX AND NOT A SIZE. `playerPrefs.resolution` is an index
+    into the GAME's own resolution list - the one SettingsMenu builds
+    for its dropdown, not Unity's Screen.resolutions, which had 135
+    entries here. The list is built from whichever monitor the game
+    opened on, so the same number means different sizes on different
+    displays. droha: "the game changes the resolution list depending on
+    what monitor opened it, so a number doesn't help me here."
+
+    So the index is NOT guessed and NOT hardcoded in this file. Get it
+    from the running game with the DevTools `resolutions` command,
+    which prints the game's own list with indices, and pass it in.
+
+    Restored by the snapshot this module already takes - the display
+    choice belongs to whoever plays next.
+    """
+    changed = []
+    for path in (saves if saves is not None else _save_files()):
+        data = _decode_save(path)
+        if not isinstance(data, dict):
+            continue
+        prefs = data.get("playerPrefs")
+        if not isinstance(prefs, dict):
+            continue
+        if prefs.get("resolution") == index and prefs.get("fullscreen") is False:
+            continue
+        prefs["resolution"] = index
+        prefs["fullscreen"] = False
+        _encode_save(path, data)
+        changed.append(os.path.basename(path))
+    return changed
+
+
+def _save_files():
+    """Every save the game might read its display choice from."""
+    out = []
+    for name in sorted(os.listdir(SAVE_DIR)):
+        # .run.json is the randomizer's own run state, not a game save -
+        # it has no playerPrefs and there is no reason to open it.
+        if not name.endswith(".json") or name.endswith(".run.json"):
+            continue
+        if name == "save1.json" or name.startswith("save_ap_"):
+            out.append(os.path.join(SAVE_DIR, name))
+    return out
+
+
 def take_snapshot(label):
     stamp = time.strftime("%Y%m%d-%H%M%S")
     safe = re.sub(r"[^A-Za-z0-9_.-]", "-", label)
