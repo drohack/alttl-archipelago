@@ -141,6 +141,44 @@ def check_yaml(path: pathlib.Path, problems):
              f"two copies of it cannot generate together")
 
 
+#: Source that ends up inside the shipped files. obj/ and bin/ are build
+#: output, and the test project is not shipped.
+SHIPPED_SOURCE = (
+    ("src", "*.cs"),
+    ("apworld", "*.py"),
+    ("apworld", "*.json"),
+)
+
+
+def newer_than(asset: pathlib.Path):
+    """Shipped source modified after `asset` was built.
+
+    WHY. --expect catches assets carrying a DIFFERENT version. It cannot
+    catch the case that actually bit on 2026-09-20: the version was still
+    0.4.0, so release-test/ agreed with the checkout perfectly, while
+    AbilityLocks.cs, Checks.cs and Plugin.cs had all moved on. The release
+    gate installed that zip and spent two dozen runs measuring a mod that
+    contained neither the reachability gate nor the ability-lock register
+    hook - the two things the runs were meant to be testing.
+
+    mtime-based, so a fresh clone (every file stamped at checkout time)
+    would report everything as newer. That is why this is opt-in behind
+    --fresh and why CI does not pass it.
+    """
+    cutoff = asset.stat().st_mtime
+    out = []
+    for folder, pattern in SHIPPED_SOURCE:
+        for path in (REPO / folder).rglob(pattern):
+            parts = set(path.parts)
+            if parts & {"obj", "bin", "__pycache__"}:
+                continue
+            if ".Tests" in path.parent.name or "test" in path.parts:
+                continue
+            if path.stat().st_mtime > cutoff:
+                out.append(path.relative_to(REPO))
+    return sorted(out)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("assets", nargs="?", default="dist",
@@ -151,6 +189,12 @@ def main():
                          "release - which is exactly what release-test/ holds "
                          "between releases, and what the release gate tested "
                          "twice during 0.3.2 without noticing.")
+    ap.add_argument("--fresh", action="store_true",
+                    help="also fail if any shipped source file is NEWER "
+                         "than the assets. Catches a rebuild that never "
+                         "happened, which --expect cannot see while the "
+                         "version is unchanged. Local only - a fresh clone "
+                         "stamps every file at checkout time.")
     args = ap.parse_args()
 
     folder = pathlib.Path(args.assets)
@@ -188,6 +232,17 @@ def main():
                 fail(problems,
                      f"the {what} is {got} but this checkout is "
                      f"{args.expect} - these are last release's assets")
+
+    if args.fresh:
+        stale = newer_than(zips[0])
+        if stale:
+            fail(problems,
+                 f"{len(stale)} shipped source file(s) are newer than "
+                 f"{zips[0].name} - it was never rebuilt, so this run would "
+                 f"test code that is not in the repo any more: "
+                 f"{', '.join(str(p) for p in stale[:5])}"
+                 + (" ..." if len(stale) > 5 else "")
+                 + ". Rebuild with tools/package-release.py")
 
     if mod_version and world_version and mod_version != world_version:
         fail(problems,
