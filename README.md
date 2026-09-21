@@ -229,13 +229,66 @@ queues anything you earn, and sends it on the next connection.
   before a harness runs and restore them after, including on Ctrl-C. Wrap any
   new harness that writes either. `--restore-latest` recovers from a hard kill
 - `tools/release_e2e.py` - the release gate: clean the install to vanilla,
-  install the release assets, generate a seed, and play it through
+  install the release assets, generate a seed, and play it through. Fifteen
+  minutes. It is a CONFIRMATION, never a debugger - the four tools below
+  answer the same questions in milliseconds, one layer at a time, and the
+  gate is what you run once they all pass
+- `tools/make-seed.py` - generate the gate's base or DLC seed with
+  `Generate.py` alone, no game and no server, into `testserver/out-base` or
+  `testserver/out-dlc`. Everything below reads one of those
+- `tools/test_harness_data.py` - the DATA layer: reading a seed, mapping
+  locations to slots, planning a completion order. Set `ALTTL_SEED_DIR` to
+  say WHICH seed; it defaults to the gate's own output
+- `tools/test_scheduler.py` - the CHOICE layer: which slot to play next,
+  over synthetic worlds. Kept honest by `tools/mutate-scheduler.py`, which
+  puts each real bug back and fails if the suite does not notice
+- `tools/test_run_model.py` - DATA and CHOICE composed, against a real
+  seed's actual pack, ability and Skip economy. Answers "can this seed be
+  cleared at all" before anyone spends fifteen minutes finding out
+- `tools/predict_gate.py` - **run this before the gate, every time.** The
+  run is deterministic: the seed is fixed, the abilities and Skips come
+  out of it, the scheduler is a pure function, and `--steady` removes the
+  cat traps. So the gate's verdict can be computed, and this computes 13
+  of the 25 assertions from the simulated run - the beaten count, the
+  Skip ledger, packs, checks, credits, the goal. Every gate failure on
+  2026-09-21 was one of those thirteen and none of them needed the game.
+  A dirty prediction means fix that first; a clean prediction that the
+  gate contradicts is a bug in the model, which every fast test depends
+  on
+- `tools/probe-slots.py` - the DRIVE layer: can the harness boot and solve
+  each level, ONE AT A TIME, a fresh session each. `--dlc` reads the DLC
+  seed. `unforceable` is a correct outcome; `gated` is NOT a pass - it
+  means the level was never attempted, so pair it with a locks-off seed
+  (`make-seed.py --dlc --quick --tag dlc-open`) to measure solving
+- `tools/probe-session.py` - the same levels in ONE session, which is how
+  the gate plays them. Changes exactly one variable against probe-slots,
+  because a level can solve perfectly in isolation and fail after the
+  process has already played three others
+- `tools/probe-isolation.py` - the five gate assertions that had no tool of
+  their own: the error census, the controller-table audit, and the three
+  that matter most if they ever break - the campaign save untouched, no
+  real daily credited, no DLC puzzle written to the campaign. All are
+  measurements over a SESSION rather than a run, so one launch answers
+  what a fifteen-minute gate was being used for
+- `tools/window-size.py` - open the game small for harness runs. Asks the
+  RUNNING game for its own resolution list and picks the nearest index to
+  1280x720, because the saved value is an index into a list the game
+  rebuilds per monitor - the same number means different sizes on
+  different displays. Verify by the live size, never the saved index: this
+  machine had the save reading 1920x1080 while the game ran at 3840x2160
+- `tools/mutate-apworld.py` - the same mutation discipline for the world's
+  DLC tests: nine bugs put back, all must be caught
 - `tools/build_apworld.py` - package the world into a distributable
   `alttl.apworld`
 - `tools/package-release.py` - build all three release assets and refuse if the
   version numbers disagree or the build produced a file it does not recognise
 - `tools/check-version.py` - the version lives in three files; fail when they
   drift. `--set X.Y.Z` writes all three
+- `tools/check-devtools.py` - every DevTools command is dispatched by the
+  ladder AND documented, in both directions. DevTools references the game,
+  so CI cannot build it and it will never have a test project; this is the
+  only automated thing standing between it and a command that silently
+  cannot run, which has already happened once
 - `tools/check-game-facts.py` - compare the level table with a dump from the
   running game. A required release step that nothing invokes for you; see
   `docs/release-testing.md`

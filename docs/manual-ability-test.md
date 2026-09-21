@@ -28,6 +28,12 @@ to stop doing.
 | Breadtags | Removables + Draggables | **split, correctly** |
 | Coins 2 (Dirtyness) | Dirtyables | locked (after fix 2) |
 | SomethingEggstra Fridge | Containables + StackablesY + Draggables | split, correctly |
+| Fruit Stickers | Pluckables + Stickables + Pannables | split, correctly |
+
+Fruit Stickers is the level the bug was first seen on, and was re-checked
+on its own rather than assumed from Calendar: it has THREE controllers to
+Calendar's one, and its ungated `Pannables` group is the pan frame, which
+must stay live or the level cannot be navigated.
 
 Breadtags and the Fridge are the informative ones: plain `Draggables` maps to
 no ability, so those groups stay open while the gated ones lock. A lock that
