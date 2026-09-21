@@ -46,7 +46,8 @@ def requirements(plan: List[slots.Slot], pack_size: int,
 
         # A solution is an arrangement of the WHOLE level, so it needs every
         # ability the level uses. A controller group needs only its own.
-        level_abilities = sorted(level.abilities) if ability_locks else []
+        level_abilities = (sorted(level.enforced_abilities)
+                           if ability_locks else [])
         for n in range(1, level.solution_count + 1):
             out[locations.solution_name(level, slot.instance, n)] = {
                 "packs": packs, "abilities": level_abilities,
@@ -67,7 +68,7 @@ def requirements(plan: List[slots.Slot], pack_size: int,
                 # part locations" and "no group anywhere needs more than one",
                 # both of which had gone stale as dependencies and restored
                 # phases pushed requirements up.
-                part_abilities = (sorted(level.part_abilities.get(part, ()))
+                part_abilities = (sorted(level.enforced_part_abilities.get(part, ()))
                                   if ability_locks else [])
                 out[locations.part_name(level, slot.instance, part)] = {
                     "packs": packs,

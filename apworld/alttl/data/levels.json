@@ -181,7 +181,10 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "bypassedAbilities": [
+        "Swapping"
+      ]
     },
     {
       "levelIndex": 25,
@@ -2783,7 +2786,10 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "bypassedAbilities": [
+        "Drawer"
+      ]
     },
     {
       "levelIndex": 17,
@@ -3380,7 +3386,10 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": true,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "bypassedAbilities": [
+        "Swapping"
+      ]
     },
     {
       "levelIndex": 1014,
@@ -3764,7 +3773,10 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "bypassedAbilities": [
+        "Ordering"
+      ]
     },
     {
       "levelIndex": 1007,
@@ -4110,7 +4122,10 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "bypassedAbilities": [
+        "Drawer"
+      ]
     },
     {
       "levelIndex": 1108,
@@ -4242,7 +4257,10 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "bypassedAbilities": [
+        "Drawer"
+      ]
     },
     {
       "levelIndex": 1111,
@@ -5834,7 +5852,10 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "bypassedAbilities": [
+        "Ordering"
+      ]
     },
     {
       "levelIndex": 1227,
@@ -5906,7 +5927,10 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "bypassedAbilities": [
+        "Ordering"
+      ]
     },
     {
       "levelIndex": 1229,

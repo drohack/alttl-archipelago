@@ -114,6 +114,7 @@ class Level:
 
     __slots__ = ("level_id", "level_index", "source", "dlc", "solution_count",
                  "display", "parts", "part_abilities", "abilities",
+                 "enforced_abilities", "enforced_part_abilities",
                  "controller_group", "hint_images")
 
     def __init__(self, raw: dict):
@@ -189,6 +190,36 @@ class Level:
         self.hint_images: int = max(raw.get("hintImages", 0),
                                     raw.get("randomizerHints", 0))
 
+        # WHAT THE GAME ACTUALLY ENFORCES, which is not always what the
+        # table measures - and it is kept SEPARATE from `abilities` on
+        # purpose.
+        #
+        # `abilities` feeds the DRAW: coverage, gap-filling, which level
+        # teaches what (slots.py). test_regression pins that draw as a
+        # frozen record of the 0.3.4 world, because location and item ids
+        # are positional and a seed in flight is a contract between a
+        # generator and a mod that are no longer running. Changing what a
+        # level is worth to the draw breaks that contract, and the goldens
+        # are explicitly never to be regenerated.
+        #
+        # The REQUIREMENT is a different question, and only rules.py asks
+        # it. A gated group whose every object is also held by a baseline
+        # group is freed by the dimmer's unlocked-wins merge, so demanding
+        # its ability is simply false - and now that the mod withholds
+        # checks the logic calls unreachable, a false requirement means a
+        # player who earned something fairly is told to wait for an ability
+        # the puzzle never needed.
+        #
+        # ONLY WHERE A PERSON HAS CONFIRMED IT. Removing a requirement is
+        # the DANGEROUS direction: overstating gates harder than necessary,
+        # understating lets the fill put an item somewhere unreachable. The
+        # sharing dump proves the DIMMER does not gate; it cannot see a shut
+        # drawer. So bypassedAbilities carries only what someone has played
+        # - Books 3, where droha held zero abilities, moved all 17 books and
+        # completed the Swapping arrangement. docs/gate-sharing.md lists the
+        # rest as candidates awaiting exactly that.
+        bypassed = frozenset(raw.get("bypassedAbilities", []))
+
         # Every ability the level needs to be FINISHED - the union over its
         # registered controllers, PLUS anything the sweep could not see.
         #
@@ -199,6 +230,25 @@ class Level:
         # without an ability it actually needs. See LevelInfo.ExtraAbilities
         # in Core for why this is recorded as abilities rather than as extra
         # controllers.
+        # BYPASSED ABILITIES ARE SUBTRACTED LAST, after extras are added.
+        #
+        # extraAbilities exists because the sweep sees too LITTLE - a phased
+        # level hides its later controllers. bypassedAbilities is the mirror:
+        # the sweep sees a gated controller that gates nothing, because the
+        # dimmer merges per object and lets UNLOCKED WIN, so a group whose
+        # every object is also held by a baseline group is freed no matter
+        # what the table says.
+        #
+        # Measured, not reasoned: tools/probe-object-sharing.py dumps which
+        # controllers hold which objects and works out what frees what, and
+        # docs/gate-sharing.md lists the results. Confirmed by hand on
+        # Books 3 - droha held ZERO abilities, moved all 17 books and
+        # completed the Swapping-gated arrangement.
+        #
+        # Correcting the table matters beyond tidiness now that the mod
+        # withholds checks the logic calls unreachable: leave it wrong and a
+        # player who legitimately earns one of these is told to wait for an
+        # ability the puzzle never needed.
         self.abilities: FrozenSet[str] = frozenset(
             [
                 _CLASS_TO_ABILITY[c["type"]]
@@ -207,6 +257,12 @@ class Level:
             ]
             + list(raw.get("extraAbilities", []))
         )
+
+        #: The requirement view. See the note above bypassed.
+        self.enforced_abilities: FrozenSet[str] = self.abilities - bypassed
+        self.enforced_part_abilities: Dict[str, FrozenSet[str]] = {
+            part: a - bypassed for part, a in self.part_abilities.items()
+        }
 
     @property
     def repeatable(self) -> bool:

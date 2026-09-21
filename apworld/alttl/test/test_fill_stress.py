@@ -326,6 +326,64 @@ class TestEverySeedIsWinnable(unittest.TestCase):
                                    "item in the multiworld:\n"
                                    + "\n".join(stranded))
 
+    def test_a_location_is_unreachable_without_the_ability_it_names(self):
+        """The negative nobody had written.
+
+        Every other reachability test here is "reaches something from
+        nothing" or "reaches everything with everything". Both pass on logic
+        that gates NOTHING - a rule set that ignored abilities entirely would
+        satisfy them, and that is exactly the failure mode worth guarding.
+
+        So: build a state holding every item EXCEPT one ability, and assert
+        that the locations naming that ability are out of reach. If they are
+        reachable, the requirement is decorative and the logic is lying about
+        what the run needs.
+
+        Not hypothetical. Hand-testing on 2026-09-19 found three gates the
+        game does not enforce at all - Books 3 and TrickOrTidy_ChocolateBars
+        (Swapping) and Workbench (Drawer) - because a baseline Draggables
+        group shares every object with the gated one. That is a table
+        problem rather than a rules problem, and it is not what this test
+        covers: this one asserts the RULES honour the requirements they are
+        given. docs/gate-sharing.md carries the other half.
+        """
+        leaked = []
+        for name, options in CONFIGURATIONS.items():
+            if not options.get("ability_locks", True):
+                continue                      # nothing to enforce
+            for seed in seed_span():
+                test = _generate(options, seed)
+                world = test.multiworld.worlds[test.player]
+
+                reqs = world.requirements
+                wanted = set()
+                for req in reqs.values():
+                    wanted.update(req["abilities"])
+                needed = sorted(wanted)
+                if not needed:
+                    continue
+
+                for ability in needed[:2]:    # two is enough to catch a lie
+                    state = test.multiworld.get_all_state(False)
+                    state.remove(world.create_item(ability))
+
+                    for location_name, req in reqs.items():
+                        if ability not in req["abilities"]:
+                            continue
+                        try:
+                            location = world.get_location(location_name)
+                        except KeyError:
+                            continue          # a name this seed did not use
+                        if location.can_reach(state):
+                            leaked.append(
+                                f"  {name} (seed {seed}): {location_name} "
+                                f"reachable without {ability}")
+                            break
+        self.assertFalse(
+            leaked,
+            "locations reachable without the ability their requirement "
+            "names - the gate is decorative:\n" + "\n".join(leaked))
+
     def test_the_goal_is_always_achievable(self):
         unwinnable = []
         for name, options in CONFIGURATIONS.items():

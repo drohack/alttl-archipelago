@@ -75,7 +75,13 @@ class TestTables(unittest.TestCase):
         self.assertIn("Distributing", data.gap_abilities(with_dlc2))
 
     def test_every_ability_has_at_least_one_level(self):
-        for ability in data.ABILITIES:
+        """ALL_ABILITIES, not the base twelve.
+
+        Asked of ABILITIES alone this never looked at Distributing, so a
+        DLC ability that lost its only level - it has exactly one - would
+        have been minted as an item nothing could ever use.
+        """
+        for ability in data.ALL_ABILITIES:
             self.assertTrue(data.levels_with(ability), ability)
 
     def test_every_archive_level_belongs_to_a_pack(self):

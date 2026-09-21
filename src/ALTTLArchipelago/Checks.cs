@@ -589,30 +589,38 @@ internal static class Checks
         try
         {
             var li = GameManager.Instance?.levelManager?.ActiveLevelInterface;
-            var level = li?.Level;
-            if (li == null || level == null)
+            if (li == null)
             {
                 _watchedLevel = "";
                 _emptyFor = 0f;
                 return;
             }
 
-            // THE CREDITS ARE SUPPOSED TO BE EMPTY. They are an animation, not
-            // a puzzle: no controllers, no level objects, nothing to solve. The
-            // watch below exists to catch a puzzle that loaded as a blank room,
-            // and it accused the finale of exactly that - droha, playing the
-            // ending: "I got an error saying the credits failed to load? but
-            // it's playing right now just fine."
-            //
-            // Also the moment the run is won. Reaching this card IS finishing
-            // the seed, so the goal goes out now rather than after several
-            // minutes of animation - droha again: "I would expect the
-            // completion to go right after the credits level loads."
+            // THE CREDITS ARE CHECKED BEFORE Level IS, and the order is the
+            // point. This used to read `if (li == null || level == null)
+            // return;` above the IsCredits branch, which made reporting the
+            // goal depend on an animation having a Level at all - and the
+            // comment three lines down already says the credits have no
+            // controllers and no level objects. When Level came back null the
+            // watch returned before noticing the run had been won, leaving
+            // OnLevelComplete as the only path: that fires at the END of
+            // several minutes of animation, so the release gate's 60-second
+            // wait for the goal timed out with "the mod reported the goal"
+            // and "the server agrees the goal is met" both failing while
+            // every other check passed.
             if (li.IsCredits)
             {
                 _watchedLevel = "";
                 _emptyFor = 0f;
                 Credits.NotePlayed();
+                return;
+            }
+
+            var level = li.Level;
+            if (level == null)
+            {
+                _watchedLevel = "";
+                _emptyFor = 0f;
                 return;
             }
 
@@ -786,6 +794,7 @@ internal static class Checks
             return;
         }
 
+        if (!Earned(location)) return;
         Report(location);
     }
 
@@ -818,7 +827,7 @@ internal static class Checks
         if (nth > 0)
         {
             var solution = _router.ForSolution(_currentSlot, nth);
-            if (solution != null) Report(solution);
+            if (solution != null && Earned(solution)) Report(solution);
         }
 
         // A skip finishes the puzzle outright: every solution, every controller
@@ -857,6 +866,73 @@ internal static class Checks
 
         var beaten = _router.ForBeaten(_currentSlot);
         if (beaten != null) Report(beaten);
+    }
+
+    /// <summary>
+    /// Has the run actually earned this location, or is it being handed a
+    /// check for work its abilities say it could not have done?
+    ///
+    /// MEASURED, NOT SUPPOSED. Books 3 declares a Shuffleables group of 17
+    /// books behind Swapping and a plain Draggables group over the SAME 17
+    /// books. Draggables is baseline, and the dimmer merges per object with
+    /// unlocked winning, so the baseline group frees every object the gated
+    /// one was meant to hold: on 2026-09-19, holding ZERO abilities, nothing
+    /// on that level was dimmed and completing it filed
+    /// `Books 3 - Design (Shuffle)`. A player could do that by hand - nothing
+    /// was locked - so this is a logic leak rather than a harness artifact.
+    ///
+    /// WITHHOLDING IS SAFE FOR THE LOCATIONS THIS GUARDS, and that is the
+    /// whole reason it guards only those. A withheld part location is filed
+    /// by SweepAlreadySolved on the next visit once the ability arrives, and
+    /// a withheld solution by FileSolutionsAlreadyEarned; both already consult
+    /// this same predicate, and neither existed by accident. A check nobody
+    /// re-files is worse than a check sent early, so anything without a
+    /// recovery path is deliberately NOT gated:
+    ///
+    ///   Beaten - a local event location the server has no address for, with
+    ///            no recovery path at all, and it is what the credits gate
+    ///            counts. Finishing a puzzle is self-evidently earned.
+    ///   Skips  - a deliberate bypass that grants the whole card by design,
+    ///            bounded by supply rather than by rule. See OnLevelComplete.
+    ///
+    /// Fails OPEN on every uncertainty, like the dimmer it backs up: no
+    /// progress table, no inventory, a location this seed does not contain,
+    /// or ability locks turned off in the yaml all report earned. The cost of
+    /// a wrong "no" is a check that never arrives; the cost of a wrong "yes"
+    /// is a check that arrives early.
+    /// </summary>
+    private static bool Earned(string location)
+    {
+        if (_progress == null) return true;
+
+        var abilities = Inventory.Abilities;
+        if (abilities == null) return true;
+
+        // ABILITIES ONLY. IsReachable also gates on PACKS, and this guard
+        // must not - twice over.
+        //
+        // It is not what this exists for. C backs up the ability locks; packs
+        // gate which CARDS open, and a player standing in a level necessarily
+        // has the pack that opened it. Gating on packs here adds a way to
+        // fail with nothing to gain.
+        //
+        // And the reading is not trustworthy. Track.State is null before the
+        // track is built, so `PacksHeld ?? 0` fails CLOSED - every pack-gated
+        // location is withheld on a zero that means "not known yet" rather
+        // than "none held". A gate run lost `Paper Plane Supplies (Drawer
+        // Chores) - Draggables` that way; it needs packs 1 and Drawer, the
+        // run held Drawer, and the Grids sitting on that location never
+        // shipped. TupperwareTower needed Grids, so the run stalled at 7 of 8
+        // while every other check passed.
+        //
+        // int.MaxValue satisfies the pack half unconditionally and leaves the
+        // ability half exactly as it was.
+        if (_progress.IsReachable(location, int.MaxValue, abilities)) return true;
+
+        Plugin.Logger.LogInfo(
+            $"checks: withheld {location} - the run cannot reach it yet; "
+            + "it will be filed on a later visit once the item arrives");
+        return false;
     }
 
     private static void Report(string location)
