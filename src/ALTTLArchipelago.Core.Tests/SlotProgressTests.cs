@@ -140,4 +140,58 @@ public class SlotProgressTests
         Assert.True(doable > 0,
             "every card in the opening is locked, so the run cannot start");
     }
+
+    // THE FIFTH STATE. droha finished Candy Canes and its card stayed solid
+    // red, identical to a card never opened, because everything it had left
+    // needed Ordering. The badge was right about reachability and silent
+    // about history.
+
+    [Fact]
+    public void ABeatenCardThatStillOwesUnreachableChecksIsNotLocked()
+    {
+        var (progress, data) = Build();
+        // Height banked and the level beaten; Design still needs Swapping,
+        // which is not held. Nothing left is reachable - but it was played.
+        Assert.Equal(SlotStatus.Beaten,
+            Status(progress, data, packs: 0,
+                   collected: new[] { "Books 3 - Height", "Books 3 - Beaten" }));
+    }
+
+    [Fact]
+    public void ACardWithNoBeatenLocationStaysLocked()
+    {
+        // Not every seed mints a Beaten location for every slot. With nothing
+        // recording that the level was finished, Locked is the honest answer
+        // and the new state must not be guessed into place.
+        var data = Seed();
+        data.Requirements.Remove("Books 3 - Beaten");
+        var progress = new SlotProgress(data, new CheckRouter(data));
+        Assert.Equal(SlotStatus.Locked,
+            Status(progress, data, packs: 0,
+                   collected: new[] { "Books 3 - Height" }));
+    }
+
+    [Fact]
+    public void CompleteStillWinsOverBeaten()
+    {
+        // Nothing left at all. That the level was also beaten adds nothing to
+        // say, and a card with work left and a card with none must not draw
+        // the same badge.
+        var (progress, data) = Build();
+        Assert.Equal(SlotStatus.Complete,
+            Status(progress, data, packs: 3, held: new[] { "Swapping" },
+                   collected: new[] { "Books 3 - Height", "Books 3 - Design",
+                                      "Books 3 - Beaten" }));
+    }
+
+    [Fact]
+    public void ABeatenCardWithReachableWorkLeftIsStillDoable()
+    {
+        // Beaten is only for cards with NOTHING reachable. A player who can
+        // still earn something here must be told so.
+        var (progress, data) = Build();
+        Assert.Equal(SlotStatus.Doable,
+            Status(progress, data, packs: 3, held: new[] { "Swapping" },
+                   collected: new[] { "Books 3 - Beaten" }));
+    }
 }

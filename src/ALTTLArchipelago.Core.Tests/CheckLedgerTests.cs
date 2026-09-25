@@ -161,4 +161,21 @@ public class CheckLedgerTests
 
         Assert.Equal(new[] { "Bats - Beaten", "Spoons - Beaten" }, ledger.LocalForSaving());
     }
+
+    [Fact]
+    public void OnlyWhatTheServerHasIsCachedAsServerChecked()
+    {
+        // The offline cache restores these as collected and NOT owed, so a
+        // check the server never acknowledged must not be among them.
+        var ledger = new CheckLedger();
+        ledger.AdoptServerChecks(new[] { "Books 3 - Solution 1" });
+        ledger.Check("Spoons - Solution 1");
+        ledger.Check("Telescope - Solution 1");
+        ledger.Acknowledge(new[] { "Telescope - Solution 1" });
+        ledger.RecordLocal("Spoons - Beaten");
+        ledger.RestoreOwed(new[] { "Bats - Solution 1" });
+
+        Assert.Equal(new[] { "Books 3 - Solution 1", "Telescope - Solution 1" },
+                     ledger.ServerCheckedForSaving());
+    }
 }

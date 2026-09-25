@@ -226,6 +226,7 @@ public sealed class Plugin : BasePlugin
                      ("daily guard", typeof(DailyGuard)),
                      ("title screen", typeof(TitleScreen)),
                      ("ability locks", typeof(AbilityLocks)),
+                     ("card stars", typeof(CardStars)),
                  })
         {
             try
@@ -277,7 +278,8 @@ public sealed class Plugin : BasePlugin
         SlotCache.Source = () => _slot == null || SaveRedirect.ActiveName == null
             ? null
             : CachedSession.Of(_slotName.Value, _seed, _slot,
-                               Inventory.Received(), DateTime.Now);
+                               Inventory.Received(), DateTime.Now,
+                               Checks.Ledger.ServerCheckedForSaving());
 
         // Quietly, and only once - see AutoConnect below.
         //
@@ -769,6 +771,8 @@ public sealed class Plugin : BasePlugin
             // goes out on the next flush.
             Checks.Ledger.Acknowledge(accepted);
             RunState.SetOwed(Checks.Ledger.OwedForSaving());
+            // The server has these now, so the offline cache should too.
+            SlotCache.MarkDirty();
             Logger.LogInfo(
                 $"checks: sent {accepted.Count}, {Checks.Ledger.Owed.Count} still owed");
         });
@@ -906,10 +910,11 @@ public sealed class Plugin : BasePlugin
     /// <summary>
     /// Bring the last run back with no server.
     ///
-    /// Everything here mirrors OnReady, minus the two steps that need a
-    /// socket: the server's own check list is not adopted, and nothing is
-    /// sent. Both are picked up on the next connect - the ledger keeps what
-    /// was earned, RunState persists it, and FlushChecks pushes it.
+    /// Everything here mirrors OnReady, minus the steps that need a socket:
+    /// the server's check list comes from the cache rather than the server,
+    /// and nothing is sent. The next connect replaces the one and does the
+    /// other - the ledger keeps what was earned, RunState persists it, and
+    /// FlushChecks pushes it.
     /// </summary>
     private static void StartOffline(string why)
     {
@@ -964,13 +969,12 @@ public sealed class Plugin : BasePlugin
         Traps.Reset();
         Checks.Begin(slot);
 
-        // The Beaten tokens, then anything earned offline last time. No
-        // AdoptServerChecks: there is no server to have a list. That means the
-        // ledger knows only what this install has seen, which is exactly right
-        // - a check the server already has is re-sent on the next connect, and
-        // Archipelago says duplicate sends are fine.
+        // The Beaten tokens, then anything earned offline last time, then what
+        // the server had when the cache was written - collected, not owed, as
+        // at login - so cards, stars and the goal count read as they did online.
         Checks.Ledger.RestoreLocal(RunState.Beaten());
         Checks.Ledger.RestoreOwed(RunState.Owed());
+        Checks.AdoptServerChecks(cache.Checked);
         FlushChecks();
 
         IsOffline = true;
@@ -1177,6 +1181,7 @@ public sealed class Ticker : MonoBehaviour
         Step("track scroll", () => Track.TickScroll(dt));
         Step("daily rescue", () => DailyGuard.TickRescue(dt));
         Step("dlc guard", () => DlcGuard.Tick(dt));
+        Step("skips", () => Skips.Tick(dt));
         Step("prompt memory", () => PromptMemory.Tick(dt));
         Step("connected tag", () => Badges.TickConnectedTag());
         Step("title state", () => TitleScreen.TickState());

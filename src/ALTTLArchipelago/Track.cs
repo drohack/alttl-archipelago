@@ -708,7 +708,7 @@ internal static class Track
     /// and the rebuild lands on an arbitrary track - which is why one menu open
     /// was rebuilding six times.
     /// </summary>
-    private static bool IsCampaignSelect(LevelSelect? select)
+    internal static bool IsCampaignSelect(LevelSelect? select)
         => select != null
            && select.TryCast<ArchiveMenu>() == null
            && select.TryCast<DLCLevelSelect>() == null;

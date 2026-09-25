@@ -152,4 +152,36 @@ public class ControllerGroupsTests
             new[] { Abilities.Grids, Abilities.Swapping }.OrderBy(x => x),
             all.OrderBy(x => x));
     }
+    [Fact]
+    public void ANotALocationControllerIsNoGroupButStillGates()
+    {
+        // DLC1 Kitchen Utensils Drawers: the level ends before both drawers
+        // can be shut, so "Drawers" never reports solved. It must not be a
+        // check, and its contents must still need Drawer.
+        var drawers = C("Drawers", "DrawerController");
+        drawers.NotALocation = true;
+        var level = Level("DLC1 Kitchen Utensils Drawers", 1,
+            drawers,
+            C("Top Drawer", "Draggables", "Drawers"),
+            C("Bottom Drawer", "Draggables", "Drawers"));
+
+        var groups = ControllerGroups.For(level);
+
+        Assert.Equal(new[] { "Bottom Drawer", "Top Drawer" }, groups.Select(g => g.Name));
+        Assert.All(groups, g => Assert.Contains(Abilities.Drawer, g.Abilities));
+        Assert.Contains(Abilities.Drawer, ControllerGroups.AbilitiesForLevel(level));
+    }
+    [Fact]
+    public void ANotALocationControllerNobodyDependsOnStillCountsForTheLevel()
+    {
+        // DLC1 Nested Drawers: the drawer is solved at load and its contents
+        // declare no edge to it. The level must still need Drawer.
+        var drawers = C("Drawers", "DrawerController");
+        drawers.NotALocation = true;
+        var level = Level("DLC1 Nested Drawers", 1,
+            drawers,
+            C("Draggables", "Draggables"));
+
+        Assert.Contains(Abilities.Drawer, ControllerGroups.AbilitiesForLevel(level));
+    }
 }

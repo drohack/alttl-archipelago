@@ -140,11 +140,9 @@ internal static class Checks
         _currentSlot = slotIndex;
         _auditedCount = 0;
 
-        // Any skip in flight belongs to the level we just left. If it never
-        // produced a completion, the flag would otherwise sit set and swallow
-        // the Beaten token for THIS level, which the player would then have to
-        // earn twice with no way to know why.
-        Skips.Skipping = false;
+        // Any skip in flight belongs to the level we just left. One that never
+        // landed is dropped here, uncharged.
+        Skips.Flow.Entered(slotIndex);
 
         // Same reasoning for the hint refusal toast: it is latched so that
         // dragging the eraser does not produce a wall of them, and the latch
@@ -473,6 +471,10 @@ internal static class Checks
                 live.Add(name);
                 if (known.ContainsKey(name)) continue;
 
+                // No location on purpose (solved at load, or never solved).
+                if (_slot.NotLocations.TryGetValue(levelId, out var skip)
+                    && skip.Contains(name)) continue;
+
                 // A controller that can never carry a location is not a
                 // mismatch, it is scenery. Pannables is the only one - see
                 // ControllerTypes, where the count behind that is recorded -
@@ -633,8 +635,13 @@ internal static class Checks
 
             var controllers = level.objectControllers;
             var objects = level.allLevelObjects;
-            var empty = (controllers == null || controllers.Count == 0)
-                        && (objects == null || objects.Count == 0);
+            // A chapter card is never an empty puzzle: the title can hold one
+            // as the active level after the track was left (base gate,
+            // 2026-09-25). See EmptyLevelWatch.
+            var empty = EmptyLevelWatch.LoadedEmpty(
+                li.LevelType == LevelType.Chapter, li.IsCredits,
+                controllers == null ? 0 : controllers.Count,
+                objects == null ? 0 : objects.Count);
 
             if (!empty)
             {
@@ -671,6 +678,7 @@ internal static class Checks
         {
             Listen<GameEventManager.GameEvent_ObjectControllerSolved>(OnControllerSolved);
             Listen<GameEventManager.GameEvent_LevelComplete>(OnLevelComplete);
+            Listen<GameEventManager.GameEvent_LevelSkipped>(OnLevelSkipped);
             _attached = true;
             Plugin.Logger.LogInfo("checks: listening for solves");
         }
@@ -830,42 +838,52 @@ internal static class Checks
             if (solution != null && Earned(solution)) Report(solution);
         }
 
-        // A skip finishes the puzzle outright: every solution, every controller
-        // group, and the Beaten token.
-        //
-        // This REVERSES the earlier behaviour, deliberately and on droha's
-        // call. Beaten used to be withheld on a skip, because the credits gate
-        // counts Beaten tokens and enough Skips could therefore reach the goal
-        // with nothing solved. The cost of that protection was a card that
-        // could never be finished: the star badge needs every location on the
-        // slot, so a skipped level sat one location short for the rest of the
-        // run with nothing the player could do about it.
-        //
-        // The exploit is now bounded by supply instead of by rule - skip_count
-        // caps at 20 - and the option text says so rather than promising that
-        // skipped puzzles do not count.
-        //
-        // Sent explicitly rather than left to the solved-controller events: a
-        // skip does not necessarily raise one per group, and the part
-        // locations are exactly the ones that would otherwise be stranded.
-        if (Skips.Skipping)
-        {
-            Skips.Skipping = false;
-
-            var sent = 0;
-            foreach (var name in _router.ForSlot(_currentSlot))
-            {
-                if (_ledger.IsCollected(name)) continue;
-                Report(name);
-                sent++;
-            }
-            Plugin.Logger.LogInfo(
-                $"checks: skipped slot {_currentSlot}, sent {sent} remaining location(s)");
-            return;
-        }
-
+        // A skip's completion is paid like any other here; the game's
+        // LevelSkipped, which follows it, releases the rest of the slot (see
+        // OnLevelSkipped and Skips).
         var beaten = _router.ForBeaten(_currentSlot);
         if (beaten != null) Report(beaten);
+    }
+
+    /// <summary>
+    /// The game skipped the level. If it was the run's paid-for Skip, the rest
+    /// of the slot is released and the Skip charged (Skips.OnLevelSkipped).
+    /// </summary>
+    private static void OnLevelSkipped(GameEventManager.GameEventData data)
+    {
+        EnsureSlot();
+        Skips.OnLevelSkipped(_currentSlot);
+    }
+
+    /// <summary>
+    /// Send every location on the slot not yet collected, Beaten included: a
+    /// Skip finishes the puzzle outright - every solution, every controller
+    /// group, and the Beaten token.
+    ///
+    /// This REVERSES the earlier behaviour, deliberately and on droha's call.
+    /// Beaten used to be withheld on a skip, because the credits gate counts
+    /// Beaten tokens and enough Skips could therefore reach the goal with
+    /// nothing solved. The cost was a card that could never be finished: the
+    /// star badge needs every location on the slot. The exploit is bounded by
+    /// supply instead - skip_count caps at 20.
+    ///
+    /// Sent explicitly rather than left to the solved-controller events: a
+    /// skip does not necessarily raise one per group, and the part locations
+    /// are exactly the ones that would otherwise be stranded. Not gated by
+    /// Earned: a Skip grants the whole card by design.
+    /// </summary>
+    internal static int ReleaseSlot(int slot)
+    {
+        if (_router == null || slot < 0) return 0;
+        var sent = 0;
+        foreach (var name in _router.ForSlot(slot))
+        {
+            if (_ledger.IsCollected(name)) continue;
+            Report(name);
+            sent++;
+        }
+        Plugin.Logger.LogInfo($"checks: skipped slot {slot}, sent {sent} remaining location(s)");
+        return sent;
     }
 
     /// <summary>

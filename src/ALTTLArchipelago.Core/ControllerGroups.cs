@@ -61,7 +61,11 @@ public static class ControllerGroups
 {
     public static IReadOnlyList<ControllerGroup> For(LevelInfo level)
     {
-        var puzzles = level.Controllers.Where(Abilities.IsPuzzleController).ToList();
+        var gating = level.Controllers.Where(Abilities.IsPuzzleController).ToList();
+
+        // A notALocation controller is no group of its own, but its ability
+        // still reaches whatever depends on it (see gatingByName below).
+        var puzzles = gating.Where(c => !c.NotALocation).ToList();
 
         // Controllers sharing a GameObject name are one visual group wearing
         // two components (Radial Dance Party lists "Radial Cat Toys 1" as both
@@ -107,9 +111,13 @@ public static class ControllerGroups
             }
         }
 
+        var gatingByName = gating
+            .GroupBy(c => c.Name, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
+
         // Abilities a single named controller needs, ignoring dependencies.
         IEnumerable<string> Own(string name)
-            => byName[name]
+            => gatingByName[name]
                 .Select(c => Abilities.ForClass(c.Type))
                 .Where(a => a != null)!
                 .Cast<string>();
@@ -146,7 +154,7 @@ public static class ControllerGroups
                 var n = queue.Dequeue();
 
                 // Abilities only from puzzle controllers...
-                if (byName.ContainsKey(n))
+                if (gatingByName.ContainsKey(n))
                 {
                     foreach (var a in Own(n)) need.Add(a);
                 }
@@ -226,6 +234,16 @@ public static class ControllerGroups
         foreach (var g in For(level))
         {
             foreach (var a in g.Abilities) all.Add(a);
+        }
+
+        // A notALocation controller is in no group, but the level still makes
+        // the player use it (a drawer solved at load is still opened to reach
+        // what is inside). Dropping it here would understate the level.
+        foreach (var c in level.Controllers)
+        {
+            if (!c.NotALocation || !Abilities.IsPuzzleController(c)) continue;
+            var a = Abilities.ForClass(c.Type);
+            if (a != null) all.Add(a);
         }
         return all;
     }

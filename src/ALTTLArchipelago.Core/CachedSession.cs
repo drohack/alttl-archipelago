@@ -77,6 +77,15 @@ public sealed class CachedSession
     [JsonPropertyName("slot_data")]
     public SlotData Slot { get; set; } = new();
 
+    /// <summary>
+    /// The locations the server had (CheckLedger.ServerCheckedForSaving), so
+    /// an offline start shows the cards, stars and goal count the online run
+    /// showed. Restored as collected, never owed. Empty in a cache written
+    /// before this field existed.
+    /// </summary>
+    [JsonPropertyName("checked")]
+    public List<string> Checked { get; set; } = new();
+
     public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);
 
     /// <summary>Null when the text is not a cache at all, rather than throwing.</summary>
@@ -126,17 +135,19 @@ public sealed class CachedSession
            && string.Equals(SlotName, slotName, StringComparison.Ordinal);
 
     /// <summary>
-    /// A cache of what is held right now. Copies the list: the caller's is
+    /// A cache of what is held right now. Copies the lists: the caller's are
     /// live and will keep changing.
     /// </summary>
     public static CachedSession Of(string slotName, string seed, SlotData slot,
-                                   IReadOnlyList<string> items, DateTime now)
+                                   IReadOnlyList<string> items, DateTime now,
+                                   IEnumerable<string>? serverChecked = null)
         => new()
         {
             SlotName = slotName,
             Seed = seed,
             Slot = slot,
             Items = new List<string>(items),
+            Checked = serverChecked == null ? new List<string>() : new List<string>(serverChecked),
             SavedAt = now.ToString("yyyy-MM-dd HH:mm:ss"),
         };
 }

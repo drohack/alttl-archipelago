@@ -98,6 +98,22 @@ internal static partial class Badges
                 case SlotStatus.Locked:   colour = Red; break;
                 case SlotStatus.Mixed:    colour = Color.white; break;   // the sprite carries it
                 case SlotStatus.Complete: colour = FallbackStar; break;
+
+                // BEATEN READS AS RED HERE, the same as its card badge.
+                //
+                // The strip answers one question - is there anything I can do
+                // on this card right now - and for a beaten card that still
+                // owes unreachable checks the answer is no, exactly as for a
+                // locked one; its card badge is the same red square too. The
+                // star is for a card with nothing left at all (droha,
+                // 2026-09-24: "red, red/green, green, yellow star; no
+                // overlapping").
+                //
+                // It still needs its own case rather than falling to the
+                // default below: `default: continue` skips Paint entirely,
+                // which would leave whatever tint the dot was last given.
+                case SlotStatus.Beaten:   colour = Red; break;
+
                 default: continue;
             }
 

@@ -226,4 +226,55 @@ public class CheckRouterTests
                 $"{name} would be sent to a server that has no address for it");
         }
     }
+
+    // The hover stars on a run's card: one per Solution location of THIS
+    // slot, lit when collected, so they start empty on every new seed.
+
+    [Fact]
+    public void AFreshSeedLightsNoSolutionStar()
+    {
+        var router = new CheckRouter(Seed());
+        Assert.Equal((0, 2), router.SolutionStars(0, _ => false));
+    }
+
+    [Fact]
+    public void OneSolutionLightsOneStar()
+    {
+        var router = new CheckRouter(Seed());
+        Assert.Equal((1, 2), router.SolutionStars(0, n => n == "Books 3 - Solution 1"));
+    }
+
+    [Fact]
+    public void ASolutionCollectedOutOfOrderStillLightsOneStar()
+    {
+        var router = new CheckRouter(Seed());
+        Assert.Equal((1, 2), router.SolutionStars(0, n => n == "Books 3 - Solution 2"));
+    }
+
+    [Fact]
+    public void ASkipLightsEveryStar()
+    {
+        // A Skip sends every location the slot can produce.
+        var router = new CheckRouter(Seed());
+        var sent = new HashSet<string>(router.ForSlot(0));
+        Assert.Equal((2, 2), router.SolutionStars(0, sent.Contains));
+    }
+
+    [Fact]
+    public void ARepeatedLevelsStarsAreItsOwn()
+    {
+        var router = new CheckRouter(Seed());
+        Assert.Equal((0, 1), router.SolutionStars(1, n => n == "Books 3 - Solution 1"));
+        Assert.Equal((1, 1), router.SolutionStars(1, n => n == "Books 3 #2 - Solution 1"));
+    }
+
+    [Fact]
+    public void ASlotWithNoSolutionLocationHasNoStars()
+    {
+        var data = Seed();
+        data.Slots.Add(new SlotEntry { LevelId = "Pencils", LevelIndex = 5, Instance = 1 });
+        var router = new CheckRouter(data);
+        Assert.Equal((0, 0), router.SolutionStars(2, _ => true));
+        Assert.Equal((0, 0), router.SolutionStars(99, _ => true));
+    }
 }

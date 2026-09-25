@@ -167,6 +167,59 @@ public class CachedSessionTests
         Assert.Contains("no slots", cache.Problems());
     }
 
+    // The server's checked locations, so an offline start shows the cards,
+    // stars and goal count the online run showed.
+
+    [Fact]
+    public void ARoundTripKeepsTheServersCheckedLocations()
+    {
+        var before = CachedSession.Of("droha", "abc12345", Example(),
+                                      Array.Empty<string>(), DateTime.UnixEpoch,
+                                      new[] { "Spoons - Solution 1", "Books 3 - Height" });
+
+        var after = CachedSession.FromJson(before.ToJson())!;
+
+        Assert.Equal(new[] { "Spoons - Solution 1", "Books 3 - Height" }, after.Checked);
+    }
+
+    [Fact]
+    public void ACacheFromBeforeTheCheckedListLoadsWithNone()
+    {
+        var json = Sample(ItemNames.Pack).ToJson().Replace(",\"checked\":[]", "");
+        Assert.DoesNotContain("\"checked\"", json);
+
+        var cache = CachedSession.FromJson(json);
+
+        Assert.NotNull(cache);
+        Assert.Empty(cache!.Checked);
+        Assert.Empty(cache.Problems());
+    }
+
+    [Fact]
+    public void AnOfflineStartCountsTheCachedChecksWithoutOwingThem()
+    {
+        var cache = CachedSession.FromJson(CachedSession.Of(
+            "droha", "abc12345", Example(), Array.Empty<string>(),
+            DateTime.UnixEpoch, new[] { "Spoons - Solution 1" }).ToJson())!;
+        var ledger = new CheckLedger();
+
+        ledger.AdoptServerChecks(cache.Checked);
+
+        Assert.True(ledger.IsCollected("Spoons - Solution 1"));
+        Assert.Empty(ledger.Owed);
+    }
+
+    [Fact]
+    public void TheCheckedListIsCopiedNotAliased()
+    {
+        var live = new List<string> { "Spoons - Solution 1" };
+        var cache = CachedSession.Of("droha", "abc12345", Example(),
+                                     Array.Empty<string>(), DateTime.UnixEpoch, live);
+        live.Add("Telescope - Solution 1");
+
+        Assert.Single(cache.Checked);
+    }
+
     /// <summary>
     /// The list is copied on the way in. It is Inventory's live list at the
     /// call site, and it keeps changing.

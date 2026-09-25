@@ -40,8 +40,6 @@ internal static class AbilityLocks
     /// <summary>Dim grey at partial alpha, the shade S3 confirmed reads as "not yet".</summary>
     private static readonly Color Locked = new(0.55f, 0.55f, 0.55f, 0.6f);
 
-    private static float _sincePass;
-
     /// <summary>
     /// Each renderer's colour before we ever touched it, by instance id.
     ///
@@ -54,6 +52,20 @@ internal static class AbilityLocks
     private static readonly Dictionary<int, Color> _original = new();
 
     /// <summary>
+    /// Renderers WE have painted grey, by instance id. Only these are ever
+    /// restored, and only once, when their lock lifts.
+    ///
+    /// The first version re-asserted the recorded colour on EVERY object every
+    /// second, unlocked ones included. Radial Dance Party's Cat Toys fade in
+    /// as their dance starts, so the "own colour" first recorded was
+    /// transparent, and the pass then forced them back to invisible once a
+    /// second - droha, holding Rotating, the one ability the level needs:
+    /// "the items dissapeared after it loaded in". Locks off, it played to
+    /// the end. An object we never greyed out is none of our business.
+    /// </summary>
+    private static readonly HashSet<int> _tinted = new();
+
+    /// <summary>
     /// What the last pass concluded, so the log speaks only when it changes.
     /// A line every second would bury everything else.
     /// </summary>
@@ -63,10 +75,10 @@ internal static class AbilityLocks
     internal static void Reset()
     {
         _lastSummary = "";
-        _sincePass = 0f;
         // Colours and class names belong to objects that are gone; ids get
         // reused, so a stale entry would answer for the wrong object.
         _original.Clear();
+        _tinted.Clear();
         _classes.Clear();
         _colliders.Clear();
         _bodies.Clear();
@@ -114,52 +126,126 @@ internal static class AbilityLocks
     }
 
     /// <summary>
-    /// The backstop, now that AfterRegister does the arriving.
+    /// Per-frame passes while a rebuild settles (see HoldDim), and nothing
+    /// otherwise.
     ///
-    /// Still a poll, because an ability can arrive from the server at any time
-    /// while a level sits open and nothing registers to announce it. What it no
-    /// longer has to do is be the thing that locks a level in the first place.
+    /// THERE IS NO ONCE-A-SECOND PASS ANY MORE. It existed for two things,
+    /// and both now have an event: an ability arriving (Inventory re-applies
+    /// when AbilityState.Version moves) and the game rebuilding objects under
+    /// us (the listeners in AttachGameEvents).
     /// </summary>
     internal static void Tick(float dt)
     {
+        if (Time.unscaledTime >= _holdUntil) return;
+
         var state = Inventory.Abilities;
         if (state == null || !state.LocksEnabled) return;
-
-        // While a rebuild is settling, every frame. See HoldDim.
-        if (Time.unscaledTime < _holdUntil)
-        {
-            Apply(state);
-            return;
-        }
-
-        _sincePass += dt;
-        if (_sincePass < 1f) return;
-        _sincePass = 0f;
-
         Apply(state);
     }
 
     /// <summary>
-    /// Re-dim right now, without waiting for the next pass.
-    ///
-    /// The dimming pass runs once a second, which is fine while a puzzle
-    /// sits still and wrong the moment something rebuilds it: the game
-    /// restores every object's own colour, and locked pieces then sit fully
-    /// lit until the next tick comes round. droha, on the cat trap: "the
-    /// items that are greyed out are colored in for a second before getting
-    /// greyed out."
+    /// Game events after which the game may have re-lit or re-enabled
+    /// objects we locked: a drawer moving, a phase starting, a reset, a
+    /// controller set changing, a level finishing its entrance.
+    /// </summary>
+    internal static void AttachGameEvents()
+    {
+        if (_eventsAttached) return;
+        try
+        {
+            Redim<GameEventManager.GameEvent_ObjectDrawerChanged>("DrawerChanged");
+            Redim<GameEventManager.GameEvent_ObjectControllerEnteredPhase>("EnteredPhase");
+            Redim<GameEventManager.GameEvent_LevelReset>("LevelReset");
+            Redim<GameEventManager.GameEvent_LevelRandomized>("LevelRandomized");
+            Redim<GameEventManager.GameEvent_ControllerChanged>("ControllerChanged");
+            Redim<GameEventManager.GameEvent_ControllerCountChanged>("ControllerCountChanged");
+            Redim<GameEventManager.GameEvent_LevelTransitionInComplete>("TransitionInComplete");
+            OnLevelEnd<GameEventManager.GameEvent_LevelComplete>();
+            OnLevelEnd<GameEventManager.GameEvent_LevelExited>();
+            _eventsAttached = true;
+            Plugin.Logger.LogInfo("abilities: listening for rebuilds");
+        }
+        catch (Exception e)
+        {
+            // GameEventManager may not exist on the first frames; the next
+            // Begin tries again.
+            Plugin.Logger.LogWarning($"abilities: could not attach listeners: {e.Message}");
+        }
+    }
+
+    private static bool _eventsAttached;
+
+    // The IL2CPP side holds these weakly; rooting them here keeps them firing.
+    private static readonly List<Il2CppSystem.Action<GameEventManager.GameEventData>> KeepAlive = new();
+
+    /// <summary>How often each re-dim event fired on the current level.</summary>
+    private static readonly SortedDictionary<string, int> _eventCounts = new(StringComparer.Ordinal);
+
+    private static void Redim<T>(string label) where T : GameEventManager.GameEvent
+    {
+        Il2CppSystem.Action<GameEventManager.GameEventData> action =
+            (Action<GameEventManager.GameEventData>)(_ =>
+            {
+                try
+                {
+                    _eventCounts[label] = _eventCounts.TryGetValue(label, out var n) ? n + 1 : 1;
+                    var state = Inventory.Abilities;
+                    if (state == null || !state.LocksEnabled) return;
+                    HoldDim();
+                }
+                catch (Exception e)
+                {
+                    Plugin.Logger.LogWarning($"abilities: {label} handler failed: {e.Message}");
+                }
+            });
+        KeepAlive.Add(action);
+        GameEventManager.AddEventListener<T>(action);
+    }
+
+    private static void OnLevelEnd<T>() where T : GameEventManager.GameEvent
+    {
+        Il2CppSystem.Action<GameEventManager.GameEventData> action =
+            (Action<GameEventManager.GameEventData>)(_ =>
+            {
+                try
+                {
+                    ReportEvents(GameManager.Instance?.levelManager?.ActiveLevelInterface?.LevelId ?? "?");
+                }
+                catch
+                {
+                    // A diagnostic line is not worth a throw into IL2CPP.
+                }
+            });
+        KeepAlive.Add(action);
+        GameEventManager.AddEventListener<T>(action);
+    }
+
+    /// <summary>
+    /// One line per level: which re-dim events fired and how often. Called
+    /// when the level ends, so it is evidence, not noise.
+    /// </summary>
+    private static void ReportEvents(string levelId)
+    {
+        if (_eventCounts.Count == 0) return;
+        var parts = new List<string>();
+        foreach (var pair in _eventCounts) parts.Add($"{pair.Key}={pair.Value}");
+        Plugin.Logger.LogInfo($"abilities: re-dim events on {levelId}: {string.Join(", ", parts)}");
+        _eventCounts.Clear();
+    }
+
+    /// <summary>
+    /// Re-dim right now: an ability arrived, or a new seed began.
     /// </summary>
     internal static void ApplyNow()
     {
         var state = Inventory.Abilities;
         if (state == null || !state.LocksEnabled) return;
 
-        _sincePass = 0f;
         Apply(state);
     }
 
     /// <summary>
-    /// Until when the dimming runs EVERY frame instead of once a second.
+    /// Until when the dimming runs every frame. Outside it, nothing runs.
     /// </summary>
     private static float _holdUntil;
 
@@ -170,7 +256,7 @@ internal static class AbilityLocks
     /// the instant the reset is requested dims objects the game is about to
     /// restore: it puts every piece back to its own colour AFTER our call -
     /// later in the frame, or on one of the next few - and the locked ones
-    /// then sit fully lit until the once-a-second pass comes round.
+    /// then sit fully lit until something dims them again.
     ///
     /// droha, watching MedicineCabinet with Containers and Ordering locked:
     /// "when the cat trap triggers I see the locked pieces as full colored in
@@ -772,8 +858,8 @@ internal static class AbilityLocks
     /// The controller's class name, resolved once per object.
     ///
     /// GetIl2CppType().Name is an interop type resolution plus a native string
-    /// marshal, and this pass asked it for every controller every second for a
-    /// value that is fixed for the object's lifetime. Keyed by instance id, and
+    /// marshal, and every pass (each frame of a hold, each event) would ask it
+    /// for every controller for a value that is fixed for the object's lifetime. Keyed by instance id, and
     /// cleared with the rest of the state when a run ends.
     /// </summary>
     private static readonly Dictionary<int, string> _classes = new();
@@ -808,21 +894,34 @@ internal static class AbilityLocks
         if (renderer == null) return;
 
         var id = renderer.GetInstanceID();
-        if (!_original.TryGetValue(id, out var was))
+
+        if (!isLocked)
         {
-            // First sighting. Whatever it looks like now IS its own colour -
-            // this runs before we have changed anything about it.
-            was = renderer.color;
-            _original[id] = was;
+            // Unlocked: hand back what we took, once, and then leave it to the
+            // game - including any fade the level is running on it.
+            if (_tinted.Remove(id) && _original.TryGetValue(id, out var own))
+            {
+                renderer.color = own;
+            }
+            return;
         }
 
-        var want = isLocked ? Locked : was;
+        if (!_original.ContainsKey(id))
+        {
+            // First time we grey it: whatever it looks like now is its own
+            // colour, EXCEPT mid-fade. A sprite caught fading in reads nearly
+            // transparent, and restoring that later would make it vanish, so
+            // record it as fully opaque instead.
+            var was = renderer.color;
+            if (was.a < 0.05f) was.a = 1f;
+            _original[id] = was;
+        }
+        _tinted.Add(id);
 
-        // Only when it is actually changing. This pass re-asserts every object
-        // every second by design, so on a settled level every one of these was
-        // a redundant write into IL2CPP - a few hundred a second on a level
-        // where nothing had moved.
-        if (renderer.color == want) return;
-        renderer.color = want;
+        // Only when it is actually changing: a hold re-asserts locked objects
+        // every frame, and on a settled level every write here would be a
+        // redundant call into IL2CPP.
+        if (renderer.color == Locked) return;
+        renderer.color = Locked;
     }
 }

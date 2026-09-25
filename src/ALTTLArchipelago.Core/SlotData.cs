@@ -156,6 +156,14 @@ public sealed class SlotData
     [JsonPropertyName("controller_groups")]
     public Dictionary<string, Dictionary<string, string>> ControllerGroups { get; set; } = new();
 
+    /// <summary>
+    /// Controller GameObject names, per level, that the level registers but
+    /// that are no location on purpose (notALocation in levels.json). Absent
+    /// from an older payload, which is the same as none.
+    /// </summary>
+    [JsonPropertyName("not_locations")]
+    public Dictionary<string, List<string>> NotLocations { get; set; } = new();
+
     /// <summary>Percentage of filler that is the cat knocking things over.</summary>
     [JsonPropertyName("cat_trap_chance")]
     public int CatTrapChance { get; set; } = 25;   // CatTrapChance.default

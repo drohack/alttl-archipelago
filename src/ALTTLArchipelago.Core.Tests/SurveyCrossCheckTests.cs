@@ -172,17 +172,19 @@ public class SurveyCrossCheckTests
         // TO SETTLE IT: play either boss and watch the mod's CONTROLLER
         // MISMATCH line. A phased controller appears there when it registers;
         // a ghost never does. If they register, restore them here.
-        ["DLC1 Boss"] = new[]
-        {
-            "Dining Room Draggables/Draggables",
-            "Landscape Draggables/Draggables",
-            "Parking Lot Draggables/Draggables",
-        },
+        // DLC1 Boss SETTLED 2026-09-23 the same way as DLC2 Boss: droha played
+        // it holding only Drawer and Dining Room, Parking Lot and Landscape
+        // all registered and solved, in that order, before the keys. They
+        // are restored to the table, so DLC1 Boss no longer disagrees.
+        // SETTLED for DLC2 Boss on 2026-09-23: droha played it twice under
+        // tools/record-unlocks.py and Locks, Compass and Knives all
+        // registered and solved, so they are restored to the table. What is
+        // left is the reverse: the Drawer Controller the prefab has, which
+        // never solved in either run - one of them a full completion - and
+        // was removed as a location that could never be earned.
         ["DLC2 Boss"] = new[]
         {
-            "Compass/Shuffleables",
-            "Knives/Shuffleables",
-            "Locks/DraggablesOrdered",
+            "Drawer Controller/DrawerController",
         },
 
         // IndexControlledPhaseLevel, whose nine phases the sweep reads as

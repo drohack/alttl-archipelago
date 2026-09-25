@@ -123,6 +123,10 @@ internal static class Inventory
         HintPagesHeld = 0;
         BackgroundTraps = 0;
         Apply();
+
+        // A new seed's locks, for a level that is already open.
+        AbilityLocks.AttachGameEvents();
+        AbilityLocks.ApplyNow();
     }
 
     internal static void End()
@@ -166,7 +170,12 @@ internal static class Inventory
         // Only the abilities that arrived as ITEMS. AbilityState holds the
         // seed's starting abilities separately, because the server never
         // resends those and clearing them here would lose them for good.
+        var version = _abilities?.Version;
         _abilities?.SetHeld(counts.Abilities);
+
+        // An ability arriving mid-level frees its objects now. This used to
+        // wait for the dimmer's once-a-second pass; a replay moves nothing.
+        if (_abilities != null && _abilities.Version != version) AbilityLocks.ApplyNow();
 
         Track.SetPacksHeld(counts.Packs);
 

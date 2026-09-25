@@ -20,6 +20,63 @@ public sealed class ControllerInfo
 
     /// <summary>Names of controllers that must be solved before this one.</summary>
     [JsonPropertyName("dependsOn")] public List<string> DependsOn { get; set; } = new();
+
+    /// <summary>
+    /// True for a controller the game registers but never reports solved, so a
+    /// check on it could never be sent. It still gates: its ability counts for
+    /// every group that depends on it. Set only from play (DLC1 Kitchen Utensils
+    /// Drawers: the level ends before both drawers can be shut).
+    /// </summary>
+    [JsonPropertyName("notALocation")] public bool NotALocation { get; set; }
+}
+
+/// <summary>
+/// One drawer or cupboard, and what it gates.
+///
+/// WHY THIS IS NOT JUST ANOTHER dependsOn EDGE. A drawer's contents are not an
+/// ObjectController.dependencies relationship - the game authors them on the
+/// Drawer component instead, as UnlockOnSolvedControllers and
+/// OpenOnSolvedControllers. The sweep has always harvested that, and
+/// tools/merge-levels.py threw it away as a field "nothing downstream reads".
+/// It was not read because it was never kept, and the cost was a dead run on
+/// 2026-09-21: every group inside every drawer was recorded as needing
+/// nothing, so the generator put a Progressive Puzzle Pack behind a shut
+/// drawer.
+///
+/// Empty on a level with no drawers, and empty on a row swept before this
+/// field existed - so absent means "not measured", not "no drawers".
+/// </summary>
+public sealed class DrawerInfo
+{
+    [JsonPropertyName("name")] public string Name { get; set; } = "";
+
+    /// <summary>How many objects sit inside. A count, for sanity-checking
+    /// <see cref="ContainsControllers"/> against.</summary>
+    [JsonPropertyName("contains")] public int Contains { get; set; }
+
+    /// <summary>
+    /// The controllers whose objects are inside this drawer.
+    ///
+    /// Resolved from instance ids to names inside DevTools, while both lists
+    /// are live - see DataTable.ContainedControllersOf. Ids would not survive
+    /// the trip out of the process.
+    /// </summary>
+    [JsonPropertyName("containsControllers")]
+    public List<string> ContainsControllers { get; set; } = new();
+
+    /// <summary>
+    /// Solve these and the drawer unlocks, as "controller#solutionId".
+    ///
+    /// The solution id is part of it: a multi-solution controller can open a
+    /// drawer on one arrangement and not another, so the name alone would lose
+    /// that. Anything wanting the controller takes the part before the '#'.
+    /// </summary>
+    [JsonPropertyName("unlockOn")] public List<string> UnlockOn { get; set; } = new();
+
+    /// <summary>Solve these and the drawer opens. Plain controller names.</summary>
+    [JsonPropertyName("openOn")] public List<string> OpenOn { get; set; } = new();
+
+    [JsonPropertyName("subDrawers")] public int SubDrawers { get; set; }
 }
 
 public sealed class LevelInfo
@@ -98,6 +155,16 @@ public sealed class LevelInfo
     [JsonPropertyName("phases")] public List<string> Phases { get; set; } = new();
 
     [JsonPropertyName("controllers")] public List<ControllerInfo> Controllers { get; set; } = new();
+
+    /// <summary>
+    /// The level's drawers and cupboards, and what each one gates.
+    ///
+    /// See <see cref="DrawerInfo"/>. An empty list means either "no drawers"
+    /// or "swept before this was kept", and the two are not distinguishable
+    /// from here - which is why the generator treats a level holding a drawer
+    /// with no recorded contents as suspect rather than as settled.
+    /// </summary>
+    [JsonPropertyName("drawers")] public List<DrawerInfo> Drawers { get; set; } = new();
 
     /// <summary>
     /// Abilities the level needs that its REGISTERED controllers do not reveal.

@@ -12,6 +12,26 @@ public enum SlotStatus
     /// <summary>Nothing still to do here can be done yet.</summary>
     Locked,
 
+    /// <summary>
+    /// Beaten, but it still owes checks and none of them can be reached yet.
+    ///
+    /// WHY THIS IS NOT Locked. droha, playing on 2026-09-21: Candy Canes had
+    /// been played and finished, and its card read solid red - identical to a
+    /// card never opened - because Solution 1 and Ordered both need Ordering.
+    /// The badge was telling the truth about what is reachable and lying
+    /// about what had happened, and those are not the same promise.
+    ///
+    /// Complete still wins over this: a card with nothing left is done, and
+    /// having also been beaten adds nothing to say. A card that is beaten and
+    /// has reachable work left reads Doable or Mixed, which is already right -
+    /// there is something to come back for and the player can do it now.
+    ///
+    /// DRAWN THE SAME AS Locked since 2026-09-25 (droha: "can we just have a
+    /// red square for both?"): the card's stars and the beaten count say what
+    /// happened. Kept apart here so `why:` can still say which it is.
+    /// </summary>
+    Beaten,
+
     /// <summary>Nothing left to do.</summary>
     Complete,
 }
@@ -65,7 +85,26 @@ public sealed class SlotProgress
         if (reachable == 0 && blocked == 0) return SlotStatus.Complete;
 
         if (blocked == 0) return SlotStatus.Doable;
-        if (reachable == 0) return SlotStatus.Locked;
+
+        if (reachable == 0)
+        {
+            // BEATEN BUT STILL OWING. Read from the Beaten location itself
+            // rather than from a second notion of "played", so the badge and
+            // the goal counter can never disagree about what has been beaten.
+            //
+            // A seed need not contain a Beaten location for every slot, and
+            // when it does not, ForBeaten returns null and this falls through
+            // to Locked - which is the honest answer, because then nothing
+            // here records that the level was ever finished.
+            //
+            // A SKIPPED level never reaches this branch: skipping banks every
+            // location on the card, so it has nothing outstanding and returned
+            // Complete several lines above.
+            var beaten = _router.ForBeaten(slotIndex);
+            if (beaten != null && isCollected(beaten)) return SlotStatus.Beaten;
+            return SlotStatus.Locked;
+        }
+
         return SlotStatus.Mixed;
     }
 

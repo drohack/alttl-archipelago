@@ -253,4 +253,13 @@ public class SlotDataTests
 
         Assert.Equal("0.3.2", slot.WorldVersion);
     }
+    [Fact]
+    public void NotLocationsParseAndDefaultToNone()
+    {
+        var data = SlotData.FromJson(
+            """{"slots": [], "not_locations": {"DLC1 Kitchen Utensils Drawers": ["Drawers"]}}""");
+        Assert.Equal(new[] { "Drawers" }, data.NotLocations["DLC1 Kitchen Utensils Drawers"]);
+
+        Assert.Empty(SlotData.FromJson("""{"slots": []}""").NotLocations);
+    }
 }

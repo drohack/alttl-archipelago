@@ -463,7 +463,7 @@ internal static class Navigation
     /// a LevelSelect method - MainMenu, ReplayMenu and TitleMenu - and
     /// TitleMenu already goes to the campaign track.
     /// </summary>
-    private static bool GoToTrack(string which)
+    internal static bool GoToTrack(string which)
     {
         try
         {
@@ -526,11 +526,18 @@ internal static class Navigation
     ///       at MenuManager.TransitionMenuOut
     ///       at MenuManager.CloseActiveMenu
     ///
-    /// The half-built menu is a property of GoToLevelSelectForLevel, not of
-    /// which level was passed to it, so "only for DLC levels" bought nothing.
-    /// A fix has to come from somewhere other than this redirect - suppressing
-    /// the DLC routing at its source, or switching the track after the game's
-    /// own menu has opened cleanly.
+    /// The half-built menu is a property of calling GoToLevelSelectForLevel
+    /// from here instead of letting this method run, so "only for DLC levels"
+    /// bought nothing.
+    ///
+    /// WHERE THE DLC DECISION IS NOT, measured: this method reads
+    /// LevelInterface.IsDLCLevel itself (DevTools xrefs, 2026-09-24/25), yet
+    /// neither an IsDLCLevel postfix answering false nor blanking the finished
+    /// level's DLC details for the length of this call (2026-09-25) kept the
+    /// DLC menu from being built. A GoToLevelSelectForLevel prefix and a
+    /// Gameplay_GameState.ContextualState postfix never ran on the route. The
+    /// scan stops at this method's eighth call, so the rest is unread. DlcGuard
+    /// still leaves the DLC menu once the game reaches it.
     /// </summary>
     [HarmonyPatch(typeof(ReplayMenu), nameof(ReplayMenu.LevelSelect))]
     [HarmonyPrefix]

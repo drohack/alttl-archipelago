@@ -54,12 +54,38 @@ internal static class SaveRedirect
         _active = name;
         Plugin.Logger.LogInfo($"save redirected to {name}");
 
+        // A NEW run file starts fresh: the game creates it with no campaign
+        // progress, which is right, and - measured 2026-09-25 - with the
+        // player's settings except `resolution`, which came in as index 0
+        // where the campaign had 19. LoadGame writes that file itself, and the
+        // mirror used to copy its 0 straight into save1. So that save is not
+        // mirrored, and the new file is given the campaign's settings.
+        var fresh = !RunFileExists();
+
         // The other half of the settings sync - campaign into the run, done
         // BEFORE the load so the game reads the merged file. Without this the
         // sync is one-way: a resolution set outside a run would be overwritten
         // by whatever the run file happened to hold.
         SyncSettingsIntoRun();
 
+        _creating = fresh;
+        try
+        {
+            LoadRunSave();
+        }
+        finally
+        {
+            _creating = false;
+        }
+        if (fresh) GiveNewRunTheCampaignSettings();
+
+        CarryPromptsOver(prompts);
+        ReportLoadedSave();
+    }
+
+    /// <summary>Load the redirected save into SaveSystem.data.</summary>
+    private static void LoadRunSave()
+    {
         try
         {
             SaveSystem.LoadGame();
@@ -69,8 +95,8 @@ internal static class SaveRedirect
             // Benign and expected. LoadGame completes the same
             // TaskCompletionSource it completed during startup, so a SECOND
             // call always throws here - after the data has already been read.
-            // ReportLoadedSave below confirms the swap really happened, which
-            // is what actually matters.
+            // ReportLoadedSave confirms the swap really happened, which is
+            // what actually matters.
             Plugin.Logger.LogInfo("reloaded (the startup load task was already complete)");
         }
         catch (Exception e)
@@ -78,9 +104,56 @@ internal static class SaveRedirect
             // Anything else is not understood, so it is loud.
             Plugin.Logger.LogWarning($"LoadGame threw: {e}");
         }
+    }
 
-        CarryPromptsOver(prompts);
-        ReportLoadedSave();
+    /// <summary>A new run file is being written with fresh values; do not mirror it.</summary>
+    private static bool _creating;
+
+    /// <summary>
+    /// Copy the campaign's settings into a new run file and load it again, so
+    /// the game holds the player's settings rather than the fresh file's.
+    /// Without the reload the next save would write the fresh values straight
+    /// back, and the mirror would copy them into save1. LoadGame normally
+    /// writes the new file itself; if it did not, it is written here first.
+    /// </summary>
+    private static void GiveNewRunTheCampaignSettings()
+    {
+        if (!RunFileExists())
+        {
+            _creating = true;
+            try
+            {
+                SaveSystem.SaveGame();
+            }
+            catch (Exception e)
+            {
+                Plugin.Logger.LogWarning($"save: could not create the run's save: {e.Message}");
+                return;
+            }
+            finally
+            {
+                _creating = false;
+            }
+        }
+
+        SyncSettingsIntoRun();
+        LoadRunSave();
+    }
+
+    /// <summary>Whether the redirected run file is already on disk.</summary>
+    private static bool RunFileExists()
+    {
+        try
+        {
+            var path = SaveSystem.GetSavePath(false);
+            var directory = string.IsNullOrEmpty(path) ? null : Path.GetDirectoryName(path);
+            if (string.IsNullOrEmpty(directory)) return true;
+            return File.Exists(Path.Combine(directory, _active + Path.GetExtension(path)));
+        }
+        catch
+        {
+            return true;                 // not known: behave as before
+        }
     }
 
     /// <summary>
@@ -432,7 +505,7 @@ internal static class SaveRedirect
     [HarmonyPostfix]
     private static void MirrorSettingsToCampaign()
     {
-        if (_active == null) return;
+        if (_active == null || _creating) return;
 
         try
         {
@@ -482,9 +555,11 @@ internal static class SaveRedirect
     /// would be undone the moment a run started, because the run file still
     /// held the old value.
     ///
-    /// Does nothing when the run file does not exist yet - the game is about
-    /// to create it from the campaign data already in memory, which is the
-    /// same values this would have copied.
+    /// Does nothing when the run file does not exist yet. The game creates a
+    /// new run's file fresh - no campaign progress, and not quite the
+    /// campaign's settings (resolution came in as 0 where the campaign had
+    /// 19, measured 2026-09-25) - so Begin writes it once and calls this
+    /// again (GiveNewRunTheCampaignSettings).
     /// </summary>
     private static void SyncSettingsIntoRun()
     {

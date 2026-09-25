@@ -147,6 +147,23 @@ public sealed class CheckLedger
         return list;
     }
 
+    /// <summary>
+    /// What the server is known to have - adopted at login or acknowledged
+    /// since - sorted, for the offline cache. Owed and event checks are left
+    /// out: the cache restores these as collected and not owed, and the run
+    /// state already carries the other two.
+    /// </summary>
+    public IReadOnlyList<string> ServerCheckedForSaving()
+    {
+        var list = new List<string>();
+        foreach (var name in _collected)
+        {
+            if (!_owed.Contains(name) && !_local.Contains(name)) list.Add(name);
+        }
+        list.Sort(StringComparer.Ordinal);
+        return list;
+    }
+
     public void Clear()
     {
         _collected.Clear();

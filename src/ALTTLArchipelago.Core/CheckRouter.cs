@@ -107,6 +107,28 @@ public sealed class CheckRouter
         return false;
     }
 
+    /// <summary>
+    /// The hover stars on a run's card: (Solution locations of this slot
+    /// collected, Solution locations it has). Counted, not a prefix, so a
+    /// Solution 2 collected first still lights one star; a Skip sends every
+    /// location, so it lights them all.
+    /// </summary>
+    public (int Lit, int Total) SolutionStars(int slotIndex, Func<string, bool> isCollected)
+    {
+        var entry = SlotAt(slotIndex);
+        if (entry == null) return (0, 0);
+
+        int lit = 0, total = 0;
+        for (int n = 1; ; n++)
+        {
+            var name = LocationNames.Solution(entry.LevelId, entry.Instance, n);
+            if (!Exists(name)) break;
+            total++;
+            if (isCollected(name)) lit++;
+        }
+        return (lit, total);
+    }
+
     /// <summary>Is this a location the seed actually contains?</summary>
     public bool Exists(string? name)
         => !string.IsNullOrEmpty(name) && _slot.Requirements.ContainsKey(name!);

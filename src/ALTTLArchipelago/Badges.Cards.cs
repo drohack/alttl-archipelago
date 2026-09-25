@@ -9,13 +9,20 @@ using UnityEngine.UI;
 namespace ALTTLArchipelago;
 
 /// <summary>
-/// The four things drawn ON a card: the corner badge, the veil over a locked
-/// one, the puzzle's name underneath, and a divider's pack number.
+/// The three things drawn ON a card: the corner badge, the puzzle's name
+/// underneath, and a divider's pack number.
 ///
-/// One feature, not four - Refresh paints all of them in a single pass over
+/// One feature, not three - Refresh paints all of them in a single pass over
 /// the track, gated by the same _shown cache, so a card either repaints or it
-/// does not. Splitting them would mean four passes and four caches that could
+/// does not. Splitting them would mean three passes and three caches that could
 /// disagree about what a card is currently showing.
+///
+/// NO VEIL, droha 2026-09-25: a locked card and a beaten one with nothing
+/// reachable are both just the red square - "the player can always hover to
+/// see stars, or see x/n beaten in the top right corner". The veil it used to
+/// draw marked "not playable yet", which the game's own look cannot say for a
+/// level repeated in several slots; clicking such a card still explains itself
+/// with a toast.
 /// </summary>
 internal static partial class Badges
 {
@@ -23,25 +30,8 @@ internal static partial class Badges
 
     private const string NameLabel = "ApCardName";
 
-    private const string DimName = "ApLockedDim";
-
     /// <summary>Size of the badge, square, in the icon's own units.</summary>
     private const float BadgeSize = 30f;
-
-    /// <summary>
-    /// The veil over a card the player cannot play yet.
-    ///
-    /// The GAME cannot show this. Its "locked" look - line art instead of full
-    /// colour - is driven by LevelInterface.IsUnlocked, which is simply "this
-    /// level has a LevelCompletionData row", and that save is keyed by levelId
-    /// with no per-slot scoping. A run holding the same level in three slots is
-    /// three cards pointing at ONE LevelInterface, so the moment the first is
-    /// unlocked all three turn to full colour. That was reported as "when an
-    /// Envelope level is in the pack, ALL Envelope levels look playable".
-    ///
-    /// Nothing in the save can express the difference, so it is drawn instead.
-    /// </summary>
-    private static readonly Color LockedVeil = new Color(0.05f, 0.05f, 0.08f, 0.55f);
 
     private static float _sinceRefresh;
 
@@ -136,13 +126,17 @@ internal static partial class Badges
             {
                 Remove(icon, BadgeName);
                 Remove(icon, NameLabel);
-                Remove(icon, DimName);
                 RenumberDivider(icon, Track.PackNumberAt(i));
                 continue;
             }
 
             var status = progress.StatusOf(
                 slot, Checks.Ledger.IsCollected, state.PacksHeld, abilities);
+
+            // Every refresh, before the unchanged-badge skip below: a check
+            // collected while the track is up changes the stars and not
+            // necessarily the badge.
+            CardStars.Apply(icon, i);
 
             // Skip only when it is unchanged AND still on screen: the game
             // destroys our badge when it rebuilds the track, and a cached
@@ -153,7 +147,6 @@ internal static partial class Badges
                 continue;
             }
 
-            SetDim(icon, status == SlotStatus.Locked);
             SetBadge(icon, status);
             SetName(icon, slot);
             _shown[slot] = status;
@@ -210,41 +203,6 @@ internal static partial class Badges
         }
     }
 
-    /// <summary>
-    /// Grey a card out while its slot is still locked. See LockedVeil for why
-    /// this is drawn rather than left to the game.
-    /// </summary>
-    private static void SetDim(LevelIcon icon, bool locked)
-    {
-        var existing = icon.transform.Find(DimName);
-
-        if (!locked)
-        {
-            if (existing != null) Remove(icon, DimName);
-            return;
-        }
-
-        if (existing != null) return;                // already veiled
-
-        var go = new GameObject(DimName);
-        go.transform.SetParent(icon.transform, false);
-
-        var rt = go.AddComponent<RectTransform>();
-        rt.anchorMin = Vector2.zero;
-        rt.anchorMax = Vector2.one;
-        rt.offsetMin = Vector2.zero;
-        rt.offsetMax = Vector2.zero;
-
-        var image = go.AddComponent<Image>();
-        image.color = LockedVeil;
-        // The click still has to reach the card: refusing it is the track's
-        // job, and it now explains itself with a toast. Swallowing it here
-        // would give the player silence instead.
-        image.raycastTarget = false;
-
-        go.transform.SetAsLastSibling();
-    }
-
     private static void SetBadge(LevelIcon icon, SlotStatus state)
     {
         Remove(icon, BadgeName);
@@ -271,6 +229,17 @@ internal static partial class Badges
                 // Split corner to corner, top-right down to bottom-left: green
                 // in the upper-left triangle, red in the lower-right.
                 AddDiagonal(root);
+                break;
+            case SlotStatus.Beaten:
+                // PLAIN RED, the same as Locked. The star means everything on
+                // the card is done, and nothing else. droha, 2026-09-24, on the
+                // red-with-star this used to draw: "there should be no time
+                // that the level is fully completed and there's still things
+                // to get/are locked. it should just be red, red/green, green,
+                // yellow star; no overlapping." And 2026-09-25, on the veil
+                // that still told the two apart: "can we just have a red square
+                // for both?"
+                AddFill(root, Red, 0f, 1f);
                 break;
             case SlotStatus.Complete:
                 AddStar(root, icon);

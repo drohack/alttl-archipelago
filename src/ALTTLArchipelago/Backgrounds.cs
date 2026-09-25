@@ -333,6 +333,12 @@ internal static class Backgrounds
     /// So wait for it to settle. The colour the game is animating towards is
     /// about to be overwritten anyway, and one write after the transition
     /// ends is all this ever needed.
+    ///
+    /// NOT REPLACEABLE BY AN EVENT, measured 2026-09-23 across the gate logs:
+    /// on some levels (TupperwareTower once solved) the game writes the camera
+    /// itself every frame, and this logged 105 to 145 repaints a second for
+    /// the rest of the level. Holding the colour there takes a write per
+    /// frame, so LevelTransitionInComplete alone would lose it.
     /// </summary>
     internal static void Tick()
     {

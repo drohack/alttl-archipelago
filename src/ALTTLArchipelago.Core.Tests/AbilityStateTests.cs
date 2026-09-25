@@ -29,6 +29,32 @@ public class AbilityStateTests
     }
 
     [Fact]
+    public void VersionMovesOnlyWhenTheHeldSetChanges()
+    {
+        // The dimmer re-applies when this moves, so a reconnect replaying the
+        // same items must not move it, and a new ability must.
+        var state = new AbilityState(Seed());
+        var start = state.Version;
+
+        state.SetHeld(new[] { "Stacking" });
+        var afterFirst = state.Version;
+        Assert.NotEqual(start, afterFirst);
+
+        state.SetHeld(new[] { "Stacking" });                 // the replay
+        state.Grant("Stacking");                              // already held
+        state.SetHeld(new[] { "Stacking", "", "Stacking" });
+        Assert.Equal(afterFirst, state.Version);
+
+        state.Grant("Ordering");
+        Assert.NotEqual(afterFirst, state.Version);
+
+        var beforeLoss = state.Version;
+        state.SetHeld(new[] { "Ordering" });                  // Stacking gone
+        Assert.NotEqual(beforeLoss, state.Version);
+        Assert.True(state.IsClassLocked("Stackables"));
+    }
+
+    [Fact]
     public void OneAbilityUnlocksEveryClassItCovers()
     {
         var state = new AbilityState(Seed());

@@ -97,17 +97,29 @@ public sealed class AbilityState
     /// </summary>
     public void SetHeld(IEnumerable<string> abilities)
     {
-        _received.Clear();
+        var next = new HashSet<string>(StringComparer.Ordinal);
         foreach (var ability in abilities)
         {
-            if (!string.IsNullOrEmpty(ability)) _received.Add(ability);
+            if (!string.IsNullOrEmpty(ability)) next.Add(ability);
         }
+        if (next.SetEquals(_received)) return;
+
+        _received.Clear();
+        _received.UnionWith(next);
+        Version++;
     }
 
     public void Grant(string ability)
     {
-        if (!string.IsNullOrEmpty(ability)) _received.Add(ability);
+        if (!string.IsNullOrEmpty(ability) && _received.Add(ability)) Version++;
     }
+
+    /// <summary>
+    /// Bumped whenever the received set really changes, and never by a
+    /// reconnect replaying the same items. The dimmer re-applies when it moves
+    /// instead of polling for a change.
+    /// </summary>
+    public int Version { get; private set; }
 
     public bool Has(string ability)
         => _starting.Contains(ability) || _received.Contains(ability);
