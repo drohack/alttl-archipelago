@@ -70,7 +70,7 @@ rather than being re-rolled into a different one.
 | 5 | Trap outside a puzzle is spent, not queued | PASS - 2 traps at menus logged as missed, no crash |
 | 6 | Traps do not re-fire on reconnect | PASS - 4 historical traps replayed on two separate logins, neither fired |
 | 7 | Trap accounting balances | PASS - 8 received = 2 reset + 2 missed + 4 absorbed; `trapsSprung: 8` |
-| 8 | Ability dimming re-arms after the rebuild | PARTIAL - the pass runs every second from live state and was seen re-reporting object counts after a reset, but not yet on a level with a LOCKED group |
+| 8 | Ability dimming re-arms after the rebuild | PASS 2026-09-24 - DLC2 Music Box holding nothing: 4 of 42 dimmed, Cat Trap sent, the puzzle reset, 4 of 42 dimmed again. No once-a-second pass exists any more; the re-dim runs on the trap and on the game's rebuild events (AbilityLocks.AttachGameEvents) |
 | 9 | Trap fired while the player is HOLDING a piece | PASS - confirmed in play on Stamps: the held piece reset with everything else, nothing was left attached or stuck to the cursor |
 | 10 | Trap on pieces POSTED INTO something | PASS - confirmed in play on the envelopes: stamps come free of the envelope they were posted into, so the parents really are reset |
 | 11 | Trap with the pause menu open | PASS - layout byte-identical, seed kept, menu still up with all seven entries |

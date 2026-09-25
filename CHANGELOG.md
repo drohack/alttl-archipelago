@@ -9,6 +9,584 @@ refuses to connect to a seed a different apworld generated.
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+### Starting a new seed no longer resets your resolution
+
+Measured 2026-09-25: a new run's save file starts fresh - no campaign
+progress, which is right - but with `resolution` 0 where the campaign had
+19, and the game writes that file inside its own load. The settings mirror
+then copied the 0 into `save1.json`, so every new seed reset the player's
+resolution setting. That first save is no longer mirrored; the campaign's
+settings are copied into the new file and it is loaded again. Checked in
+game: after a new seed's first load `save1` is unchanged and the run's
+settings match it. The comment that said a new run file was built from the
+campaign data is corrected.
+
+### No "failed to load" alarm for a chapter card
+
+The base gate of 2026-09-25 beat all 15 puzzles and failed one check: the
+mod's empty-level watch logged `LEVEL LOADED EMPTY: 01__Chapter_HomeSweetHome`
+at the title, after a Skip's fallback went back to the track and the track
+was closed. A chapter card never has objects or controllers; the game only
+held it as the active level. The watch, which also shows the player a
+"failed to load - please report this" toast, now ignores chapter cards
+(`EmptyLevelWatch`, tested). Reproduced on Pencils before the fix, gone
+after it.
+
+### Locked and beaten cards are the same red square
+
+droha, 2026-09-25: "can we just have a red square for both? The player can
+always hover to see stars, or see x/n beaten in the top right corner." The
+veil over a locked card is gone; the badge is red, red/green, green or a
+star.
+
+### A Skip works on every level
+
+droha, 2026-09-25: skips must work on every level - the game's own skip, or
+where it will not skip, release the locations, use the Skip and go back to
+the level select. Measured first: with no run up, the game's SkipLevel
+completes all 173 levels inside the call and raises LevelSkipped
+(`probe-forceable.py --skip-all`, now the `skip` field of
+`fixtures/forceability.jsonl`). In a run it does nothing on a generator
+level: Pencils reads `Skippable` False there. The life of a Skip is now
+Core's `SkipFlow` (tested): armed on the press, charged exactly once when the
+game's LevelSkipped arrives (which is where the rest of the slot is sent), and
+where the game has not skipped by the time SkipLevel returns and the level is
+not skippable, the mod sends every location on the card, banks Beaten, spends
+the Skip and goes back to the run's track. A skip that never lands is dropped
+uncharged when the next level starts. The release gate may now buy a Skip on
+any level, and stops if one does nothing. Checked in a run on all 20
+generator and all 26 holiday levels: the flag matched every one - 30 skipped
+by the game (the holiday levels and the four DLC generators), 16 released by
+the mod (the base-game generators), none left waiting. Pencils through the
+pause menu's own Skip button: Skip count 2 -> 1, all three locations sent,
+card Complete with both stars, back on the track. Five levels read
+`Skippable` False and are skipped by the game anyway (Radial Dance Party,
+both Tupperware levels, DLC1 Boss, DLC2 Ghost Cat); a skip that lands inside
+the call is final whatever the flag says.
+
+The first DLC gate after this stopped at visit 19 of 25: a Skip on DLC1 Boss,
+already beaten, completed it and released its three parts but banked no new
+token, so the harness booted the next level straight over the finished one,
+StartLevel did not take and the pre-Skip check stopped the run. The harness
+now unwinds to the title after any spent Skip.
+
+### A run's hover stars are the run's
+
+droha, 2026-09-24: "if i hover over the level i don't see the alttl stars
+filled in at all", and the rule: they start empty for each seed and fill as
+its solutions are completed, never synced with the player's own save; a
+skipped card's stars all fill. The game sets a card's stars from the level's
+save row. Measured 2026-09-25: a base level finished in a run lights its star
+(Cat Toys 1 of 1), but a generator puzzle records no solution (Spider Web,
+finished, `found=0`, star off). The mod now sets every run card's stars
+itself, one per Solution location, lit when collected
+(`CheckRouter.SolutionStars`), after each `SetCompletionStars` (41 calls per
+track build) and on the badge refresh. Checked in game: Spider Web lit, an
+unfinished card empty, a Skip lit Presents, and hovering left both saves
+unchanged. A solution the mod withholds for a missing ability stays unlit
+until it is filed.
+
+### Offline shows what online shows
+
+The session cache now carries the locations the server had (collected, not
+owed), and an offline start restores them as the login does, so cards, stars
+and the goal count read the same offline. A check still owed is never cached
+as the server's: the run state keeps sending it. A cache from before this
+loads with none. Checked in game: seven cards, their stars and "4 / 40
+beaten" were identical online and offline; from a cache without the list,
+three finished cards read Doable with empty stars.
+
+### `puzzle_count` goes down to 10
+
+droha, 2026-09-25: the minimum is 10, two full packs at the pack size of 5.
+It was 15 while checks with unproven requirements had to be kept free of
+progression; no part location is guarded any more. Measured over 200 seeds
+each, the five 10-puzzle configurations (base, pack size 1, 20 skips,
+Seeing Stars only, both DLCs) all filled: 0 refused, 0 fill failures, never
+more than one draw. The release gate still plays 15.
+
+### DevTools boot undoes the game's own pause
+
+Three gate runs on 2026-09-24 stopped receiving game events for good, each
+with the clock found at 0 in the middle of a level. What caused it is not
+known. Measured on one level: the game's own `GameManager.Pause(true)` holds
+every gameplay event, and the clock reset `boot` did never released them.
+`boot` now calls `Pause(false)` first. DevTools logs every `Pause` call and
+focus change (`game:` lines) and every change of the clock (`time: timeScale
+changed`), so the next occurrence shows when and in what state; it cannot
+name the caller, because IL2CPP's stack walk returns no frames here.
+
+Measured since: going to the title pauses the game on its own (the pause
+menu's Exit, `replayselect` then `menu:title`), and the next `boot` finds it
+paused and undoes it. Neither stop reproduced in eight tries (both
+`--only-arrow` sessions, three replays of the 22:31 stop, three of the 14:43
+cat-trap stop). The release gate now WARNS, without failing, for every solve
+it sends while the game is paused or its clock is at 0, and keeps the arrow
+session's log (`testserver/logs/e2e-<stamp>-arrow.log`), which the main run's
+launch used to delete. The next DLC gate caught one with its warning: a cat
+trap's reset paused the game, four solves were held about 8 s, and the game's
+own unpause released them.
+
+### Every level measured alone, and the gate plans from the measurements
+
+droha, 2026-09-24: "shouldn't we just run every single level now and build a
+plan around them? that way we don't have to 'figure them out' on a gate
+run?" `tools/probe-forceable.py --all` booted all 173 levels alone with
+DevTools and forced each the way the harness does; `--recheck` re-forced,
+pass after pass in a fresh game, every level that did not finish;
+`--groups-rest` forced every group of every multi-group level alone and
+recorded the controllers' order. The results are
+`fixtures/forceability.jsonl`, and `release_e2e.py` builds its per-level
+facts from it:
+
+- 8 levels forcing never finishes are Skip-only: DLC2 Boss, Combs, Ghost
+  Cat and Math Set, PawPrints, Record Player, plus Desktop Computer and
+  TupperwareTower, which already were.
+- 15 levels finish on one group, several on any of two or three
+  (`KNOWN_COMPLETES_ON`). The paper plan now forces groups in controller
+  order and stops where the game would: a group completing within a second
+  strands the groups after it, and every part not solved by the completion
+  waits for a Skip, since a revisit forces nothing.
+- A per-level completion wait (`completion_wait`): 30 s, and 64 s for DLC2
+  Curtains, which completes 49 s after it is forced.
+- DLC2 Boss joins `KNOWN_TABLE_GAPS`.
+
+The first pass had to be redone from level 15: the probe went back to the
+title with a bare `menu:title`, and after 14 completions the game's own win
+check threw on every level - the unwind `to_title` exists to avoid. The
+recheck also caught one false "did not complete" (TrickOrTidy_Bats, a
+transient error) and two staged levels a single pass cannot finish
+(Place Setting, TupperwareNesting). `test_scheduler.py` fails if a list
+disagrees with the fixture. The base gate's seed plans visit for visit as
+before.
+
+### Fruit Stickers could not be peeled holding Tidying alone
+
+The full base gate stopped itself at visit 14 of 32: its paper plan had
+collected `Fruit Stickers - Remove Stickers` holding Tidying, while the live
+run found the stickers greyed out (`dimmed=12`, although the mod's summary
+said "1 locked, 2 open, waiting on Sticking"). droha, holding only Tidying:
+"stickers are greyed out and i can't peel them". So the part asked for less
+than the player needs, and a seed could have put Sticking behind it. Remove
+Stickers now depends on Match Stickers as well; the mutual pair is one group
+needing Tidying + Sticking, the level has no part checks, and every base id
+after them moved down by 2 (base 425 -> 423, id golden re-pinned). A scan of
+101 kept game logs (40 levels caught part-locked) found no other open group
+the lock greys. Only this level holds both a Pluckables and a Stickables
+group.
+
+The same stop showed the seed walk calling valid seeds "a generation bug":
+`completion_plan` modelled requirements from names.json, which does not
+subtract `bypassedAbilities`, so Workbench's Solution asked for Drawer.
+Seeds 20260908 and 20260911 clear on their own requirements. It now reads
+the seed's requirements, as `paper_run` and the mod do.
+
+The next gate stopped at visit 11 of 21 on Radial Dance Party, which
+registers no controller until a player starts a dance: the harness read
+"controllers: 0 registered" and collected nothing where its paper plan had
+forced the dances. It is now `KNOWN_NOTHING_TO_FORCE`, every location on it
+is unforceable on paper, and a seed holding it is passed over. And the Skip
+pre-flight counted a Skip on an alternate solution as a need (releasing a
+Skip with a Skip gains nothing) and ignored a Skip on an unforceable level's
+part check, which forcing does collect; seed 20260911 read 3 needed, 2 held,
+where its paper plan clears with 2 of 3.
+
+The third stopped at visit 20 of 24, the run AHEAD of its plan: Paper Plane
+Supplies' Chalk DraggablesOrdered is locked (Ordering) but cannot go grey
+(no renderer, every object shared with the open drawer), so the harness
+forced it without Ordering and beat the level five visits early. The table
+overstates it, which is safe. `solve_level` now also refuses a group the
+seed's logic has not reached (`table_gated`), so the live run forces what
+the paper plan does; a group greyed although the table calls it free still
+stops the gate.
+
+The DLC gate then stopped at visit 15 of 18: DLC2 Corn registers only a
+Pannables Controller, which solve cannot force, so the live run spent a
+Skip on it at visit 1 while the paper plan had forced it and came back at
+visit 15. Levels whose every controller is scenery (`SCENERY_ONLY`,
+derived from the table: DLC2 Corn, Drink Glasses, MerryMess_Presents) now
+count as finished only by a Skip, on paper and in the verdict. The yaml's
+starting Skips still follow `KNOWN_UNFORCEABLE`, so no seed moved; the
+base gate's plan is visit for visit the one that passed 28/28.
+
+Its rerun beat 15/15 and still never opened the credits: the Credits item
+sat on Books Stacked (Seeing Stars) - Solution 2, an alternate solution
+forcing never makes, and the paper plan had stopped at all-beaten on the
+belief that the credits open with the last token. A seed now clears on
+paper only if the run also collects the Credits item
+(`credits_left_behind`); DLC seed 20260906 is passed over for 20260907.
+
+That seed's arrow check then failed on DLC2 Broken Vases. Measured alone
+with DevTools, no seed: forcing its Draggables completes it, but
+LevelComplete comes 13 s later (its Pannables (Action Only) plays first),
+and the harness waited 6 s. `COMPLETION_WAIT` is now 20 s; the DLC arrow
+check alone then passed on it.
+
+The run after that got ahead of its plan at visit 14: DLC2 Cupcakes
+completes on its Colors group alone (droha's play said so on 2026-09-23),
+the mod withholding Solution 1 until Swapping and banking the Beaten token,
+while the paper plan's Beaten asked for Swapping. `KNOWN_COMPLETES_ON`
+records it, and DLC1 Boss, whose later stages never register when forced,
+joins `KNOWN_TABLE_GAPS`.
+
+Every one of those stops was a fact about one level that a full gate found
+one run at a time, although the seed, and so every level it visits, is
+known before the gate starts. `tools/probe-forceable.py` now boots each
+level of the chosen seed alone and reports where it disagrees with the
+paper plan, and it is part of the pre-flight.
+
+### Ability locks react to events instead of polling every second
+
+An ability arriving now frees its objects on the frame it lands
+(`AbilityState.Version` moves; a reconnect replay does not). Re-dimming after
+the game rebuilds objects runs on its own events (drawer changed, phase
+entered, level reset, randomized, controller changes, transition finished)
+instead of a once-a-second pass. Each level logs which of those fired.
+
+Played on Radial Dance Party, the level the old pass broke (2026-09-24,
+droha): holding nothing, the pencils were greyed and could not be moved;
+Rotating granted mid-level lit them at once ("0 locked, 1 open"), they
+solved, and the Cat Toys dance followed normally.
+
+### The DLC release gate could not generate a seed
+
+Its yaml excluded 14 container locations that are now `notALocation`, and
+Generate.py rejects a yaml naming an unknown location. The list is gone, and
+`tools/test_scheduler.py` fails if an excluded name stops being a location.
+
+### A Skip is spent only when the game actually skips
+
+The mod charged a Skip before the game tried, so on a generator level -
+where the game's own SkipLevel does nothing (measured on Pencils
+(Randomized), beaten and not) - the player lost it for nothing. It now
+charges only once the game has skipped: the completion and payout happen
+inside SkipLevel, so the charge follows them. When nothing happened it
+spends nothing and says "This puzzle can't be skipped - the Skip was not
+used", and clears the skip flag, which left set would have paid the next real
+completion out as a skip. Normal puzzles unchanged (Filing Cabinet: paid out).
+
+### The release gate checks its seed on paper and stops when reality differs
+
+It plays each candidate seed on paper with its own scheduler and takes the
+first that clears every slot, naming the blocker of any it passes over; it
+then reports every visit against that plan (`[visit 4/24 | 4/15 beaten]`)
+and stops loudly at the first one that differs, at a Skip about to land on
+the wrong level, or at a Skip the game could not use. It no longer forces a beaten level
+before spending a Skip on it (that re-completed Pencils and the Skip landed
+on Fruit Stickers), and it carries the arrow session's checks into the run
+(it had revisited Stamps for nothing). A pass that reveals a progressive
+level's next phase no longer spends the five-pass budget: TupperwareNesting
+shows one controller per phase, needs eight passes, and was given up on at
+Large Square. The arrow check now starts on an open slot it can finish. The
+table audit reads the mod's `(at N controller(s) so far)` wording, so a
+phased level on the known list no longer fails the run, and a part that
+forcing cannot collect because the level completes first
+(`KNOWN_EARLY_COMPLETE`) waits for a Skip; its one entry, Workbench's
+Draggables For Targets, is now `notALocation` (below). The round loop
+now reads the log before deciding to stop, and waits for the last token's
+credits, instead of starting one more revisit on a stale flag.
+
+### Workbench's Draggables For Targets check never fired
+
+droha played Workbench on 2026-09-24: finishing it normally sends Tools and
+Solution 1, never Draggables For Targets (it shares Tools' 21 objects and the
+level completes first). It is `notALocation`, so Workbench is a single-part
+level and its Tools check, the same event as Solution 1, goes too. Two fewer
+base locations: every base id after them moved down by 2 (goldens and counts
+re-pinned). The level still requires what it did.
+
+The same session proved DLC2 Music Box by play: holding only Ordering, both
+its parts fired and the level completed (`data/proven-requirements.json`).
+`tools/handtest-level.py --grant <Ability>` now grants an ability to a
+running hand test instead of a new seed.
+
+### The full release gate could be handed a seed it cannot clear
+
+It stalled at 12/15: TupperwareTower and Desktop Computer only finish by a
+Skip, Symmetry sat on Pencils Solution 2 (also Skip-only for the harness), and
+the pool held two Skips. The base yaml now starts with one Skip per
+`KNOWN_UNFORCEABLE` level, and the Skip balance is printed at step 4 (the
+refusal itself is the paper plan, above). The pre-flight also stopped judging
+a `--quick` (locks off) seed by ability requirements, which had planned 3 of
+15.
+
+### A part location could ask for LESS than the puzzle physically needs
+
+droha's DLC run ended on 2026-09-21: `Tupperware Nesting - Lids` declared
+`['Containers']` and held a Progressive Puzzle Pack, but the lids cannot be
+placed until the tupperware is nested (Stacking). Understating a requirement
+softlocks a seed; overstating is safe.
+
+It enters at one place. `levels.json` `controllers[].dependsOn` is harvested
+from the game, so it cannot record a dependency the game does not express as
+one, and everything downstream trusts it. This is a regression of the 0.3.0
+drawer fix, which was applied as a hand-written 8-entry set across 4 base
+levels and never generalised.
+
+**53 dependsOn edges across 19 levels, none removed** - every change tightens.
+38 are drawer levels; the rest came from droha playing Tool Drawer, Bathroom
+Drawer, Paper Plane Supplies, Ink Bottles, Water Glasses, Music Box, Clock
+Cupboard, Robots and Tupperware Nesting. The probes only chose which level to
+play: three of four new detectors gave confident wrong answers that day.
+
+### Requirements nobody has proven cannot hold progression
+
+A part location whose abilities are a strict subset of its level's, in a level
+with a stated structural reason to distrust it, may hold filler and never
+progression. Implemented as `location.item_rule`; `LocationProgressType
+.EXCLUDED` means "filler only" and broke five stress configurations.
+
+The reason comes from five signals: a bespoke `levelClass`, a drawer whose
+contents the table lacks, `extraAbilities`, a controller in neither the phase
+list nor any dependency, or a hand entry in `data/proven-requirements.json`.
+Guarding everything unproven was tried and was wrong - 183 of 358 locations,
+leaving a 20-puzzle run two reachable openings out of twelve.
+
+Writing correct edges can DELETE the guard, since closing a level's structural
+gap makes its locations progression-eligible again (measured 114 down to 53),
+so `add-edges.py` refuses to write unless the level is already listed suspect
+or proven in the same change.
+
+### The guard is no longer given back: the run is redrawn instead
+
+**This changes generated seeds.** When a draw could not afford the whole guard,
+`pool._affordable_guard` used to hand guarded locations back to the fill and
+log it. Measured over 40 seeds a configuration, that happened on 35 to 40 of
+every 40 eight-puzzle seeds, and on about 1 in 4 base-game seeds even at the
+default 70. Progression then landed on a given-back location 108 to 212 times
+per 40 small seeds, `Tupperware Nesting - Lids` 20 times, once the Credits.
+No test saw it, because the only check read the guard that was KEPT.
+
+Now `pool.decide` redraws the run (up to `DRAW_ATTEMPTS = 25`, from the same
+`world.random`, so seeds stay reproducible) until nothing is given back, and
+raises `OptionError` naming the fix if no draw is clean. A clean first draw is
+unchanged. Over 1600 generations of small configurations: 0 refusals, at most
+13 attempts.
+
+**`puzzle_count` now starts at 15, not 8.** Base-game runs of 8 or 10 puzzles
+gave guards back on 40 of 40 draws, so no number of redraws could save them.
+The release gate and the probe tools moved to 15; the `tiny run` stress
+configurations became `small run`; the frozen draw golden now pins each seed's
+first draw and lists the two retired 8-puzzle configurations by name.
+`test_unproven.TestTheGuardIsNotGivenBack` checks every guard the table asks
+for, and failed on the old behaviour before passing on this one.
+
+### The opening stops counting checks the fill may not use
+
+Most redraws came from the opening floor, and most of those from one level:
+Medicine Cabinet's eight no-ability parts are all guarded, but
+`pool._free_checks` counted them, so the grant loop saw a full opening and
+granted nothing. It now skips guarded parts. First-draw redraws, 100 seeds a
+setup:
+
+| | 15 base | 15 both DLCs | 20 base | 70 base |
+|---|---|---|---|---|
+| before | 64% | 39% | 38% | 23% |
+| after | 18% | 8% | 7% | 13% |
+
+Two frozen draw entries moved on purpose (`short run` seeds 20260902 and
+20260903, a guarded opening level swapped for a free one) and were listed by
+name in `test_regression.MOVED_BY_DESIGN`, which asserts they still differ.
+They moved back when Medicine Cabinet was proven (below), so it is empty again.
+`TestTheOpeningCanAbsorbTheFirstItems` now checks the search the grant loop
+really runs (one or two abilities); 23 openings in its sweep sit one check
+short and need three or four abilities for a single Solution, and all fill.
+
+### An audit of every part that asks for less than its level
+
+82 part locations across 30 levels asked for less than their level and carried
+no guard. 28 of those levels were first guarded (`suspect` entries in
+`data/proven-requirements.json`, each with its reason; all since proven by
+play, below) instead of being hand-tested: guarding all of them was measured
+to cost a few points of
+first-draw redraws, no refusals and no fill failures, where testing them meant
+a game restart per ability set. The two left unguarded, Cleaning Supplies and
+Fruit Stickers, were already settled; `test_unproven.UNGUARDED_UNDERSTATED`
+pins exactly those so a new one fails a test instead of reaching a seed.
+
+Two levels are now proven by play (2026-09-23): Medicine Cabinet, four runs
+holding one set each and never Drawer, which takes 15-puzzle base redraws from
+about 27% to 0%; and SomethingEggstra Fridge, which finishes holding only
+Containers, so it does not need Stacking.
+
+**Tupperware Nesting - Lids still asked for too little**, found by the same
+runs (2026-09-23). Holding Containers+Stacking the lids stayed game-blocked
+after every stack; holding Grids+Stacking "the lids showed up finally" only
+after the food. `Lids` now depends on `Food` and needs Containers + Grids +
+Stacking, the whole level, so the check that ended the 2026-09-21 run can no
+longer understate. Its test pin now asserts that. The same runs showed
+`(Large Square)` finishing without Grids - an overstatement, which is safe and
+left alone.
+
+With all of it in, first-draw redraws are 0% (15 base), 9% (15 both DLCs), 0%
+(20 base) and 1% (70 base), from 64%, 39%, 38% and 23% at the start of the day.
+
+### 36 guarded levels figured out by play, not left guarded
+
+droha, 2026-09-23: "i don't want the guarded, that's stupid. and a bandaid...
+i want them figured out". So every guarded level was played once with ability
+locks OFF while `tools/record-unlocks.py` logged, per group, when it first
+became movable and when it was solved. A group movable from the start needs
+nothing else, whatever order it is solved in; a group stuck until another is
+done depends on it. `tools/analyse-unlocks.py` compares that with the table.
+
+- **54 levels are now proven** (`proven` in `data/proven-requirements.json`,
+  each with its evidence) and **no level is guarded any more**: every part
+  check can hold real items. Only Books (Randomized) stays listed as suspect,
+  and it has no part that asks for less than its level.
+- **7 edges added**, all tightening: Wilting Flowers' Cleanable after Upright;
+  Mirror's skull into the stacking group's box (opened by "the latch in the
+  mirror"); Tea Cabinet's teacups, cupcake and spoon behind the cupboard doors;
+  Sewing Box's Large Spools and Daggers' drawer contents behind their drawers.
+- **Cat Eyes corrected by two locks-on runs**: holding only Ordering nothing
+  could be picked up; holding only Gadgets both groups finished. The eyes now
+  follow the pieces (edge reversed by hand) and Ordering is bypassed.
+- **DLC2 Boss rebuilt from play**: its Drawer Controller never solved, even in
+  a full completion, and is removed; Locks, Compass and Knives registered and
+  solved, so they are restored as checks in the order played. **DLC2 location
+  ids moved** (267 -> 269); droha: "i do not care about seed ids moving ever".
+- **Record Player, TupperwareTower and Bells** (one group each, so their
+  Solution is the only check) were each finished holding exactly the table's
+  requirement, with locks on.
+- **First-draw redraws: 0 of 100** at 15, 20 and 70 puzzles, base and DLC.
+- **Seven more locks-on runs** (`handtest-level.py`, holding exactly the
+  table's requirement): Markers, Whistles, PawPrints (all five groups fire; the
+  leaves and the spill must be done before the last paw prints, or on a
+  replay), Radial Dance Party and DLC1 Boss all complete. Fruit Stickers'
+  Match needs Tidying too (peel, then stick) and now depends on Remove.
+  **DLC1 Boss** gained Dining Room, Parking Lot and Landscape, which register
+  and solve in that order before the keys (DLC1 ids 146 -> 149).
+
+### No check for opening a level, and none that can never be sent
+
+Seventeen parts were sent the moment their level opened, because the game
+reports them solved at load: every drawer or cupboard-door controller in
+Drawer Chores and both DLCs (13 levels), Medicine Cabinet's Jar Lid and DLC2
+Robots' spring pair. Measured by the new `tools/probe-solved-at-load.py`, which
+boots each multi-part level with DevTools and reads `locks`. Two drawers had
+the opposite problem and never solve, found by droha playing: DLC1 Kitchen
+Utensils Drawers (the level ends before both can be shut) and DLC2 Junk Drawer
+Transforming ("i can't place the last piece if the drawer is closed"); and
+DLC2 Ink Bottles' GridPuzzleBase never fires on either solution. DevTools now
+logs `PartSolved id=... part=...` for every part the game marks solved, so a
+hand test sees which checks can fire without the level being in a seed.
+
+A controller can now carry `"notALocation": true` in levels.json. It mints no
+part, but its ability still reaches every group that depends on it and still
+counts for the level, so no requirement dropped (checked part by part against
+HEAD). Slot data gains `not_locations` so the mod's registration audit does not
+call them unknown. Locations: base 431 -> 427 (425 after Workbench, above),
+DLC1 149 -> 138, DLC2 269 -> 260; every id after them moved and the 0.3.4 id
+golden was re-pinned with the reason. Kitchen Utensils Drawers, Junk Drawer
+Transforming and Ink Bottles are proven (64 proven levels; 65 with Music Box).
+
+### The ability locks made Radial Dance Party unwinnable
+
+Holding Rotating, the only ability it needs, the Cat Toys dance loaded and its
+toys vanished; with locks off it played to the end. `AbilityLocks.Paint`
+recorded each object's colour the first time it saw it - for toys fading in,
+transparent - and re-asserted that colour on EVERY object once a second,
+unlocked ones included. It now restores only what it greyed out, once, when
+the lock lifts, and records a mid-fade colour as opaque. Verified: the same
+run completed at 21:13:07. The once-a-second pass itself has since been
+replaced by event hooks (the first entry in this section).
+- DevTools `boot` now lifts a Seeing Stars star gate in memory, as the mod's
+  track does for run slots; a locked level used to load a chapter header.
+- Found on the way: a DevTools `boot` of Game Pieces puts the heart on the
+  board where it cannot be moved - loaded from the game's own menu it works.
+  A boot after a finished level found the game clock paused (`timeScale 0`),
+  which froze win animations; `boot` now resets it.
+
+### Hand-test tooling
+
+- `release_e2e.write_config` rewrote the whole mod config and wiped the
+  remembered window size at every harness setup, so the next launch came up
+  at 3840x2160. It now sets only its own keys (`set_cfg_keys`), and sets 720p
+  only when no size is remembered. The devtools config writer too.
+- `handtest-level.py` gains `--boot` (for a game the player opened: 720p, then
+  the level), `--keep-game` (switch seeds from the mod's pane, no restart), a
+  seed per held set so each test has its own save, a check that the seed
+  grants no ability beyond the request (the Fridge seed had granted
+  Stacking), and a live-level count after every boot that refuses to hand
+  over anything but exactly one level.
+- DevTools `boot` left a level alive when the player had exited it to the
+  title: it tore down the interface, but the `Level` object stayed in the
+  scene, and the next boot drew a second level on top. It now destroys any
+  such leftover and refuses to boot if one survives. Verified on the case that
+  broke: 1 leftover at the title, 1 level after the boot, a solve completes.
+
+### A beaten card no longer reads the same as one never opened
+
+`SlotStatus.Beaten`: beaten, still owing checks, none reachable. Candy Canes
+read solid red after droha finished it, because its remaining checks need
+Ordering. The card is no longer veiled. It first drew red with the star over
+it; droha then ruled the star means everything is done ("it should just be
+red, red/green, green, yellow star; no overlapping"), so it is plain red.
+`Complete` still wins; a beaten card with reachable work left stays Doable or
+Mixed; a slot with no Beaten location falls through to `Locked`.
+
+### Close on the run's track after a DLC puzzle never left it
+
+droha, watching the DLC gate on 2026-09-24: "there was 2 level selects open at
+the same time". After a DLC puzzle the game opens that DLC's own level select
+and `DlcGuard` swaps in the run's track. The track's Close went back to the
+DLC menu, where the guard opened the track again: one reopen per press in
+every kept DLC gate log, so Close never left, and the log shows the DLC menu
+and a second track built in between. After a base-game puzzle the same Close
+goes back to the completion screen (Cat Frame, measured the same session).
+Close from the run's track now goes to the title; checked in game twice.
+
+Still open: the post-level route builds the DLC menu for a moment before the
+guard leaves it. `ReplayMenu.LevelSelect` reads `IsDLCLevel` itself (new
+DevTools `xrefs:<Type>.<Method>`, which lists what a game method calls); a
+`GoToLevelSelectForLevel` prefix and a `ContextualState` postfix both
+installed and never ran on that route, so neither shipped.
+
+### The empty completion star: narrowed, NOT fixed
+
+Four theories dead by measurement: not the level's `source`, not the daily
+pool, not `solutionCount`, and not `LevelInterface.CompleteLevel()`, which
+writes nothing to the save. `tools/probe-star.py` solves every controller
+through the game's own dispatcher and dumps the save:
+
+| source | solution banked | solved / completed |
+|---|---|---|
+| archive (MerryMess_Crackers) | yes | true |
+| base (Mirror) | yes | false |
+| generator (Breadtags) | no | false |
+
+Generators recording nothing is a lead, but the base row does not match what
+droha sees, so no conclusion is drawn. Settling it needs one real play of a
+generator level and a base level.
+
+Measured 2026-09-24 with DevTools `xrefs`: a card's stars come from its save
+row (`LevelIcon.SetCompletionStars` reads `GetLevelCompletionData` and sets
+one toggle per star), while `LevelInterface.Solved` only checks a string the
+loaded level holds, so the `solved` column above measured the wrong thing (Seed
+Pods reads solved=True in the level and False back on the level select). In a
+run's save, base puzzles record their solution (Seed Pods 1 of 1, Fruit
+Stickers 1 of 2) and generator puzzles record none (Stamps (Randomized) 0
+after completing it; every generator in droha's hand-test run 0). Still
+unknown: why a base card whose row holds its solution shows no filled star.
+droha's rule for the fix: the stars start empty for each seed and fill as its
+solutions are completed, never synced with the player's own save.
+
+`TrackCommands.DumpUnlocks` filtered to `index < 100` as "base campaign only",
+which hid every level in the report - Procedural Grid is 1000, the randomized
+puzzles 995 to 999, DLC 1100 up. It now dumps all levels and reports which
+save store holds each row and how many solutions it has.
+
+### Harness defects found by using it
+
+- `SceneCommands.Freeze` walked `ManagedObjects` and disabled 1 collider on a
+  controller holding 56. Fixed to `AllObjects`.
+- `LevelCommands.Boot` tore down only levels active in the hierarchy, so a
+  level exited through the menu stayed built and the next boot stacked on it.
+- `playerPrefs.resolution` is a position in a per-monitor list, so the same
+  number is a different size on each display. Tests now use `setres:1280x720`.
+
 ## 0.4.0 - 2026-09-18
 
 **LOCATION IDS GREW BUT DID NOT MOVE.** The table goes from 432 locations to

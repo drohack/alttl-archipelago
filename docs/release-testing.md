@@ -8,12 +8,13 @@ working tree; this is the only one that tests the artifacts.
 
 ## When to run it, and when not to
 
-**This is a release gate, not an iteration loop.** A full run is about fifteen
-minutes: a real game, a real MultiServer, eight puzzles played to the credits.
+**This is a release gate, not an iteration loop.** A full run was about fifteen
+minutes at the old 8 puzzles; at 15 it is longer, and not yet timed. A real
+game, a real MultiServer, fifteen puzzles played to the credits.
 
 On 2026-09-08 it was run roughly twelve times to land one set of playtest
 fixes. In about ten of those the question was only "did this small change break
-progression or add an error", which needs none of the eight puzzles, the
+progression or add an error", which needs none of the fifteen puzzles, the
 throwaway arrow session, or the goal report. It also reads badly at that size:
 cat traps and a live server make every run vary, so a flaky arrow session cost
 one run outright and muddied two others - noise mistaken for signal, because
@@ -30,6 +31,75 @@ What to reach for instead:
 | Did I break the run or add errors? | a small reproducer, see below | minutes |
 | Is the release good? | this, in full | ~15 min |
 
+## Before it launches: the seed is checked on paper
+
+The seed NUMBER is fixed; what it generates moves whenever levels.json or the
+ids change. So step 4 generates from seed 20260906 up and plays each on paper
+first: the harness's own scheduler (`choose_slot`) over the seed's spoiler,
+with the arrow check's slot already beaten, packs, Skips and cat traps where
+the spoiler puts them. It takes the first seed that clears every slot and
+says why it passed over any other, for example:
+
+    seed 20260906: the paper plan clears only 13/15
+       Shells needs Symmetry, on Pencils (Randomized) - Solution 2: an
+       alternate solution, which only a Skip releases
+    seed 20260907: the paper plan clears 15/15 in 24 visit(s), 2 Skip(s),
+       3 cat-trap reset(s)
+
+`tools/make-seed.py` uses the same walk, so `test_harness_data.py` reads
+exactly the seed the gate will play. No seed in 20 clearing refuses the run.
+
+The paper plan's per-level facts come from `fixtures/forceability.jsonl`:
+every level forced alone by `tools/probe-forceable.py --all` (then
+`--recheck` and `--groups-rest`, about four hours on 2026-09-24): which
+levels forcing cannot finish, how long each takes to complete, which finish
+on one group and in what controller order, which register fewer controllers
+at load than the table lists. Every stop of the 2026-09-24 gates was one of
+those, found one full run at a time; `test_scheduler.py` now fails in
+milliseconds if the harness disagrees with the fixture. Re-measure when
+levels.json changes; `tools/probe-forceable.py [--dlc]` re-checks just one
+seed's levels. `--skip-all` adds each level's `skip` field: what the game's
+own SkipLevel does to it alone, with no run up.
+
+`--only-arrow` runs steps 1-5 for real (clean install, assets, world, seed,
+the arrow session) and stops with the arrow session's two checks: the gate's
+in-game setup on its own, in about three minutes.
+
+## Reading it while it runs
+
+Every counter carries its total. Setup steps are `[step 2/7 assets]`; during
+play every line is `[visit 4/24 | 4/15 beaten]`, the visit counted against the
+paper plan; the verdicts are `[check 12/27] PASS ...`.
+
+It stops itself, loudly, instead of improvising: a visit that is not the
+planned one, a Skip about to land on a level other than the one it was bought
+for, or a Skip that did nothing. Each writes a marker and fails a named
+check. Unit test what it found, fix it, then run again.
+
+It WARNS, without failing, for every solve it sends while the game says it
+is paused or its clock is at 0 (`WARNING: N solve(s) sent while the game was
+paused`), because a paused game holds every event. A pause alone is not
+reported: going to the title pauses the game on its own and `boot` undoes
+it. The game logs of the arrow session and the main run are kept in
+`testserver/logs/` as `e2e-<stamp>-arrow.log` and `e2e-<stamp>.log`.
+
+On each level it forces only what the mod has not greyed AND the seed's logic
+has reached (`not forcing X - the seed's logic has not reached it`), the same
+rule the paper plan uses. A group greyed although the table calls it free is
+an understated requirement, the kind that softlocks a seed, and shows up as
+the run falling behind its plan (Fruit Stickers, 2026-09-24). Radial Dance
+Party registers nothing until a player starts it, so seeds holding it are
+passed over; it is played by hand.
+
+A Skip works on every level. With no run up, the game's own SkipLevel
+completes all 173 levels inside the call and raises LevelSkipped
+(`probe-forceable.py --skip-all`, 2026-09-25). In a run it will not skip a
+generator level: Pencils reads `Skippable` False there and nothing happens.
+So where the game has not skipped by the time SkipLevel returns and the level
+says it is not skippable, the mod releases every location on the card,
+spends the Skip and goes back to the run's track. The harness may buy a Skip
+on any level, and stops the run if one does nothing.
+
 **A short reproducer must do REAL solves.** Three were written during that
 session and all three used DevTools' `complete` instead of solving the
 controllers. `complete` does not produce the post-level state a real solve
@@ -37,8 +107,9 @@ does, so `replayselect` did not land where it lands in a real run, and all
 three came back clean while the bug reproduced every time in the full e2e.
 Three false negatives in a row is what drove the twelve full runs.
 
-`--quick` answers that question instead: three puzzles, no throwaway arrow
-session, every correctness check kept - the error census, the
+`--quick` answers that question instead: the same fifteen puzzles, no
+throwaway arrow session, ability locks and cat traps off, every correctness
+check kept - the error census, the
 mod-versus-harness reconciliation, the campaign-save isolation. What it gives
 up is coverage of the arrow, the pause-menu Exit and the launch count, which
 are the parts that need a second session. Use it for "did this edit break
@@ -237,13 +308,14 @@ PYTHONUNBUFFERED=1 py -3.13 -u tools/release_e2e.py 2>/dev/null
 ```
 
 Seven phases: clean the install to vanilla, install the mod from its zip,
-install the world from its `.apworld`, generate an 8-puzzle single-pack seed,
+install the world from its `.apworld`, generate a 15-puzzle seed,
 launch and connect, play the run to the credits, and check the campaign save
 was never written.
 
-Single-pack because the generator, not the yaml, decides: at 8 puzzles the
-pack cap is 1 and `MIN_OPENING` raises the size to 5, so a requested
-`pack_size: 2` becomes 5 open free and one pack carrying the other 3.
+15 because it is the option's floor since 2026-09-23 (it was 8). The
+generator, not the yaml, decides the packs: at 15 puzzles the pack cap is 3 and
+`MIN_OPENING` raises the size to 5, so a requested `pack_size: 2` becomes 5
+open free and two packs of 5 (boundaries `[5, 10, 15]`).
 
 The whole run happens in **one game launch**, and that is asserted rather than
 hoped for - it took two fixes to get there and both are easy to undo by
@@ -304,8 +376,8 @@ folder, the one with `A Little To The Left.exe` in it. Files should land in
 and make sure there is no `Archipelago/worlds/alttl/` folder - a loose copy
 satisfies the import and the packaged world never gets exercised.
 
-**4. Generate.** Copy `apworld/alttl/player.yaml`, set `puzzle_count: 8`,
-`levels_to_beat: 8`, `pack_size: 2` for a short run, and:
+**4. Generate.** Copy `apworld/alttl/player.yaml`, set `puzzle_count: 15`,
+`levels_to_beat: 15`, `pack_size: 2` for a short run (15 is the floor), and:
 
 ```
 cd Archipelago
@@ -330,11 +402,11 @@ name, and press Connect.
 
 | Claim | Where you see it |
 |---|---|
-| the mod loaded | `features live: save redirect, connection pane, track, skips, hints, navigation, daily guard, title screen` in `BepInEx/LogOutput.log`, and no `PATCH FAILED` |
-| the seed came through | `connected. 8 puzzles, 1 packs of 2, beat 8 to unlock the credits` |
-| the track is gated | `track: 8 puzzles, 5 open, 1 packs` - five of eight, not all eight |
+| the mod loaded | `features live: save redirect, connection pane, track, skips, hints, navigation, daily guard, title screen, ability locks, card stars` in `BepInEx/LogOutput.log`, and no `PATCH FAILED` |
+| the seed came through | `connected. 15 puzzles, 2 packs of 2, beat 15 to unlock the credits` |
+| the track is gated | `track: 15 puzzles, 5 open, 2 packs` - five of fifteen, not all fifteen |
 | checks reach the server | `checks: sent 1, 0 still owed` |
-| packs open more | `track: 1/1 packs, 8 puzzles open (+3)` |
+| packs open more | `track: 1/2 packs, 10 puzzles open (+5)` |
 | the goal is reported | `goal: reported to the server`, and the server prints that the slot has completed |
 | the campaign is untouched | `save1.json` unchanged; the run is in `save_ap_<slot>_<seed>.json` |
 

@@ -30,6 +30,14 @@ Keep it short: add a rule here as one line, never as a story.
 - Setup for that: `py -3.13 tools/handtest-queue.py --build` then `--next`
   (or `tools/handtest-level.py <index> [ability ...]` for one level), then give
   numbered steps and the exact question. Record the verdict with `--answer`.
+- Testing one level needs NO seed: DevTools `menu:title`, `boot:<index>`,
+  `livelevels` (must be 1). DevTools logs `PartSolved  id=.. part=..` for every
+  part the game solves; watch that, not the recorder, to see which checks fire.
+- Need an ability mid-test: `tools/handtest-level.py --grant <Ability>` (its
+  server reads `testserver/handlevel-commands.txt`; same `/send droha` line).
+  Never generate a new seed just to change what droha holds.
+- A part solved at load, or one that can never be solved, is
+  `"notALocation": true` in levels.json (`tools/probe-solved-at-load.py`).
 - Before writing a new tool, look in `tools/` (60+ scripts). Do not write a new
   probe when a hand test answers it. Never build more than one new instrument
   per task without saying why.
@@ -44,8 +52,16 @@ Keep it short: add a rule here as one line, never as a story.
 | Fill still works | `ALTTL_STRESS_SEEDS=25 py -3.13 -m unittest worlds.alttl.test.test_fill_stress` (in `Archipelago/`) | ~30 s |
 | Harness logic | `py -3.13 tools/test_scheduler.py`, `tools/test_harness_data.py` | ms |
 | One level in game | `tools/handtest-level.py`, `tools/probe-slots.py` | ~2 min |
-| Did I break a run | `tools/release_e2e.py --quick` | ~4 min |
-| Release sign-off | `tools/release_e2e.py` (full) | ~15 min |
+| Gate's seed on paper | `tools/make-seed.py [--dlc]` then `test_harness_data.py` | ~10 s |
+| Every level alone (fixture) | `tools/probe-forceable.py --all`, `--recheck`, `--groups-rest` -> `fixtures/forceability.jsonl` | ~4 h, 2026-09-24 |
+| Every level's own skip (fixture `skip` field) | `tools/probe-forceable.py --skip-all [--resume]` | ~80 min, 2026-09-25 |
+| One seed's levels alone | `tools/probe-forceable.py [--dlc]` (after make-seed) | ~1 min/level |
+| Gate steps 1-5 alone | `tools/release_e2e.py --only-arrow` | ~3 min |
+| Did I break a run | `tools/release_e2e.py --quick` | ~13 min (15 puzzles, 2026-09-23) |
+| Release sign-off | `tools/release_e2e.py` (full) | ~18 min (15 puzzles, 2026-09-24) |
+
+- Before any `release_e2e.py` run: `tools/package-release.py --out release-test`
+  (or pass `--assets dist`); the gate refuses assets older than the source.
 
 - **Full runs are release gates, never debuggers.** That includes any probe
   sweep over many levels. Fix it at the lowest rung that can see the bug.
@@ -54,6 +70,12 @@ Keep it short: add a rule here as one line, never as a story.
 - A test is not trusted until it has been seen to fail on the bug.
 - Before a gate, name the offline test that would go red if the change were
   wrong. If there is none, write it first.
+- A gate runs only after each of its parts passed alone: seed generated
+  (`tools/make-seed.py`), pre-flight on that seed (`test_harness_data.py`),
+  and the harness's per-level facts matching `fixtures/forceability.jsonl`
+  (`test_scheduler.py`). Re-measure the fixture when levels.json changes.
+  A gate failure -> unit test, fix, re-test; never a second gate to find
+  out why.
 
 ## 4. Background runs - one recipe, every time
 
@@ -64,9 +86,12 @@ Keep it short: add a rule here as one line, never as a story.
    `STALLED <n>s` if the file stopped growing, and exits when the file has
    not grown for two polls. `timeout_ms: 1800000`; re-arm on expiry.
    Description = what is running, e.g. `probe-blocked 51 levels`.
-3. On each monitor event, reply with that one line as plain text. droha sees
-   only the description, never the event body.
-4. Keep doing independent work meanwhile. Stop the monitor with TaskStop when
+3. Log filters: the game writes `LevelComplete  id=` (two spaces), so grep
+   `'LevelComplete +id='`. Test a filter on a past line before arming it.
+4. On each monitor event, reply with that one line as plain text. droha sees
+   only the description, never the event body. Never sit in a long blocking
+   wait while a monitor runs: its events pile up unrelayed.
+5. Keep doing independent work meanwhile. Stop the monitor with TaskStop when
    the job ends. Say `Nothing is running.` when that is true.
 
 ## 5. The game
@@ -81,6 +106,10 @@ Keep it short: add a rule here as one line, never as a story.
   `docs/devtools.md`. Log: `<game>/BepInEx/LogOutput.log`.
 - Say before you launch or close the game. If droha is about to play, set
   everything up and let THEM open it. Close it when your testing is done.
+- Cat traps are seed items at fixed locations, so the spoiler says which check
+  resets which level: on a part location it resets that level mid-solve (the
+  harness refunds the pass); on a Solution/Beaten location, or outside a
+  level, it misses (`Traps.cs`). Never call them random.
 - Screenshots: take one to check a level state instead of arguing about it;
   delete the file right after reading it.
 

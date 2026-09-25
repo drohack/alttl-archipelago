@@ -35,9 +35,11 @@ rather than two.
   and Jigsaw. Seeing Stars adds a thirteenth, Distributing, when it is on.
 - **Credits.** A real item in the pool, so it can be anywhere in the
   multiworld, including in somebody else's world.
-- **Skips.** Clears a puzzle you are stuck on. It finishes the puzzle and
-  counts toward the goal, and it fills in every check on it - so a skipped
-  puzzle is starred as well as beaten.
+- **Skips.** Clears a puzzle you are stuck on - any puzzle: where the game's
+  own skip does nothing (the generated puzzles, in a run), the mod clears it
+  and takes you back to the level select. It finishes the puzzle and counts
+  toward the goal, and it fills in every check on it - so a skipped puzzle is
+  starred as well as beaten.
 - **Hint Pages.** Without one the notepad still opens; you just cannot erase
   the scribble.
 - **Cat Trap.** The cat walks through an active puzzle and knocks your
@@ -87,9 +89,9 @@ to hold it:
 
 - **A badge on every card**, saying whether the card is worth opening: green
   when everything left on it can be done now, green over red when only some of
-  it can, solid red when none of it can yet, and a star when there is nothing
-  left. A red card is also veiled - the game's own locked look means only "not
-  reached yet", which is a different thing.
+  it can, red when none of it can yet (beaten or not - hover the card for its
+  stars, or read the beaten count in the corner), and a star when there is
+  nothing left.
 - **The ability strip** above, and **a progress counter** reading in the same
   terms as the goal - starred or beaten, whichever this seed asked for.
 - **An Archipelago pane on the main menu** for the server (host and port
@@ -106,7 +108,7 @@ All set in the yaml. The ones that change a run most:
 
 - `goal` - `beat_levels` or `star_levels`, each with its own count
   (`levels_to_beat`, `levels_to_star`).
-- `puzzle_count` - 8 to 79.
+- `puzzle_count` - 10 to 79. The smallest run is two full packs of 5.
 - `pack_size` - how many puzzles a pack opens. Read it as a floor rather than
   a promise: a run always opens at least five, and packs grow together when
   yours would need more than the fourteen a run can carry.
@@ -229,13 +231,18 @@ queues anything you earn, and sends it on the next connection.
   before a harness runs and restore them after, including on Ctrl-C. Wrap any
   new harness that writes either. `--restore-latest` recovers from a hard kill
 - `tools/release_e2e.py` - the release gate: clean the install to vanilla,
-  install the release assets, generate a seed, and play it through. Fifteen
-  minutes. It is a CONFIRMATION, never a debugger - the four tools below
-  answer the same questions in milliseconds, one layer at a time, and the
-  gate is what you run once they all pass
+  install the release assets, pick a seed its paper plan can clear, and play
+  it through, stopping loudly at the first visit that leaves the plan. It is
+  a CONFIRMATION, never a debugger - the four tools below answer the same
+  questions in milliseconds, one layer at a time, and the gate is what you
+  run once they all pass. See docs/release-testing.md
 - `tools/make-seed.py` - generate the gate's base or DLC seed with
   `Generate.py` alone, no game and no server, into `testserver/out-base` or
-  `testserver/out-dlc`. Everything below reads one of those
+  `testserver/out-dlc`, through the gate's own seed walk. Everything below
+  reads one of those
+- `tools/probe-skip-beaten.py` - one level in game: a Skip on a beaten puzzle
+  pays out and is refused when nothing is left; `--target pencils` checks the
+  harness's Skip path on a generator level, `--unbeaten` a single Skip
 - `tools/test_harness_data.py` - the DATA layer: reading a seed, mapping
   locations to slots, planning a completion order. Set `ALTTL_SEED_DIR` to
   say WHICH seed; it defaults to the gate's own output
@@ -255,6 +262,9 @@ queues anything you earn, and sends it on the next connection.
   A dirty prediction means fix that first; a clean prediction that the
   gate contradicts is a bug in the model, which every fast test depends
   on
+- `tools/probe-solved-at-load.py` - boots each multi-part level with
+  DevTools (game open, no seed) and lists controllers already solved at load;
+  those become `"notALocation": true` in levels.json
 - `tools/probe-slots.py` - the DRIVE layer: can the harness boot and solve
   each level, ONE AT A TIME, a fresh session each. `--dlc` reads the DLC
   seed. `unforceable` is a correct outcome; `gated` is NOT a pass - it

@@ -23,7 +23,7 @@ Drive it by writing a command into `<game>/BepInEx/alttl-devtools-commands.txt`:
 | `dump` | Write the full level / daily / archive / DLC table to `BepInEx/alttl-dump.json` (also runs automatically at the main menu) |
 | `solutions` | Load all 186 level prefabs and record their object controllers to `BepInEx/alttl-solutions.tsv` |
 | `state` | Log the current game state and active level |
-| `boot:<index>[:<seed>]` | Launch any level with an optional forced procedural seed |
+| `boot:<index>[:<seed>]` | Launch any level with an optional forced procedural seed. Tears down every live level first, including a `Level` left in the scene after an exit to the title, and refuses to start if any survive. Lifts a Seeing Stars star gate in memory (a locked level otherwise loads a chapter header), undoes the game's own pause (`GameManager.Pause`, which holds every gameplay event) and resets a stopped `Time.timeScale` |
 | `complete` | Force-complete the active level |
 | `menu:title` / `menu:levels` / `menu:archive` / `menu:daily` | Jump to a menu |
 | `unlocks` | Write the campaign unlock/completion state and chapter membership |
@@ -41,13 +41,17 @@ Drive it by writing a command into `<game>/BepInEx/alttl-devtools-commands.txt`:
 | `lockcard:<index>` / `lockcard:off` | Refuse launches of a level |
 | `clickcard:<index>` | Invoke `LevelIcon.DoStartLevel` the way a real click does |
 | `tint` / `tint:refresh` | Recolour every level-select card border, optionally forcing a repaint |
-| `iconinfo:<index>` | Dump one level-select icon's child tree, with components, sizes and sibling order |
+| `iconinfo:<index>` | Dump one level-select icon's child tree, with components, sizes and sibling order, and `isOn` for a Toggle - a card's solution stars are Toggles. The index is the card's track position, not a level index |
 | `marker:states` / `marker:refresh` / `marker:off` | Cycle the four tracker-badge states across the cards: green, green/red split corner to corner, red, star. See S5 in the verification log |
 | `unlockto:<n>` | Give the first n levels a completion entry, so the level select renders them unlocked |
 
 Gameplay events land in `BepInEx/alttl-watch.log`, and only when the
 `WatchEvents` config setting is on - `ObjectPlaced` alone fires hundreds of
 times per level load, so it is off by default.
+
+Always on: `PartSolved  id=<level>  part=<controller>` in `LogOutput.log`, once
+per part per level load, whenever the game marks a part solved. A hand test
+reads it to see which part checks can fire, with no seed needed.
 
 Curated copies of the probe output are in [data/](data/).
 
@@ -60,6 +64,11 @@ table above, which is organised by what the research needed.
 |---|---|
 | `watch:<seconds>` | Report the active level's load flags and the camera colour every frame, printing only changes. Written to see what a trap sees during a level load |
 | `livelevels` | Count the `Level` objects alive in the scene. Exactly one is correct; two means a reset landed inside a navigation |
+| `time` | Report `Time.timeScale`, the scaled and unscaled clocks, and the game's own pause (`Paused`). `boot` also logs the scale it found and resets it to 1 |
+| `timescale:<n>` | Set `Time.timeScale`, e.g. `timescale:0` to pause the clock. Written to test whether a pause holds the game's events; `boot` resets it to 1 |
+| (no command) | Always logged: `game: Pause(...)` and `game: OnApplicationFocus(...)` for every call to the game's own pause and focus handlers, and `time: timeScale changed X -> Y` whenever the clock moves. Going to the title pauses the game on its own; `boot` undoes a pause it finds |
+| `starcalls` | How many times the game's own card-star methods (`LevelIcon.SetCompletionStars`, `InitIconSolutionStars`) ran since the last `starcalls`; then zero the counts |
+| `dedupe` | Keep the level `ActiveLevelInterface` owns and destroy every other `Level` clone in the scene, inactive ones included. Run after a boot that `livelevels` counts as more than one |
 | `clickat[:X,Y]` | Dispatch a real pointer click wherever the player would click, defaulting to the middle of the window |
 | `creditscard` | The credits card's unlock state and the names of its own locked/unlocked sprites |
 | `mute` / `unmute` | Hold `AudioListener.volume` at zero, or let it go. Also a config setting, `MuteAudio`, which the harnesses set |
@@ -79,6 +88,7 @@ be the index.
 | Command | Effect |
 |---|---|
 | `controllers` | The active level's object controllers, with type and solved flag. This is what the release harness reads to decide what is left to solve |
+| `reachable` | Per controller, how many of its objects a POINTER could actually hit right now: active in the hierarchy AND carrying an enabled collider. Run it at boot, solve whatever opens the container, run it again - anything that becomes touchable in between was gated by that thing, which is the `dependsOn` edge the table is missing. Written because "can the player reach this" was being asked of a human for something the engine already knows |
 | `locks` | Per controller, how many of its objects the ability locks have dimmed and frozen. Walks the controller's FULL object set, not just `ManagedObjects` - Dirtyables, Containables, Stickables and StackablesY keep their own lists, and reading only the one missed them |
 | `sharing:<tag>` | Object-to-controller membership for the active level. Written to find gates that are bypassable because their objects are shared with a group that is not locked; see [gate-sharing.md](gate-sharing.md) |
 | `freeze:<controller>` | Dim, disable and physically freeze one controller's objects the way an ability lock does, on demand. Stops the rigidbody before removing the collider, or unsupported objects fall |
@@ -87,6 +97,8 @@ be the index.
 | `contextual` | Ask the running gameplay state where it would return to |
 | `resolutions` | The game's current resolution list. Resolution INDEXES are not stable and must never be used as information - the list changes with the display |
 | `members:<Type>[:<filter>]` | List a game type's members by reflection, e.g. `members:HintManager`. Built after guessing member names one compile at a time; the interop assemblies rename things unpredictably |
+| `xrefs:<Type>.<Method>` | What a game method calls, from Il2CppInterop's cross-reference scan of its native code, e.g. `xrefs:ReplayMenu.LevelSelect`. The interop assemblies have no method bodies, so this is how to learn which routine a button runs instead of patching a guess. **It can freeze the game**: resolving ReplayMenu.LevelSelect's eighth call never returned; each call logs `resolving 0x...` first, so the last such line names the one that hung |
+| `xrefs:<Type>.<Method>\|<Type>.<Candidate>,...` | The same scan with nothing resolved: each call's target is compared with the named candidates' native entry points and marked `= Type.Method` on a match. On 2026-09-25 it showed ReplayMenu.LevelSelect calling `LevelInterface.get_IsDLCLevel`, then the scan itself killed the game at the eighth reference - so what comes after that is still unread |
 | `inert:<index>` | Report a level's controllers and which of them are inert |
 | `bounds:<index>` | Every managed object's world bounds, grouped by controller. Written to find ability-locked objects sitting physically on top of free ones |
 | `layout:<tag>` | Write the whole level's layout to a file, for diffing. Records the parent and the placed flag beside the position, because position alone made two rounds of cat-trap testing lie |
@@ -100,7 +112,7 @@ be the index.
 | `press:<name>` | Click a control the way a POINTER would, through the EventSystem. Not the same as `clickbutton`, which invokes `onClick` - the level-select tutorial's confirm is a Button with nothing on `onClick`, so `clickbutton` reported four successful clicks that did nothing |
 | `clickbutton:<name>` | Invoke the `onClick` of the first Button with that GameObject name. No synthetic input, so another plugin's UI can be driven from a script |
 | `clicktrack:<n>` | Click the nth card on the level-select track |
-| `focus:<name>` | Scroll the level select to a named icon |
+| `focus:<position>` | Hover the level-select card at that track position (`OnFocus` + `IconFocus`), and log its level and the menu title |
 | `menu:<name>` | Go to a named menu, e.g. `menu:title`. **`play` presses Play on the TITLE menu, so it needs `menu:title` first** |
 | `jiggle[:<n>]` | Pick pieces up and drop them for real, one after another. Exists because a bug needed quarter-second timing to reproduce, which is not something to ask a human for |
 | `play` | Press Play on the TITLE menu. Needs `menu:title` first - there is no live TitleMenu anywhere else |
@@ -111,7 +123,7 @@ be the index.
 | `buttons` | Every clickable control in the loaded scene, by GameObject name and on-screen label. The two differ: the tutorial modal's confirm reads "Okay" and is not named Okay |
 | `titlebuttons` / `titletree` | The title menu's buttons, and its whole object tree |
 | `menus` | Every menu the game knows about, and its state |
-| `skip` | Press the game's own `SkipLevel` - the path the randomizer's skip gate hooks |
+| `skip` | Press the game's own `SkipLevel` - the path the randomizer's skip gate hooks. Logs the loaded level's `skippable`, `allowPause` and `randomizable` first, then `skip: calling MainMenu.SkipLevel` and `skip: SkipLevel returned`: what the game logs between those two it did inside the call |
 | `skiptip` | Force the level-select skip prompt on screen and report what it reads |
 | `hinttaken` | Raise `LevelInterface.HintTaken` directly. The postfix has never been seen to fire from a synthetic drag, which is what this exists to work around |
 | `erase` | Drag the eraser for real. Reading `CanBeWiped` from a probe answers a different question - it exercises the getter with no wipe in progress |
