@@ -9,7 +9,12 @@ refuses to connect to a seed a different apworld generated.
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
-## Unreleased
+## 0.4.0 - 2026-09-25
+
+**0.3.4 SEEDS NEED REGENERATING.** The tables grew from 432 locations to 822
+and from 18 items to 19 with both DLCs, and ids moved when parts the game
+solves the moment a level opens, or never, stopped being locations. The mod
+refuses a seed made by a different apworld version, as it has since 0.3.3.
 
 ### Starting a new seed no longer resets your resolution
 
@@ -586,14 +591,6 @@ save store holds each row and how many solutions it has.
   level exited through the menu stayed built and the next boot stacked on it.
 - `playerPrefs.resolution` is a position in a per-monitor list, so the same
   number is a different size on each display. Tests now use `setres:1280x720`.
-
-## 0.4.0 - 2026-09-18
-
-**LOCATION IDS GREW BUT DID NOT MOVE.** The table goes from 432 locations to
-845 and from 18 items to 19, and every id 0.3.4 handed out still means exactly
-what it meant. A 0.3.4 seed's ids are all still valid - but the mod and the
-apworld must still be used as a pair, because the datapackage now contains the
-new names.
 
 ### Both DLCs, each behind its own toggle
 
