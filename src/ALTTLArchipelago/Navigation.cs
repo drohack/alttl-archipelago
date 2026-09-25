@@ -572,7 +572,7 @@ internal static class Navigation
     /// is asked for. Resources.FindObjectsOfTypeAll also returns prefabs, so
     /// the scene check is what keeps this to real objects.
     /// </summary>
-    private static T? FindEvenIfInactive<T>() where T : UnityEngine.Component
+    internal static T? FindEvenIfInactive<T>() where T : UnityEngine.Component
     {
         try
         {

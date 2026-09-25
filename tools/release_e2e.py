@@ -117,6 +117,10 @@ WRONG_SKIP_MARK = "harness: STOPPED - a Skip would have landed on the wrong leve
 #: release the slot. The run stops there and a check fails on it.
 NOT_USED_MARK = "harness: STOPPED - a Skip did nothing"
 
+#: The mod's line when it presses the retry panel's arrow itself: a level built
+#: for the panel with nothing left to find (RetryPanel).
+AUTO_ARROW_MARK = "has nothing left to find - pressing the arrow"
+
 #: The mod's verdict on a Skip request, one of which it always writes. The
 #: harness waits for these, not for any `skip:` line: DevTools' own
 #: `skip: calling MainMenu.SkipLevel` matched that before the game had acted.
@@ -3441,7 +3445,14 @@ def check_arrow(log, plan):
         return None, None, text
 
     log.new()
-    dev("next", 8.0)
+    # THE MOD MAY PRESS THE ARROW ITSELF, on a level built for the panel with
+    # nothing left to find. Pressing it again starts a second advance over the
+    # first: the 0.4.1 DLC gate's arrow session did that, and the pause menu's
+    # Exit then did nothing. So `next` is pressed only when the mod did not.
+    auto = log.wait([AUTO_ARROW_MARK], 12, 6, "the mod's own arrow press")
+    text += auto
+    if AUTO_ARROW_MARK not in auto:
+        dev("next", 8.0)
     # Capture the mod's own line BEFORE loaded_level runs: its first log.new()
     # discards whatever has arrived, which swallowed "navigation: replay Next"
     # and had the summary print "arrow presses: 0" beside a passing arrow

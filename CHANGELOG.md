@@ -30,9 +30,19 @@ in once this completion is filed. The screen asks at LevelCompleteEarly,
 before the check is filed, so the completion in progress is counted when its
 arrangement is new and earned (`SolutionOrdinals.Peek`). Checked in game on a
 hand-test seed: Pencils (Randomized), which never showed a panel, showed it
-after its first of two solutions and its arrow opened the next run slot; Seed
-Pods, one solution, went straight on instead of showing it; Pencils with both
-solutions in went straight on. Not yet pressed: the panel's restart button.
+after its first of two solutions and its arrow opened the next run slot;
+Pencils with both solutions in went straight on. Not yet pressed: the panel's
+restart button.
+
+A level built for the panel with nothing left to find still shows it, and the
+mod presses its arrow (ReplayMenu.NextLevel) the moment it is up. The first
+version sent such a level down the game's own straight-on route instead, and
+the DLC gate caught what that costs: afterwards the pause menu's Exit did
+nothing. Reproduced by hand on Seed Pods (Exit never reached
+MainMenu.ExitGame) while after Post-It Notes, a generator that goes straight
+on by design, Exit worked; through the arrow, Seed Pods went on to the next
+slot and Exit reached the title. The gate's arrow check now waits for the
+mod's own press before pressing `next` itself.
 
 ### The stars on the level-complete screen are the run's
 

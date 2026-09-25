@@ -1184,6 +1184,7 @@ public sealed class Ticker : MonoBehaviour
         Step("daily rescue", () => DailyGuard.TickRescue(dt));
         Step("dlc guard", () => DlcGuard.Tick(dt));
         Step("skips", () => Skips.Tick(dt));
+        Step("retry panel", () => RetryPanel.Tick(dt));
         Step("prompt memory", () => PromptMemory.Tick(dt));
         Step("connected tag", () => Badges.TickConnectedTag());
         Step("title state", () => TitleScreen.TickState());
