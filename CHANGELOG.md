@@ -103,11 +103,12 @@ loads with none. Checked in game: seven cards, their stars and "4 / 40
 beaten" were identical online and offline; from a cache without the list,
 three finished cards read Doable with empty stars.
 
-### `puzzle_count` goes down to 10
+### `puzzle_count` starts at 10, up from 8 in 0.3.4
 
 droha, 2026-09-25: the minimum is 10, two full packs at the pack size of 5.
-It was 15 while checks with unproven requirements had to be kept free of
-progression; no part location is guarded any more. Measured over 200 seeds
+A yaml asking for 8 or 9 no longer generates. During this release it was 15
+while checks with unproven requirements had to be kept free of progression
+(below); no part location is guarded any more. Measured over 200 seeds
 each, the five 10-puzzle configurations (base, pack size 1, 20 skips,
 Seeing Stars only, both DLCs) all filled: 0 refused, 0 fill failures, never
 more than one draw. The release gate still plays 15.
@@ -370,11 +371,12 @@ raises `OptionError` naming the fix if no draw is clean. A clean first draw is
 unchanged. Over 1600 generations of small configurations: 0 refusals, at most
 13 attempts.
 
-**`puzzle_count` now starts at 15, not 8.** Base-game runs of 8 or 10 puzzles
-gave guards back on 40 of 40 draws, so no number of redraws could save them.
-The release gate and the probe tools moved to 15; the `tiny run` stress
-configurations became `small run`; the frozen draw golden now pins each seed's
-first draw and lists the two retired 8-puzzle configurations by name.
+**`puzzle_count` now starts at 15, not 8** (10 since, above). Base-game runs
+of 8 or 10 puzzles gave guards back on 40 of 40 draws, so no number of redraws
+could save them. The release gate and the probe tools moved to 15; the
+`tiny run` stress configurations became `small run`; the frozen draw golden
+now pins each seed's first draw and lists the two retired 8-puzzle
+configurations by name.
 `test_unproven.TestTheGuardIsNotGivenBack` checks every guard the table asks
 for, and failed on the old behaviour before passing on this one.
 
