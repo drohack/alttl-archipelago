@@ -298,11 +298,12 @@ internal static class AbilityLocks
             // level had nothing to interact with, and that is this - not the
             // dependency bug that produced the same symptom on Candy Canes.
             //
-            // An object is locked only if EVERY controller that owns it is
+            // An object is locked only if EVERY group that acts on it is
             // locked. Anything else takes work away from a player who has
             // earned it, and the failure is invisible: the card is honest, the
-            // logic is right, and the level is simply dead.
-            var wanted = new Dictionary<int, bool>();        // objectId -> unlocked
+            // logic is right, and the level is simply dead. A drawer or
+            // cupboard is not such a group: see ObjectLock.
+            var votes = new Dictionary<int, ObjectLock>();   // objectId -> its owners
             var byId = new Dictionary<int, LevelObject>();
 
             for (int i = 0; i < controllers.Count; i++)
@@ -324,10 +325,10 @@ internal static class AbilityLocks
                     unlocked++;
                 }
 
-                Collect(controller, isLocked, wanted, byId);
+                Collect(controller, cls, isLocked, votes, byId);
             }
 
-            var objects = ApplyWanted(wanted, byId);
+            var objects = ApplyWanted(votes, byId);
 
             var summary = $"{locked} locked, {unlocked} open, {objects} objects"
                 + (missing.Count > 0 ? $", waiting on {string.Join(", ", missing)}" : "");
@@ -343,16 +344,18 @@ internal static class AbilityLocks
     }
 
     /// <summary>
-    /// Note what one controller wants for each object it manages.
+    /// Note one controller's vote on each object it manages.
     ///
-    /// Unlocked wins. A second controller that is locked must not take back
-    /// what the first one released - see the two-pass note in Apply.
+    /// Unlocked wins among the groups that act on an object. A second group
+    /// that is locked must not take back what the first one released - see
+    /// the two-pass note in Apply - and a drawer or cupboard does not release
+    /// what another group holds (ObjectLock).
     /// </summary>
-    private static void Collect(ObjectController controller, bool isLocked,
-                                Dictionary<int, bool> wanted,
+    private static void Collect(ObjectController controller, string cls, bool isLocked,
+                                Dictionary<int, ObjectLock> votes,
                                 Dictionary<int, LevelObject> byId)
     {
-        Note(controller.ManagedObjects, isLocked, wanted, byId);
+        Note(controller.ManagedObjects, cls, isLocked, votes, byId);
 
         // AND ANYTHING THE SUBCLASS KEEPS TO ITSELF. See ExtraLists.
         var (concrete, extras) = ExtraLists(controller);
@@ -365,7 +368,7 @@ internal static class AbilityLocks
         {
             try
             {
-                Note(extra.GetValue(self), isLocked, wanted, byId);
+                Note(extra.GetValue(self), cls, isLocked, votes, byId);
             }
             catch
             {
@@ -384,8 +387,8 @@ internal static class AbilityLocks
     /// fast path is tried first and Count/indexer reflection is the fallback,
     /// so this works whichever interface the wrapper happens to expose.
     /// </summary>
-    private static void Note(object? list, bool isLocked,
-                             Dictionary<int, bool> wanted,
+    private static void Note(object? list, string cls, bool isLocked,
+                             Dictionary<int, ObjectLock> votes,
                              Dictionary<int, LevelObject> byId)
     {
         if (list == null) return;
@@ -397,7 +400,8 @@ internal static class AbilityLocks
             {
                 var id = obj.GetInstanceID();
                 byId[id] = obj;
-                wanted[id] = (wanted.TryGetValue(id, out var already) && already) || !isLocked;
+                if (!votes.TryGetValue(id, out var vote)) votes[id] = vote = new ObjectLock();
+                vote.Add(cls, isLocked);
             }
             catch
             {
@@ -829,14 +833,14 @@ internal static class AbilityLocks
     /// so a level with shared objects stops over-reporting. It reads lower than
     /// it used to on exactly the levels this fix is about.
     /// </summary>
-    private static int ApplyWanted(Dictionary<int, bool> wanted,
+    private static int ApplyWanted(Dictionary<int, ObjectLock> votes,
                                    Dictionary<int, LevelObject> byId)
     {
         int touched = 0;
-        foreach (var pair in wanted)
+        foreach (var pair in votes)
         {
             if (!byId.TryGetValue(pair.Key, out var obj) || obj == null) continue;
-            var isLocked = !pair.Value;
+            var isLocked = !pair.Value.Unlocked;
             try
             {
                 obj.SetInteractable(!isLocked);

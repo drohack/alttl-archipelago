@@ -139,6 +139,7 @@ internal static class Checks
     {
         _currentSlot = slotIndex;
         _auditedCount = 0;
+        _pendingSlot = -1;
 
         // Any skip in flight belongs to the level we just left. One that never
         // landed is dropped here, uncharged.
@@ -677,6 +678,7 @@ internal static class Checks
         try
         {
             Listen<GameEventManager.GameEvent_ObjectControllerSolved>(OnControllerSolved);
+            Listen<GameEventManager.GameEvent_LevelCompleteEarly>(OnLevelCompleteEarly);
             Listen<GameEventManager.GameEvent_LevelComplete>(OnLevelComplete);
             Listen<GameEventManager.GameEvent_LevelSkipped>(OnLevelSkipped);
             _attached = true;
@@ -806,6 +808,49 @@ internal static class Checks
         Report(location);
     }
 
+    /// <summary>The arrangement being completed, noted before it is filed.</summary>
+    private static int _pendingSlot = -1;
+    private static string _pendingSolution = "";
+
+    /// <summary>
+    /// LevelCompleteEarly always comes before LevelComplete. Noting the
+    /// arrangement here lets the level-complete screen count this completion
+    /// even when it asks before OnLevelComplete has filed it (OfferRetry).
+    /// </summary>
+    private static void OnLevelCompleteEarly(GameEventManager.GameEventData data)
+    {
+        EnsureSlot();
+        _pendingSlot = _currentSlot;
+        _pendingSolution = data?.SolutionId ?? "";
+    }
+
+    /// <summary>
+    /// Whether the level-complete screen offers the retry panel: the slot has
+    /// more than one Solution location and they will not all be in once this
+    /// completion is filed. Null when no run slot is up, so the game decides.
+    /// droha, 2026-09-25: show it while a level with several solutions still
+    /// has some to find, otherwise go on to the next.
+    /// </summary>
+    internal static bool? OfferRetry(out int lit, out int total)
+    {
+        lit = total = 0;
+        var slot = _currentSlot;
+        if (_router == null || slot < 0) return null;
+
+        (lit, total) = _router.SolutionStars(slot, _ledger.IsCollected);
+
+        // The completion in progress, when the screen asks before it is filed
+        // (measured: it asks at LevelCompleteEarly). After OnLevelComplete has
+        // recorded it, Peek answers 0: no double count.
+        if (_pendingSlot == slot)
+        {
+            var nth = _solutions.Peek(slot, _pendingSolution);
+            var solution = nth > 0 ? _router.ForSolution(slot, nth) : null;
+            if (solution != null && !_ledger.IsCollected(solution) && WouldEarn(solution)) lit++;
+        }
+        return total > 1 && lit < total;
+    }
+
     private static void OnLevelComplete(GameEventManager.GameEventData data)
     {
         // A finished puzzle is not a puzzle to knock over - see Traps.
@@ -843,6 +888,9 @@ internal static class Checks
         // OnLevelSkipped and Skips).
         var beaten = _router.ForBeaten(_currentSlot);
         if (beaten != null) Report(beaten);
+
+        // The completion stars popped before this ran; light what it earned.
+        SuccessStars.Refresh(_currentSlot);
     }
 
     /// <summary>
@@ -883,6 +931,7 @@ internal static class Checks
             sent++;
         }
         Plugin.Logger.LogInfo($"checks: skipped slot {slot}, sent {sent} remaining location(s)");
+        SuccessStars.Refresh(slot);
         return sent;
     }
 
@@ -921,6 +970,17 @@ internal static class Checks
     /// </summary>
     private static bool Earned(string location)
     {
+        if (WouldEarn(location)) return true;
+
+        Plugin.Logger.LogInfo(
+            $"checks: withheld {location} - the run cannot reach it yet; "
+            + "it will be filed on a later visit once the item arrives");
+        return false;
+    }
+
+    /// <summary>Earned's answer without its log line, for a question asked often.</summary>
+    private static bool WouldEarn(string location)
+    {
         if (_progress == null) return true;
 
         var abilities = Inventory.Abilities;
@@ -945,12 +1005,7 @@ internal static class Checks
         //
         // int.MaxValue satisfies the pack half unconditionally and leaves the
         // ability half exactly as it was.
-        if (_progress.IsReachable(location, int.MaxValue, abilities)) return true;
-
-        Plugin.Logger.LogInfo(
-            $"checks: withheld {location} - the run cannot reach it yet; "
-            + "it will be filed on a later visit once the item arrives");
-        return false;
+        return _progress.IsReachable(location, int.MaxValue, abilities);
     }
 
     private static void Report(string location)

@@ -227,6 +227,8 @@ public sealed class Plugin : BasePlugin
                      ("title screen", typeof(TitleScreen)),
                      ("ability locks", typeof(AbilityLocks)),
                      ("card stars", typeof(CardStars)),
+                     ("success stars", typeof(SuccessStars)),
+                     ("retry panel", typeof(RetryPanel)),
                  })
         {
             try

@@ -46,6 +46,17 @@ public sealed class SolutionOrdinals
     }
 
     /// <summary>
+    /// What Record would return for this completion, without recording it: the
+    /// level-complete screen decides before the completion is filed.
+    /// </summary>
+    public int Peek(int slot, string solutionId)
+    {
+        if (slot < 0) return 0;
+        if (!_found.TryGetValue(slot, out var seen)) return 1;
+        return seen.Contains(solutionId ?? "") ? 0 : seen.Count + 1;
+    }
+
+    /// <summary>
     /// Put back the arrangements a slot had already found before this session.
     ///
     /// WITHOUT THIS THE ORDINALS RESTART AT 1 EVERY LAUNCH, AND CHECKS ARE LOST.

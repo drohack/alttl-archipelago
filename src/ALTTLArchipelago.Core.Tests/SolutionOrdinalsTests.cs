@@ -35,6 +35,20 @@ public class SolutionOrdinalsTests
     }
 
     [Fact]
+    public void PeekAnswersWhatRecordWouldWithoutRecording()
+    {
+        var ordinals = new SolutionOrdinals();
+
+        Assert.Equal(1, ordinals.Peek(3, "Stacked_0"));
+        Assert.Equal(1, ordinals.Peek(3, "Stacked_0"));
+        Assert.Equal(0, ordinals.CountFor(3));
+
+        ordinals.Record(3, "Stacked_0");
+        Assert.Equal(0, ordinals.Peek(3, "Stacked_0"));
+        Assert.Equal(2, ordinals.Peek(3, "ByColour_0"));
+    }
+
+    [Fact]
     public void SlotsAreCountedSeparately()
     {
         // Two slots can be the same LEVEL - a repeated puzzle - and would then
