@@ -36,6 +36,9 @@ Keep it short: add a rule here as one line, never as a story.
 - Need an ability mid-test: `tools/handtest-level.py --grant <Ability>` (its
   server reads `testserver/handlevel-commands.txt`; same `/send droha` line).
   Never generate a new seed just to change what droha holds.
+- `handtest-level.py` deletes every `save_ap_*` file, a live seed's too: first
+  `harness_env.take_snapshot`, check droha's save is in it, restore and compare
+  checksums after.
 - A part solved at load, or one that can never be solved, is
   `"notALocation": true` in levels.json (`tools/probe-solved-at-load.py`).
 - Before writing a new tool, look in `tools/` (60+ scripts). Do not write a new
@@ -103,7 +106,10 @@ Keep it short: add a rule here as one line, never as a story.
   ignores the registry for size, so registry reads are not evidence. Never
   fullscreen, never 4K.
 - DevTools commands go in `<game>/BepInEx/alttl-devtools-commands.txt`; see
-  `docs/devtools.md`. Log: `<game>/BepInEx/LogOutput.log`.
+  `docs/devtools.md`. Log: `<game>/BepInEx/LogOutput.log`. It can hold more
+  than one launch: read state from the last one, never the first match.
+- A command still queued when the game froze runs at the next launch (a stale
+  `xrefs` killed one): empty the command file after any freeze.
 - Say before you launch or close the game. If droha is about to play, set
   everything up and let THEM open it. Close it when your testing is done.
 - Cat traps are seed items at fixed locations, so the spoiler says which check
