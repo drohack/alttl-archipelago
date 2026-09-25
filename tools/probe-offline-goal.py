@@ -95,7 +95,7 @@ def write_yaml():
             "A Little to the Left:\n"
             "  goal: beat_levels\n"
             "  levels_to_beat: 1\n"
-            "  puzzle_count: 8\n"
+            "  puzzle_count: 15\n"
             "  pack_size: 8\n"
             "  ability_locks: false\n"
             "  skip_count: 0\n"

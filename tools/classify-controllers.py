@@ -80,10 +80,30 @@ def main(argv):
                if len(ss) < seed_totals[lid]}
 
     rows = []
+    unusable_phases = []
     for level in levels:
         lid = level["levelId"]
         phases = level.get("phases") or []
         recorded = {c["name"] for c in level["controllers"]}
+
+        # A PHASE LIST THAT NAMES NO CONTROLLER IS NOT A PHASE LIST.
+        #
+        # Every use of `phases` below is `name in phases`, so an entry that
+        # matches no controller simply never fires and says nothing. That is
+        # indistinguishable from a level with no phases at all, and it is not
+        # hypothetical: DataTable.PhasesOf writes the literal string "(none)"
+        # whenever a phase's PhaseController is null, and DLC2 Ghost Cat
+        # carries nine of them. Nine unusable entries classified nothing and
+        # produced no warning - the file read as complete.
+        #
+        # Reported rather than raised: the tsv is still worth writing, and the
+        # point is that a human sees the gap instead of inferring it later.
+        # A phase-revealed controller on such a level falls through to
+        # "ghost", which this tool treats as minting no location and implying
+        # no ability - the understating direction.
+        dead = [p for p in phases if p not in recorded]
+        if dead:
+            unusable_phases.append((lid, dead))
 
         for c in level["controllers"]:
             name, ctype = c["name"], c["type"]
@@ -133,6 +153,21 @@ def main(argv):
     print("controllers classified: %d" % len(rows), flush=True)
     for k, n in counts.most_common():
         print("   %-16s %d" % (k, n), flush=True)
+
+    if unusable_phases:
+        print("\nWARNING: phase entries naming no controller on this level.",
+              flush=True)
+        print("Nothing below can ever match, so these levels classify as if "
+              "they declared no phases at all:", flush=True)
+        for lid, dead in unusable_phases:
+            shown = ", ".join(dead[:4]) + (" ..." if len(dead) > 4 else "")
+            print("   %-24s %d of %d unusable: %s"
+                  % (lid, len(dead),
+                     len([lv for lv in levels
+                          if lv["levelId"] == lid][0].get("phases") or []),
+                     shown), flush=True)
+        print("   '(none)' means the sweep read a null PhaseController and "
+              "wrote a placeholder instead of failing.", flush=True)
 
     print("\nlevels declaring phases (the mini-solution levels):", flush=True)
     for level in levels:

@@ -153,7 +153,7 @@ STAGE_DRAG = dict.fromkeys([
     "SomethingEggstra Fridge",   # Containables
 ], "EVERYTHING")
 
-PUZZLES = 10
+PUZZLES = 15
 
 
 def say(what):

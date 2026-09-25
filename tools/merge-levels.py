@@ -34,16 +34,32 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TABLE = os.path.join(REPO, "apworld", "alttl", "data", "levels.json")
 
 #: The shipped table is a PROJECTION of the sweep, not the whole of it: the
-#: sweep also emits objectIds, objectsGatedFirst, matchDependencySolutions and
-#: drawers, which nothing downstream reads. New rows are projected the same way
-#: so the file stays one shape.
+#: sweep also emits objectIds, objectsGatedFirst and matchDependencySolutions,
+#: which nothing downstream reads. New rows are projected the same way so the
+#: file stays one shape.
+#:
+#: `drawers` USED TO BE ON THAT LIST AND IT COST A RUN. The comment here said
+#: it was among the fields "nothing downstream reads", which was true and was
+#: the bug: a drawer's contents are not an ObjectController.dependencies edge,
+#: so dropping this block left every group inside every drawer recorded as
+#: needing nothing at all. The generator believed it, put a Progressive Puzzle
+#: Pack behind a shut drawer, and the run ended. It is kept now, and
+#: tools/merge-drawers.py backfills it onto the rows that predate the change.
 LEVEL_KEYS = ["levelIndex", "levelId", "source", "dlc", "solutionCount",
               "isRandomizable", "isArchived", "isDailyTidy", "controllers",
               "hintAvailable", "hintImages", "cats", "randomizerHintPool",
               "randomizerHints", "isHolidayDaily", "levelClass"]
 
 #: Present only where they say something, matching the shipped rows.
-OPTIONAL = ["extraAbilities", "phases"]
+OPTIONAL = ["extraAbilities", "phases", "drawers"]
+
+#: Of the drawer block, the parts that say something durable. `contains` is a
+#: count of objects and `containsControllers` resolves those objects to the
+#: controller names the logic actually speaks in - see DataTable
+#: .ContainedControllersOf, which does the join while the instance ids are
+#: still live.
+DRAWER_KEYS = ["name", "contains", "containsControllers", "unlockOn", "openOn",
+               "subDrawers"]
 
 CONTROLLER_KEYS = ["name", "type", "objects", "dependsOn"]
 
@@ -65,7 +81,12 @@ def project(row):
             out[key] = row[key]
     for key in OPTIONAL:
         value = row.get(key)
-        if value:
+        if not value:
+            continue
+        if key == "drawers":
+            out[key] = [{k: d[k] for k in DRAWER_KEYS if k in d}
+                        for d in value]
+        else:
             out[key] = value
     return out
 

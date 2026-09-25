@@ -51,6 +51,7 @@ LIVE = os.path.join(PLUGINS, "ALTTLArchipelago")
 PARKED = os.path.join(e2e.GAME, "BepInEx", "_parked", "ALTTLArchipelago")
 SWEPT = os.path.join(e2e.GAME, "BepInEx", "alttl-levels.json")
 SURVEYED = os.path.join(e2e.GAME, "BepInEx", "alttl-solutions.tsv")
+REGISTRATIONS = os.path.join(e2e.GAME, "BepInEx", "alttl-registrations.tsv")
 
 #: --survey runs the PREFAB walk instead of the runtime sweep. The two answer
 #: different questions and neither can be derived from the other: the sweep
@@ -220,8 +221,32 @@ def main():
             print("[3/6] waiting for the title screen to settle", flush=True)
             time.sleep(20)
 
+            # RECORD THE REGISTRATION TIMELINE IN THE SAME PASS. regstart is a
+            # global toggle on Level.RegisterObjectController, so it composes
+            # with the sweep for free - and the sweep is the only thing that
+            # boots all 173 levels, which is what makes the timeline worth
+            # having. Without it the question "does this level reveal
+            # controllers as you solve it, or is that entry a ghost" is
+            # answered by counting once and believing the count, which this
+            # project has got wrong three times.
+            #
+            # Sweep mode only: the prefab survey never boots a level and the
+            # dump never loads one, so neither registers anything.
+            if mode is SWEEP:
+                print("[4/6] recording the registration timeline too",
+                      flush=True)
+                e2e.dev("regstart", settle=1.0)
+
             print(f"[4/6] running {mode['command']}", flush=True)
-            if not sweep(log, only, mode):
+            finished = sweep(log, only, mode)
+
+            # Stop BEFORE reporting the failure: the timeline of a sweep that
+            # died partway is still the timeline of every level it reached,
+            # and that is often the evidence for why it died.
+            if mode is SWEEP:
+                e2e.dev("regstop", settle=2.0)
+
+            if not finished:
                 print("FAIL: the sweep did not finish. The last progress line "
                       "above names the level it stopped on.", flush=True)
                 return 1
@@ -251,6 +276,23 @@ def main():
     os.makedirs(os.path.dirname(out), exist_ok=True)
     shutil.copyfile(mode["source"], out)
     ok = True
+
+    # The timeline, saved beside the table it explains. Reported rather than
+    # failed when absent: a sweep that produced a good table and no timeline is
+    # still a useful sweep, and saying so is better than a red run.
+    if mode is SWEEP:
+        if os.path.isfile(REGISTRATIONS):
+            reg_out = os.path.join(
+                os.path.dirname(out),
+                "alttl-registrations-%s.tsv" % time.strftime("%Y%m%d-%H%M%S"))
+            shutil.copyfile(REGISTRATIONS, reg_out)
+            with open(reg_out, encoding="utf-8", errors="replace") as fh:
+                rows = max(0, len(fh.read().splitlines()) - 1)
+            print(f"      registration timeline: {rows} row(s) -> {reg_out}",
+                  flush=True)
+        else:
+            print("      WARNING: no registration timeline was written",
+                  flush=True)
     with open(out, encoding="utf-8") as fh:
         body = fh.read()
     if mode is DUMP:

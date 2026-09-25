@@ -179,6 +179,24 @@ class TestReadingTheSpoiler(unittest.TestCase):
         self.assertEqual(len(self.plan["slots"]), len(order),
                          "the completion plan does not name every slot")
 
+    def test_the_paper_plan_clears_every_slot(self):
+        """judge_seed, the gate's own pre-flight, on this seed. The arrow
+        session is modelled unless the seed is a locks-off (--quick) one,
+        which is the only kind the gate runs without it."""
+        arrow = self.plan_locks()
+        clears, lines, plan = e2e.judge_seed(OUT, self.seed, arrow)
+        self.assertTrue(clears, "\n".join(lines))
+        self.assertTrue(plan["visits"])
+
+    def plan_locks(self):
+        return e2e.read_plan(OUT, self.seed).get("ability_locks", True)
+
+    def test_the_seed_holds_the_skips_only_a_skip_can_replace(self):
+        """What completion_plan cannot see: levels only a Skip finishes."""
+        need, have = e2e.preflight_skips(OUT, self.seed, self.plan)
+        self.assertGreaterEqual(have, need,
+                                f"{need} level(s) need a Skip, {have} in the seed")
+
 
 class TestTheAbilityTables(unittest.TestCase):
 

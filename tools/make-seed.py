@@ -12,19 +12,17 @@ exist side by side and each test says which it meant:
     py -3.13 tools/make-seed.py           -> testserver/out-base
     py -3.13 tools/make-seed.py --dlc     -> testserver/out-dlc
 
-Same fixed seed the gate uses, so what comes out here is what the gate
-will play.
+The gate's own seed walk (release_e2e.generate_into): from GATE_SEED up,
+the first seed whose paper plan clears every slot. So what comes out here
+is what the gate will play, and it moves when levels.json or the ids do.
 """
 import argparse
 import os
 import shutil
-import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import release_e2e as e2e
-
-SEED = "20260906"
 
 
 def apply_overrides(text, overrides):
@@ -68,27 +66,14 @@ def make(dlc, quick, steady, tag=None, overrides=()):
             shutil.rmtree(d)
         os.makedirs(d)
 
-    path = os.path.join(yaml_dir, f"{tag}.yaml")
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write(apply_overrides(e2e.yaml_text(quick, steady, dlc),
-                                 overrides))
-    print(f"[1/2] wrote {os.path.relpath(path, e2e.REPO)}", flush=True)
-
-    r = subprocess.run(
-        [sys.executable, "Generate.py",
-         "--player_files_path", yaml_dir,
-         "--outputpath", out, "--seed", SEED],
-        cwd=e2e.AP, capture_output=True, text=True,
-        env=dict(os.environ, SKIP_REQUIREMENTS_UPDATE="1"))
-    if r.returncode != 0:
-        print(r.stdout[-3000:], flush=True)
-        print(r.stderr[-3000:], flush=True)
-        sys.exit(f"[2/2] generation failed for {tag}")
-
-    zips = [f for f in os.listdir(out) if f.endswith(".zip")]
-    if not zips:
-        sys.exit(f"[2/2] generation produced no seed in {out}")
-    print(f"[2/2] {tag} seed: {zips[0]}", flush=True)
+    # THE GATE'S OWN SEED WALK, so this seed is the one the gate will play:
+    # from e2e.GATE_SEED up, the first its paper plan clears.
+    print(f"[1/2] {tag}: generating from seed {e2e.GATE_SEED} up", flush=True)
+    number, seed_zip, _plan = e2e.generate_into(
+        yaml_dir, out,
+        apply_overrides(e2e.yaml_text(quick, steady, dlc), overrides),
+        arrow=not quick, report=lambda line: print(f"      {line}", flush=True))
+    print(f"[2/2] {tag} seed {number}: {seed_zip}", flush=True)
     return out
 
 

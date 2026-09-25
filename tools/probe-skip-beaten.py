@@ -33,6 +33,14 @@ Two assertions:
      this is the one that fails on the pre-fix build.
 
     PYTHONUNBUFFERED=1 py -3.13 -u tools/probe-skip-beaten.py 2>/dev/null
+    ... --target pencils   a GENERATOR level, and the harness's own Skip path
+    ... --target pencils --unbeaten   one Skip on it without beating it first
+
+--target pencils is the 2026-09-24 gate failure on one level: forcing a
+beaten generator level re-completes it, the mod moves on, and a Skip sent
+then lands on the next level. It checks that release_e2e's pre-Skip check
+catches that order, and that the harness's order (open, check, Skip - no
+forcing) releases Pencils Solution 2.
 
 Generates its own seed, so it does not depend on the gate having run. Exits 0
 only if both hold.
@@ -70,13 +78,18 @@ YAML = os.path.join(e2e.REPO, "testserver", "yaml-skipbeaten")
 TARGET = "DLC1 Filing Cabinet"
 OWED = "Filing Cabinet (Cupboards and Drawers) - Solution 2"
 
+#: --target pencils: a generator level with two solutions. It re-randomizes
+#: on every open, so forcing it after it is beaten completes it again.
+PENCILS = "Pencils (Randomized)"
+PENCILS_OWED = "Pencils (Randomized) - Solution 2"
+
 YML = """name: {slot}
 game: A Little to the Left
 requires:
   version: 0.6.7
 A Little to the Left:
-  puzzle_count: 10
-  levels_to_beat: 10
+  puzzle_count: 15
+  levels_to_beat: 15
   pack_size: 10
   guaranteed_open_slots: 10
   cupboards_and_drawers: true
@@ -95,19 +108,42 @@ A Little to the Left:
 """
 
 
+PENCILS_YML = """name: {slot}
+game: A Little to the Left
+requires:
+  version: 0.6.7
+A Little to the Left:
+  puzzle_count: 15
+  levels_to_beat: 15
+  pack_size: 10
+  guaranteed_open_slots: 10
+  generator_weight: 100
+  archive_weight: 0
+  base_weight: 0
+  archive_packs: []
+  mechanic_coverage: 0
+  ability_locks: false
+  skip_count: 5
+  cat_trap_chance: 0
+  progression_balancing: 0
+  accessibility: full
+"""
+
+
 def send(item):
     with open(CMDS, "a", encoding="utf-8") as f:
         f.write("/send droha %s\n" % item)
 
 
-def generate():
+def generate(yml=YML, target=None):
     """A seed holding the target level, rolled until one does."""
+    target = target or TARGET
     for d in (OUT, YAML):
         os.makedirs(d, exist_ok=True)
         for f in os.listdir(d):
             os.remove(os.path.join(d, f))
     with open(os.path.join(YAML, "s.yaml"), "w", newline="\n") as f:
-        f.write(YML.format(slot=e2e.SLOT))
+        f.write(yml.format(slot=e2e.SLOT))
 
     for n in range(60):
         for f in glob.glob(os.path.join(OUT, "*")):
@@ -122,16 +158,20 @@ def generate():
         seed = os.path.basename(zips[0])
         plan = e2e.read_plan(OUT, seed)
         for i, (index, name) in enumerate(plan["slots"]):
-            if name == TARGET:
-                print(f"      seed {8300 + n} holds {TARGET} as slot {i}",
+            if name == target:
+                print(f"      seed {8300 + n} holds {target} as slot {i}",
                       flush=True)
                 return seed, i, index
     return None, -1, -1
 
 
 def main():
+    global TARGET, OWED
+    pencils = "--target" in sys.argv and "pencils" in sys.argv
+    if pencils:
+        TARGET, OWED = PENCILS, PENCILS_OWED
     print(f"[1/8] generating a seed that contains {TARGET}", flush=True)
-    seed, slot, index = generate()
+    seed, slot, index = generate(PENCILS_YML if pencils else YML, TARGET)
     if seed is None:
         print(f"FAIL: no seed drew {TARGET} in 60 tries", flush=True)
         return 1
@@ -191,6 +231,49 @@ def main():
                 return 1
             time.sleep(2.0)
 
+            if "--unbeaten" in sys.argv:
+                # Does the game's own Skip complete this level at all, beaten
+                # or not? One Skip on the fresh level, and what follows it.
+                print(f"[5/8] --unbeaten: one Skip on {TARGET}, never beaten",
+                      flush=True)
+                if not e2e.boot_level(log, index)[0]:
+                    print(f"FAIL: {TARGET} did not open", flush=True)
+                    return 1
+                here = e2e.await_skip_target(log, index)
+                if not e2e.skip_target_ok(here, index):
+                    print(f"FAIL: {TARGET} is not the loaded level: "
+                          f"{e2e.active_level(here)}", flush=True)
+                    return 1
+                log.new()
+                e2e.dev("skip", 2.5)
+                more = log.wait(["LevelSkipped", "LevelComplete "], 20, 5,
+                                "the skip to complete the level")
+                time.sleep(2.0)
+                more += log.new()
+                spent = "skip: spent one" in more
+                completed = "LevelComplete " in more or "LevelSkipped" in more
+                not_used = "skip: not used" in more
+                print(f"      skip spent={spent}  level completed={completed}  "
+                      f"not used={not_used}", flush=True)
+                for line in more.splitlines():
+                    if any(k in line for k in ("skip", "LevelComplete", "check:")):
+                        print("      " + line.split("] ", 1)[-1][:120], flush=True)
+                # A Skip works on every level (2026-09-25): the game completes
+                # it, or - where the game will not skip - the mod releases the
+                # slot and goes back to the track. Either way spent once.
+                released = ("checks: skipped slot" in more
+                            and "navigation: skip -> the run's track" in more)
+                if not spent or not (completed or released) or not_used:
+                    print(f"FAIL: on {TARGET} spent={spent} completed={completed} "
+                          f"released={released}", flush=True)
+                    return 1
+                print(f"PASS: a Skip on {TARGET} "
+                      + ("completes it and is spent" if completed
+                         else "releases the slot, is spent, and goes back to the track"),
+                      flush=True)
+                rc = 0
+                return 0
+
             print(f"[5/8] booting {TARGET} and beating it", flush=True)
             opened, _out = e2e.boot_level(log, index)
             if not opened:
@@ -227,21 +310,55 @@ def main():
                 return 1
             print(f"      {OWED} is still owed, as expected", flush=True)
 
+            if pencils:
+                # THE OLD ORDER, which must now be caught: force the beaten
+                # level first. It completes again and the mod moves on.
+                print("[5b/8] old order: re-open, force, then look before "
+                      "the Skip", flush=True)
+                e2e.to_title(log)
+                if not e2e.boot_level(log, index)[0]:
+                    print(f"FAIL: {TARGET} did not re-open", flush=True)
+                    return 1
+                log.new()
+                redone, visit = e2e.solve_level(log)
+                time.sleep(3.0)
+                here = e2e.await_skip_target(log, index)
+                caught = not e2e.skip_target_ok(visit + here, index)
+                print(f"      forced again: completed={redone}; running now: "
+                      f"{e2e.active_level(here)}; pre-Skip check stops it="
+                      f"{caught}", flush=True)
+                if not caught:
+                    print("FAIL: the pre-Skip check let a Skip through after "
+                          "the level had moved on", flush=True)
+                    return 1
+                e2e.to_title(log)
+
             print("[6/8] re-entering the beaten level", flush=True)
-            # THE WHOLE POINT. The level is now beaten, so re-entering it and
-            # skipping raises no LevelComplete - which is what used to make
-            # the Skip vanish.
+            # THE WHOLE POINT. The level is now beaten. Re-entering reloads it,
+            # and a skip there still raises LevelComplete (measured
+            # 2026-09-18); what matters is that the Skip releases the rest of
+            # the slot rather than vanishing.
             opened, _out = e2e.boot_level(log, index)
             if not opened:
                 print(f"FAIL: {TARGET} did not re-open", flush=True)
                 return 1
 
             print("[7/8] spending a Skip on the beaten level", flush=True)
+            # The harness's order: look, then Skip - nothing forced first.
+            here = e2e.await_skip_target(log, index)
+            if not e2e.skip_target_ok(here, index):
+                print(f"FAIL: about to Skip {TARGET} but the game is running "
+                      f"{e2e.active_level(here)}", flush=True)
+                return 1
+            print(f"      running: {e2e.active_level(here)}", flush=True)
             log.new()
             e2e.dev("skip", 2.5)
             more = log.wait(["check: ", "skip: "], 20, 7, "the skip")
             time.sleep(2.0)
             more += log.new()
+            # Pencils too: the game will not skip a generator level in a run,
+            # so the mod releases the slot itself (2026-09-25) - spent, and
+            # the owed Solution 2 sent, like any other level.
             spent = "skip: spent one" in more
             paid = OWED in more
             print(f"      skip spent={spent}  {OWED} sent={paid}", flush=True)
@@ -261,6 +378,18 @@ def main():
             print("[8/8] spending a Skip on the same slot, now complete",
                   flush=True)
             # The other half: an item with nothing to buy must not be taken.
+            # Re-opened and checked first: after a Skip the mod may move on,
+            # and a Skip sent then would test some other slot.
+            e2e.to_title(log)
+            if not e2e.boot_level(log, index)[0]:
+                print(f"FAIL: {TARGET} did not re-open for the second Skip",
+                      flush=True)
+                return 1
+            here = e2e.await_skip_target(log, index)
+            if not e2e.skip_target_ok(here, index):
+                print(f"FAIL: about to Skip {TARGET} again but the game is "
+                      f"running {e2e.active_level(here)}", flush=True)
+                return 1
             log.new()
             e2e.dev("skip", 2.5)
             again = log.wait(["skip: "], 15, 8, "the second skip")

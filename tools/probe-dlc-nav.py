@@ -74,8 +74,8 @@ game: A Little to the Left
 requires:
   version: 0.6.7
 A Little to the Left:
-  puzzle_count: 8
-  levels_to_beat: 8
+  puzzle_count: 15
+  levels_to_beat: 15
   pack_size: 8
   guaranteed_open_slots: 8
   seeing_stars: true

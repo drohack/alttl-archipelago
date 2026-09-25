@@ -82,7 +82,7 @@ DUMP = os.path.join(e2e.GAME, "BepInEx", "alttl-dump.json")
 #: declared_abilities() - so this cannot drift from what actually ships.
 TARGETS = ("TupperwareTower", "Desktop Computer")
 
-PUZZLES = 10
+PUZZLES = 15
 DESKTOP = 1
 
 

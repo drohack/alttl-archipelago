@@ -14,9 +14,10 @@ as a release.
 The manual equivalent, and what each log line proves, is in
 docs/release-testing.md.
 
-THE RUN: 8 puzzles, 2 packs, beat all 8. Small enough to finish in minutes,
-and 2 packs means the progression actually has to work - four puzzles open at
-the start, and the other four arrive only if packs are received and applied.
+THE RUN: 15 puzzles (the option's floor is 10), beat all 15. Small enough to finish
+in minutes, and more than one pack means the progression actually has to work
+- some puzzles open at the start, and the rest arrive only if packs are
+received and applied.
 
 IT CLEANS FIRST, NOT AFTER. Re-running is therefore always valid whatever
 state the last run left behind, and the install is left working so a person
@@ -52,6 +53,8 @@ from harness_env import (CONFIG_DIR, EXE, GAME, SAVE_DIR, SCREEN_KEY,
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG = os.path.join(GAME, "BepInEx", "LogOutput.log")
+#: Where keep_log copies the game log, next to the server logs.
+KEPT_LOGS = os.path.join(REPO, "testserver", "logs")
 CMD = os.path.join(GAME, "BepInEx", "alttl-devtools-commands.txt")
 PLUGIN_DIR = os.path.join(GAME, "BepInEx", "plugins", "ALTTLArchipelago")
 MOD_CONFIG = os.path.join(CONFIG_DIR, "droha.alttl.archipelago.cfg")
@@ -76,16 +79,16 @@ SLOT = "droha"
 #: Exit, and the launch count, which are the parts that need a second
 #: session.
 #:
-#: IT IS STILL EIGHT PUZZLES. This said "three puzzles" for as long as
-#: puzzle_count has had a floor of 8 - PUZZLES is never reassigned, by
-#: --quick or by anything else, so the speedup quick actually buys is
-#: the second session and the stalls, not a shorter run.
-PUZZLES = 8
+#: FIFTEEN. It was eight until 2026-09-23, when the option's floor rose to 15;
+#: the floor is 10 since 2026-09-25 and the gate stays at 15 (three packs).
+#: PUZZLES is never reassigned, by --quick or by anything else, so the
+#: speedup quick buys is the second session and the stalls, not a shorter run.
+PUZZLES = 15
 
 #: Requested pack size. How many packs that BUYS is items._pack_cap's
-#: call, not ours - at 8 puzzles the cap is 1, and MIN_OPENING raises the
-#: size to 5, so the run opens 5 free and the single pack carries the
-#: remaining 3. Asserting a pack count here instead of reading the
+#: call, not ours - it is round(puzzle_count * 0.18), and MIN_OPENING can
+#: raise the size, so the opening and the pack count both come from the
+#: generator's boundaries. Asserting a pack count here instead of reading the
 #: generator's boundaries is what made 'the run has 2 packs' fail on every
 #: run for as long as the cap has existed.
 PACK_SIZE = 2
@@ -105,6 +108,98 @@ EXHAUSTED_MARK = "harness: level exhausted, no completion"
 #: it has already beaten, so the phase is visible when reading a run. Nothing
 #: is excluded on the strength of it - see the error census, which used to.
 REVISIT_MARK = "harness: revisit pass begins"
+
+#: Written when a Skip was about to land on a level other than the one it
+#: was bought for; the run stops there and a check fails on it.
+WRONG_SKIP_MARK = "harness: STOPPED - a Skip would have landed on the wrong level"
+
+#: Written when a Skip did nothing: the game never skipped and the mod did not
+#: release the slot. The run stops there and a check fails on it.
+NOT_USED_MARK = "harness: STOPPED - a Skip did nothing"
+
+#: The mod's verdict on a Skip request, one of which it always writes. The
+#: harness waits for these, not for any `skip:` line: DevTools' own
+#: `skip: calling MainMenu.SkipLevel` matched that before the game had acted.
+SKIP_VERDICTS = ("skip: spent one", "skip: not used", "skip: refused",
+                 "skip: waiting for the game")
+
+#: Written when a visit was not the paper plan's. The run stops there.
+OFF_PLAN_MARK = "harness: STOPPED - the run left its paper plan"
+
+
+def skip_outcome(text):
+    """What a Skip request did, from the mod's lines: "spent", "not used",
+    "refused", "waiting", or None if it said nothing. Pure.
+
+    The mod charges once the Skip has done something: the game skipped (the
+    payout lands inside SkipLevel, so `spent one` follows it), or, where the
+    game will not skip, the mod released the slot itself (2026-09-25).
+    `waiting` means the game may still skip late; if nothing lands, the Skip
+    did nothing. `not used` is what the mod said before 2026-09-25.
+    """
+    if "skip: not used" in text:
+        return "not used"
+    if "skip: spent one" in text:
+        return "spent"
+    if "skip: refused" in text:
+        return "refused"
+    if "skip: waiting for the game" in text:
+        return "waiting"
+    return None
+
+
+def active_level(text):
+    """(levelId, index, loaded) from the last DevTools `state:` line, or None.
+
+    `state: gameState=... activeLevel=Pencils (Randomized) index=999 ...
+    loaded=True transitioning=False`. Pure.
+    """
+    found = None
+    for line in text.splitlines():
+        if "state: gameState=" not in line or "activeLevel=" not in line:
+            continue
+        rest = line.split("activeLevel=", 1)[1]
+        if " index=" not in rest:
+            continue
+        level_id, tail = rest.split(" index=", 1)
+        index = tail.split()[0]
+        if not index.lstrip("-").isdigit():
+            continue
+        found = (level_id, int(index), "loaded=True" in tail)
+    return found
+
+
+def skip_target_ok(text, index):
+    """Would a Skip land on level `index`? Pure.
+
+    `text` is everything logged since the level was opened. The level must
+    be the loaded one, AND nothing may have completed it this visit: after
+    a completion the mod queues the next slot, and `state` keeps reporting
+    the finished level until the completion screen ends - measured by
+    probe-skip-beaten --target pencils, 2026-09-24. The gate's Skip landed
+    on Fruit Stickers 11 s after beaten Pencils completed again.
+    """
+    if "LevelComplete " in text or "navigation: next" in text:
+        return False
+    now = active_level(text)
+    return now is not None and now[1] == index and now[2]
+
+
+def await_skip_target(log, index, tries=10):
+    """Ask the game what is running until level `index` has finished loading
+    or something else is running. Returns the state text; judge it with
+    skip_target_ok. boot_level returns at Gameplay_GameState, which can be
+    a beat before loaded=True."""
+    text = ""
+    for _ in range(tries):
+        log.new()
+        dev("state", 0.5)
+        got = log.wait(["state: gameState"], 4, 6, "the level state")
+        text += got
+        now = active_level(got)
+        if now is not None and (now[1] != index or now[2]):
+            break
+    return text
 
 #: The game's credits "level". Found by IsCredits at runtime rather than by
 #: this number anywhere in the mod - it is only here because clickcard: takes
@@ -126,11 +221,79 @@ STEADY = False
 #: puzzle it was until they do.
 DLC = False
 
+#: --only-arrow: run steps 1-5 (install, seed, the arrow session) and stop
+#: with the arrow's two verdicts - one gate part on its own.
+ONLY_ARROW = False
+
 TOTAL = 7
 
 
+#: While play() runs: a callable giving (puzzles beaten, puzzles in the
+#: run, this visit, visits in the seed's paper plan).
+_progress = None
+
+#: The phase play() runs in, the long one; its lines carry the counts.
+PLAY_PHASE = 6
+
+#: What each of the TOTAL steps is, so `[step 6/7]` never reads as progress.
+PHASE_NAMES = {1: "clean", 2: "assets", 3: "world", 4: "seed", 5: "arrow",
+               6: "play", 7: "save"}
+
+
+def set_progress(source):
+    """Make play-phase lines carry visit and puzzle totals, or stop."""
+    global _progress
+    _progress = source
+
+
 def say(phase, msg):
-    print(f"[{phase}/{TOTAL}] {msg}", flush=True)
+    """One progress line, every counter with its total.
+
+    During play: `[visit 4/17 | 2/15 beaten]`, the visit counted against
+    the seed's paper plan. Otherwise the step, named. droha: "it's really
+    hard to tell how far along the test is", then "shouldn't we know exactly
+    how many of each ... we are doing? This is a set seed".
+    """
+    if phase == PLAY_PHASE and _progress is not None:
+        beaten, total, visit, planned = _progress()
+        head = f"[visit {visit or '-'}/{planned} | {beaten}/{total} beaten]"
+    else:
+        head = f"[step {phase}/{TOTAL} {PHASE_NAMES.get(phase, '')}]".replace(" ]", "]")
+    print(f"{head} {msg}", flush=True)
+
+
+def round_line(current, level_id, outcome, open_slots, total):
+    """The end-of-visit line: the level first, the bookkeeping after it."""
+    return f"{level_id} {outcome} (slot {current}, {open_slots} of {total} open)"
+
+
+def check_lines(results):
+    """The final verdicts, numbered: `[check 12/27] PASS  name`. Pure."""
+    return [f"[check {n}/{len(results)}] {'PASS' if ok else 'FAIL'}  {name}"
+            for n, (name, ok) in enumerate(results, 1)]
+
+
+def off_plan(visit, level_id, planned):
+    """Why visit `visit` (1-based) is not the paper plan's, or None. Pure."""
+    if visit > len(planned):
+        return (f"visit {visit} is past the plan's {len(planned)} "
+                f"({level_id})")
+    want = planned[visit - 1]["level"]
+    if want != level_id:
+        return f"visit {visit} should be {want}, but the harness chose {level_id}"
+    return None
+
+
+def first_clearable(numbers, judge, report):
+    """The first seed number `judge` accepts, reporting every verdict, or
+    None. `judge(n)` returns (clears, lines). Pure apart from `report`."""
+    for number in numbers:
+        clears, lines = judge(number)
+        for line in lines:
+            report(line)
+        if clears:
+            return number
+    return None
 
 
 #: Every line this gate prints also lands here, overwritten at the start of
@@ -562,6 +725,10 @@ KNOWN_TABLE_GAPS = (
     # decided about - and the obvious-looking repair, putting the two
     # locations back, re-creates two checks no player can collect.
     "TupperwareTower",
+    # Forcing KeysDraggables and DrawerController completes it before Dining
+    # Room, Parking Lot and Landscape ever register (DLC gate, 2026-09-24);
+    # for a player they register in that order (droha, 2026-09-23).
+    "DLC1 Boss",
 )
 
 
@@ -587,6 +754,24 @@ KNOWN_TABLE_GAPS = (
 #: Adding a name here is a decision to stop testing that level's solve path.
 #: Measure first - the far likelier cause of a new entry is a regression in
 #: solve routing or ability gating, which is exactly what the check is for.
+#: Part locations forcing never collects, because forcing another controller
+#: completes the level first; only a Skip releases one. EMPTY since
+#: 2026-09-24. Its one entry was Workbench's Draggables For Targets, which
+#: shares ToolsController's 21 objects, so forcing Tools completed the level
+#: (full gate, visit 21). droha then played Workbench and that check never
+#: fired for a player either, so it is notALocation in levels.json. Kept for
+#: the next part like it, measured before it is added.
+KNOWN_EARLY_COMPLETE = frozenset()
+
+#: Levels that register NO controller until a player starts them, so forcing
+#: has nothing to solve and collects nothing there. Radial Dance Party's dances
+#: register one at a time as each is played (droha's hand test, 2026-09-24);
+#: the base gate that day read "controllers: 0 registered on Radial Dance
+#: Party" five times on one visit while its paper plan forced the dances, and
+#: stopped at the next visit. Every location here is unforceable, so a seed
+#: holding one never clears on paper and the seed walk moves on. Played by hand.
+KNOWN_NOTHING_TO_FORCE = frozenset({"Radial Dance Party"})
+
 KNOWN_UNFORCEABLE = (
     # Registers Foundation, Tower and Falling Blocks; only the Tower is an
     # objective. Solving it leaves the tower standing but the level unfinished
@@ -620,6 +805,120 @@ KNOWN_UNFORCEABLE = (
 )
 
 
+def _scenery_only_levels():
+    """Levels whose every controller is scenery (abilities.json notPuzzles)."""
+    data = os.path.join(REPO, "apworld", "alttl", "data")
+    with open(os.path.join(data, "abilities.json"), encoding="utf-8") as f:
+        scenery = set(json.load(f)["notPuzzles"])
+    with open(os.path.join(data, "levels.json"), encoding="utf-8") as f:
+        levels = json.load(f)["levels"]
+    out = set()
+    for level in levels:
+        live = [c for c in level["controllers"] if not c.get("notALocation")]
+        if live and all(c["type"] in scenery for c in live):
+            out.add(level["levelId"])
+    return frozenset(out)
+
+
+#: Levels with no puzzle controller at all: every one is scenery, which
+#: solve cannot force (see unsolved_controllers), so only a Skip finishes
+#: them. Derived from the table so a new one cannot be missed - DLC2 Corn,
+#: Drink Glasses and MerryMess_Presents on 2026-09-24, when the DLC gate
+#: spent a Skip on Corn at visit 1 while its paper plan had forced it.
+SCENERY_ONLY = _scenery_only_levels()
+
+def _forceability():
+    """fixtures/forceability.jsonl by levelId: every level forced alone."""
+    path = os.path.join(REPO, "fixtures", "forceability.jsonl")
+    if not os.path.isfile(path):
+        return {}
+    with open(path, encoding="utf-8") as f:
+        rows = [json.loads(line) for line in f if line.strip()]
+    return {row["levelId"]: row for row in rows}
+
+
+#: EVERY LEVEL, MEASURED ALONE: tools/probe-forceable.py --all, then --recheck
+#: and --groups-rest, written to fixtures/forceability.jsonl. droha,
+#: 2026-09-24: "shouldn't we just run every single level now and build a plan
+#: around them? that way we don't have to 'figure them out' on a gate run?"
+#: The per-level facts below come from it rather than from one gate each.
+FORCEABILITY = _forceability()
+
+#: Levels where forcing every controller, pass after pass, never finishes
+#: the level. Their parts are forced like any other; only a Skip ends them.
+FORCING_NEVER_FINISHES = frozenset(
+    lid for lid, row in FORCEABILITY.items()
+    if row["all"] is None and row["forceable"] > 0)
+
+#: Every level only a Skip finishes. The yaml's starting Skips still follow
+#: KNOWN_UNFORCEABLE alone, so a measured level moves no seed.
+UNFORCEABLE = (frozenset(KNOWN_UNFORCEABLE) | SCENERY_ONLY
+               | FORCING_NEVER_FINISHES)
+
+#: Levels the game finishes on ONE group, whatever the table's Beaten asks
+#: for: forcing that group completes the level, the mod banks the Beaten
+#: token and withholds any Solution the logic has not reached. First seen on
+#: DLC2 Cupcakes (DLC gate, 2026-09-24: Colors forced, Solution 1 withheld
+#: for Swapping, Beaten banked); the sweep found six more, several with two
+#: or three such groups. {levelId: groups that finish it alone}
+KNOWN_COMPLETES_ON = {"DLC2 Cupcakes": frozenset({"Colors"})}
+KNOWN_COMPLETES_ON.update({
+    lid: frozenset(g for g, took in row["groups"].items() if took is not None)
+    for lid, row in FORCEABILITY.items()
+    if any(took is not None for took in row["groups"].values())})
+
+#: The order a level's controllers register at load, which is the order
+#: solve_level forces them in - so which group finishes it first.
+CONTROLLER_ORDER = {lid: row["order"] for lid, row in FORCEABILITY.items()
+                    if row.get("order")}
+
+#: Levels that register fewer controllers at load than the table lists.
+KNOWN_TABLE_GAPS = tuple(KNOWN_TABLE_GAPS) + tuple(sorted(
+    lid for lid, row in FORCEABILITY.items()
+    if row["atLoad"] < row["table"] and lid not in KNOWN_TABLE_GAPS))
+
+
+def never_registered_parts():
+    """{(levelId, group display)} forcing can never solve: groups whose
+    controllers are not registered at load, on a level that completes in
+    one pass with fewer controllers than its table - DLC1 Boss finishes on
+    Keys and Drawer before Dining Room, Parking Lot and Landscape register.
+    A level whose phases register pass by pass (TupperwareNesting) is not
+    one of them."""
+    _load_names()
+    out = set()
+    for lid, row in FORCEABILITY.items():
+        if row.get("all") is None or (row.get("passes") or 1) > 1:
+            continue
+        if row.get("atLoad", 0) >= row.get("table", 0):
+            continue
+        order = set(row.get("order") or [])
+        if not order:
+            continue
+        parts = (_NAMES["levels"].get(lid) or {}).get("parts") or {}
+        for part in parts.values():
+            if not set(part.get("members") or []) & order:
+                out.add((lid, part["display"]))
+    return frozenset(out)
+
+
+def strands_the_rest(level_id, group):
+    """Does forcing this group finish its level before the next solve?"""
+    took = ((FORCEABILITY.get(level_id) or {}).get("groups") or {}).get(group)
+    return took is not None and took <= 1
+
+
+def group_rank(level_id, location):
+    """Where a part location's group comes in its level's forcing order."""
+    _load_names()
+    parts = (_NAMES["levels"].get(level_id) or {}).get("parts") or {}
+    group = location.rsplit(" - ", 1)[-1]
+    members = next((p.get("members") or [] for p in parts.values()
+                    if p["display"] == group), [])
+    order = CONTROLLER_ORDER.get(level_id) or []
+    return min((order.index(m) for m in members if m in order), default=10 ** 6)
+
+
 def table_audit(text):
     """Audit complaints about levels we have NOT already written down.
 
@@ -647,6 +946,9 @@ def table_audit(text):
         marker = "CONTROLLER MISMATCH on " if "CONTROLLER MISMATCH on " in line \
             else "UNEARNABLE LOCATIONS on "
         level = line.split(marker, 1)[1].split(":", 1)[0].strip()
+        # The mod writes `TupperwareNesting (at 6 controller(s) so far)`;
+        # without this every phased level on the known list read as new.
+        level = level.split(" (at ", 1)[0].strip()
         if level in KNOWN_TABLE_GAPS:
             continue
         out.append(line.split("] ")[-1].strip())
@@ -658,6 +960,42 @@ def line_with(text, marker):
         if marker in line:
             return line.split("] ")[-1].strip()
     return ""
+
+
+#: DevTools lines that report the game's pause state (PauseTrace.cs, the
+#: timeScale watch, boot), each carrying `Paused=True|False`.
+PAUSE_STATE_MARKERS = ("game: ", "time: ", "boot: ")
+
+
+def pause_warnings(text):
+    """Every solve sent while the game last said Paused=True, or its clock
+    was at 0. A paused game holds every gameplay event; going to the title
+    pauses it on its own and boot undoes that, so a pause alone is not a
+    warning. Pure."""
+    out, stopped, state = [], False, ""
+    for line in text.splitlines():
+        if "command: solve:" in line:
+            if stopped:
+                out.append(f"{line.split('command: ', 1)[1].strip()} sent "
+                           f"while paused ({state})")
+            continue
+        marker = next((m for m in PAUSE_STATE_MARKERS if m in line), None)
+        m = re.search(r"Paused=(True|False) timeScale=([0-9.]+)", line) if marker else None
+        if m:
+            stopped = m.group(1) == "True" or float(m.group(2)) == 0.0
+            state = line[line.index(marker):].strip()
+    return out
+
+
+def report_pauses(text):
+    """Print the pause warnings (droha: warn, never fail); return the count."""
+    found = pause_warnings(text)
+    if found:
+        print(f"WARNING: {len(found)} solve(s) sent while the game was paused; "
+              f"a paused game holds every event. Not a failed check.", flush=True)
+        for line in found[:10]:
+            print(f"      {line}", flush=True)
+    return len(found)
 
 
 # ---------------------------------------------------------------- phases ----
@@ -746,20 +1084,96 @@ def install_apworld(assets):
     return sha(src)[:16]
 
 
-def write_config():
-    """Point the fresh install at the test server before its first launch.
+def _cfg_flush(out, todo):
+    """Append the keys set_cfg_keys has not placed yet, and forget them.
 
-    A player types this into the pane. Writing the file is the scriptable
-    equivalent, and BepInEx fills in every key not named here with its default.
+    Module-level rather than nested: the gate's self-test resolves names per
+    function and read a nested helper as undefined.
     """
-    with open(MOD_CONFIG, "w", encoding="utf-8", newline="\n") as f:
-        f.write("[Server]\n"
-                "Host = localhost\n"
-                f"Port = {PORT}\n"
-                f"SlotName = {SLOT}\n"
-                "Password = \n"
-                "AutoConnect = true\n"
-                "MaxRetries = 0\n")
+    for key, value in todo.items():
+        out.append(f"{key} = {value}")
+    todo.clear()
+
+
+def set_cfg_keys(path, section, values):
+    """Set these keys in one section of a BepInEx .cfg, touching nothing else.
+
+    Every other section, key and comment is kept as it is. A missing file,
+    section or key is created. This replaced two writers that overwrote the
+    whole file, which silently wiped the mod's remembered [Display]
+    WindowSize at every harness setup - so the next launch fell back to the
+    game's own index-based choice and came up at 3840x2160. droha,
+    2026-09-23: "you should have been the last one to open it at 720p, and i
+    last had it at 1080p... so why the heck is it 4k right now?"
+    """
+    lines = []
+    if os.path.isfile(path):
+        with open(path, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    todo = dict(values)
+    out, current, seen = [], None, False
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            if current == section:
+                _cfg_flush(out, todo)
+            current = stripped[1:-1]
+            seen = seen or current == section
+        elif (current == section and "=" in stripped
+              and not stripped.startswith("#")):
+            key = stripped.split("=", 1)[0].strip()
+            if key in todo:
+                line = f"{key} = {todo.pop(key)}"
+        out.append(line)
+    if current == section:
+        _cfg_flush(out, todo)
+    if not seen:
+        if out and out[-1].strip():
+            out.append("")
+        out.append(f"[{section}]")
+        _cfg_flush(out, todo)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write("\n".join(out) + "\n")
+
+
+def cfg_value(path, section, key):
+    """One key's value from a BepInEx .cfg, or None."""
+    if not os.path.isfile(path):
+        return None
+    current = None
+    with open(path, encoding="utf-8") as f:
+        for line in f.read().splitlines():
+            stripped = line.strip()
+            if stripped.startswith("[") and stripped.endswith("]"):
+                current = stripped[1:-1]
+            elif (current == section and "=" in stripped
+                  and not stripped.startswith("#")):
+                k, v = stripped.split("=", 1)
+                if k.strip() == key:
+                    return v.strip()
+    return None
+
+
+def write_config():
+    """Point the install at the test server before the next launch.
+
+    A player types this into the pane. Setting the keys is the scriptable
+    equivalent, and BepInEx fills in every key not named with its default.
+
+    ONLY THE SERVER KEYS, plus a window size when none is remembered: 720p is
+    the size for test sessions (never 4K), but a size the player chose is
+    theirs and is left alone.
+    """
+    set_cfg_keys(MOD_CONFIG, "Server", {
+        "Host": "localhost",
+        "Port": PORT,
+        "SlotName": SLOT,
+        "Password": "",
+        "AutoConnect": "true",
+        "MaxRetries": 0,
+    })
+    if not cfg_value(MOD_CONFIG, "Display", "WindowSize"):
+        set_cfg_keys(MOD_CONFIG, "Display", {"WindowSize": "1280x720"})
 
 
 def write_devtools_config():
@@ -774,12 +1188,9 @@ def write_devtools_config():
     player's own volume settings, which live inside the encoded save next to
     actual progress. Nothing here is persisted and nothing of theirs moves.
 
-    Partial on purpose: BepInEx fills in every key not named here with its
-    default, so this says the one thing it means to say.
+    One key, set in place: every other devtools setting is kept.
     """
-    with open(DEVTOOLS_CONFIG, "w", encoding="utf-8", newline="\n") as f:
-        f.write("[Debug]\n"
-                "MuteAudio = true\n")
+    set_cfg_keys(DEVTOOLS_CONFIG, "Debug", {"MuteAudio": "true"})
 
 
 def yaml_text(quick, steady, dlc_on):
@@ -832,44 +1243,20 @@ def yaml_text(quick, steady, dlc_on):
            # Skip to spend yet", eight rounds running.
            "  start_inventory:\n"
            "    Skip: 4\n"
-           # LOCATIONS THE HARNESS CANNOT EARN, kept clear of
-           # progression. Every one is a container - a drawer you pull
-           # open, a cupboard door you swing - and the harness solves
-           # by setting a controller's solved flag, which is not the
-           # same thing. The group therefore never reports.
-           #
-           # A PLAYER EARNS THESE NORMALLY. droha played Game Pieces,
-           # Tea Cabinet and Robots by hand on 2026-09-17 and every one
-           # of these locations fired; see docs/manual-container-test.md.
-           # So this is not a statement about the game, it is the
-           # harness declaring its own blind spot so the generator does
-           # not put the run's only Puzzle Pack behind it - which is
-           # exactly what stranded three slots twice running.
-           #
-           # A Skip DOES rescue it, and this comment used to say the
-           # opposite. It claimed the payout was filled from the
-           # LevelComplete a skip triggers and that "a level that is
-           # already beaten never fires one again". Measured 2026-09-18
-           # by tools/probe-skip-beaten.py: it fires. Re-entering a
-           # beaten puzzle reloads it, and a reloaded level completes
-           # and skips like any other, so the remaining locations are
-           # sent. The premise had to be wrong - the only way to press
-           # Skip is to be standing in a loaded level.
-           "  exclude_locations:\n"
-           "    - Clock Cupboard (Cupboards and Drawers) - Cupboard Doors\n"
-           "    - Craft Supplies (Cupboards and Drawers) - Drawers\n"
-           "    - Daggers (Cupboards and Drawers) - Drawers\n"
-           "    - Game Pieces (Cupboards and Drawers) - Drawers\n"
-           "    - Jewelry Box (Cupboards and Drawers) - Drawers\n"
-           "    - Nested Drawers (Cupboards and Drawers) - Drawers\n"
-           "    - Sewing Box (Cupboards and Drawers) - Drawers\n"
-           "    - Tea Cabinet (Cupboards and Drawers) - Cupboard Doors\n"
-           "    - Combs (Seeing Stars) - Drawer\n"
-           "    - Junk Drawer Transforming (Seeing Stars) - Drawer\n"
-           "    - Material Drawers (Seeing Stars) - Drawer Controller\n"
-           "    - Robots (Seeing Stars) - Spring\n"
-           "    - Robots (Seeing Stars) - Spring Containable\n"
-           "    - Sticky Drawer (Seeing Stars) - Drawer\n") if dlc_on else ""
+           # NO exclude_locations. It used to list 14 drawer and cupboard
+           # locations the harness cannot earn; by 2026-09-23 every one
+           # became notALocation in levels.json, so they are no longer
+           # locations and naming them made Generate.py reject the yaml.
+           # A new entry must be a real location (test_scheduler checks).
+           ) if dlc_on else ""
+
+    # A SKIP IN HAND PER KNOWN_UNFORCEABLE LEVEL, as the --dlc block does.
+    # Those levels only ever finish by a Skip, so without these the pool's
+    # skip_count Skips went to them and none was left for an alternate
+    # solution holding progression: the full gate of 2026-09-23 stalled at
+    # 12/15 with Symmetry on Pencils Solution 2. See skip_shortfall.
+    base_skips = ("  start_inventory:\n"
+                  f"    Skip: {len(KNOWN_UNFORCEABLE)}\n")
 
     return (
             f"name: {SLOT}\n"
@@ -880,7 +1267,7 @@ def yaml_text(quick, steady, dlc_on):
             f"  puzzle_count: {PUZZLES}\n"
             f"  levels_to_beat: {PUZZLES}\n"
             # The smallest pack the generator will honour, to get as many
-            # packs as an 8-puzzle run can carry.
+            # packs as the run can carry.
             #
             # IT WILL NOT HONOUR 2 HERE, and the assertion below no longer
             # pretends otherwise. items._pack_cap caps a run at
@@ -892,8 +1279,7 @@ def yaml_text(quick, steady, dlc_on):
             # as a hard-coded 2 that no 8-puzzle seed could satisfy.
             f"  pack_size: {PACK_SIZE}\n"
             # QUICK trades the two things that make a run long and variable,
-            # not its size: puzzle_count has a floor of 8, so there is nothing
-            # to shrink there.
+            # not its size: PUZZLES is 15 in every mode.
             #
             # ability_locks off - gating is what stalls a run. Twice in a row
             # the full run sat at 2 of 8 waiting on Containers, which is
@@ -917,33 +1303,18 @@ def yaml_text(quick, steady, dlc_on):
             "  skip_count: 2\n"
             "  progression_balancing: 0\n"
             "  accessibility: full\n"
-            + dlc)
+            + (dlc or base_skips))
 
 
 def generate():
+    """The gate's seed: the first from GATE_SEED its paper plan can clear.
+    Returns (out dir, seed zip, plan with "order" and "visits")."""
     yaml_dir = os.path.join(REPO, "testserver", "yaml-e2e")
     out = os.path.join(REPO, "testserver", "out-e2e")
-    for d in (yaml_dir, out):
-        os.makedirs(d, exist_ok=True)
-        for f in os.listdir(d):
-            os.remove(os.path.join(d, f))
-
-    with open(os.path.join(yaml_dir, "e2e.yaml"), "w", encoding="utf-8") as f:
-        f.write(yaml_text(QUICK, STEADY, DLC))
-
-    r = subprocess.run(
-        [sys.executable, "Generate.py", "--player_files_path", yaml_dir,
-         "--outputpath", out, "--seed", "20260906"],
-        cwd=AP, capture_output=True, text=True,
-        env=dict(os.environ, SKIP_REQUIREMENTS_UPDATE="1"))
-    if r.returncode != 0:
-        print(r.stdout[-2500:], flush=True)
-        print(r.stderr[-2500:], flush=True)
-        sys.exit("generation failed")
-    zips = [f for f in os.listdir(out) if f.endswith(".zip")]
-    if not zips:
-        sys.exit("generation produced no seed")
-    return out, zips[0]
+    _number, seed_zip, plan = generate_into(
+        yaml_dir, out, yaml_text(QUICK, STEADY, DLC), arrow=not QUICK,
+        report=lambda line: say(4, line))
+    return out, seed_zip, plan
 
 
 def read_plan(folder, seed_zip):
@@ -973,6 +1344,8 @@ d = restricted_loads(zlib.decompress(f.read(n)[1:]))['slot_data'][1]
 print(json.dumps({'slots': [(s['levelIndex'], s['levelId'])
                             for s in d['slots']],
                   'boundaries': list(d['pack_boundaries']),
+                  'ability_locks': bool(d.get('ability_locks', True)),
+                  'starting_abilities': list(d.get('starting_abilities', [])),
                   'requirements': {k: v['abilities']
                                    for k, v in d['requirements'].items()}}))
 """
@@ -1145,6 +1518,16 @@ def _load_ability_tables():
     _LEVEL_ABILITIES = per_level
 
 
+def run_holds(transcript, plan):
+    """What the scheduler should treat as held: every ability when the seed
+    has locks off (--quick), because the mod then files every check whatever
+    is held (SlotProgress.IsReachable) - the same rule the paper plan uses."""
+    if not plan.get("ability_locks", True):
+        _load_ability_tables()
+        return set(_ABILITY_NAMES)
+    return abilities_held(transcript)
+
+
 def abilities_held(transcript):
     """Which abilities the run has actually been given, from the item log."""
     _load_ability_tables()
@@ -1248,19 +1631,51 @@ def arrow_slot(slots, plan, where):
     and "the pause menu Exit leaves the level" as broken. Two navigation
     assertions failing because of an unrelated ability gate.
 
-    Nothing is held in that session, so the question is the one
-    slot_has_work already answers with an empty inventory. Slot 0 is the
-    fallback when nothing qualifies, so the check still runs and fails
-    honestly rather than being skipped.
+    The session holds the seed's starting abilities (precollected items
+    arrive on connect) and nothing else. Slot 0 is the fallback when nothing
+    qualifies, so the check still runs and fails honestly rather than being
+    skipped.
     """
-    for i in range(len(slots)):
-        if slot_has_work(i, plan, where, set(), set()):
+    # FINISHABLE, not merely "has work": the check must complete its level
+    # before it can press the arrow. Seed 20260907 put Desktop Computer
+    # first - one part needs nothing, so it had work, and forcing never
+    # completes it. So: not KNOWN_UNFORCEABLE, and its Beaten token needs
+    # nothing held.
+    #
+    # And only an OPEN slot, holding what the session really holds: the
+    # seed's starting abilities arrive on connect there too. Assuming none
+    # sent seed 20260907's check to slot 5, which no pack had opened.
+    requirements = plan.get("requirements") or {}
+    held = set(plan.get("starting_abilities") or ())
+    opening = (plan.get("boundaries") or [len(slots)])[0]
+    for i in range(min(opening, len(slots))):
+        # Nor a level that finishes on one group: the session is modelled as
+        # collecting everything reachable there, which such a level does not.
+        if slots[i][1] in UNFORCEABLE or slots[i][1] in KNOWN_COMPLETES_ON:
+            continue
+        token = next((l for l in where.get(i, ()) if l.endswith(" - Beaten")),
+                     None)
+        if token is not None and not set(requirements.get(token) or ()) <= held:
+            continue
+        if slot_has_work(i, plan, where, held, set()):
             return i
     return 0
 
+def skipless_levels():
+    """Levels where a Skip does nothing. None, since 2026-09-25.
+
+    It was every generator level: on Pencils (Randomized) the game's
+    SkipLevel completes nothing, beaten or not. The mod now releases the slot
+    itself where the game will not skip (Skips.cs, by the level's Skippable
+    flag), so a Skip bought anywhere finishes its card. Kept as a function,
+    and threaded through choose_slot, for a level that ever comes back.
+    """
+    return frozenset()
+
+
 def choose_slot(slots, plan, where, open_slots, beaten, attempts, barren,
                 held, collected, skipped, credits, idle,
-                skips_out):
+                skips_out, skipless=frozenset()):
     """Which slot to play next, and why. Pure - no game, no log, no clock.
 
     EXTRACTED SO IT CAN BE TESTED IN MILLISECONDS. Every scheduling bug this
@@ -1339,6 +1754,7 @@ def choose_slot(slots, plan, where, open_slots, beaten, attempts, barren,
         # assertion actually caught.
         stalled = [i for i in sorted(beaten)
                    if i not in skipped
+                   and slots[i][1] not in skipless
                    and has_uncollected(i, where, collected)]
         unlocked = [i for i in stalled
                     if not waiting_on_an_ability(i, plan, where, held,
@@ -1366,6 +1782,7 @@ def choose_slot(slots, plan, where, open_slots, beaten, attempts, barren,
     if len(beaten) < len(slots) and not skips_out:
         stuck = [i for i in sorted(beaten)
                  if i not in skipped
+                 and slots[i][1] not in skipless
                  and has_uncollected(i, where, collected)]
         # SAME PREFERENCE AS THE STALL PATH, and a distinct reason so
         # play() can tell the two apart. Nothing is playable here, so
@@ -1422,6 +1839,16 @@ def collected_locations(transcript):
             if prefix in line:
                 done.add(line.split(prefix, 1)[1].strip())
     return done
+
+
+def carried_checks(text):
+    """Only the `check:` and `beaten:` lines of an earlier session. Pure.
+
+    Nothing else carries: items are resent on every connect, and lines like
+    `credits: unlocked` belong to the session that logged them.
+    """
+    return "".join(line + "\n" for line in text.splitlines()
+                   if "check: " in line or "beaten: " in line)
 
 
 def read_spoiler(out_dir, seed_zip):
@@ -1513,15 +1940,26 @@ def completion_plan(out_dir, seed_zip, plan):
 
     starting, placements = read_spoiler(out_dir, seed_zip)
     held = {i for i in starting if i in _ABILITY_NAMES}
+    # Locks off (--quick): nothing is gated, so every ability counts as held.
+    # Judging it by requirements named 3 of 15 levels as the whole order.
+    if not plan.get("ability_locks", True):
+        held = set(_ABILITY_NAMES)
     packs = sum(1 for i in starting if i == "Progressive Puzzle Pack")
 
     boundaries = plan.get("boundaries") or []
 
+    # THE SEED'S OWN REQUIREMENTS, as paper_run and the mod read them.
+    # names.json does not subtract bypassedAbilities, so modelling from it
+    # made Workbench's Solution ask for Drawer and called valid seeds "a
+    # generation bug" (20260908, 20260911 on 2026-09-24). It still names the
+    # level a location belongs to.
+    requirements = plan.get("requirements") or {}
     need = {}
     for location, item in placements:
-        level_id, abilities = _location_requirement(
+        level_id, _model = _location_requirement(
             location, names, by_display, _CLASS_ABILITY)
-        need[location] = (level_id, abilities, item)
+        need[location] = (level_id, set(requirements.get(location) or []),
+                          item)
 
     collected, order = set(), []
     while True:
@@ -1550,6 +1988,519 @@ def completion_plan(out_dir, seed_zip, plan):
 
     unreachable = [l for l in need if l not in collected and need[l][0]]
     return order, unreachable
+
+
+def harness_cannot_force(plan, where):
+    """Locations forcing a controller never collects; only a Skip does.
+
+    An alternate solution (forcing makes one arrangement), every location
+    of an UNFORCEABLE level, every location of a level that registers
+    nothing (KNOWN_NOTHING_TO_FORCE), and the yaml's container excludes.
+    """
+    out = set()
+    unregistered = never_registered_parts()
+    for i, (_, level_id) in enumerate(plan["slots"]):
+        for loc in where.get(i, ()):
+            if (level_id, loc.rsplit(" - ", 1)[-1]) in unregistered:
+                out.add(loc)
+                continue
+            # An unforceable level's PART checks are forced like any other
+            # (the gate logs `check: Desktop Computer - Notes`); only its
+            # completion never comes.
+            if (level_id in KNOWN_NOTHING_TO_FORCE
+                    or (level_id in UNFORCEABLE
+                        and not is_part_location(loc))
+                    or (solution_number(loc) or 0) >= 2
+                    or loc in CONTAINER_EXCLUDES
+                    or loc in KNOWN_EARLY_COMPLETE):
+                out.add(loc)
+    return out
+
+
+def is_part_location(location):
+    """A part check, sent mid-level: not a Solution, not the Beaten token."""
+    return (solution_number(location) is None
+            and not location.endswith(" - Beaten"))
+
+
+def take_item(item, held, stock):
+    """One collected item into the paper run's state: an ability is held, a
+    pack opens the next slots, a Skip adds to supply."""
+    if item and item in _ABILITY_NAMES:
+        held.add(item)
+    elif item == "Progressive Puzzle Pack":
+        stock["packs"] += 1
+    elif item == "Skip":
+        stock["supply"] += 1
+
+
+def paper_run(slots, plan, where, placements, starting=(), unreachable=(),
+              skips=0, park=True, rounds=MAX_ROUNDS, flaky=(), park_after=2,
+              stop_when_all_beaten=True, production=False, opening=(),
+              final=None):
+    """Play the run on paper with choose_slot, the harness's own scheduler.
+
+    `opening`: slots played before the run - the full gate's arrow check
+    beats one in a session of its own - collected and beaten, not visits.
+    `final`: a dict to fill with the end state (held, collected, beaten),
+    which why_unclearable reads.
+
+    Pure. The seed is fixed, so this is the plan the gate reports against
+    (`visit 4/17`). Packs open slots at the seed's boundaries, starting
+    abilities and Skips are in hand, and a collected Skip adds to supply.
+
+    `unreachable`: locations forcing never collects (harness_cannot_force).
+    `flaky`: slots whose first visit achieves nothing (a model knob for the
+    tests). `stop_when_all_beaten`: production stops there, because the
+    credits open with the last token.
+
+    `production` copies play()'s visit rules exactly, as measured on the
+    2026-09-24 gate: a revisit forces nothing and parks after one empty
+    visit; an attempt stops at a locked part with no Skip; only a
+    KNOWN_UNFORCEABLE level with nothing locked left is exhausted into a
+    Skip; a bought Skip grants everything left on the card. Off, it is the
+    abstract model test_scheduler's whole-run tests were written against.
+
+    Returns (beaten count, attempts per slot, Skips spent, visits), one
+    visit per round: {slot, level, skip, got, beaten, reset}. `reset` marks
+    a forced visit whose checks send a Cat Trap from a part location: the
+    mod resets the level mid-solve and the harness refunds the pass.
+    """
+    _load_ability_tables()
+    held = {i for i in starting if i in _ABILITY_NAMES}
+    if not plan.get("ability_locks", True):
+        held = set(_ABILITY_NAMES)
+    stock = {"supply": skips + sum(1 for i in starting if i == "Skip"),
+             "packs": sum(1 for i in starting if i == "Progressive Puzzle Pack")}
+    boundaries = plan.get("boundaries") or []
+    collected, beaten, skipped, barren = set(), set(), set(), {}
+    stranded = set()
+    fruitless = {}
+    attempts = {i: 0 for i in range(len(slots))}
+    idle = spent = 0
+    visits = []
+
+    # RESTORED, NOT BEATEN, as play() has it: `slot 0 Spice Jars was beaten
+    # in an earlier session - not demanding a second token`. It counts as
+    # beaten when a visit completes it or the end-of-attempt reconcile sees
+    # its token, whichever comes first.
+    restored = set()
+    for slot in opening:
+        for loc in where[slot]:
+            if (loc not in collected and loc not in unreachable
+                    and set(plan["requirements"][loc]) <= held):
+                collected.add(loc)
+                take_item(placements.get(loc), held, stock)
+        restored.add(slot)
+
+    for _ in range(rounds):
+        if stop_when_all_beaten and len(beaten) >= len(slots):
+            break
+        open_slots = len(slots) if not boundaries else min(
+            len(slots), boundaries[min(stock["packs"], len(boundaries) - 1)])
+        slot, _why, buy = choose_slot(
+            slots, plan, where, open_slots=open_slots, beaten=set(beaten),
+            attempts=attempts, barren=barren, held=held, collected=collected,
+            skipped=skipped, credits=False, idle=idle,
+            skips_out=(spent >= stock["supply"]),
+            skipless=skipless_levels() if production else frozenset())
+        if slot is None:
+            break
+
+        attempts[slot] += 1
+        got = set()
+        if slot in flaky and attempts[slot] == 1:
+            fruitless[slot] = fruitless.get(slot, 0) + 1
+            idle += 1
+            if park and fruitless[slot] >= park_after:
+                barren[slot] = frozenset(held)
+            visits.append({"slot": slot, "level": slots[slot][1],
+                           "skip": False, "got": 0,
+                           "beaten": slot in beaten, "reset": False})
+            continue
+
+        if production:
+            # PLAY()'S VISIT, STATEMENT FOR STATEMENT, because the gate stops
+            # at the first visit that differs from this plan. Measured against
+            # the 2026-09-24 gate: a revisit forces nothing and leaves idle
+            # alone; an attempt forces what is reachable (nothing, for a Skip
+            # bought on a beaten slot), counts fruitless BEFORE any Skip, then
+            # takes play()'s Skip path, then resets idle only if the level's
+            # Beaten token arrived this visit.
+            level_id = slots[slot][1]
+            token = next((l for l in where[slot] if l.endswith(" - Beaten")), None)
+            if slot in beaten and not buy:
+                got = {loc for loc in where[slot] if loc not in collected
+                       and loc not in unreachable and loc not in stranded
+                       and set(plan["requirements"][loc]) <= held}
+                for loc in sorted(got):
+                    collected.add(loc)
+                    take_item(placements.get(loc), held, stock)
+                if not got and park:
+                    barren[slot] = frozenset(held)
+                visits.append({"slot": slot, "level": level_id, "skip": False,
+                               "got": len(got), "beaten": True, "reset": False,
+                               "kind": "revisit"})
+                continue
+
+            forced = set()
+            if not (buy and slot in beaten):
+                forced = {loc for loc in where[slot] if loc not in collected
+                          and loc not in unreachable and loc not in stranded
+                          and set(plan["requirements"][loc]) <= held}
+            # A LEVEL THE GAME FINISHES ON ONE GROUP (KNOWN_COMPLETES_ON), the
+            # way solve_level meets it: groups in controller order, stopping
+            # at the first that ends the level. That banks the Beaten token;
+            # every part not solved by then is stranded, because a revisit
+            # forces nothing and the mod files only what the game restores
+            # as solved - only a Skip releases those.
+            triggers = KNOWN_COMPLETES_ON.get(level_id, frozenset())
+            if triggers and token is not None and token not in collected:
+                parts = sorted((l for l in forced if is_part_location(l)),
+                               key=lambda l: group_rank(level_id, l))
+                walked, hit = [], False
+                for loc in parts:
+                    walked.append(loc)
+                    group = loc.rsplit(" - ", 1)[-1]
+                    if group in triggers:
+                        hit = True
+                        # A completion within a second lands before the
+                        # next solve, so the groups after it are never
+                        # forced; a slower one lets the pass finish first.
+                        if strands_the_rest(level_id, group):
+                            break
+                if hit:
+                    forced = ({l for l in forced if not is_part_location(l)}
+                              | set(walked) | {token})
+                    stranded.update(
+                        l for l in where[slot] if is_part_location(l)
+                        and l not in collected and l not in walked)
+            for loc in sorted(forced):
+                collected.add(loc)
+                take_item(placements.get(loc), held, stock)
+            locked_part = any(loc not in collected and is_part_location(loc)
+                              and not set(plan["requirements"][loc]) <= held
+                              for loc in where[slot])
+            done = (token in forced) if token else all(
+                l in collected for l in where[slot])
+            # play(): a restored slot that completes needs no second token.
+            if (slot in restored and not done and not locked_part
+                    and level_id not in UNFORCEABLE
+                    and (token is None or token in collected)):
+                done = True
+            if not done and not forced:
+                fruitless[slot] = fruitless.get(slot, 0) + 1
+                if park and fruitless[slot] >= park_after:
+                    barren[slot] = frozenset(held)
+            else:
+                fruitless[slot] = 0
+
+            # play(): `(forced and not done) or (not done and exhausted and
+            # current not in skipped)`. Exhausted - every controller solved,
+            # no completion - is a KNOWN_UNFORCEABLE level with nothing left
+            # locked; any other level completes when forced.
+            exhausted = (not done and not locked_part
+                         and level_id in UNFORCEABLE)
+            skip = (((buy and not done) or (exhausted and slot not in skipped))
+                    and spent < stock["supply"])
+            granted = set()
+            if skip:
+                spent += 1
+                skipped.add(slot)
+                granted = {loc for loc in where[slot] if loc not in collected}
+                for loc in sorted(granted):
+                    collected.add(loc)
+                    take_item(placements.get(loc), held, stock)
+                done = done or (token in granted)
+
+            if done:
+                beaten.add(slot)
+            idle = 0 if done else idle + 1
+            # play()'s end-of-attempt reconcile: every slot whose Beaten token
+            # has been seen is beaten, whichever slot was open.
+            for i in range(len(slots)):
+                tok = next((l for l in where[i] if l.endswith(" - Beaten")), None)
+                if tok is not None and tok in collected:
+                    beaten.add(i)
+            visits.append({
+                "slot": slot, "level": level_id, "skip": skip,
+                "got": len(forced) + len(granted), "beaten": slot in beaten,
+                "reset": any(is_part_location(loc)
+                             and placements.get(loc) == "Cat Trap"
+                             for loc in forced),
+                "kind": "attempt"})
+            # play(): "nothing finished in N attempts; stopping".
+            if idle >= len(slots) * 2:
+                break
+            continue
+
+        for loc in where[slot]:
+            if loc in collected:
+                continue
+            if not set(plan["requirements"][loc]) <= held:
+                continue
+            # A Skip grants the whole puzzle; forcing is limited to what the
+            # harness can perform.
+            if buy or loc not in unreachable:
+                got.add(loc)
+
+        # Two Skip mechanisms, as in play(): `buy` re-opens a BEATEN slot to
+        # release what is stranded on it; `unforced` is solve_level spending
+        # one on an UNBEATEN level it could not force at all.
+        unforced = (not buy and not got and slot not in beaten
+                    and spent < stock["supply"])
+        if buy or unforced:
+            spent += 1
+            skipped.add(slot)
+        if unforced:
+            got = {loc for loc in where[slot] if loc not in collected}
+
+        for loc in got:
+            collected.add(loc)
+            take_item(placements.get(loc), held, stock)
+
+        # A Skip completes the level at once, so its traps land inside the
+        # completion grace and miss; only a forced visit gets knocked over.
+        reset = (not (buy or unforced)
+                 and any(is_part_location(loc) and placements.get(loc) == "Cat Trap"
+                         for loc in got))
+
+        # BEATEN MEANS THE TOKEN, as play() counts it.
+        token = next((l for l in where[slot] if l.endswith(" - Beaten")), None)
+        if token is None:
+            if all(loc in collected for loc in where[slot]):
+                beaten.add(slot)
+        elif token in collected:
+            beaten.add(slot)
+
+        visits.append({"slot": slot, "level": slots[slot][1],
+                       "skip": bool(buy or unforced), "got": len(got),
+                       "beaten": slot in beaten, "reset": reset})
+
+        if len(beaten) >= len(slots) and not got:
+            break
+
+        if got:
+            idle = 0
+            fruitless[slot] = 0
+        else:
+            idle += 1
+            fruitless[slot] = fruitless.get(slot, 0) + 1
+            if park and fruitless[slot] >= park_after:
+                barren[slot] = frozenset(held)
+
+    if final is not None:
+        final.update(held=set(held), collected=set(collected),
+                     beaten=set(beaten), idle=idle, barren=dict(barren))
+    return len(beaten), attempts, spent, visits
+
+
+def why_unclearable(plan, where, placements, final):
+    """One line per level the paper run could not beat: what it still
+    needs, and where that sits. Pure."""
+    skipless = skipless_levels()
+    where_is = {}
+    for loc, item in placements.items():
+        where_is.setdefault(item, loc)
+    lines = []
+    for i, (_, level_id) in enumerate(plan["slots"]):
+        if i in final["beaten"]:
+            continue
+        if level_id in KNOWN_NOTHING_TO_FORCE:
+            lines.append(f"{level_id} registers nothing until a player "
+                         f"starts it - the harness cannot force it")
+            continue
+        token = next((l for l in where[i] if l.endswith(" - Beaten")), None)
+        needs = sorted(set(plan["requirements"].get(token, ())) - final["held"])
+        if not needs:
+            lines.append(f"{level_id} was never finished (nothing it needs is "
+                         f"missing - a pack or a Skip it never got)")
+            continue
+        for ability in needs:
+            loc = where_is.get(ability)
+            if loc is None:
+                lines.append(f"{level_id} needs {ability}, which the seed "
+                             f"never places")
+                continue
+            owner = next((plan["slots"][j][1] for j, locs in where.items()
+                          if loc in locs), "")
+            if (solution_number(loc) or 0) >= 2 and owner in skipless:
+                how = ("an alternate solution on a generator level - forcing "
+                       "makes one arrangement and the game cannot skip it")
+            elif (solution_number(loc) or 0) >= 2:
+                how = "an alternate solution, which only a Skip releases"
+            else:
+                how = "on a level the run never finished"
+            lines.append(f"{level_id} needs {ability}, on {loc}: {how}")
+    return lines
+
+
+def plan_the_run(out_dir, seed_zip, plan, arrow=True, final=None):
+    """paper_run for a generated seed: (beaten, Skips spent, visits).
+
+    `arrow`: the full gate's arrow check beats arrow_slot in its own session
+    first, so the run starts with it done. --quick has no arrow session.
+    """
+    where = locations_for_slots(plan)
+    starting, placements = read_spoiler(out_dir, seed_zip)
+    opening = [arrow_slot(plan["slots"], plan, where)] if arrow else []
+    beaten, _attempts, spent, visits = paper_run(
+        plan["slots"], plan, where, dict(placements), starting=starting,
+        unreachable=harness_cannot_force(plan, where), production=True,
+        opening=opening, final=final)
+    return beaten, spent, visits
+
+
+#: The first seed number the gate tries. What a number generates moves
+#: whenever levels.json or the ids change, so generate_into checks each on
+#: paper and walks on until one clears. droha: "We do occasionally change
+#: the ids and levels so seeds might be changed? The e2e should double
+#: check that before it runs".
+GATE_SEED = 20260906
+SEED_TRIES = 20
+
+
+def credits_left_behind(placements, final):
+    """The location holding the Credits item, if the paper run never
+    collected it; None otherwise. Pure.
+
+    The credits are an ITEM, placed like any other, and they open only
+    once it is held and every slot is beaten. The DLC gate of 2026-09-24
+    beat 15/15 with it still on Books Stacked (Seeing Stars) - Solution 2,
+    an alternate solution forcing never makes.
+    """
+    where = next((loc for loc, item in placements if item == "Credits"), None)
+    if where is None or where in final.get("collected", set()):
+        return None
+    return where
+
+
+def judge_seed(out_dir, seed_zip, arrow):
+    """The pre-flight for one generated seed: (clears, lines, plan).
+
+    Clears only if every location is reachable in some order AND the
+    harness's own scheduler, run on paper, beats every slot and collects
+    the Credits item. On success plan carries "order" and "visits", which
+    play() reports against.
+    """
+    plan = read_plan(out_dir, seed_zip)
+    plan["order"], unreachable = completion_plan(out_dir, seed_zip, plan)
+    n = len(plan["slots"])
+    if unreachable:
+        return (False, [f"{len(unreachable)} location(s) unreachable in any "
+                        f"order - a generation bug: {unreachable[:3]}"], plan)
+    final = {}
+    beaten, spent, visits = plan_the_run(out_dir, seed_zip, plan,
+                                         arrow=arrow, final=final)
+    if beaten < n:
+        _starting, placements = read_spoiler(out_dir, seed_zip)
+        why = why_unclearable(plan, locations_for_slots(plan),
+                              dict(placements), final)
+        return (False, [f"the paper plan clears only {beaten}/{n}"]
+                + ["   " + line for line in why[:4]], plan)
+    _starting, placements = read_spoiler(out_dir, seed_zip)
+    stranded = credits_left_behind(placements, final)
+    if stranded:
+        return (False, [f"the paper plan beats {n}/{n} but never collects "
+                        f"the Credits item, on {stranded}"], plan)
+    plan["visits"] = visits
+    resets = sum(1 for v in visits if v["reset"])
+    return (True, [f"the paper plan clears {n}/{n} in {len(visits)} "
+                   f"visit(s), {spent} Skip(s), {resets} cat-trap reset(s)"],
+            plan)
+
+
+def generate_and_judge(yaml_dir, out, arrow, chosen, number):
+    """Generate seed `number` into `out` and judge it: (clears, lines).
+    Records (seed zip, plan) in `chosen`."""
+    for f in os.listdir(out):
+        os.remove(os.path.join(out, f))
+    r = subprocess.run(
+        [sys.executable, "Generate.py", "--player_files_path", yaml_dir,
+         "--outputpath", out, "--seed", str(number)],
+        cwd=AP, capture_output=True, text=True,
+        env=dict(os.environ, SKIP_REQUIREMENTS_UPDATE="1"))
+    if r.returncode != 0:
+        print(r.stdout[-2500:], flush=True)
+        print(r.stderr[-2500:], flush=True)
+        sys.exit(f"generation failed for seed {number}")
+    zips = [f for f in os.listdir(out) if f.endswith(".zip")]
+    if not zips:
+        sys.exit(f"generation produced no seed for {number}")
+    clears, lines, plan = judge_seed(out, zips[0], arrow)
+    chosen[number] = (zips[0], plan)
+    return clears, [f"seed {number}: {lines[0]}"] + lines[1:]
+
+
+def generate_into(yaml_dir, out, yaml, arrow, report):
+    """Write the yaml, then generate from GATE_SEED up until judge_seed
+    accepts one. Returns (seed number, seed zip, plan); exits loudly if
+    none of SEED_TRIES clears. `out` ends holding only the chosen seed."""
+    for d in (yaml_dir, out):
+        os.makedirs(d, exist_ok=True)
+        for f in os.listdir(d):
+            os.remove(os.path.join(d, f))
+    with open(os.path.join(yaml_dir, "e2e.yaml"), "w", encoding="utf-8") as f:
+        f.write(yaml)
+
+    chosen = {}
+    number = first_clearable(
+        range(GATE_SEED, GATE_SEED + SEED_TRIES),
+        functools.partial(generate_and_judge, yaml_dir, out, arrow, chosen),
+        report)
+    if number is None:
+        sys.exit(f"REFUSING TO RUN: no seed from {GATE_SEED} to "
+                 f"{GATE_SEED + SEED_TRIES - 1} can be cleared on paper")
+    seed_zip, plan = chosen[number]
+    return number, seed_zip, plan
+
+
+def preflight_skips(out_dir, seed_zip, plan):
+    """skip_shortfall for a generated seed: (demand, supply)."""
+    _load_ability_tables()
+    with open(os.path.join(REPO, "apworld", "alttl", "data", "names.json"),
+              encoding="utf-8") as f:
+        names = json.load(f)["levels"]
+    run = {names.get(level_id, {}).get("display", level_id): level_id
+           for _, level_id in plan["slots"]}
+    starting, placements = read_spoiler(out_dir, seed_zip)
+    return skip_shortfall(run, starting, placements, _ABILITY_NAMES)
+
+
+#: Items worth spending a Skip to release: without them the run stalls.
+#: Not a Skip: releasing one costs one.
+SKIP_WORTHY = ("Progressive Puzzle Pack",)
+
+
+def skip_shortfall(slot_displays, starting, placements, abilities):
+    """(demand, supply) of Skips, from the seed alone. Pure.
+
+    DEMAND is one Skip per level only a Skip can finish or empty: every
+    UNFORCEABLE level in the run, plus every other level whose
+    alternate solution (Solution 2+) holds an ability or pack, since
+    forcing makes one arrangement. SUPPLY is the Skips in hand at the start
+    plus those placed anywhere forcing reaches - which includes the PART
+    checks of an UNFORCEABLE level, forced like any other.
+
+    completion_plan cannot see this: it treats every location as earnable.
+    The gate of 2026-09-23 stalled at 12/15 on a seed needing 3 and holding
+    2, with Symmetry on Pencils Solution 2 gating two levels.
+
+    `slot_displays` maps each run level's display name to its levelId.
+    """
+    unforceable = {d for d, level_id in slot_displays.items()
+                   if level_id in UNFORCEABLE}
+    needs = set(unforceable)
+    supply = sum(1 for item in starting if item == "Skip")
+    for location, item in placements:
+        display = location.rsplit(" - ", 1)[0]
+        alternate = (solution_number(location) or 0) >= 2
+        waits = display in unforceable and not is_part_location(location)
+        if item == "Skip" and not alternate and not waits:
+            supply += 1
+        if alternate and (item in abilities or item in SKIP_WORTHY):
+            needs.add(display)
+    return len(needs), supply
 
 def unsolved_controllers(text):
     """Indexes of controllers reported solved=False.
@@ -1668,7 +2619,7 @@ def only_a_skip_can_finish(slot, where, collected):
         number = solution_number(location)
         if number is not None and number >= 2:
             return True
-        if location in CONTAINER_EXCLUDES:
+        if location in CONTAINER_EXCLUDES or location in KNOWN_EARLY_COMPLETE:
             return True
     return False
 
@@ -1796,8 +2747,91 @@ def locked_controllers(log):
     return locked, out
 
 
-def solve_level(log):
+def table_gated(level_id, plan, held):
+    """Controller names on this level whose group the seed's logic has not
+    reached with `held`. Pure.
+
+    The other half of what solve_level refuses. The grey says what the mod
+    locks; this says what the logic requires, which is what the paper plan
+    follows. A group can be locked without going grey - Paper Plane
+    Supplies' Chalk DraggablesOrdered has seven objects with no renderer,
+    shared with the open drawer - and forcing it anyway beat the level
+    five visits ahead of the plan (third base gate, 2026-09-24). A part is
+    judged by its own location; a level with one group by its Solution 1.
+    """
+    _load_names()
+    entry = _NAMES["levels"].get(level_id) or {}
+    display = entry.get("display", level_id)
+    parts = entry.get("parts") or {}
+    requirements = plan.get("requirements") or {}
+    refused = set()
+    for part in parts.values():
+        loc = (f"{display} - {part['display']}" if len(parts) > 1
+               else f"{display} - Solution 1")
+        need = requirements.get(loc)
+        if need is not None and not set(need) <= set(held):
+            refused.update(part.get("members") or [])
+    return refused
+
+
+def listing_counts(text):
+    """(registered, solved) from the last DevTools `controllers:` listing in
+    `text`, or (0, 0). Pure."""
+    registered, solved = 0, 0
+    lines = text.splitlines()
+    start = max((i for i, l in enumerate(lines) if "controllers: " in l
+                 and " registered on " in l), default=None)
+    if start is None:
+        return 0, 0
+    head = lines[start].split("controllers: ", 1)[1].split()[0]
+    registered = int(head) if head.isdigit() else 0
+    for line in lines[start + 1:]:
+        if "controllers: " in line:
+            break
+        if "solved=True" in line:
+            solved += 1
+    return registered, solved
+
+
+def pass_progress(before, after):
+    """Did a pass move the level on - another controller registered, or
+    another solved? Pure. A progressive level reveals one phase per pass
+    (TupperwareNesting: 2, 3, ... 8 registered), and such a pass is not the
+    level refusing to finish."""
+    (reg_before, solved_before) = listing_counts(before)
+    (reg_after, solved_after) = listing_counts(after)
+    return reg_after > reg_before or solved_after > solved_before
+
+
+#: Seconds a fully solved level may take to report complete. Measured
+#: 2026-09-24 with DevTools alone: DLC2 Broken Vases raised LevelComplete
+#: 13 s after its Draggables were solved, because its Pannables (Action
+#: Only) plays first. The old 6 s wait called it exhausted and the DLC arrow
+#: check failed there. The all-levels sweep then measured the slowest at 19 s
+#: (DLC1 Boss), 17 s (DLC2 Windows) and 16 s (MedicineCabinet), so 30.
+COMPLETION_WAIT = 30
+
+
+def completion_wait(level_id):
+    """The completion wait for one level: COMPLETION_WAIT, or longer where
+    the sweep measured this level slower. DLC2 Curtains completed 49 s after
+    it was forced (recheck, 2026-09-24). A multi-pass figure counts every
+    pass, so only a one- or two-pass measurement is read as a delay."""
+    row = FORCEABILITY.get(level_id) or {}
+    took = row.get("all")
+    if took is None or (row.get("passes") or 1) > 2:
+        return COMPLETION_WAIT
+    return max(COMPLETION_WAIT, took + 15)
+
+
+def solve_level(log, refuse=frozenset(), wait=None):
     """Solve every controller until the level reports complete.
+
+    `refuse`: controller names the seed's logic has not reached yet
+    (table_gated). Refused like a greyed one, so the run never gets ahead
+    of its paper plan on a lock the mod cannot paint. `wait`: how long a
+    solved level may take to complete (completion_wait); COMPLETION_WAIT
+    when not given.
 
     SEVERAL PASSES, because one is not enough and the reason is a feature.
     A Cat Trap resets the puzzle, and one arrived mid-level on the very first
@@ -1831,6 +2865,21 @@ def solve_level(log):
     # unlocked the rest of the run, and starves it.
     gated, seen = locked_controllers(log)
     text += seen
+    # THE LOGIC'S REFUSALS JOIN THE MOD'S, by name from the same report.
+    # The grey still catches a group the table calls free (Fruit Stickers'
+    # Remove Stickers, 2026-09-24); this stops a group the table calls
+    # locked from being forced because nothing on it could be painted.
+    unreached = {}
+    for line in seen.splitlines():
+        m = LOCK_ROW.search(line)
+        if m and m.group(2) in refuse and int(m.group(1)) not in gated:
+            unreached[int(m.group(1))] = m.group(3)
+    if unreached:
+        say(6, "not forcing " + ", ".join(sorted(set(unreached.values())))
+               + " - the seed's logic has not reached "
+               + ("them" if len(unreached) > 1 else "it"))
+    painted = dict(gated)
+    gated = {**gated, **unreached}
     # PUBLISH IT, for THIS level, in a form nothing else can imitate.
     #
     # play() used to decide "was the mod still gating this level" by
@@ -1848,16 +2897,17 @@ def solve_level(log):
     text += (f"\n{LOCKED_MARK}"
              + (",".join(str(i) for i in sorted(gated)) if gated else "none")
              + "\n")
-    if gated:
-        say(6, "not forcing " + ", ".join(sorted(set(gated.values())))
+    if painted:
+        say(6, "not forcing " + ", ".join(sorted(set(painted.values())))
                + " - the run cannot touch "
-               + ("them" if len(gated) > 1 else "it"))
+               + ("them" if len(painted) > 1 else "it"))
 
     # A CAT TRAP MUST NOT COST A PASS.
     #
-    # The trap is an Archipelago ITEM, not a property of the level - the mod
-    # applies it to whatever puzzle is running, so no list of "levels with
-    # cats" can predict it. What it does is knock the puzzle over mid-solve,
+    # The trap is an item at a FIXED location in the seed, so the spoiler
+    # says exactly which check sends it and which level it knocks over (see
+    # planned_passes). This comment used to call it unpredictable, which it
+    # never was. What it does is knock the puzzle over mid-solve,
     # and a fixed budget of five passes then runs out on exactly the levels
     # that were unluckiest rather than the ones that are actually stuck.
     #
@@ -1874,6 +2924,13 @@ def solve_level(log):
     budget = 5
     refunds = 0
     MAX_REFUNDS = 6
+    # A PHASE THAT APPEARS IS NOT A WASTED PASS. TupperwareNesting registers
+    # one controller per phase, eight in all, and the 2026-09-24 gate ran out
+    # of its five passes on Large Square with three phases still to come.
+    # Bounded, so a level that keeps changing still ends.
+    phase_refunds = 0
+    MAX_PHASE_REFUNDS = 12
+    last_listing = ""
     attempt = -1
     while True:
         attempt += 1
@@ -1910,6 +2967,16 @@ def solve_level(log):
             return "LevelComplete " in text, text
 
         todo = unsolved_controllers(out)
+        if attempt and pass_progress(last_listing, out) \
+                and phase_refunds < MAX_PHASE_REFUNDS:
+            phase_refunds += 1
+            budget += 1
+            registered, solved = listing_counts(out)
+            say(6, f"the level moved on ({registered} controller(s), {solved} "
+                   f"solved) - that pass does not count "
+                   f"({phase_refunds}/{MAX_PHASE_REFUNDS})")
+        if "controllers: " in out:
+            last_listing = out
 
         # DROP THE ONES THE RUN CANNOT REACH. Forcing them is what let the gate
         # walk through every ability gate in the run; leaving them is what a
@@ -1936,8 +3003,8 @@ def solve_level(log):
         if not todo:
             # Every controller is solved. Either the completion already fired
             # and was read above, or it is about to.
-            more = log.wait(["LevelComplete ", "no level running"], 6, 6,
-                            "the completion")
+            more = log.wait(["LevelComplete ", "no level running"],
+                            wait or COMPLETION_WAIT, 6, "the completion")
             text += more
             finished = ("LevelComplete " in more
                         or "no level running" in more)
@@ -1947,12 +3014,19 @@ def solve_level(log):
                 # that text is the only channel back to the caller - the
                 # say() above goes to stdout, and a first attempt at this
                 # grepped for that message and so never matched anything.
+                #
+                # The clock goes in the log too. The DLC gate of 2026-09-24
+                # forced DLC1 Boss after a boot that found timeScale 0, and
+                # no solved event or completion ever arrived; five isolated
+                # repeats all completed. A frozen clock holds a completion
+                # but not the solved events, so it was not that alone.
+                dev("time", 1.0)
+                text += log.new()
                 text += "\n" + EXHAUSTED_MARK + "\n"
             return finished, text
 
         if attempt:
-            say(6, f"pass {attempt + 1}: {len(todo)} controller(s) still unsolved "
-                   f"(a cat trap resets the puzzle)")
+            say(6, f"pass {attempt + 1}: {len(todo)} controller(s) still unsolved")
 
         trapped = False
         for i in todo:
@@ -2049,7 +3123,8 @@ def display_setting():
 #: was defined and never installed; if it appears after "FEATURES DISABLED",
 #: the patch threw at runtime and the whole class is off.
 EXPECTED_FEATURES = ("save redirect", "connection pane", "track", "skips",
-                     "hints", "navigation", "daily guard", "title screen")
+                     "hints", "navigation", "daily guard", "title screen",
+                     "ability locks", "card stars")
 
 
 def why_no_connection(text):
@@ -2357,7 +3432,9 @@ def check_arrow(log, plan):
         close_game()
         return None, None, text
 
-    done, chunk = solve_level(log)
+    done, chunk = solve_level(log, refuse=table_gated(
+        level_id, plan, set(plan.get("starting_abilities") or ())),
+        wait=completion_wait(level_id))
     text += chunk
     if not done:
         close_game()
@@ -2476,6 +3553,10 @@ def play(log, plan, earlier=""):
     slots = plan["slots"]
     by_name = {name: i for i, (_, name) in enumerate(slots)}
     beaten = {}
+    planned = plan.get("visits") or []
+    visit = [0]
+    set_progress(lambda: (len(beaten), len(slots), visit[0], len(planned)))
+    skipless = skipless_levels()
     attempts = collections.Counter()
     #: Slots a Skip has already been spent on - one each, at most.
     skipped = set()
@@ -2545,7 +3626,10 @@ def play(log, plan, earlier=""):
         # raised ValueError instead, and the report it exists to print
         # was unreachable from the moment `spent` was added.
         return [], False, first, 0, first, [], []
-    transcript = first
+    # What the arrow session filed, carried in: the mod logs `no location
+    # for it` for an already-filed location, so without these the run sees
+    # Stamps as unfinished and revisits it for nothing (2026-09-24 gate).
+    transcript = carried_checks(earlier) + first
     open_slots = open_count(first, plan["boundaries"][0])
 
     say(6, f"{len(slots)} slots, boundaries {plan['boundaries']}, "
@@ -2591,10 +3675,19 @@ def play(log, plan, earlier=""):
         # goal can sit behind exactly one of those - see the revisit block
         # below. Stop when the credits are open, or when a revisit pass has
         # been spent on every slot and there is nothing further to try.
+        #
+        # READ FIRST, THEN DECIDE. The last token's credits come back from
+        # the server a moment after it: on 2026-09-24 `credits: unlocked`
+        # landed nine log lines after 15/15, this loop tested a stale flag,
+        # and began a 26th visit the paper plan (rightly) did not have.
+        transcript += log.new()
+        if len(beaten) >= len(slots) and "credits: unlocked" not in transcript:
+            transcript += log.wait(["credits: unlocked"], 15, 6, "the credits")
+        if "credits: unlocked" in transcript:
+            credits = True
         if len(beaten) >= len(slots) and (credits or revisited >= beaten.keys()):
             break
 
-        transcript += log.new()
         was = open_slots
         open_slots = open_count(transcript, open_slots)
         if open_slots > was:
@@ -2602,7 +3695,7 @@ def play(log, plan, earlier=""):
 
         # What the run holds RIGHT NOW. Read once per round, because both
         # the playable filter and the revisit rule below depend on it.
-        held = abilities_held(transcript)
+        held = run_holds(transcript, plan)
 
         # Nothing open, or the arrow led somewhere unusable: pick a slot and
         # open it the long way.
@@ -2624,10 +3717,10 @@ def play(log, plan, earlier=""):
                 open_slots=open_slots, beaten=set(beaten), attempts=attempts,
                 barren=barren, held=held, collected=collected,
                 skipped=skipped, credits=credits, idle=idle,
-                skips_out=skips_out)
+                skips_out=skips_out, skipless=skipless)
 
             if current is None:
-                say(6, f"round {step}: {len(beaten)}/{len(slots)} beaten and "
+                say(6, f"{len(beaten)}/{len(slots)} beaten and "
                        f"{open_slots} open - {why}")
                 break
 
@@ -2635,19 +3728,31 @@ def play(log, plan, earlier=""):
                 skip_anyway.add(current)
                 if why == LAST_RESORT:
                     last_resort.add(current)
-                say(6, f"round {step}: {open_slots} of {len(slots)} slots "
+                say(6, f"{open_slots} of {len(slots)} slots "
                        f"open and nothing solvable - an item is on a "
                        f"location the harness cannot reach; spending a "
                        f"Skip to release it")
             elif why == "revisit for gated checks":
                 if REVISIT_MARK not in transcript:
                     transcript += "\n" + REVISIT_MARK + "\n"
-                say(6, f"round {step}: all beaten but the credits are not "
+                say(6, f"all beaten but the credits are not "
                        f"open - revisiting for checks that were gated")
 
             if current in beaten:
                 revisited.add(current)
             index, level_id = slots[current]
+
+            # THE SEED IS FIXED, SO EVERY VISIT IS KNOWN IN ADVANCE: the paper
+            # plan (plan_the_run) is this same scheduler run over the spoiler.
+            # A visit that is not the planned one means the model or the mod
+            # is wrong, and the rounds after it would only compound that.
+            visit[0] += 1
+            astray = off_plan(visit[0], level_id, planned)
+            if planned and astray:
+                say(6, f"UNEXPECTED: {astray}. Stopping the run - unit test "
+                       f"this, then fix it.")
+                transcript += "\n" + OFF_PLAN_MARK + "\n"
+                break
 
             # Only unwind through the menus after a level was FINISHED.
             #
@@ -2675,7 +3780,7 @@ def play(log, plan, earlier=""):
                            "after this would be the harness talking to itself.")
                     break
                 unopened += 1
-                say(6, f"round {step}: slot {current} {level_id} did not open "
+                say(6, f"slot {current} {level_id} did not open "
                        f"({unopened} in a row)")
                 current, idle = None, idle + 1
                 if unopened >= MAX_UNOPENED:
@@ -2712,7 +3817,7 @@ def play(log, plan, earlier=""):
         # gate cycled "spending a Skip to release it" for nineteen rounds
         # at 3 of 8 without ever spending one.
         if current in beaten and current not in skip_anyway:
-            say(6, f"round {step}: revisiting {level_id} for checks that "
+            say(6, f"revisiting {level_id} for checks that "
                    f"are reachable now - not re-solving it")
             before = len(collected_locations(transcript))
             transcript += log.wait(["check:", "checks:", "beaten:"], 12, 6,
@@ -2728,7 +3833,7 @@ def play(log, plan, earlier=""):
             # rather than silent.
             if len(collected_locations(transcript)) == before:
                 barren[current] = frozenset(held)
-                say(6, f"round {step}: {level_id} had nothing to collect "
+                say(6, f"{level_id} had nothing to collect "
                        f"after all - parking it until an item arrives")
 
             # RELEASE THE SLOT. The top of the loop only picks a new one
@@ -2741,10 +3846,23 @@ def play(log, plan, earlier=""):
             continue
 
         collected_before = len(collected_locations(transcript))
-        done, chunk = solve_level(log)
-        transcript += chunk
-        tail = log.wait(["beaten:", "check:", "credits:"], 10, 6, "the check")
-        transcript += tail
+        # A spent Skip leaves a finished level behind (or, where the mod fell
+        # back, the track) even when it banks no new token: see last_done.
+        skip_spent = False
+        if current in beaten and current in skip_anyway:
+            # A SKIP BOUGHT FOR A BEATEN SLOT IS SPENT WITHOUT FORCING FIRST,
+            # the way a player releases what is left: open it, press Skip.
+            # Forcing re-completed beaten Pencils on 2026-09-24, the mod moved
+            # on to Fruit Stickers, and the Skip landed there. 13 of 15.
+            done, chunk, tail = False, "", ""
+        else:
+            refuse = table_gated(slots[current][1], plan, held)
+            done, chunk = solve_level(
+                log, refuse=refuse,
+                wait=completion_wait(slots[current][1]))
+            transcript += chunk
+            tail = log.wait(["beaten:", "check:", "credits:"], 10, 6, "the check")
+            transcript += tail
 
         # AN ATTEMPT THAT ACHIEVED NOTHING MUST NOT REPEAT - the unbeaten
         # half of the `barren` guard; the beaten half is in the revisit
@@ -2779,7 +3897,7 @@ def play(log, plan, earlier=""):
             # approved it because it models no transient failures at all.
             if fruitless[current] >= 2:
                 barren[current] = frozenset(held)
-                say(6, f"round {step}: {level_id} yielded nothing twice "
+                say(6, f"{level_id} yielded nothing twice "
                        f"running - parking it until an item arrives")
         else:
             fruitless[current] = 0
@@ -2823,7 +3941,7 @@ def play(log, plan, earlier=""):
         # would hide a real routing or gating bug behind a green run.
         exhausted = EXHAUSTED_MARK in chunk
         forced = current in skip_anyway and current not in skipped
-        if forced or (not done and exhausted and current not in skipped):
+        if (forced and not done) or (not done and exhausted and current not in skipped):
             # READ THE GATING BEFORE SPENDING, because spending destroys the
             # evidence: a Skip grants every location on the slot, so once it
             # lands there is no way to tell whether the level was unfinishable
@@ -2869,7 +3987,7 @@ def play(log, plan, earlier=""):
             # remaining work is ability-gated; that is arithmetic over
             # sets and belongs in test_scheduler, not here.
             surprise = (not forced
-                        and level_id not in KNOWN_UNFORCEABLE
+                        and level_id not in UNFORCEABLE
                         and not only_a_skip_can_finish(
                             current, where, collected_locations(transcript)))
             # DEFER A GATED SKIP WHILE THE RUN IS STILL MOVING.
@@ -2904,7 +4022,7 @@ def play(log, plan, earlier=""):
                            "here would paper over exactly the bug this run "
                            "exists to catch"
                            if gated else
-                           "it is not on KNOWN_UNFORCEABLE, and spending "
+                           "it is not a level only a Skip finishes, and spending "
                            "here starves the slots that legitimately need "
                            "one - which turned one defect into six "
                            "unrelated-looking failures")
@@ -2914,16 +4032,42 @@ def play(log, plan, earlier=""):
             # NOT `continue`. The end of this round resets `current`, and
             # skipping that is what once span the same slot for 43 rounds.
             if not refuse and not defer:
+                # THE SKIP LANDS ON WHATEVER IS RUNNING, so look first. A
+                # wrong level here is not something to work around: stop,
+                # say what was expected and what was found, and fail.
+                here = await_skip_target(log, index)
+                transcript += here
+                if not skip_target_ok(chunk + tail + here, index):
+                    say(6, f"UNEXPECTED: a Skip bought for slot {current} "
+                           f"{level_id} (index {index}) would land on "
+                           f"{active_level(here) or 'no level at all'}. "
+                           f"Stopping the run - unit test this, then fix it.")
+                    transcript += "\n" + WRONG_SKIP_MARK + "\n"
+                    break
                 log.new()
                 dev("skip", 1.5)
-                more = log.wait(["beaten:", "skip:", "check:"], 12, 6,
-                                "the skip")
+                more = log.wait(list(SKIP_VERDICTS), 12, 6, "the skip")
+                if skip_outcome(more) == "waiting":
+                    # The game may still skip late; the mod charges when it
+                    # does (Skips.cs).
+                    more += log.wait(["skip: spent one"], 12, 6, "a late skip")
                 transcript += more
                 chunk += more
                 tail += more
             else:
                 more = ""
-            if "skip: spent one" in more:
+            outcome = skip_outcome(more)
+            skip_spent = outcome == "spent"
+            if outcome in ("not used", "waiting"):
+                # The Skip did nothing: the game never skipped and the mod did
+                # not release the slot. Every level should get one or the
+                # other since 2026-09-25, so this is a bug - stop.
+                say(6, f"UNEXPECTED: a Skip on slot {current} {level_id} did "
+                       f"nothing ({outcome}). Stopping the run - unit test "
+                       f"this, then fix it.")
+                transcript += "\n" + NOT_USED_MARK + "\n"
+                break
+            if outcome == "spent":
                 # LATCHED ONLY ON A SPEND. This used to mark the slot before
                 # asking, so a level that reached the skip path before any
                 # Skip item had arrived was written off permanently - and
@@ -2939,7 +4083,7 @@ def play(log, plan, earlier=""):
                 say(6, f"slot {current} {level_id} cannot be force-solved; "
                        f"spent a Skip"
                        + (" WHILE STILL ABILITY-GATED" if gated else ""))
-            elif "skip:" in more:
+            elif outcome == "refused":
                 # THE SUPPLY IS OUT until an item says otherwise. Without
                 # this the stall recovery keeps choosing a slot for a Skip
                 # that cannot be bought, the slot is never marked skipped,
@@ -2967,7 +4111,11 @@ def play(log, plan, earlier=""):
             done = False
             blocked = blocked or " - solved, but the mod banked no Beaten token"
 
-        last_done = done
+        # Unwind before the next boot after any finished level, not only one
+        # that banked a token: a Skip on an already-beaten DLC1 Boss (DLC
+        # gate, 2026-09-25) completed it with no new token, the next boot went
+        # straight over it, and StartLevel did not take.
+        last_done = done or skip_spent
         if done:
             beaten[current] = level_id
             idle = 0
@@ -2992,9 +4140,9 @@ def play(log, plan, earlier=""):
         if "credits: unlocked" in transcript:
             credits = True
 
-        say(6, f"round {step}: slot {current} {level_id} "
-               f"{'beaten' if done else 'not finishable yet' + blocked} "
-               f"({len(beaten)}/{len(slots)}, {open_slots} open)")
+        say(6, round_line(current, level_id,
+                          'beaten' if done else 'not finishable yet' + blocked,
+                          open_slots, len(slots)))
 
         if credits or (len(beaten) >= len(slots)
                        and revisited >= beaten.keys()):
@@ -3076,10 +4224,13 @@ def main():
                              "so this makes a run fully repeatable - for "
                              "comparing harness changes. NOT for a release: "
                              "cat traps are real and the gate must face them.")
+    parser.add_argument("--only-arrow", action="store_true",
+                        help="steps 1-5 only: install, pick the seed, run the "
+                             "arrow session, report its two checks, stop.")
     parser.add_argument("--quick", action="store_true",
                         help="no arrow session, ability locks off, cat traps "
-                             "off - for iterating. Still eight puzzles; the "
-                             "count has a floor. The full run is the gate.")
+                             "off - for iterating. Still fifteen puzzles, "
+                             "like the full run. The full run is the gate.")
     parser.add_argument("--dlc", action="store_true",
                         help="draw every puzzle from the two DLCs. Needs "
                              "both installed. Run this AS WELL AS the "
@@ -3088,33 +4239,41 @@ def main():
     args = parser.parse_args()
     assets = os.path.join(REPO, args.assets)
 
-    global QUICK, STEADY, DLC
+    global QUICK, STEADY, DLC, ONLY_ARROW
+    if args.only_arrow:
+        if args.quick:
+            print("--only-arrow needs the arrow session, which --quick skips",
+                  flush=True)
+            return 2
+        ONLY_ARROW = True
+        print("ONLY ARROW: steps 1-5, then the arrow session's two verdicts.",
+              flush=True)
     if args.dlc:
         DLC = True
         print("DLC MODE: every puzzle drawn from Cupboards and Drawers "
               "or Seeing Stars. Both must be installed.", flush=True)
         # WHAT THIS RUN DOES NOT COVER, said out loud in the report.
         #
-        # The yaml excludes container locations from carrying progression
-        # because the harness solves by setting a controller's solved
-        # flag, and a drawer is an interaction rather than an
-        # arrangement. That is a statement about the HARNESS: droha
-        # played these by hand and every one of them fired. But a green
-        # DLC gate reads as "Cupboards and Drawers works" unless the
-        # report says which part of it was never asked.
-        excluded = [l.strip()[2:] for l in yaml_text(QUICK, STEADY, True)
-                    .splitlines() if l.strip().startswith("- ")]
-        print(f"DLC MODE: {len(excluded)} container location(s) excluded "
-              f"from progression - the harness cannot pull a drawer open, "
-              f"so these are covered by droha's hand tests and NOT by this "
-              f"run. See docs/manual-container-test.md", flush=True)
+        # The yaml used to exclude container locations from carrying
+        # progression, because the harness solves by setting a controller's
+        # solved flag and a drawer is an interaction rather than an
+        # arrangement. Since 2026-09-23 the drawer and cupboard controllers
+        # are notALocation (solved at load, or never), so the list is empty.
+        # The report stays for one that comes back: a green DLC gate reads
+        # as "Cupboards and Drawers works" unless it says what was not asked.
+        excluded = sorted(CONTAINER_EXCLUDES)
+        if excluded:
+            print(f"DLC MODE: {len(excluded)} container location(s) excluded "
+                  f"from progression - the harness cannot pull a drawer open, "
+                  f"so these are covered by droha's hand tests and NOT by this "
+                  f"run. See docs/manual-container-test.md", flush=True)
         for name in excluded:
             print(f"    excluded: {name}", flush=True)
     if args.steady:
         STEADY = True
-        print("STEADY MODE: cat traps off. The seed is already fixed at "
-              "20260906, so this run is repeatable and two runs can be "
-              "compared. Use it to test a harness change; run WITHOUT it "
+        print("STEADY MODE: cat traps off. The seed walk is deterministic "
+              f"(from {GATE_SEED}), so this run is repeatable and two runs can "
+              "be compared. Use it to test a harness change; run WITHOUT it "
               "before a release, because cat traps are real.", flush=True)
     if args.quick:
         QUICK = True
@@ -3187,20 +4346,17 @@ def main():
 
     say(4, f"generating {PUZZLES} puzzles, asking for packs of {PACK_SIZE} "
            f"(the cap decides how many)")
-    out_dir, seed_zip = generate()
-    plan = read_plan(out_dir, seed_zip)
-
-    # PLAY IT ON PAPER FIRST. We generated this seed, so its own spoiler says
-    # which item sits on which location - enough to work out a real
-    # completion order before the game is launched, and to fail in seconds
-    # rather than twenty rounds if no such order exists.
-    plan["order"], unreachable = completion_plan(out_dir, seed_zip, plan)
+    # PLAY IT ON PAPER FIRST, and only a seed that clears. generate() runs
+    # the harness's own scheduler over each seed's spoiler and walks on from
+    # a seed it cannot clear, saying why - in seconds, not twenty rounds.
+    out_dir, seed_zip, plan = generate()
     say(4, "planned order: " + " -> ".join(plan["order"]))
-    if unreachable:
-        say(4, f"UNREACHABLE: {len(unreachable)} location(s) cannot be "
-               f"collected in any order - this is a generation bug")
-        for location in unreachable[:5]:
-            say(4, f"   {location}")
+    say(4, "planned visits: " + " -> ".join(
+        v["level"] + (" (Skip)" if v["skip"] else "")
+        + (" (cat trap resets it)" if v["reset"] else "")
+        for v in plan["visits"]))
+    need, have = preflight_skips(out_dir, seed_zip, plan)
+    say(4, f"skips: {need} level(s) only a Skip can finish, {have} in the seed")
     print(f"      {seed_zip}, boundaries {plan['boundaries']}", flush=True)
 
     results = []
@@ -3221,6 +4377,19 @@ def main():
         else:
             say(5, "checking the next-level arrow in a session of its own")
             got, expected, arrow_text = check_arrow(log, plan)
+            if ONLY_ARROW:
+                arrow_results = [
+                    ("the pause menu Exit leaves the level",
+                     "harness: exit check redirect=True closed=True" in arrow_text),
+                    ("the next-level arrow opens the run's next puzzle",
+                     got is not None and got == expected)]
+                print(flush=True)
+                for line in check_lines(arrow_results):
+                    print(line, flush=True)
+                report_pauses(arrow_text)
+                return 0 if all(ok for _, ok in arrow_results) else 1
+            # play() deletes the log when it launches, so keep this one now.
+            keep_log("arrow")
 
         say(5, "launching a clean game and playing the run")
         (beaten, credits, transcript, open_slots, text, spent,
@@ -3373,7 +4542,7 @@ def main():
                     # and an item sat on a location the harness cannot work.
                     why = " (beaten; an item was on a check out of reach)"
                 else:
-                    why = "" if level_id in KNOWN_UNFORCEABLE else " UNEXPECTED"
+                    why = "" if level_id in UNFORCEABLE else " UNEXPECTED"
                 print(f"         {level_id}{why}{note}", flush=True)
 
         # 1. Only levels already known to need one. A NEW name here is the
@@ -3386,12 +4555,19 @@ def main():
         # spent outside the allowlist would still show up in `spent`,
         # so both are checked and neither can hide the other.
         bought = [l for l, _, reason in spent
-                  if reason == "unforceable" and l not in KNOWN_UNFORCEABLE]
+                  if reason == "unforceable" and l not in UNFORCEABLE]
         for level_id, was_gated in surprises:
             say(2, f"  SURPRISE Skip refused: {level_id}"
                    + (" - STILL ABILITY-GATED" if was_gated else ""))
         results.append(("a Skip was spent only where one is known to be "
                         "needed", not surprises and not bought))
+        results.append(("every Skip landed on the level it was bought for",
+                        WRONG_SKIP_MARK not in transcript))
+        results.append(("every Skip did something (the game skipped or the "
+                        "mod released the slot)",
+                        NOT_USED_MARK not in transcript))
+        results.append(("the run followed its paper plan",
+                        OFF_PLAN_MARK not in transcript))
 
         # 2. And none of them was still waiting on an ability. This is the
         #    check with teeth. An ability-gated level reaches the skip path
@@ -3493,10 +4669,12 @@ def main():
 
     passed = sum(1 for _, ok in results if ok)
     print(flush=True)
-    for name, ok in results:
-        print(f"  {'PASS' if ok else 'FAIL'}  {name}", flush=True)
+    for line in check_lines(results):
+        print(line, flush=True)
+    pauses = report_pauses(whole)
     print(f"Done: {passed}/{len(results)} checks passed, "
-          f"{len(beaten)} puzzle(s) beaten", flush=True)
+          f"{len(beaten)} puzzle(s) beaten"
+          + (f", {pauses} pause warning(s)" if pauses else ""), flush=True)
     return 0 if passed == len(results) else 1
 
 
@@ -3535,12 +4713,12 @@ def self_test():
     # level the mod was still gating must FAIL even though the level is on
     # the known list, or a gating bug buys its way to a green run.
     sample = [("TupperwareTower", False), ("Desktop Computer", False)]
-    if [l for l, _ in sample if l not in KNOWN_UNFORCEABLE]:
+    if [l for l, _ in sample if l not in UNFORCEABLE]:
         sys.exit("self-test: the known-unforceable levels are not allowlisted")
     if [l for l, gated in sample if gated]:
         sys.exit("self-test: an ungated skip was read as gated")
     bad = [("TupperwareTower", True), ("Pasta", False)]
-    if not [l for l, _ in bad if l not in KNOWN_UNFORCEABLE]:
+    if not [l for l, _ in bad if l not in UNFORCEABLE]:
         sys.exit("self-test: an unexpected skipped level was not caught")
     if not [l for l, gated in bad if gated]:
         sys.exit("self-test: a skip over an ability-gated level was not caught")
@@ -3649,6 +4827,24 @@ def self_test():
         sys.exit("self-test: open_count misread the pack line")
 
 
+def keep_log(tag=None):
+    """Copy the game log to KEPT_LOGS as e2e-<stamp>[-<tag>].log.
+
+    Returns the copy's path, or None when there was nothing to copy. Never
+    raises: it runs in a finally and between sessions.
+    """
+    name = time.strftime("e2e-%Y%m%d-%H%M%S") + (f"-{tag}" if tag else "")
+    try:
+        os.makedirs(KEPT_LOGS, exist_ok=True)
+        kept = os.path.join(KEPT_LOGS, name + ".log")
+        shutil.copyfile(LOG, kept)
+        print(f"game log kept at {os.path.relpath(kept, REPO)}", flush=True)
+    except Exception as e:
+        print(f"could not keep the game log: {e}", flush=True)
+        return None
+    return kept
+
+
 def main_restoring():
     """Run the gate, and put the player's environment back afterwards.
 
@@ -3683,15 +4879,7 @@ def main_restoring():
         #
         # Named by the clock and kept next to the server logs. Cheap, and it
         # turns "it is flaky" into something that can be read.
-        try:
-            os.makedirs(os.path.join(REPO, "testserver", "logs"), exist_ok=True)
-            kept = os.path.join(
-                REPO, "testserver", "logs",
-                time.strftime("e2e-%Y%m%d-%H%M%S.log"))
-            shutil.copyfile(LOG, kept)
-            print(f"game log kept at {os.path.relpath(kept, REPO)}", flush=True)
-        except Exception as e:
-            print(f"could not keep the game log: {e}", flush=True)
+        keep_log()
 
         # Quiet on the way out: the gate's own verdict is what matters, and a
         # restore that announces itself between the checks and the summary

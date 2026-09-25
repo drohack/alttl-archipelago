@@ -77,8 +77,8 @@ def generate_for(level_index):
         "requires:",
         "  version: 0.6.7",
         "A Little to the Left:",
-        "  puzzle_count: 8",
-        "  levels_to_beat: 8",
+        "  puzzle_count: 15",
+        "  levels_to_beat: 15",
         "  pack_size: 8",
         # Everything tilted at the one event pack, so the level under
         # test cannot be crowded out by a generator or a campaign draw.
