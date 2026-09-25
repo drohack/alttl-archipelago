@@ -109,7 +109,7 @@ class TestSlotDataShape(unittest.TestCase):
              "slots", "pack_size", "pack_total", "pack_boundaries",
              "goal", "levels_to_beat", "levels_to_star", "ability_locks",
              "abilities", "starting_abilities", "requirements",
-             "cat_trap_chance", "controller_groups",
+             "cat_trap_chance", "controller_groups", "not_locations",
              "cupboards_and_drawers", "seeing_stars"},
             set(self.payload))
 

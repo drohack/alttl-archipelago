@@ -115,8 +115,31 @@ def _name_groups() -> Dict[str, Set[str]]:
             if not names:
                 continue
             groups.setdefault(instance_tag(level, instance), set()).update(names)
-            groups.setdefault(level.source.capitalize(), set()).update(names)
+            for key in _source_group_names(level.source):
+                groups.setdefault(key, set()).update(names)
     return groups
+
+
+#: How a source is spelled to a player. str.capitalize() lowercases everything
+#: after the first character, so "dlc1" came out "Dlc1" and "dlc2" "Dlc2" -
+#: group names a player types into exclude_locations by hand, in a game whose
+#: own installer calls them DLC1 and DLC2.
+_SOURCE_DISPLAY: Dict[str, str] = {"dlc1": "DLC1", "dlc2": "DLC2"}
+
+
+def _source_group_names(source: str) -> List[str]:
+    """The group keys one source contributes, preferred spelling first.
+
+    BOTH spellings are emitted for the two DLC sources, and the legacy one is
+    kept on purpose. Name groups are resolved out of a player's yaml, so a
+    yaml already written against "Dlc1" would silently stop matching - and a
+    group name that resolves to nothing is not an error in Archipelago, it is
+    an empty set, which looks exactly like an exclusion that worked. The alias
+    costs one dict entry and cannot break anyone.
+    """
+    pretty = _SOURCE_DISPLAY.get(source, source.capitalize())
+    legacy = source.capitalize()
+    return [pretty] if pretty == legacy else [pretty, legacy]
 
 
 LOCATION_NAME_GROUPS: Dict[str, Set[str]] = _name_groups()

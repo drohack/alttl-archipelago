@@ -49,7 +49,8 @@ A Little to the Left:
 
   # How many puzzles the run contains. The full game is 79, laid out over
   # five chapters exactly as vanilla. A lower number truncates the track
-  # rather than rescaling it. 8 to 79.
+  # rather than rescaling it. 10 to 79: the smallest run is two full packs
+  # of 5.
   #
   # 70 rather than 79 so the level select's overview strip fits the screen:
   # 70 puzzles + 13 pack dividers + the credits card is 84 cards, and the

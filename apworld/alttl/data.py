@@ -1,11 +1,15 @@
 """The game's content, loaded from the shared data files.
 
-Three files, all in data/, all shared with the C# mod so the generator and the
-game cannot disagree about what exists:
+Four files, all in data/. The first three are shared with the C# mod so the
+generator and the game cannot disagree about what exists:
 
   levels.json     measured from the game by the DevTools levelsweep command
   abilities.json  the authored ability grouping
   names.json      exported from ALTTLArchipelago.Core
+  proven-requirements.json   which levels' part requirements are established
+
+The fourth is generator-side only and deliberately so: it records what we have
+CHECKED, not what the game contains, and the mod has no business trusting it.
 
 Nothing here reimplements naming or grouping logic. That was deliberate: the
 display-name rules are fiddly (camel splitting, pack prefixes moving to
@@ -64,6 +68,13 @@ WORLD_VERSION: str = _world_version()
 _LEVELS_RAW = _load("levels.json")
 _ABILITIES_RAW = _load("abilities.json")
 _NAMES_RAW = _load("names.json")
+_PROVEN_RAW = _load("proven-requirements.json")
+
+#: Levels whose PART requirements somebody has actually established, either by
+#: measuring the containment out of the game or by playing the level holding
+#: exactly what a part declares. See data/proven-requirements.json for why an
+#: absent level is not the same as a correct one.
+PROVEN_LEVELS: FrozenSet[str] = frozenset(_PROVEN_RAW.get("proven", {}))
 
 #: Highest number of times one generator may appear in a run. The static
 #: location table names every instance up front, so this is a correctness
@@ -101,12 +112,38 @@ _ALL_ABILITY_CLASSES: Dict[str, List[str]] = dict(ABILITY_CLASSES)
 for _key in sorted(DLC_ABILITY_CLASSES):
     _ALL_ABILITY_CLASSES.update(DLC_ABILITY_CLASSES[_key])
 
+#: Controller class -> the ability that gates it. A class ABSENT from this map
+#: needs no ability: abilities.json's "baseline" list (Draggables,
+#: GenericLevelObjects) is the pick-up-and-put-down verb every player always
+#: has, so it is never an item and deliberately has no entry here.
+#:
+#: There used to be a BASELINE constant naming them. It was removed when
+#: nothing read it and its docstring was left stranded below this line,
+#: describing a binding that no longer existed - which reads as documentation
+#: for whatever happens to follow it.
 _CLASS_TO_ABILITY = {c: a for a, cs in _ALL_ABILITY_CLASSES.items() for c in cs}
-
-#: Classes that need no ability - the baseline verbs, never items.
 
 #: Classes that are not puzzles at all, such as camera-pan helpers.
 NOT_PUZZLES: FrozenSet[str] = frozenset(_ABILITIES_RAW["notPuzzles"])
+
+#: The ability that OPENS things. A drawer or cupboard is not a puzzle you
+#: solve beside the others - it is the lid on top of them, and what is inside
+#: cannot be touched until it is open. Named here rather than inlined because
+#: the structural-gap test below is the only place the distinction matters and
+#: it should be findable.
+OPENER_ABILITY = "Drawer"
+
+#: Levels whose part requirements are known to be incomplete for a reason
+#: levels.json cannot show, because the sweep never recorded the thing that
+#: proves it. Keys are level ids, values say what is missing.
+#:
+#: These come from docs/data/controller-classes.tsv and from play logs, both of
+#: which know about controllers the shipped table does not have. They are
+#: listed rather than derived because the derivation needs data that is
+#: currently thrown away - see tools/merge-levels.py, which drops the sweep's
+#: `drawers` field, and src/ALTTLDevTools/DataTable.cs DrawersOf, which
+#: measures it. Recovering that makes most of this list redundant.
+SUSPECT_LEVELS: Dict[str, str] = _PROVEN_RAW.get("suspect", {})
 
 
 class Level:
@@ -115,7 +152,9 @@ class Level:
     __slots__ = ("level_id", "level_index", "source", "dlc", "solution_count",
                  "display", "parts", "part_abilities", "abilities",
                  "enforced_abilities", "enforced_part_abilities",
-                 "controller_group", "hint_images")
+                 "controller_group", "not_locations", "hint_images",
+                 "level_class", "structural_gap", "_behind_an_opener",
+                 "_gap_is_level_wide")
 
     def __init__(self, raw: dict):
         self.level_id: str = raw["levelId"]
@@ -170,6 +209,13 @@ class Level:
             for member in p["members"]
         }
 
+        # Controllers the game registers that are deliberately no location
+        # (notALocation in levels.json): solved the moment the level opens, or
+        # never reported solved at all. Sent so the mod's audit does not call
+        # them a mismatch.
+        self.not_locations: FrozenSet[str] = frozenset(
+            c["name"] for c in raw["controllers"] if c.get("notALocation"))
+
         # How many hint pages this level's notepad holds. Not one per level:
         # most have one, 31 have between two and five.
         #
@@ -216,8 +262,16 @@ class Level:
         # sharing dump proves the DIMMER does not gate; it cannot see a shut
         # drawer. So bypassedAbilities carries only what someone has played
         # - Books 3, where droha held zero abilities, moved all 17 books and
-        # completed the Swapping arrangement. docs/gate-sharing.md lists the
-        # rest as candidates awaiting exactly that.
+        # completed the Swapping arrangement.
+        #
+        # EIGHT LEVELS NOW CARRY IT, all played and applied: Books 3,
+        # Workbench, TrickOrTidy_ChocolateBars, NeatStreak_Bathroom Drawer,
+        # both DLC1 Kitchen Hanging Tools, DLC2 Junk Drawer Transforming and
+        # DLC2 Combs. This comment said "the rest are candidates awaiting
+        # exactly that" long after they had stopped being candidates. One
+        # candidate is left and it is untestable: DLC2 Math Set, whose
+        # Indexables group reports solved at load, so there is no arrangement
+        # left to perform.
         bypassed = frozenset(raw.get("bypassedAbilities", []))
 
         # Every ability the level needs to be FINISHED - the union over its
@@ -263,6 +317,143 @@ class Level:
         self.enforced_part_abilities: Dict[str, FrozenSet[str]] = {
             part: a - bypassed for part, a in self.part_abilities.items()
         }
+
+        self.level_class: str = raw.get("levelClass", "Level")
+
+        # Groups sitting behind a drawer or cupboard that nothing records them
+        # as being behind. The sweep harvests each controller's dependsOn, but
+        # a drawer's CONTENTS are not a dependency the game expresses that way
+        # - it authors them on the Drawer component instead, which
+        # tools/merge-levels.py discards. So a level can hold an opener and ten
+        # groups that all claim to need nothing, and the table cannot tell
+        # which of the ten are inside it.
+        openers = frozenset(
+            c["name"] for c in raw["controllers"]
+            if _CLASS_TO_ABILITY.get(c["type"]) == OPENER_ABILITY
+        ) if OPENER_ABILITY not in bypassed else frozenset()
+        opener_groups = {self.controller_group[name] for name in openers
+                         if name in self.controller_group}
+        self._behind_an_opener: FrozenSet[str] = frozenset(
+            group for group in self.enforced_part_abilities
+            if group not in opener_groups
+            and OPENER_ABILITY not in self.enforced_part_abilities[group]
+        ) if openers else frozenset()
+
+        # WHY THIS LEVEL'S PART REQUIREMENTS ARE NOT TRUSTWORTHY, or "" when
+        # nothing says they are suspect. See unproven_parts.
+        reasons = []
+        if self.level_class != "Level":
+            reasons.append("bespoke level class %s, so its phase order is not "
+                           "expressible as dependsOn" % self.level_class)
+        if self._behind_an_opener:
+            reasons.append("a drawer or cupboard whose contents the table does "
+                           "not record")
+
+        # extraAbilities is the project's own marker for "the sweep saw too
+        # little here" - a phased level registers only its first phase when the
+        # sweep boots it, so somebody added back what the union was missing.
+        # It is applied to the LEVEL union (self.abilities above) and never to
+        # a part, while bypassedAbilities, its mirror, IS applied to parts. The
+        # asymmetry runs in the dangerous direction: the one mechanism for
+        # under-measurement cannot repair a part location at all. So a level
+        # carrying extraAbilities is a level that has already been caught
+        # under-reporting, and its parts have not been corrected.
+        if raw.get("extraAbilities"):
+            reasons.append("extraAbilities patched the level union for "
+                           "something the sweep missed, and extras never "
+                           "reach a part requirement")
+
+        # A controller that appears in neither the authored phase list nor any
+        # dependency is a controller whose place in the order is unrecorded.
+        # Over all 173 levels this names four, and one of them is the `Lids`
+        # that killed a run.
+        phases = raw.get("phases") or []
+        if phases:
+            named = {name for phase in phases
+                     for name in (phase if isinstance(phase, list) else [phase])}
+            depended = {d for c in raw["controllers"]
+                        for d in (c.get("dependsOn") or [])}
+            orphans = sorted(
+                c["name"] for c in raw["controllers"]
+                if c["name"] not in named and c["name"] not in depended
+                and not (c.get("dependsOn") or []))
+            if orphans:
+                reasons.append("%s appear in neither the phase list nor any "
+                               "dependency" % ", ".join(orphans))
+            if any(name == "(none)" for name in named):
+                reasons.append("the sweep wrote \"(none)\" instead of a phase "
+                               "name, so the phase list records nothing")
+
+        if self.level_id in SUSPECT_LEVELS:
+            reasons.append(SUSPECT_LEVELS[self.level_id])
+        self.structural_gap: str = "; ".join(reasons)
+
+        # An opener LOCALISES the doubt: only what could be inside it is in
+        # question, and the rest of the level is as trustworthy as any other.
+        # Every other signal is about the level's ORDER, or about an ability
+        # the sweep missed entirely, and neither says WHICH group is affected -
+        # so those taint all of the level's groups.
+        self._gap_is_level_wide: bool = bool(
+            len(reasons) - (1 if self._behind_an_opener else 0))
+
+    @property
+    def unproven_parts(self) -> FrozenSet[str]:
+        """Groups whose requirement nobody has established.
+
+        A group that needs STRICTLY LESS than its level says the level needs
+        is claiming it can be finished early. Sometimes that is true - most of
+        a level's groups really are independent, and requiring the whole
+        level's ability set for each one strangled the fill when it was tried.
+        Sometimes it is false, and then it is the worst kind of false: the
+        generator puts progression behind something the player cannot touch,
+        and the run ends.
+
+        The difference is not visible in the data. It comes from
+        controllers[].dependsOn, harvested from the running game, and an edge
+        the game does not express is simply absent. `Tupperware Nesting - Lids`
+        declares ['Containers'] with dependsOn: [] and cannot be touched
+        without Stacking; that is what killed the 2026-09-21 run. Exactly the
+        same shape was found and hand-patched for four base-game levels in
+        0.3.0 - see test_a_drawer_cannot_be_emptied_before_it_opens - and every
+        DLC level added since walked straight back into it.
+
+        WHICH LEVELS, and this is a narrowing that was measured rather than
+        chosen. Distrusting every unverified group covers 183 of the 358 part
+        locations, and that is not affordable: on a 20-puzzle run it left TWO
+        reachable openings out of twelve with twenty progression items to
+        place, and five configurations of test_fill_stress could not generate
+        at all. The most-suspect groups are also the cheapest checks, so
+        guarding all of them guts exactly the opening the fill needs.
+
+        So the guard needs a REASON, not merely an absence of one. A level
+        qualifies when something says its phase or containment data is
+        incomplete: a bespoke level class whose phase order dependsOn cannot
+        express, a drawer or cupboard whose contents the table does not
+        record, or an entry in SUSPECT_LEVELS. That is 122 locations across 31
+        levels, and it still covers both cases confirmed in play -
+        TupperwareNesting and DLC2 Boss.
+
+        THE REST ARE NOT SAFE, THEY ARE UNCHECKED, and the difference matters.
+        A level with no structural gap is one where nothing has contradicted
+        the table yet, which is a weaker claim than "somebody looked". The
+        sweep in Phase 1 is what turns the rest from unchecked into known; this
+        is a hedge for the time before that, not a substitute for it.
+        """
+        if self.level_id in PROVEN_LEVELS or not self.structural_gap:
+            return frozenset()
+
+        whole = self.enforced_abilities
+        understated = frozenset(
+            part for part, own in self.enforced_part_abilities.items()
+            if own < whole
+        )
+
+        # A bespoke class or a listed suspicion taints the whole level: the
+        # phase order is unknown, so any group could be behind any other. An
+        # opener taints only what could be inside it.
+        if self._gap_is_level_wide:
+            return understated
+        return understated & self._behind_an_opener
 
     @property
     def repeatable(self) -> bool:

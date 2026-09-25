@@ -14,6 +14,7 @@ Set ALTTL_STRESS_SEEDS to widen the span before a release; the default is small
 enough to keep the ordinary test run quick.
 """
 
+import itertools
 import os
 import unittest
 
@@ -68,8 +69,11 @@ CONFIGURATIONS = {
     "pack size 1": {"pack_size": 1},
     "pack size 2": {"pack_size": 2},
     "pack size 10": {"pack_size": 10},
-    "tiny run": {"puzzle_count": 8},
-    "tiny run, pack size 1": {"puzzle_count": 8, "pack_size": 1},
+    # The option's floor, 10 since 2026-09-25. These were "tiny run" at 8
+    # puzzles until 2026-09-23, then 15 - see pool.DRAW_ATTEMPTS.
+    "small run": {"puzzle_count": 10},
+    "small run, pack size 1": {"puzzle_count": 10, "pack_size": 1},
+    "small run, max skips": {"puzzle_count": 10, "skip_count": 20},
     "short run": {"puzzle_count": 20},
     "no mechanic coverage": {"mechanic_coverage": 0},
     "max mechanic coverage": {"mechanic_coverage": 6},
@@ -128,12 +132,14 @@ CONFIGURATIONS = {
     # arrive through the mechanic-coverage reserve, which is source-blind.
     "dlc on, no weight": {"cupboards_and_drawers": True, "seeing_stars": True,
                           "cupboards_weight": 0, "stars_weight": 0},
-    # A tiny run drawn from DLC only - the shape most likely to run out of
+    # A small run drawn from DLC only - the shape most likely to run out of
     # eligible content partway through the draw.
-    "tiny run, dlc only": {"puzzle_count": 8, "seeing_stars": True,
+    "small run, dlc only": {"puzzle_count": 10, "seeing_stars": True,
                            "stars_weight": 100, "generator_weight": 0,
                            "archive_weight": 0, "base_weight": 0,
                            "archive_packs": []},
+    "small run, both dlc": {"puzzle_count": 10, "cupboards_and_drawers": True,
+                           "seeing_stars": True},
     # Seeing Stars exists for its alternate solutions, so the star goal is the
     # configuration it changes most - and the one where a missing solution
     # location would show up as an unwinnable seed.
@@ -363,7 +369,20 @@ class TestEverySeedIsWinnable(unittest.TestCase):
                 if not needed:
                     continue
 
-                for ability in needed[:2]:    # two is enough to catch a lie
+                # TWO PER SEED, BUT A DIFFERENT TWO EACH SEED.
+                #
+                # This used to read needed[:2] with the comment "two is enough
+                # to catch a lie". Two is enough to catch a lie that leaks on
+                # EVERY ability; it is blind to one that leaks on only the
+                # third or the ninth, and the list is sorted, so the same two
+                # alphabetical abilities were probed on every seed of every
+                # configuration, for as many seeds as anyone ever ran. Rotating
+                # the window by seed costs exactly the same per seed and covers
+                # the whole set across a span - 40 seeds x 2 against at most
+                # ~16 live abilities.
+                start = (seed * 2) % len(needed)
+                window = [needed[(start + n) % len(needed)] for n in range(2)]
+                for ability in dict.fromkeys(window):
                     state = test.multiworld.get_all_state(False)
                     state.remove(world.create_item(ability))
 
@@ -428,15 +447,27 @@ class TestTheOpeningCanAbsorbTheFirstItems(unittest.TestCase):
                 held = set(world.starting_abilities)
                 free = appool._free_checks(world.plan[:window], held)
 
-                # Below the floor is only acceptable when granting every
-                # remaining ability would still not reach it - a run that thin
-                # has nothing more to give.
+                # Below the floor is only acceptable when no grant of ONE OR
+                # TWO more abilities would reach it - the search pool.decide
+                # actually runs (single grants, then _plateau_escape's pairs).
+                #
+                # This used to ask whether granting EVERY remaining ability
+                # would reach it. That held only while _free_checks counted
+                # guarded parts: from 2026-09-23 it does not, and 23 openings
+                # in the 25-seed sweep sit at 5 whose only way to 6 is a
+                # three-or-four-ability grant for one Solution (Paper Plane
+                # Supplies needs four). The loop is right to refuse that, every
+                # such seed still fills, and none is fixable by one or two.
                 if free < appool.OPENING_FLOOR:
-                    everything = held | set(world.live_abilities)
-                    best = appool._free_checks(world.plan[:window], everything)
+                    rest = [a for a in world.live_abilities if a not in held]
+                    best = max([free] + [
+                        appool._free_checks(world.plan[:window],
+                                            held | set(pick))
+                        for n in (1, 2)
+                        for pick in itertools.combinations(rest, n)])
                     if best >= appool.OPENING_FLOOR:
                         thin.append(f"  {name} (seed {seed}): {free} free checks, "
-                                    f"{best} reachable by granting more")
+                                    f"{best} reachable by granting one or two")
         self.assertFalse(thin, "openings left thinner than the content allows:\n"
                                + "\n".join(thin))
 
@@ -515,14 +546,44 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
     #: one output from each. Three levels have that shape; the third,
     #: GoodTidings_Cookies (Jigsaw), needs Jigsaw on both sides and so does not
     #: appear here.
-    TWO_ABILITY_GROUPS = {
+    MULTI_ABILITY_GROUPS = {
         # contained
         ("NeatStreak_Tool Drawer", "Containables"),
         ("NeatStreak_Bathroom Drawer", "Bottle"),
         ("NeatStreak_Bathroom Drawer", "Indexable"),
         ("NeatStreak_Paper Plane Supplies", "Containables"),
+        # CONTAINED, added 2026-09-22 after droha played it, and the only
+        # entries here established by someone failing to do the thing.
+        #
+        # The chalk jigsaws were DELIBERATELY EXCLUDED from the drawer's
+        # contents in 0.3.1 on the grounds that they are "assembled on the
+        # desk". That had no observation behind it - docs/verification-log.md
+        # records the test being "corrected to match the implementation, not
+        # the other way round". The 2026-09-22 sweep put five of the seven
+        # inside the drawer, and the play test settled it for all seven:
+        #
+        #   "the rest of the chalk pieces are behind the drawer, so i need to
+        #    be able to close it to get to them... the ones i was able to get
+        #    to just happened to be besides or inside the drawer"
+        #
+        # So it is not a five-and-two split. WHICH pieces are reachable is an
+        # accident of where they sit relative to a drawer frozen open, and the
+        # group cannot be finished either way. Note the mod reported every one
+        # of these blocked=0 dimmed=0 - the gate is OCCLUSION, which no
+        # interactability census can see. Same shape as Tupperware Nesting's
+        # Lids.
+        ("NeatStreak_Paper Plane Supplies", "Chalk Blue"),
+        ("NeatStreak_Paper Plane Supplies", "Chalk Green"),
+        ("NeatStreak_Paper Plane Supplies", "Chalk Mint"),
+        ("NeatStreak_Paper Plane Supplies", "Chalk Pink"),
+        ("NeatStreak_Paper Plane Supplies", "Chalk Purple"),
+        ("NeatStreak_Paper Plane Supplies", "Chalk Red"),
+        ("NeatStreak_Paper Plane Supplies", "Chalk Yellow"),
         # assembled
         ("MerryMess_CandyCanes", "Ordered"),
+        # Now THREE: Jigsaw to match each pair, Ordering to arrange them, and
+        # Drawer because the pairs are behind the drawer. The first group in
+        # the game to need three, which is why the cap below moved.
         ("NeatStreak_Paper Plane Supplies", "Chalk"),
         # PHASED: TupperwareNesting reveals its later groups only as the
         # earlier ones are solved, so a group late in the chain needs
@@ -541,11 +602,12 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # and all three pair Ordering with the mechanic that holds the things
         # being ordered - which is the shape this set already collects.
         #
-        # Cat Eyes: CatEyesController declares dependsOn IndexablesController
-        # in the level data, so the closure adds Ordering to its own Gadgets.
-        # An edge read from the game rather than inferred, which is exactly
-        # what went wrong the last time this set grew.
-        ("DLC2 Cat Eyes", "Cat Eyes"),
+        # Cat Eyes, 2026-09-23: two locks-on runs showed the pieces and the
+        # eyes both finish holding only Gadgets, so the edge was reversed
+        # (eyes after pieces) and Ordering is bypassed. This set reads the RAW
+        # view, before the bypass, where the eyes are Indexables (Ordering)
+        # plus the pieces' Gadgets - the enforced view is Gadgets alone.
+        ("DLC2 Cat Eyes", "Indexables"),
         # Markers: order the markers, then cap them. Containables for the
         # lids, Ordering for the sequence they cap.
         ("DLC2 Markers", "Marker Lids"),
@@ -557,6 +619,78 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # needs nothing of its own; it carries Grids and Stacking because it
         # cannot be reached until Layout (Grid) is done.
         ("TupperwareNesting", "Food"),
+
+        # THE DRAWER AUDIT, 2026-09-22. Nineteen entries added at once, and it
+        # is one cause rather than nineteen.
+        #
+        # tools/probe-blocked.py booted all 31 suspect levels with ability
+        # locks OFF and read the locks command. With the mod dimming nothing,
+        # an object still reported blocked is the GAME refusing - a shut
+        # drawer, an unrevealed phase. 75 groups across 24 levels came back
+        # blocked, and 38 of them sat inside a drawer while declaring nothing
+        # about it. Each gained a dependsOn edge on its own opener, so each
+        # picked up Drawer on top of whatever it already needed.
+        #
+        # THE PRINCIPLE CAME FROM PLAY, NOT FROM THE PROBE, and that ordering
+        # matters: droha could not finish Tool Drawer, Bathroom Drawer or
+        # Paper Plane Supplies with Drawer withheld. The probe only found
+        # which other levels have the same shape. A measurement that had not
+        # first been anchored to somebody failing to do the thing would have
+        # been the fourth wrong instrument of that day, not the first right
+        # one.
+        ("DLC1 Craft Supplies", "Brushes"),
+        ("DLC1 Craft Supplies", "Highlighters"),
+        ("DLC1 Craft Supplies", "Paints"),
+        ("DLC1 Fossils", "Dragonfly Fossil"),
+        ("DLC1 Fossils", "Fern Fossil"),
+        ("DLC1 Fossils", "Fish Fossil"),
+        ("DLC1 Fossils", "Leaf Fossil"),
+        ("DLC1 Fossils", "Shell Fossil"),
+        ("DLC1 Fossils", "Snake Fossil"),
+        ("DLC1 Game Pieces", "Heart"),
+        ("DLC1 Jewelry Box", "Locket"),
+        ("DLC1 Sewing Box", "Buttons Sortable"),
+        ("DLC1 Sewing Box", "Safety Pin"),
+        ("DLC1 Sewing Box", "Zipper"),
+        ("DLC2 Combs", "Draggables"),
+        ("DLC2 Junk Drawer Transforming", "Indexables"),
+        ("DLC2 Sticky Drawer", "Stickables"),
+
+        # THE ONE THAT ENDED A RUN, corrected 2026-09-22 and listed last
+        # because it is the reason every other entry above exists.
+        #
+        # Lids declared ['Containers'] alone and held a Progressive Puzzle
+        # Pack. droha had Containers and not Stacking, could not place the
+        # lids, and the run was over with no Skips. It sat OUTSIDE the level's
+        # own phase chain, so the sweep recorded dependsOn [] and nothing
+        # downstream could see the gap.
+        #
+        # Two independent signals fixed it: the play test, and
+        # probe-occlusion measuring Lids at 100 per cent inside Stack 1's
+        # footprint. Stack 1 is StackablesZ, so it now needs Containers +
+        # Stacking - which is exactly what was experienced.
+        ("TupperwareNesting", "Lids"),
+
+        # From the 2026-09-23 locks-off sweep (tools/record-unlocks.py), each
+        # a group that stayed stuck until another group was done: Tea
+        # Cabinet's three waited on the cupboard doors (Gadgets); Mirror's
+        # skull goes into the stacking group's box ("the latch in the
+        # mirror", droha); Wilting Flowers' dirt cleans only once upright.
+        ("DLC1 Tea Cabinet", "Cupcake"),
+        ("DLC1 Tea Cabinet", "Spoon"),
+        ("DLC1 Tea Cabinet", "Teacup Stack"),
+        ("Mirror", "Containables"),
+        ("Wilting Flowers", "Cleanable"),
+        # DLC2 Boss's restored groups (Locks, Compass, Knives registered and
+        # solved in droha's play); Compass and Knives are Shuffleables after
+        # the ordered Locks, and the Hub was finished after the Compass.
+        ("DLC2 Boss", "Compass"),
+        ("DLC2 Boss", "Hub"),
+        ("DLC2 Boss", "Knives"),
+        # Fruit Stickers, 2026-09-23 locks-on: matching is peel (Tidying) then
+        # stick (Sticking); holding only Sticking the stickers could be peeled
+        # but "i couldn't hold them to stick back on easily".
+        ("Fruit Stickers", "Match Stickers"),
     }
 
     def test_only_the_known_groups_need_two_abilities(self):
@@ -571,15 +705,22 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         found = set()
         for level in data.LEVELS:
             for part, abilities in level.part_abilities.items():
+                # THREE since 2026-09-22, and the message below is why the
+                # number moved rather than the set being quietly widened:
+                # Paper Plane Supplies' Chalk needs Jigsaw, Ordering AND
+                # Drawer, established by play. The cap is a tripwire for
+                # requirements creeping up unnoticed, not a design limit, so
+                # it moves when something real crosses it and the reason is
+                # written beside the entry.
                 self.assertLessEqual(
-                    len(abilities), 2,
+                    len(abilities), 3,
                     f"{level.level_id} / {part} needs {sorted(abilities)}. "
                     f"If this is real, the fill assumptions in items.py and "
                     f"the narrow-requirement design need re-measuring.")
                 if len(abilities) >= 2:
                     found.add((level.level_id, part))
 
-        self.assertEqual(self.TWO_ABILITY_GROUPS, found,
+        self.assertEqual(self.MULTI_ABILITY_GROUPS, found,
                          "the set of multi-ability groups moved; re-measure "
                          "before accepting")
 
@@ -661,7 +802,16 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # firing together while holding both Containers and Stacking, and the
         # other two never checked at all. They were locations the card
         # advertised and the puzzle never offered.
-        self.assertEqual((24, 91), (free, need_one),
+        # Now (23, 88): Jar Lid (free) and the three Drawer Chores drawers
+        # (Drawer) are solved at load, so notALocation.
+        # Now (23, 86): Workbench's two parts, both Drawer. Draggables For
+        # Targets never fired for droha (2026-09-24), so it is notALocation,
+        # and the single-part level that leaves has no Tools part check.
+        # Now (23, 84): Fruit Stickers' two parts, Remove (Tidying) and Match
+        # (Tidying + Sticking), became one mutual group. droha could not peel
+        # a sticker holding only Tidying (2026-09-24), so Remove needs Sticking
+        # too; the single-part level has no part checks.
+        self.assertEqual((23, 84), (free, need_one),
                          "the BASE GAME part requirement split changed; "
                          "regenerate names.json and re-measure before "
                          "accepting. The DLCs must not move this number - if "
@@ -674,12 +824,61 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         dlc2 = [l for l in data.LEVELS if l.dlc == "DLC2"]
 
         # Cupboards and Drawers is the drawer DLC, so most of its groups are
-        # gated: +42 free, +51 needing one.
-        self.assertEqual((66, 142), split(base + dlc1))
+        # gated.
+        #
+        # WAS (66, 142). Now (49, 159), re-measured 2026-09-22: SEVENTEEN
+        # groups moved from free to gated in one change, and the base figure
+        # above did not move at all, which is the check that says this was
+        # DLC content being corrected rather than something breaking.
+        #
+        # They moved because tools/probe-blocked.py booted all 31 suspect
+        # levels with ability locks OFF and read `locks`. With the mod dimming
+        # nothing, an object still `blocked` is the GAME refusing - a shut
+        # drawer. Seventeen DLC1 groups declaring NOTHING AT ALL came back
+        # blocked at boot: Jewelry Box's Brooches, Cameos, Gold Bars,
+        # Radiolaria and Watches; Game Pieces' four drawers and Center Tiles;
+        # Kitchen Utensils' two; Sewing Box's Small Spools and Supplies;
+        # Craft Supplies' Misc; Lunch Tray's Broccoli Organizer; DLC1 Boss's
+        # Keys. Each gained a dependsOn edge on its own opener.
+        #
+        # The principle was established by PLAY, not by the probe: droha could
+        # not finish Tool Drawer, Bathroom Drawer or Paper Plane Supplies with
+        # Drawer withheld. The probe only said which other levels have the
+        # same shape.
+        # Now (45, 163): two more free groups gained Drawer from play recorded
+        # 2026-09-23 by tools/record-unlocks.py - Sewing Box's Large Spools
+        # and Daggers' drawer contents both stayed stuck until their drawers
+        # opened.
+        # Now (45, 166): DLC1 Boss's three restored stages, each Draggables
+        # behind the drawer, so each needs Drawer.
+        # Now (45, 165): Kitchen Utensils Drawers' dead "Drawers" check left
+        # (notALocation), one gated group fewer.
+        # Now (43, 153): every drawer or cupboard solved at load is
+        # notALocation (tools/probe-solved-at-load.py).
+        # Now (43, 151): the base game's two Workbench parts left (see above).
+        # Now (43, 149): the base game's two Fruit Stickers parts (see above).
+        self.assertEqual((43, 149), split(base + dlc1))
         # Seeing Stars leans on multiple solutions rather than on containers,
-        # so proportionally more of its groups are free: +14 free, +34 gated.
-        self.assertEqual((38, 125), split(base + dlc2))
-        self.assertEqual((80, 176), split(data.LEVELS))
+        # so proportionally more of its groups are free. (38, 125) -> (37, 126):
+        # one group, DLC2 Combs' Draggables, behind that DLC's one real drawer.
+        # Now (32, 131), and the total 163 did not move: ONE group crossed
+        # from free to gated. DLC2 Robots' Spring Draggable declared nothing
+        # in a level waiting on Containers and Ordering. droha played it
+        # holding NOTHING: "some robots are moveable/their buttons work, but
+        # the hearts, arms, some of the robots are greyed out and not
+        # moveable. i don't think there's anything i can solve in this one."
+        # The spring is one draggable that goes INTO Spring Containable, so it
+        # now depends on it and carries Containers.
+        # Now (31, 134): DLC2 Boss's free Hub now waits on the Compass, and
+        # the level gained Locks, Compass and Knives in place of its Drawer.
+        # Now (30, 125): the solved-at-load drawers and Robots' spring pair
+        # are notALocation.
+        # Now (30, 123): Junk Drawer Transforming lost its dead drawer part.
+        # Now (30, 122): Ink Bottles' dead GridPuzzleBase part left.
+        # Now (30, 120): the base game's two Workbench parts left (see above).
+        # Now (30, 118): the base game's two Fruit Stickers parts (see above).
+        self.assertEqual((30, 118), split(base + dlc2))
+        self.assertEqual((50, 183), split(data.LEVELS))
 
     def test_a_part_never_asks_for_more_than_its_level(self):
         """The sanity direction: narrowing must not invent a requirement."""

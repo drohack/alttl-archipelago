@@ -112,7 +112,7 @@
     },
     "Fruit Stickers": {
       "Match Stickers": "Match Stickers",
-      "Remove Stickers": "Remove Stickers"
+      "Remove Stickers": "Match Stickers"
     },
     "MedicineCabinet": {
       "Blue Bottles Draggables": "Blue Bottles",
@@ -121,7 +121,6 @@
       "Creams Draggables Stacked": "Creams Stacked",
       "Cup Draggables": "Cup",
       "Green Bottles Draggables": "Green Bottles",
-      "Jar Lid Draggable": "Jar Lid",
       "Oral Containables": "Oral",
       "Pick Draggables": "Pick",
       "Pump Bottle Draggables": "Pump Bottle",
@@ -150,13 +149,11 @@
       "ChalkRed Jigsaw": "Chalk Red",
       "ChalkYellow Jigsaw": "Chalk Yellow",
       "Containables": "Containables",
-      "Draggables": "Draggables",
-      "Drawer Controller": "Drawer"
+      "Draggables": "Draggables"
     },
     "NeatStreak_Tool Drawer": {
       "Containables": "Containables",
-      "Draggables": "Draggables",
-      "Drawer Controller": "Drawer"
+      "Draggables": "Draggables"
     },
     "PawPrints": {
       "Clearables 01": "Clearables 01",
@@ -226,6 +223,17 @@
   "goal": "beat_levels",
   "levels_to_beat": 40,
   "levels_to_star": 20,
+  "not_locations": {
+    "MedicineCabinet": [
+      "Jar Lid Draggable"
+    ],
+    "NeatStreak_Paper Plane Supplies": [
+      "Drawer Controller"
+    ],
+    "NeatStreak_Tool Drawer": [
+      "Drawer Controller"
+    ]
+  },
   "pack_boundaries": [
     5,
     10,
@@ -713,18 +721,6 @@
       ],
       "packs": 3
     },
-    "Fruit Stickers - Match Stickers": {
-      "abilities": [
-        "Sticking"
-      ],
-      "packs": 3
-    },
-    "Fruit Stickers - Remove Stickers": {
-      "abilities": [
-        "Tidying"
-      ],
-      "packs": 3
-    },
     "Fruit Stickers - Solution 1": {
       "abilities": [
         "Sticking",
@@ -776,10 +772,6 @@
       "abilities": [
         "Ordering"
       ],
-      "packs": 0
-    },
-    "Medicine Cabinet - Jar Lid": {
-      "abilities": [],
       "packs": 0
     },
     "Medicine Cabinet - Oral": {
@@ -866,6 +858,7 @@
     },
     "Paper Plane Supplies (Drawer Chores) - Chalk": {
       "abilities": [
+        "Drawer",
         "Jigsaw",
         "Ordering"
       ],
@@ -873,42 +866,49 @@
     },
     "Paper Plane Supplies (Drawer Chores) - Chalk Blue": {
       "abilities": [
+        "Drawer",
         "Jigsaw"
       ],
       "packs": 4
     },
     "Paper Plane Supplies (Drawer Chores) - Chalk Green": {
       "abilities": [
+        "Drawer",
         "Jigsaw"
       ],
       "packs": 4
     },
     "Paper Plane Supplies (Drawer Chores) - Chalk Mint": {
       "abilities": [
+        "Drawer",
         "Jigsaw"
       ],
       "packs": 4
     },
     "Paper Plane Supplies (Drawer Chores) - Chalk Pink": {
       "abilities": [
+        "Drawer",
         "Jigsaw"
       ],
       "packs": 4
     },
     "Paper Plane Supplies (Drawer Chores) - Chalk Purple": {
       "abilities": [
+        "Drawer",
         "Jigsaw"
       ],
       "packs": 4
     },
     "Paper Plane Supplies (Drawer Chores) - Chalk Red": {
       "abilities": [
+        "Drawer",
         "Jigsaw"
       ],
       "packs": 4
     },
     "Paper Plane Supplies (Drawer Chores) - Chalk Yellow": {
       "abilities": [
+        "Drawer",
         "Jigsaw"
       ],
       "packs": 4
@@ -921,12 +921,6 @@
       "packs": 4
     },
     "Paper Plane Supplies (Drawer Chores) - Draggables": {
-      "abilities": [
-        "Drawer"
-      ],
-      "packs": 4
-    },
-    "Paper Plane Supplies (Drawer Chores) - Drawer": {
       "abilities": [
         "Drawer"
       ],
@@ -1371,12 +1365,6 @@
       ],
       "packs": 1
     },
-    "Tool Drawer (Drawer Chores) - Drawer": {
-      "abilities": [
-        "Drawer"
-      ],
-      "packs": 1
-    },
     "Tool Drawer (Drawer Chores) - Solution 1": {
       "abilities": [
         "Containers",
@@ -1444,7 +1432,9 @@
     },
     "Tupperware Nesting - Lids": {
       "abilities": [
-        "Containers"
+        "Containers",
+        "Grids",
+        "Stacking"
       ],
       "packs": 8
     },

@@ -1,12 +1,15 @@
 """Per-seed decisions: the draw, the item pool, hint text and slot_data.
 
-Everything here runs once per seed. Nothing raises on a hostile yaml - a bad
-combination degrades into something that still generates, and the degradation
-is what the tests pin. An option that refuses to generate is a worse failure
-than one that quietly does its best.
+Everything here runs once per seed. A bad combination degrades into something
+that still generates, and the degradation is what the tests pin - with ONE
+deliberate exception: a run too small to keep progression off its unproven
+checks raises OptionError rather than ship a seed that can softlock. A refusal
+names what to change; a softlock is found hours into a run. See decide().
 """
 
 from typing import Any, Dict, List, Mapping
+
+from Options import OptionError
 
 from . import data, items, locations, rules, slots
 
@@ -22,6 +25,16 @@ CHAPTER_SIZES = (20, 16, 16, 15, 12)
 #: measured configuration.
 OPENING_FLOOR = 6
 
+#: How many times decide() draws the run looking for one that can carry the
+#: whole unproven-location guard. A draw costs milliseconds. Measured
+#: 2026-09-23 over 200 seeds: at 15 puzzles, base game only, about two
+#: draws in three need a give-back, and a cap of 10 still refused 5 seeds in
+#: 200. Every DLC configuration and every run of 20 or more cleared within 8.
+#: Since every multi-part level was proven later that day, no part location
+#: is guarded and the first draw always stands; the loop stays for a guard
+#: that comes back.
+DRAW_ATTEMPTS = 25
+
 
 def _chapter_and_position(slot_index: int) -> str:
     seen = 0
@@ -35,8 +48,38 @@ def _chapter_and_position(slot_index: int) -> str:
 def _free_checks(plan_slice, held) -> int:
     """Addressed checks in these slots that need no further ability.
 
-    Mirrors what rules.requirements will say for pack-free locations: a
-    solution needs the whole level's abilities, a part only its own group's.
+    Same SHAPE as rules.requirements for pack-free locations - a solution
+    needs the whole level's abilities, a part only its own group's - but
+    deliberately the DRAW view, not the enforced one.
+
+    THE DOCSTRING USED TO SAY "mirrors what rules.requirements will say" AND
+    IT DOES NOT. rules.py:49 and :71 read enforced_abilities and
+    enforced_part_abilities, which have bypassedAbilities subtracted; the two
+    lines below read level.abilities and level.part_abilities, which do not.
+    They disagree on the 8 levels carrying a bypass (Books 3, Workbench,
+    TrickOrTidy_ChocolateBars, NeatStreak_Bathroom Drawer, both DLC1 Kitchen
+    Hanging Tools, DLC2 Junk Drawer Transforming, DLC2 Combs) and on the 9
+    controller groups inside them.
+
+    The direction is safe: a bypassed requirement still counted is a check
+    this function does NOT call free, so it under-counts, and the opening the
+    player gets is at least the opening this measured. It is left alone rather
+    than corrected because the correction is not cosmetic - it would grant
+    different starting abilities, so it changes generated seeds, and the
+    golden in test_regression pins the DRAW and not the grant, so nothing in
+    the suite would notice. Changing it is a deliberate seed-affecting call.
+
+    If rules.py's view of a requirement ever changes, change this with it or
+    the two drift further apart.
+
+    GUARDED PARTS DO NOT COUNT, since 2026-09-23. The opening floor exists so
+    the fill has somewhere to put its first progression items, and a guarded
+    part may hold filler only - so counting it measured room that was not
+    there. Medicine Cabinet was the worst case: eight no-ability parts, all
+    guarded, so the grant loop saw an opening that was already full and
+    stopped granting, and the draw then had to be thrown away. Measured over
+    100 seeds a setup, skipping them cut first-draw redraws from 64% to 18%
+    (15 base), 39% to 8% (15 both DLCs) and 23% to 13% (70 base).
     """
     total = 0
     for slot in plan_slice:
@@ -44,7 +87,10 @@ def _free_checks(plan_slice, held) -> int:
         if level.abilities <= held:
             total += level.solution_count
         if level.has_parts:
+            guarded = level.unproven_parts
             for part in level.parts:
+                if part in guarded:
+                    continue
                 if level.part_abilities.get(part, frozenset()) <= held:
                     total += 1
     return total
@@ -108,6 +154,39 @@ def decide(world) -> None:
         # back to them rather than failing.
         source_weights = {"generator": 1}
 
+    # REDRAW RATHER THAN GIVE A GUARD BACK. A guard the pool cannot afford is
+    # a part location that may ask for less than the player needs, handed to
+    # the fill as a home for progression - the shape that ended a run on
+    # 2026-09-21. The logic cannot catch it: it trusts the table, and the guard
+    # exists because the table may be wrong. So a draw that has to give
+    # anything back is thrown away and the run is drawn again from the same
+    # world.random, which keeps the seed reproducible. A clean first draw is
+    # untouched, so most seeds come out exactly as before.
+    world.draw_attempts = 0
+    world.first_plan = []
+    fewest = None
+    for attempt in range(1, DRAW_ATTEMPTS + 1):
+        world.draw_attempts = attempt
+        dropped = _draw_once(world, puzzle_count, pack_size, source_weights)
+        if attempt == 1:
+            world.first_plan = list(world.plan)
+        fewest = dropped if fewest is None else min(fewest, dropped)
+        if not dropped:
+            break
+    else:
+        raise OptionError(
+            f"[A Little to the Left - '{world.player_name}'] {DRAW_ATTEMPTS} "
+            f"draws of {puzzle_count} puzzles all had unproven checks with "
+            f"nowhere safe to put progression (the best still had {fewest}), "
+            f"so any seed would risk a softlock. Raise "
+            f"puzzle_count (20 or more draws cleanly almost every time), or "
+            f"turn off ability_locks.")
+
+
+def _draw_once(world, puzzle_count, pack_size, source_weights) -> int:
+    """One draw of the run. Returns how many guards it had to give back."""
+    o = world.options
+
     world.plan = slots.draw(
         world.random,
         slots=puzzle_count,
@@ -121,8 +200,8 @@ def decide(world) -> None:
     # run; take what there is.
     actual = len(world.plan)
     world.pack_total = items.pack_count(actual, pack_size)
-    world.levels_to_beat = min(world.levels_to_beat, actual)
-    world.levels_to_star = min(world.levels_to_star, actual)
+    world.levels_to_beat = min(o.levels_to_beat.value, puzzle_count, actual)
+    world.levels_to_star = min(o.levels_to_star.value, puzzle_count, actual)
 
     ability_locks = bool(o.ability_locks.value)
 
@@ -234,6 +313,113 @@ def decide(world) -> None:
     world.location_names_in_use.append(data.CREDITS)
 
     world.pack_size = pack_size
+
+    # Which part locations may not hold progression. Decided here rather than
+    # beside the requirements because affording the guard needs the full
+    # location list, which is only built above.
+    world.unproven_locations, dropped = _affordable_guard(
+        world, rules.unproven_locations(world.plan, ability_locks))
+    return dropped
+
+
+def _affordable_guard(world, at_risk: List[str]):
+    """As much of the guard as this seed can carry, and how much it gave back.
+
+    Returns (guarded, dropped). decide() redraws the run while `dropped` is
+    non-zero, so a give-back is never shipped - see DRAW_ATTEMPTS.
+
+    THE GUARD HAS A PRICE AND IT IS NOT ZERO. Keeping progression off a
+    location removes it as a home for an ability, a pack or the Credits. On a
+    70-puzzle run that is invisible - 77 per cent of the table is still open.
+    On an 8-puzzle DLC run it is fatal: the drawn levels are exactly the ones
+    full of guarded groups, and `distribute_items_restrictive` came back with
+    "No more spots to place 8 items" across four configurations.
+
+    So the guard is best-effort and ordered. `at_risk` arrives worst-first, and
+    this keeps as much of the front of it as the seed can pay for, leaving room
+    for every progression item plus the opening the fill needs to get started.
+
+    A SHORTFALL IS NEVER SHIPPED. This used to hand the smallest-gap groups
+    back to the fill and log it, and measured 2026-09-22 that happened on 35 to
+    40 of every 40 eight-puzzle seeds, with progression - once the Credits -
+    landing on a given-back location. Now the count comes back to decide(),
+    which redraws the run until nothing is given back.
+    """
+    if not at_risk:
+        return frozenset(), 0
+
+    reqs = world.requirements
+    held = set(world.starting_abilities)
+
+    def free_now(name: str) -> bool:
+        """Checkable on turn one: no packs, no ability the player lacks."""
+        req = reqs.get(name)
+        return (req is not None and not req["packs"]
+                and set(req["abilities"]) <= held)
+
+    # THE COUNT THAT MATTERS IS THE OPENING, NOT THE TABLE. A first attempt
+    # budgeted against total locations and still failed five configurations,
+    # because the shortage is not of locations but of locations the fill can
+    # use YET. Measured on a 20-puzzle run: 80 locations, 46 guarded, and of
+    # the twelve checks reachable on turn one only TWO were left unguarded,
+    # with twenty progression items waiting for a home.
+    #
+    # That is not bad luck. A group with a small requirement is both the
+    # cheapest check in the run and the most likely to be understating, so the
+    # guard aims squarely at the opening every time.
+    # ONLY THE FREE-NOW GUARDS ARE WORTH GIVING BACK. A guard on something the
+    # player cannot reach yet does not constrain the opening at all, so
+    # surrendering it buys nothing and costs the protection.
+    #
+    # An earlier version popped the whole list indiscriminately and, on a seed
+    # where few of the guarded groups were free on turn one, gave back EVERY
+    # guard to gain nothing - `unproven_locations` came back empty and the
+    # policy silently switched itself off. It was caught by
+    # test_unproven_locations_refuse_progression, which asserts the guard is
+    # doing something at all, and only on some seeds. A safety net that can
+    # evaporate quietly is worse than none, because nothing downstream would
+    # ever say so.
+    at_risk_set = set(at_risk)
+    free_guards = [name for name in at_risk if free_now(name)]
+    held_back = [name for name in at_risk if name not in set(free_guards)]
+
+    free_kept = sum(1 for name in world.location_names_in_use
+                    if free_now(name) and name not in at_risk_set)
+
+    # `at_risk` is worst-first, so give back from the END: the groups whose
+    # claim differs from their level's by the least.
+    dropped = 0
+    while free_guards and free_kept < OPENING_FLOOR:
+        free_guards.pop()
+        dropped += 1
+        free_kept += 1
+
+    guarded = held_back + free_guards
+
+    # AND A SECOND FLOOR, on the pool rather than the opening. Protecting the
+    # opening is necessary and turns out not to be sufficient: widening the
+    # guard from 114 locations to 122 on 2026-09-22 failed four of 2820 stress
+    # runs, all of them 8-puzzle seeds, with "No more spots to place 6 items" -
+    # a shortage that bites well after the cascade has started, so a
+    # first-round measure never sees it.
+    #
+    # Everything the fill must place has to have SOME unguarded home, and on a
+    # tiny run the guarded locations can outnumber the rest. Give back from the
+    # least dangerous end until there is room for every progression item plus
+    # the opening.
+    needed = (world.pack_total
+              + 1                                          # Credits
+              + len(world.live_abilities) - len(world.starting_abilities)
+              + world.options.skip_count.value
+              + OPENING_FLOOR)
+    total = len(world.location_names_in_use)
+    order = {name: i for i, name in enumerate(at_risk)}
+    guarded.sort(key=lambda name: order.get(name, 0))
+    while guarded and total - len(guarded) < needed:
+        guarded.pop()
+        dropped += 1
+
+    return frozenset(guarded), dropped
 
 
 def create_items(world) -> None:
@@ -403,5 +589,12 @@ def slot_data(world) -> Mapping[str, Any]:
         "controller_groups": {
             level_id: dict(sorted(data.BY_ID[level_id].controller_group.items()))
             for level_id in sorted({slot.level.level_id for slot in world.plan})
+        },
+        # Controllers the level registers that are no location on purpose, so
+        # the mod's registration audit does not report them as unknown.
+        "not_locations": {
+            level_id: sorted(data.BY_ID[level_id].not_locations)
+            for level_id in sorted({slot.level.level_id for slot in world.plan})
+            if data.BY_ID[level_id].not_locations
         },
     }

@@ -97,8 +97,26 @@ class TestTheIdTablesNeverMoved(unittest.TestCase):
         return (f"{len(moved)} {kind} id(s) moved, which silently repoints "
                 f"every seed already in flight:\n" + "\n".join(moved)
                 + f"\n\nIds are positional. A new {kind} name must be APPENDED, "
-                "never inserted. Do not regenerate the golden - it is a frozen "
-                "record of 0.3.4.")
+                "never inserted. If the shift is deliberate (a location "
+                "removed on purpose), re-pin the golden and say why in its "
+                "_comment; otherwise it is a bug.")
+
+
+#: Golden configurations that asked for fewer puzzles than the option now
+#: allows: 8, when the floor has been 10 since 2026-09-25 (15 from
+#: 2026-09-23). No yaml can produce these any more, so there is nothing left
+#: to compare.
+RETIRED_BELOW_THE_FLOOR = {"tiny run", "tiny run, pack size 1"}
+
+#: Golden entries whose first draw changed ON PURPOSE, each with why. Checked
+#: the other way round: the plan must still DIFFER from the golden, so an entry
+#: here cannot quietly turn into a skip for something that moved back.
+#:
+#: Empty again since 2026-09-23. `short run` seeds 20260902 and 20260903 moved
+#: when pool._free_checks stopped counting guarded parts, and moved BACK when
+#: Medicine Cabinet was proven by play - this test's own "draws what 0.3.4 drew
+#: again" check is what said so.
+MOVED_BY_DESIGN = {}
 
 
 class TestTheDrawNeverMoved(unittest.TestCase):
@@ -128,13 +146,29 @@ class TestTheDrawNeverMoved(unittest.TestCase):
             name, seed = key.rsplit("|", 1)
             if int(seed) not in seeds:
                 continue
+            if name in RETIRED_BELOW_THE_FLOOR:
+                # Counted, so the total below still proves nothing was
+                # skipped silently - these are skipped out loud, by name.
+                compared += 1
+                continue
             if name not in CONFIGURATIONS:
                 differences.append(f"  {name}: the configuration is gone")
                 continue
             compared += 1
             world = _generate(CONFIGURATIONS[name], int(seed))
             world = world.multiworld.worlds[world.player]
-            got = [[s.level.level_id, s.instance, s.seed] for s in world.plan]
+            # The FIRST draw, not the final plan. pool.decide redraws a run
+            # that cannot carry its unproven guard, and a redraw is a
+            # deliberate new run - but the first draw is still exactly what
+            # 0.3.4 drew, so pinning it keeps every entry here checked.
+            got = [[s.level.level_id, s.instance, s.seed]
+                   for s in world.first_plan]
+            if key in MOVED_BY_DESIGN:
+                if got == want["plan"]:
+                    differences.append(
+                        f"  {key}: listed in MOVED_BY_DESIGN but draws what "
+                        f"0.3.4 drew again - remove the entry")
+                continue
             if got != want["plan"]:
                 differences.append(
                     f"  {key}: drew {len(got)} slot(s), expected "

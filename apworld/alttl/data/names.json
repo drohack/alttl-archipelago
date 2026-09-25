@@ -409,6 +409,15 @@
     "DLC1 Boss": {
       "display": "Boss (Cupboards and Drawers)",
       "parts": {
+        "Dining Room Draggables": {
+          "display": "Dining Room",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Dining Room Draggables"
+          ]
+        },
         "DrawerController": {
           "display": "Drawer",
           "abilities": [
@@ -420,9 +429,29 @@
         },
         "KeysDraggables": {
           "display": "Keys",
-          "abilities": [],
+          "abilities": [
+            "Drawer"
+          ],
           "members": [
             "KeysDraggables"
+          ]
+        },
+        "Landscape Draggables": {
+          "display": "Landscape",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Landscape Draggables"
+          ]
+        },
+        "Parking Lot Draggables": {
+          "display": "Parking Lot",
+          "abilities": [
+            "Drawer"
+          ],
+          "members": [
+            "Parking Lot Draggables"
           ]
         }
       }
@@ -430,18 +459,11 @@
     "DLC1 Clock Cupboard": {
       "display": "Clock Cupboard (Cupboards and Drawers)",
       "parts": {
-        "Cupboard Doors": {
-          "display": "Cupboard Doors",
+        "Items Placements Draggables": {
+          "display": "Items Placements",
           "abilities": [
             "Gadgets"
           ],
-          "members": [
-            "Cupboard Doors"
-          ]
-        },
-        "Items Placements Draggables": {
-          "display": "Items Placements",
-          "abilities": [],
           "members": [
             "Items Placements Draggables"
           ]
@@ -468,24 +490,17 @@
         "Brushes DraggablesOrdered": {
           "display": "Brushes",
           "abilities": [
+            "Drawer",
             "Ordering"
           ],
           "members": [
             "Brushes DraggablesOrdered"
           ]
         },
-        "Drawers": {
-          "display": "Drawers",
-          "abilities": [
-            "Drawer"
-          ],
-          "members": [
-            "Drawers"
-          ]
-        },
         "Highlighters DraggablesOrdered": {
           "display": "Highlighters",
           "abilities": [
+            "Drawer",
             "Ordering"
           ],
           "members": [
@@ -494,7 +509,9 @@
         },
         "Misc Draggables": {
           "display": "Misc",
-          "abilities": [],
+          "abilities": [
+            "Drawer"
+          ],
           "members": [
             "Misc Draggables"
           ]
@@ -502,6 +519,7 @@
         "Paints DraggablesOrdered": {
           "display": "Paints",
           "abilities": [
+            "Drawer",
             "Ordering"
           ],
           "members": [
@@ -520,18 +538,11 @@
             "Draggables"
           ]
         },
-        "Drawers": {
-          "display": "Drawers",
+        "Drawers Draggables": {
+          "display": "Drawers Draggables",
           "abilities": [
             "Drawer"
           ],
-          "members": [
-            "Drawers"
-          ]
-        },
-        "Drawers Draggables": {
-          "display": "Drawers Draggables",
-          "abilities": [],
           "members": [
             "Drawers Draggables"
           ]
@@ -558,6 +569,7 @@
         "Dragonfly Fossil Jigsaw": {
           "display": "Dragonfly Fossil",
           "abilities": [
+            "Drawer",
             "Jigsaw"
           ],
           "members": [
@@ -576,6 +588,7 @@
         "Fern Fossil Jigsaw": {
           "display": "Fern Fossil",
           "abilities": [
+            "Drawer",
             "Jigsaw"
           ],
           "members": [
@@ -585,6 +598,7 @@
         "Fish Fossil Jigsaw": {
           "display": "Fish Fossil",
           "abilities": [
+            "Drawer",
             "Jigsaw"
           ],
           "members": [
@@ -594,6 +608,7 @@
         "Leaf Fossil Jigsaw": {
           "display": "Leaf Fossil",
           "abilities": [
+            "Drawer",
             "Jigsaw"
           ],
           "members": [
@@ -603,6 +618,7 @@
         "Shell Fossil Jigsaw": {
           "display": "Shell Fossil",
           "abilities": [
+            "Drawer",
             "Jigsaw"
           ],
           "members": [
@@ -612,6 +628,7 @@
         "Snake Fossil Jigsaw": {
           "display": "Snake Fossil",
           "abilities": [
+            "Drawer",
             "Jigsaw"
           ],
           "members": [
@@ -648,31 +665,27 @@
       "parts": {
         "Bottom Drawer Draggables": {
           "display": "Bottom Drawer",
-          "abilities": [],
+          "abilities": [
+            "Drawer"
+          ],
           "members": [
             "Bottom Drawer Draggables"
           ]
         },
         "Center Tiles Draggables": {
           "display": "Center Tiles",
-          "abilities": [],
-          "members": [
-            "Center Tiles Draggables"
-          ]
-        },
-        "Drawers": {
-          "display": "Drawers",
           "abilities": [
             "Drawer"
           ],
           "members": [
-            "Drawers"
+            "Center Tiles Draggables"
           ]
         },
         "Heart Containables": {
           "display": "Heart",
           "abilities": [
-            "Containers"
+            "Containers",
+            "Drawer"
           ],
           "members": [
             "Heart Containables"
@@ -680,21 +693,27 @@
         },
         "Left Drawer Draggables": {
           "display": "Left Drawer",
-          "abilities": [],
+          "abilities": [
+            "Drawer"
+          ],
           "members": [
             "Left Drawer Draggables"
           ]
         },
         "Right Drawer Draggables": {
           "display": "Right Drawer",
-          "abilities": [],
+          "abilities": [
+            "Drawer"
+          ],
           "members": [
             "Right Drawer Draggables"
           ]
         },
         "Top Drawer Draggables": {
           "display": "Top Drawer",
-          "abilities": [],
+          "abilities": [
+            "Drawer"
+          ],
           "members": [
             "Top Drawer Draggables"
           ]
@@ -706,30 +725,27 @@
       "parts": {
         "Brooches Draggables": {
           "display": "Brooches",
-          "abilities": [],
+          "abilities": [
+            "Drawer"
+          ],
           "members": [
             "Brooches Draggables"
           ]
         },
         "Cameos Draggables": {
           "display": "Cameos",
-          "abilities": [],
-          "members": [
-            "Cameos Draggables"
-          ]
-        },
-        "Drawers": {
-          "display": "Drawers",
           "abilities": [
             "Drawer"
           ],
           "members": [
-            "Drawers"
+            "Cameos Draggables"
           ]
         },
         "Gold Bars Draggables": {
           "display": "Gold Bars",
-          "abilities": [],
+          "abilities": [
+            "Drawer"
+          ],
           "members": [
             "Gold Bars Draggables"
           ]
@@ -737,7 +753,8 @@
         "Locket Containables": {
           "display": "Locket",
           "abilities": [
-            "Containers"
+            "Containers",
+            "Drawer"
           ],
           "members": [
             "Locket Containables"
@@ -745,7 +762,9 @@
         },
         "Radiolaria Draggables": {
           "display": "Radiolaria",
-          "abilities": [],
+          "abilities": [
+            "Drawer"
+          ],
           "members": [
             "Radiolaria Draggables"
           ]
@@ -761,7 +780,9 @@
         },
         "Watches Draggables": {
           "display": "Watches",
-          "abilities": [],
+          "abilities": [
+            "Drawer"
+          ],
           "members": [
             "Watches Draggables"
           ]
@@ -843,23 +864,18 @@
       "parts": {
         "Bottom Drawer": {
           "display": "Bottom Drawer",
-          "abilities": [],
-          "members": [
-            "Bottom Drawer"
-          ]
-        },
-        "Drawers": {
-          "display": "Drawers",
           "abilities": [
             "Drawer"
           ],
           "members": [
-            "Drawers"
+            "Bottom Drawer"
           ]
         },
         "Top Drawer": {
           "display": "Top Drawer",
-          "abilities": [],
+          "abilities": [
+            "Drawer"
+          ],
           "members": [
             "Top Drawer"
           ]
@@ -871,7 +887,9 @@
       "parts": {
         "BroccoliOrganizer": {
           "display": "Broccoli Organizer",
-          "abilities": [],
+          "abilities": [
+            "Drawer"
+          ],
           "members": [
             "BroccoliOrganizer"
           ]
@@ -969,15 +987,6 @@
           "abilities": [],
           "members": [
             "Draggables"
-          ]
-        },
-        "Drawers": {
-          "display": "Drawers",
-          "abilities": [
-            "Drawer"
-          ],
-          "members": [
-            "Drawers"
           ]
         }
       }
@@ -1085,6 +1094,7 @@
         "Buttons Sortable": {
           "display": "Buttons Sortable",
           "abilities": [
+            "Drawer",
             "Sticking"
           ],
           "members": [
@@ -1100,18 +1110,11 @@
             "Curved Needles Containables"
           ]
         },
-        "Drawers": {
-          "display": "Drawers",
+        "Large Spools Draggables": {
+          "display": "Large Spools",
           "abilities": [
             "Drawer"
           ],
-          "members": [
-            "Drawers"
-          ]
-        },
-        "Large Spools Draggables": {
-          "display": "Large Spools",
-          "abilities": [],
           "members": [
             "Large Spools Draggables"
           ]
@@ -1119,6 +1122,7 @@
         "Safety Pin DraggablesOrdered": {
           "display": "Safety Pin",
           "abilities": [
+            "Drawer",
             "Ordering"
           ],
           "members": [
@@ -1134,14 +1138,18 @@
         },
         "Small Spools Draggables": {
           "display": "Small Spools",
-          "abilities": [],
+          "abilities": [
+            "Drawer"
+          ],
           "members": [
             "Small Spools Draggables"
           ]
         },
         "Supplies Draggables": {
           "display": "Supplies",
-          "abilities": [],
+          "abilities": [
+            "Drawer"
+          ],
           "members": [
             "Supplies Draggables"
           ]
@@ -1156,6 +1164,7 @@
         "Zipper DraggablesOrdered": {
           "display": "Zipper",
           "abilities": [
+            "Drawer",
             "Ordering"
           ],
           "members": [
@@ -1195,19 +1204,11 @@
     "DLC1 Tea Cabinet": {
       "display": "Tea Cabinet (Cupboards and Drawers)",
       "parts": {
-        "Cupboard Doors": {
-          "display": "Cupboard Doors",
-          "abilities": [
-            "Gadgets"
-          ],
-          "members": [
-            "Cupboard Doors"
-          ]
-        },
         "Cupcake Containables": {
           "display": "Cupcake",
           "abilities": [
-            "Containers"
+            "Containers",
+            "Gadgets"
           ],
           "members": [
             "Cupcake Containables"
@@ -1232,7 +1233,8 @@
         "Spoon Containables": {
           "display": "Spoon",
           "abilities": [
-            "Containers"
+            "Containers",
+            "Gadgets"
           ],
           "members": [
             "Spoon Containables"
@@ -1241,6 +1243,7 @@
         "Teacup Stack": {
           "display": "Teacup Stack",
           "abilities": [
+            "Gadgets",
             "Stacking"
           ],
           "members": [
@@ -1272,7 +1275,9 @@
         },
         "Items Placements Draggables": {
           "display": "Items Placements",
-          "abilities": [],
+          "abilities": [
+            "Gadgets"
+          ],
           "members": [
             "Items Placements Draggables"
           ]
@@ -1343,20 +1348,43 @@
     "DLC2 Boss": {
       "display": "Boss (Seeing Stars)",
       "parts": {
-        "Drawer Controller": {
-          "display": "Drawer",
+        "Compass": {
+          "display": "Compass",
           "abilities": [
-            "Drawer"
+            "Ordering",
+            "Swapping"
           ],
           "members": [
-            "Drawer Controller"
+            "Compass"
           ]
         },
         "Hub": {
           "display": "Hub",
-          "abilities": [],
+          "abilities": [
+            "Ordering",
+            "Swapping"
+          ],
           "members": [
             "Hub"
+          ]
+        },
+        "Knives": {
+          "display": "Knives",
+          "abilities": [
+            "Ordering",
+            "Swapping"
+          ],
+          "members": [
+            "Knives"
+          ]
+        },
+        "Locks": {
+          "display": "Locks",
+          "abilities": [
+            "Ordering"
+          ],
+          "members": [
+            "Locks"
           ]
         }
       }
@@ -1438,8 +1466,7 @@
         "CatEyesController": {
           "display": "Cat Eyes",
           "abilities": [
-            "Gadgets",
-            "Ordering"
+            "Gadgets"
           ],
           "members": [
             "CatEyesController"
@@ -1448,6 +1475,7 @@
         "IndexablesController": {
           "display": "Indexables",
           "abilities": [
+            "Gadgets",
             "Ordering"
           ],
           "members": [
@@ -1462,20 +1490,12 @@
         "Draggables": {
           "display": "Draggables",
           "abilities": [
+            "Drawer",
             "Ordering"
           ],
           "members": [
             "Draggables",
             "Indexables"
-          ]
-        },
-        "Drawer": {
-          "display": "Drawer",
-          "abilities": [
-            "Drawer"
-          ],
-          "members": [
-            "Drawer"
           ]
         }
       }
@@ -1621,25 +1641,20 @@
       "parts": {
         "Draggables - Drips": {
           "display": "Drips",
-          "abilities": [],
+          "abilities": [
+            "Grids"
+          ],
           "members": [
             "Draggables - Drips"
           ]
         },
         "Draggables - Label": {
           "display": "Label",
-          "abilities": [],
-          "members": [
-            "Draggables - Label"
-          ]
-        },
-        "GridPuzzleBase": {
-          "display": "Grid Puzzle Base",
           "abilities": [
             "Grids"
           ],
           "members": [
-            "GridPuzzleBase"
+            "Draggables - Label"
           ]
         }
       }
@@ -1647,18 +1662,10 @@
     "DLC2 Junk Drawer Transforming": {
       "display": "Junk Drawer Transforming (Seeing Stars)",
       "parts": {
-        "Drawer Controller": {
-          "display": "Drawer",
-          "abilities": [
-            "Drawer"
-          ],
-          "members": [
-            "Drawer Controller"
-          ]
-        },
         "Indexables": {
           "display": "Indexables",
           "abilities": [
+            "Drawer",
             "Ordering"
           ],
           "members": [
@@ -1710,15 +1717,6 @@
           ],
           "members": [
             "Containable Controller"
-          ]
-        },
-        "Drawer Controller": {
-          "display": "Drawer Controller",
-          "abilities": [
-            "Drawer"
-          ],
-          "members": [
-            "Drawer Controller"
           ]
         },
         "Drawer Draggables": {
@@ -1785,7 +1783,9 @@
       "parts": {
         "Organizer": {
           "display": "Organizer",
-          "abilities": [],
+          "abilities": [
+            "Ordering"
+          ],
           "members": [
             "Organizer"
           ]
@@ -1931,22 +1931,6 @@
             "Indexables",
             "IndexedDraggables"
           ]
-        },
-        "Spring Containable": {
-          "display": "Spring Containable",
-          "abilities": [
-            "Containers"
-          ],
-          "members": [
-            "Spring Containable"
-          ]
-        },
-        "Spring Draggable": {
-          "display": "Spring",
-          "abilities": [],
-          "members": [
-            "Spring Draggable"
-          ]
         }
       }
     },
@@ -1955,23 +1939,17 @@
       "parts": {
         "Draggables": {
           "display": "Draggables",
-          "abilities": [],
-          "members": [
-            "Draggables"
-          ]
-        },
-        "DrawerController": {
-          "display": "Drawer",
           "abilities": [
             "Drawer"
           ],
           "members": [
-            "DrawerController"
+            "Draggables"
           ]
         },
         "Stickables": {
           "display": "Stickables",
           "abilities": [
+            "Drawer",
             "Sticking"
           ],
           "members": [
@@ -1985,7 +1963,9 @@
       "parts": {
         "Jigsaw": {
           "display": "Jigsaw",
-          "abilities": [],
+          "abilities": [
+            "Sticking"
+          ],
           "members": [
             "Jigsaw"
           ]
@@ -2189,18 +2169,11 @@
         "Match Stickers": {
           "display": "Match Stickers",
           "abilities": [
-            "Sticking"
-          ],
-          "members": [
-            "Match Stickers"
-          ]
-        },
-        "Remove Stickers": {
-          "display": "Remove Stickers",
-          "abilities": [
+            "Sticking",
             "Tidying"
           ],
           "members": [
+            "Match Stickers",
             "Remove Stickers"
           ]
         }
@@ -2522,13 +2495,6 @@
             "Green Bottles Draggables"
           ]
         },
-        "Jar Lid Draggable": {
-          "display": "Jar Lid",
-          "abilities": [],
-          "members": [
-            "Jar Lid Draggable"
-          ]
-        },
         "Oral Containables": {
           "display": "Oral",
           "abilities": [
@@ -2742,7 +2708,8 @@
         "ContainablesController": {
           "display": "Containables",
           "abilities": [
-            "Containers"
+            "Containers",
+            "Stacking"
           ],
           "members": [
             "ContainablesController"
@@ -2821,15 +2788,6 @@
             "Draggables"
           ]
         },
-        "Drawer Controller": {
-          "display": "Drawer",
-          "abilities": [
-            "Drawer"
-          ],
-          "members": [
-            "Drawer Controller"
-          ]
-        },
         "Indexable": {
           "display": "Indexable",
           "abilities": [
@@ -2848,6 +2806,7 @@
         "Chalk DraggablesOrdered": {
           "display": "Chalk",
           "abilities": [
+            "Drawer",
             "Jigsaw",
             "Ordering"
           ],
@@ -2858,6 +2817,7 @@
         "ChalkBlue Jigsaw": {
           "display": "Chalk Blue",
           "abilities": [
+            "Drawer",
             "Jigsaw"
           ],
           "members": [
@@ -2867,6 +2827,7 @@
         "ChalkGreen Jigsaw": {
           "display": "Chalk Green",
           "abilities": [
+            "Drawer",
             "Jigsaw"
           ],
           "members": [
@@ -2876,6 +2837,7 @@
         "ChalkMint Jigsaw": {
           "display": "Chalk Mint",
           "abilities": [
+            "Drawer",
             "Jigsaw"
           ],
           "members": [
@@ -2885,6 +2847,7 @@
         "ChalkPink Jigsaw": {
           "display": "Chalk Pink",
           "abilities": [
+            "Drawer",
             "Jigsaw"
           ],
           "members": [
@@ -2894,6 +2857,7 @@
         "ChalkPurple Jigsaw": {
           "display": "Chalk Purple",
           "abilities": [
+            "Drawer",
             "Jigsaw"
           ],
           "members": [
@@ -2903,6 +2867,7 @@
         "ChalkRed Jigsaw": {
           "display": "Chalk Red",
           "abilities": [
+            "Drawer",
             "Jigsaw"
           ],
           "members": [
@@ -2912,6 +2877,7 @@
         "ChalkYellow Jigsaw": {
           "display": "Chalk Yellow",
           "abilities": [
+            "Drawer",
             "Jigsaw"
           ],
           "members": [
@@ -2936,15 +2902,6 @@
           "members": [
             "Draggables"
           ]
-        },
-        "Drawer Controller": {
-          "display": "Drawer",
-          "abilities": [
-            "Drawer"
-          ],
-          "members": [
-            "Drawer Controller"
-          ]
         }
       }
     },
@@ -2968,15 +2925,6 @@
           ],
           "members": [
             "Draggables"
-          ]
-        },
-        "Drawer Controller": {
-          "display": "Drawer",
-          "abilities": [
-            "Drawer"
-          ],
-          "members": [
-            "Drawer Controller"
           ]
         }
       }
@@ -3769,7 +3717,9 @@
         "Lids": {
           "display": "Lids",
           "abilities": [
-            "Containers"
+            "Containers",
+            "Grids",
+            "Stacking"
           ],
           "members": [
             "Lids"
@@ -3845,6 +3795,7 @@
         "Cleanable": {
           "display": "Cleanable",
           "abilities": [
+            "Gadgets",
             "Tidying"
           ],
           "members": [
@@ -3865,15 +3816,6 @@
     "Workbench": {
       "display": "Workbench",
       "parts": {
-        "DraggablesForTargets": {
-          "display": "Draggables For Targets",
-          "abilities": [
-            "Drawer"
-          ],
-          "members": [
-            "DraggablesForTargets"
-          ]
-        },
         "ToolsController": {
           "display": "Tools",
           "abilities": [

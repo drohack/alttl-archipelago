@@ -81,6 +81,54 @@ def requirements(plan: List[slots.Slot], pack_size: int,
     return out
 
 
+def unproven_locations(plan: List[slots.Slot], ability_locks: bool) -> List[str]:
+    """Part locations whose requirement nobody has established.
+
+    These should not hold progression. Not because they are known wrong - most
+    of them are fine - but because a wrong one is silent, and the failure it
+    causes is a dead run rather than an error. See Level.unproven_parts.
+
+    ORDERED MOST AT RISK FIRST, because the caller cannot always afford to
+    guard all of them. On a short run the guarded groups can outnumber the
+    places progression could otherwise go, and the fill fails outright -
+    measured, not feared: an 8-puzzle DLC run has Medicine Cabinet's eleven
+    groups, Desktop Computer's six and Paper Plane Supplies' ten all guarded at
+    once, leaving nowhere for the abilities. pool.decide trims the tail.
+
+    Risk is the size of the gap: how many abilities the level needs that the
+    group does not name. A group missing one is a group where the player is
+    probably holding almost everything anyway; a group naming NOTHING inside a
+    level that needs four is the shape that killed a run, so it is guarded
+    first and dropped last. Ties break on the name, so the order is stable
+    across runs and a seed is reproducible.
+
+    Solution and Beaten locations are never in here. They already require the
+    level's whole enforced set, so they cannot ask for less than the level
+    does, which is the only understatement this guards against.
+
+    With ability_locks off there is nothing to understate: every requirement is
+    empty, so no group can need strictly less than its level, and this is empty
+    too. That falls out of Level.unproven_parts rather than being special-cased
+    here, but it is worth saying out loud because "the safety net is off" would
+    be an alarming thing to discover by reading a diff.
+    """
+    if not ability_locks:
+        return []
+
+    scored = []
+    for slot in plan:
+        level = slot.level
+        if not level.has_parts:
+            continue
+        whole = level.enforced_abilities
+        for part in level.unproven_parts:
+            gap = len(whole - level.enforced_part_abilities[part])
+            scored.append((gap, locations.part_name(level, slot.instance, part)))
+
+    scored.sort(key=lambda row: (-row[0], row[1]))
+    return [name for _gap, name in scored]
+
+
 def set_all_rules(world) -> None:
     player = world.player
     reqs = world.requirements

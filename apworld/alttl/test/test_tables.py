@@ -221,6 +221,63 @@ class TestTables(unittest.TestCase):
             if not level.has_parts:
                 self.assertEqual(level.solution_count, len(names), level.level_id)
 
+    def test_every_dependson_target_names_a_controller_on_its_own_level(self):
+        """A dependency that resolves to nothing drops silently, and it drops
+        in the UNDERSTATING direction.
+
+        ControllerGroups.WithDependencies walks the edge list with an exact
+        ordinal lookup. A target that matches no controller name is not an
+        error there - it contributes nothing, so the closure stops early and
+        the group's requirement comes out SMALLER than the level demands. That
+        is the shape that put a Progressive Puzzle Pack on a location the
+        player could not reach.
+
+        Zero dangling targets today. This exists so the first one fails here,
+        offline and in milliseconds, instead of in a seed.
+        """
+        for raw in data._LEVELS_RAW["levels"]:
+            names = {c["name"] for c in raw["controllers"]}
+            for c in raw["controllers"]:
+                for target in c.get("dependsOn") or []:
+                    self.assertIn(
+                        target, names,
+                        f"{raw['levelId']}: {c['name']} dependsOn "
+                        f"{target!r}, which is not a controller on this level")
+
+    def test_controller_names_with_surrounding_whitespace_are_these_exact_two(self):
+        """A TRAP, PINNED. Do not "tidy" these names.
+
+        Two controller names in levels.json carry a trailing space, harvested
+        that way from the game's own GameObject names:
+
+            Fridge Inside   "Stackables Tupperware Controller "
+            Mirror          "Books + Box StackablesY "
+
+        The first is also a dependsOn target, and it resolves only because the
+        space is present identically on both sides of the comparison. The mod
+        matches a solved controller by the same exact string against the live
+        GameObject name, so trimming the table without trimming the game would
+        break the match - and both failures are silent.
+
+        So the rule is: this set may SHRINK only alongside a re-sweep that
+        shows the game's own name changed. It must never grow by accident,
+        which is what a whitespace-insensitive editor pass produces.
+        """
+        dirty = {
+            (raw["levelId"], c["name"])
+            for raw in data._LEVELS_RAW["levels"]
+            for c in raw["controllers"]
+            if c["name"] != c["name"].strip()
+        }
+        self.assertEqual(
+            {
+                ("Fridge Inside", "Stackables Tupperware Controller "),
+                ("Mirror", "Books + Box StackablesY "),
+            },
+            dirty,
+            "the set of controller names carrying surrounding whitespace "
+            "moved; see the docstring before changing the expectation")
+
 class TestItemNamesAgreeAcrossLanguages(unittest.TestCase):
     """The mod matches item names as literal strings.
 

@@ -161,12 +161,32 @@ class TestDefaults(bases.ALTTLTestBase):
         part locations. If this fails with the JSON already fixed, names.json
         needs regenerating: ALTTL_WRITE_GOLDEN=1 dotnet test.
         """
-        # The groups whose objects live IN the drawer. Deliberately not every
-        # group in these levels: the chalk jigsaws in Paper Plane Supplies are
-        # assembled on the desk, so requiring Drawer for them would mark a
-        # card blocked when it is playable. A missing edge makes a seed
-        # unwinnable and a spurious one only makes a card look busier, so the
-        # ambiguous cases are listed rather than swept in.
+        # The groups whose objects live IN the drawer.
+        #
+        # THE CHALK JIGSAWS USED TO BE EXCLUDED HERE and the exclusion was
+        # wrong. The comment said they "are assembled on the desk, so
+        # requiring Drawer for them would mark a card blocked when it is
+        # playable" - and nothing was ever observed to support it.
+        # docs/verification-log.md records the opposite: "the drawer test
+        # written alongside the fix was wrong... The test was corrected to
+        # match the implementation, not the other way round."
+        #
+        # Settled by play on 2026-09-22, holding Jigsaw with Drawer withheld:
+        #
+        #   "the rest of the chalk pieces are behind the drawer, so i need to
+        #    be able to close it to get to them... the ones i was able to get
+        #    to just happened to be besides or inside the drawer"
+        #
+        # So all seven need Drawer. WHICH ones a player can touch is an
+        # accident of where they sit relative to a drawer frozen open, and the
+        # group cannot be finished either way. The mod reported every chalk
+        # group blocked=0 dimmed=0 while this was true - the gate is
+        # OCCLUSION, which no interactability census can see.
+        #
+        # The principle the old comment got backwards, kept because it is
+        # right: a missing edge makes a seed unwinnable and a spurious one
+        # only makes a card look busier. That argues for sweeping ambiguous
+        # cases IN, not leaving them out.
         contents = {
             ("NeatStreak_Tool Drawer", "Draggables"),
             ("NeatStreak_Tool Drawer", "Containables"),
@@ -175,7 +195,17 @@ class TestDefaults(bases.ALTTLTestBase):
             ("NeatStreak_Bathroom Drawer", "Indexable"),
             ("NeatStreak_Paper Plane Supplies", "Draggables"),
             ("NeatStreak_Paper Plane Supplies", "Containables"),
-            ("Workbench", "Draggables For Targets"),
+            ("NeatStreak_Paper Plane Supplies", "Chalk"),
+            ("NeatStreak_Paper Plane Supplies", "Chalk Blue"),
+            ("NeatStreak_Paper Plane Supplies", "Chalk Green"),
+            ("NeatStreak_Paper Plane Supplies", "Chalk Mint"),
+            ("NeatStreak_Paper Plane Supplies", "Chalk Pink"),
+            ("NeatStreak_Paper Plane Supplies", "Chalk Purple"),
+            ("NeatStreak_Paper Plane Supplies", "Chalk Red"),
+            ("NeatStreak_Paper Plane Supplies", "Chalk Yellow"),
+            # ("Workbench", "Draggables For Targets") left on 2026-09-24:
+            # droha played Workbench and that check never fired, so it is
+            # notALocation and has no part requirement left to check.
         }
 
         seen = set()
@@ -284,13 +314,20 @@ class TestBothSourceWeightsZero(bases.ALTTLTestBase):
 
 
 class TestTinyRun(bases.ALTTLTestBase):
-    options = {"puzzle_count": 8, "pack_size": 4, "levels_to_beat": 40,
+    """The smallest legal run: 10 puzzles since 2026-09-25 (15 from
+    2026-09-23, 8 before that)."""
+
+    options = {"puzzle_count": 10, "pack_size": 4, "levels_to_beat": 40,
                "levels_to_star": 40}
+
+    def test_the_floor_is_ten(self):
+        from .. import options as apoptions
+        self.assertEqual(10, apoptions.PuzzleCount.range_start)
 
     def test_goal_is_clamped_to_what_exists(self):
         world = self.multiworld.worlds[self.player]
-        self.assertEqual(8, len(world.plan))
-        self.assertLessEqual(world.levels_to_beat, 8)
+        self.assertEqual(10, len(world.plan))
+        self.assertLessEqual(world.levels_to_beat, 10)
 
     def test_the_star_goal_is_clamped_too(self):
         """Both counts are clamped, not just the one in use.
@@ -301,7 +338,22 @@ class TestTinyRun(bases.ALTTLTestBase):
         the kind of wrong number nobody looks at.
         """
         world = self.multiworld.worlds[self.player]
-        self.assertLessEqual(world.levels_to_star, 8)
+        self.assertLessEqual(world.levels_to_star, 10)
+
+    def test_pool_is_zero_sum(self):
+        self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
+
+
+class TestTheFloorIsTwoFullPacks(bases.ALTTLTestBase):
+    """droha, 2026-09-25: the minimum is 10, two full packs at pack size 5."""
+
+    options = {"puzzle_count": 10, "pack_size": 5}
+
+    def test_the_run_opens_five_then_one_pack_of_five(self):
+        from .. import pool
+        world = self.multiworld.worlds[self.player]
+        self.assertEqual(10, len(world.plan))
+        self.assertEqual([5, 10], pool.slot_data(world)["pack_boundaries"])
 
     def test_pool_is_zero_sum(self):
         self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
@@ -390,7 +442,9 @@ class TestTheReserveLeavesRoomOnAShortRun(bases.ALTTLTestBase):
     single-mechanic levels come from.
     """
 
-    options = {"puzzle_count": 8, "levels_to_beat": 8}
+    # The smallest legal run, which is 10 since 2026-09-25. The regression
+    # below was found at the old floor of 8.
+    options = {"puzzle_count": 10, "levels_to_beat": 10}
 
     def test_the_run_is_not_all_reserve_levels(self):
         levels = [s.level for s in self.multiworld.worlds[self.player].plan]

@@ -792,13 +792,17 @@
           "name": "Remove Stickers",
           "type": "Pluckables",
           "objects": 12,
-          "dependsOn": []
+          "dependsOn": [
+            "Match Stickers"
+          ]
         },
         {
           "name": "Match Stickers",
           "type": "Stickables",
           "objects": 12,
-          "dependsOn": []
+          "dependsOn": [
+            "Remove Stickers"
+          ]
         }
       ],
       "hintAvailable": true,
@@ -1095,7 +1099,8 @@
           "name": "Jar Lid Draggable",
           "type": "Draggables",
           "objects": 1,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "Swabs Containables",
@@ -1227,7 +1232,9 @@
           "name": "ContainablesController",
           "type": "Containables",
           "objects": 4,
-          "dependsOn": []
+          "dependsOn": [
+            "Books + Box StackablesY "
+          ]
         },
         {
           "name": "JugPositionController",
@@ -2595,7 +2602,10 @@
           "name": "Lids",
           "type": "TupperwareLids",
           "objects": 4,
-          "dependsOn": []
+          "dependsOn": [
+            "Food",
+            "Stack 1"
+          ]
         },
         {
           "name": "Stack 1",
@@ -2745,7 +2755,9 @@
           "name": "Cleanable",
           "type": "CleanablesController",
           "objects": 2,
-          "dependsOn": []
+          "dependsOn": [
+            "Upright"
+          ]
         }
       ],
       "hintAvailable": true,
@@ -2777,7 +2789,8 @@
           "objects": 21,
           "dependsOn": [
             "ToolsController"
-          ]
+          ],
+          "notALocation": true
         }
       ],
       "hintAvailable": true,
@@ -3620,49 +3633,64 @@
           "name": "Drawer Controller",
           "type": "DrawerController",
           "objects": 1,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "ChalkPurple Jigsaw",
           "type": "DraggablesJigsaw",
           "objects": 2,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawer Controller"
+          ]
         },
         {
           "name": "ChalkBlue Jigsaw",
           "type": "DraggablesJigsaw",
           "objects": 2,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawer Controller"
+          ]
         },
         {
           "name": "ChalkGreen Jigsaw",
           "type": "DraggablesJigsaw",
           "objects": 2,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawer Controller"
+          ]
         },
         {
           "name": "ChalkMint Jigsaw",
           "type": "DraggablesJigsaw",
           "objects": 2,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawer Controller"
+          ]
         },
         {
           "name": "ChalkYellow Jigsaw",
           "type": "DraggablesJigsaw",
           "objects": 2,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawer Controller"
+          ]
         },
         {
           "name": "ChalkPink Jigsaw",
           "type": "DraggablesJigsaw",
           "objects": 2,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawer Controller"
+          ]
         },
         {
           "name": "ChalkRed Jigsaw",
           "type": "DraggablesJigsaw",
           "objects": 2,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawer Controller"
+          ]
         },
         {
           "name": "Chalk DraggablesOrdered",
@@ -3685,7 +3713,25 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "drawers": [
+        {
+          "name": "Drawer",
+          "contains": 16,
+          "containsControllers": [
+            "Draggables",
+            "Containables",
+            "ChalkBlue Jigsaw",
+            "ChalkGreen Jigsaw",
+            "ChalkMint Jigsaw",
+            "ChalkYellow Jigsaw",
+            "ChalkPink Jigsaw"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        }
+      ]
     },
     {
       "levelIndex": 1021,
@@ -3716,7 +3762,8 @@
           "name": "Drawer Controller",
           "type": "DrawerController",
           "objects": 1,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         }
       ],
       "hintAvailable": true,
@@ -3725,7 +3772,20 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "drawers": [
+        {
+          "name": "Drawer",
+          "contains": 20,
+          "containsControllers": [
+            "Draggables",
+            "Containables"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        }
+      ]
     },
     {
       "levelIndex": 1022,
@@ -3756,7 +3816,8 @@
           "name": "Drawer Controller",
           "type": "DrawerController",
           "objects": 1,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "Indexable",
@@ -3776,6 +3837,18 @@
       "levelClass": "Level",
       "bypassedAbilities": [
         "Ordering"
+      ],
+      "drawers": [
+        {
+          "name": "Drawer",
+          "contains": 16,
+          "containsControllers": [
+            "Draggables"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        }
       ]
     },
     {
@@ -3864,13 +3937,16 @@
           "name": "Items Placements Draggables",
           "type": "Draggables",
           "objects": 9,
-          "dependsOn": []
+          "dependsOn": [
+            "Cupboard Doors"
+          ]
         },
         {
           "name": "Cupboard Doors",
           "type": "AnimScrubbables",
           "objects": 4,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         }
       ],
       "hintAvailable": true,
@@ -3898,31 +3974,40 @@
           "name": "Drawers",
           "type": "DrawerController",
           "objects": 3,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "Misc Draggables",
           "type": "Draggables",
           "objects": 22,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Paints DraggablesOrdered",
           "type": "DraggablesOrdered",
           "objects": 6,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Brushes DraggablesOrdered",
           "type": "DraggablesOrdered",
           "objects": 4,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Highlighters DraggablesOrdered",
           "type": "DraggablesOrdered",
           "objects": 2,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         }
       ],
       "hintAvailable": true,
@@ -3931,7 +4016,44 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "drawers": [
+        {
+          "name": "Box",
+          "contains": 9,
+          "containsControllers": [
+            "Misc Draggables",
+            "Paints DraggablesOrdered",
+            "Brushes DraggablesOrdered"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 2
+        },
+        {
+          "name": "Left Drawer",
+          "contains": 3,
+          "containsControllers": [
+            "Misc Draggables",
+            "Paints DraggablesOrdered",
+            "Brushes DraggablesOrdered"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Right Drawer",
+          "contains": 5,
+          "containsControllers": [
+            "Misc Draggables",
+            "Highlighters DraggablesOrdered"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        }
+      ]
     },
     {
       "levelIndex": 1102,
@@ -4052,7 +4174,9 @@
           "name": "BroccoliOrganizer",
           "type": "Draggables",
           "objects": 4,
-          "dependsOn": []
+          "dependsOn": [
+            "Trays"
+          ]
         },
         {
           "name": "CeleryController",
@@ -4085,7 +4209,61 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "drawers": [
+        {
+          "name": "Main Tray",
+          "contains": 4,
+          "containsControllers": [
+            "CeleryController",
+            "CrackerController",
+            "Sandwich Controller"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Tray Vert Rect",
+          "contains": 1,
+          "containsControllers": [
+            "PeasController"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Tray Hor Rect Scoop",
+          "contains": 1,
+          "containsControllers": [
+            "CrackerController"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Tray Square Scoop",
+          "contains": 1,
+          "containsControllers": [
+            "BroccoliOrganizer"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Tray Square",
+          "contains": 1,
+          "containsControllers": [
+            "TrayOrganizer"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        }
+      ]
     },
     {
       "levelIndex": 1107,
@@ -4141,19 +4319,24 @@
           "name": "Drawers",
           "type": "DrawerController",
           "objects": 2,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "Top Drawer",
           "type": "Draggables",
           "objects": 22,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Bottom Drawer",
           "type": "Draggables",
           "objects": 22,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         }
       ],
       "hintAvailable": true,
@@ -4162,7 +4345,31 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "drawers": [
+        {
+          "name": "Top Drawer (Pink)",
+          "contains": 23,
+          "containsControllers": [
+            "Top Drawer",
+            "Bottom Drawer"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Bottom Drawer (Green)",
+          "contains": 21,
+          "containsControllers": [
+            "Top Drawer",
+            "Bottom Drawer"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        }
+      ]
     },
     {
       "levelIndex": 1109,
@@ -4190,7 +4397,9 @@
           "name": "Teacup Stack",
           "type": "DraggablesStacked",
           "objects": 3,
-          "dependsOn": []
+          "dependsOn": [
+            "Cupboard Doors"
+          ]
         },
         {
           "name": "Jam Jars Stack",
@@ -4202,19 +4411,24 @@
           "name": "Cupcake Containables",
           "type": "Containables",
           "objects": 6,
-          "dependsOn": []
+          "dependsOn": [
+            "Cupboard Doors"
+          ]
         },
         {
           "name": "Spoon Containables",
           "type": "Containables",
           "objects": 2,
-          "dependsOn": []
+          "dependsOn": [
+            "Cupboard Doors"
+          ]
         },
         {
           "name": "Cupboard Doors",
           "type": "AnimScrubbables",
           "objects": 3,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         }
       ],
       "hintAvailable": true,
@@ -4396,37 +4610,49 @@
           "name": "Fern Fossil Jigsaw",
           "type": "DraggablesJigsaw",
           "objects": 11,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Snake Fossil Jigsaw",
           "type": "DraggablesJigsaw",
           "objects": 10,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Dragonfly Fossil Jigsaw",
           "type": "DraggablesJigsaw",
           "objects": 6,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Fish Fossil Jigsaw",
           "type": "DraggablesJigsaw",
           "objects": 6,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Leaf Fossil Jigsaw",
           "type": "DraggablesJigsaw",
           "objects": 6,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Shell Fossil Jigsaw",
           "type": "DraggablesJigsaw",
           "objects": 6,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         }
       ],
       "hintAvailable": true,
@@ -4435,7 +4661,35 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "drawers": [
+        {
+          "name": "Top Drawer (Pink)",
+          "contains": 9,
+          "containsControllers": [
+            "Fern Fossil Jigsaw",
+            "Snake Fossil Jigsaw",
+            "Fish Fossil Jigsaw",
+            "Shell Fossil Jigsaw"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Bottom Drawer (Blue)",
+          "contains": 10,
+          "containsControllers": [
+            "Dragonfly Fossil Jigsaw",
+            "Fish Fossil Jigsaw",
+            "Leaf Fossil Jigsaw",
+            "Shell Fossil Jigsaw"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        }
+      ]
     },
     {
       "levelIndex": 1116,
@@ -4497,43 +4751,56 @@
           "name": "Drawers",
           "type": "DrawerController",
           "objects": 5,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "Center Tiles Draggables",
           "type": "Draggables",
           "objects": 16,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Top Drawer Draggables",
           "type": "Draggables",
           "objects": 6,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Bottom Drawer Draggables",
           "type": "Draggables",
           "objects": 4,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Left Drawer Draggables",
           "type": "Draggables",
           "objects": 10,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Right Drawer Draggables",
           "type": "Draggables",
           "objects": 14,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Heart Containables",
           "type": "Containables",
           "objects": 1,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         }
       ],
       "hintAvailable": true,
@@ -4542,7 +4809,67 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "drawers": [
+        {
+          "name": "Box",
+          "contains": 9,
+          "containsControllers": [
+            "Center Tiles Draggables",
+            "Bottom Drawer Draggables",
+            "Left Drawer Draggables",
+            "Right Drawer Draggables",
+            "Heart Containables"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Top Drawer",
+          "contains": 2,
+          "containsControllers": [
+            "Right Drawer Draggables"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Bottom Drawer",
+          "contains": 2,
+          "containsControllers": [
+            "Left Drawer Draggables",
+            "Right Drawer Draggables"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Left Drawer",
+          "contains": 3,
+          "containsControllers": [
+            "Top Drawer Draggables",
+            "Bottom Drawer Draggables",
+            "Right Drawer Draggables"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Right Drawer",
+          "contains": 3,
+          "containsControllers": [
+            "Top Drawer Draggables",
+            "Left Drawer Draggables"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        }
+      ]
     },
     {
       "levelIndex": 1118,
@@ -4620,7 +4947,8 @@
           "name": "Drawers",
           "type": "DrawerController",
           "objects": 3,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "Scissors Draggables",
@@ -4632,19 +4960,25 @@
           "name": "Large Spools Draggables",
           "type": "Draggables",
           "objects": 3,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Small Spools Draggables",
           "type": "Draggables",
           "objects": 9,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Supplies Draggables",
           "type": "Draggables",
           "objects": 9,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Top Drawer Draggables",
@@ -4656,13 +4990,17 @@
           "name": "Zipper DraggablesOrdered",
           "type": "DraggablesOrdered",
           "objects": 3,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Safety Pin DraggablesOrdered",
           "type": "DraggablesOrdered",
           "objects": 7,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Curved Needles Containables",
@@ -4674,7 +5012,9 @@
           "name": "Buttons Sortable",
           "type": "SortingItems_Draggables",
           "objects": 20,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         }
       ],
       "hintAvailable": true,
@@ -4683,7 +5023,50 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "drawers": [
+        {
+          "name": "Box",
+          "contains": 30,
+          "containsControllers": [
+            "Scissors Draggables",
+            "Small Spools Draggables",
+            "Supplies Draggables",
+            "Safety Pin DraggablesOrdered",
+            "Curved Needles Containables",
+            "Buttons Sortable"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Top Drawer",
+          "contains": 4,
+          "containsControllers": [
+            "Small Spools Draggables",
+            "Zipper DraggablesOrdered",
+            "Safety Pin DraggablesOrdered",
+            "Buttons Sortable"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Bottom Drawer",
+          "contains": 5,
+          "containsControllers": [
+            "Small Spools Draggables",
+            "Supplies Draggables",
+            "Safety Pin DraggablesOrdered",
+            "Buttons Sortable"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        }
+      ]
     },
     {
       "levelIndex": 1122,
@@ -4699,13 +5082,16 @@
           "name": "Drawers",
           "type": "DrawerController",
           "objects": 5,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "Watches Draggables",
           "type": "Draggables",
           "objects": 6,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Rings Draggables",
@@ -4717,31 +5103,41 @@
           "name": "Radiolaria Draggables",
           "type": "Draggables",
           "objects": 5,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Brooches Draggables",
           "type": "Draggables",
           "objects": 5,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Gold Bars Draggables",
           "type": "Draggables",
           "objects": 8,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Cameos Draggables",
           "type": "Draggables",
           "objects": 4,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         },
         {
           "name": "Locket Containables",
           "type": "Containables",
           "objects": 1,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         }
       ],
       "hintAvailable": true,
@@ -4750,7 +5146,75 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "drawers": [
+        {
+          "name": "Main Box",
+          "contains": 6,
+          "containsControllers": [
+            "Watches Draggables",
+            "Rings Draggables",
+            "Radiolaria Draggables",
+            "Brooches Draggables",
+            "Gold Bars Draggables",
+            "Cameos Draggables"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 2
+        },
+        {
+          "name": "Brooches Drawer",
+          "contains": 3,
+          "containsControllers": [
+            "Watches Draggables",
+            "Radiolaria Draggables",
+            "Gold Bars Draggables"
+          ],
+          "unlockOn": [
+            "Rings Draggables"
+          ],
+          "openOn": [],
+          "subDrawers": 1
+        },
+        {
+          "name": "Locket Drawer",
+          "contains": 2,
+          "containsControllers": [],
+          "unlockOn": [
+            "Brooches Draggables"
+          ],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Goldbars Drawer",
+          "contains": 2,
+          "containsControllers": [
+            "Brooches Draggables",
+            "Gold Bars Draggables"
+          ],
+          "unlockOn": [
+            "Watches Draggables"
+          ],
+          "openOn": [],
+          "subDrawers": 1
+        },
+        {
+          "name": "Cameos Drawer",
+          "contains": 3,
+          "containsControllers": [
+            "Radiolaria Draggables",
+            "Cameos Draggables",
+            "Locket Containables"
+          ],
+          "unlockOn": [
+            "Gold Bars Draggables"
+          ],
+          "openOn": [],
+          "subDrawers": 0
+        }
+      ]
     },
     {
       "levelIndex": 1124,
@@ -4766,7 +5230,8 @@
           "name": "Drawers",
           "type": "DrawerExpandableController",
           "objects": 5,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "Draggables",
@@ -4778,7 +5243,9 @@
           "name": "Drawers Draggables",
           "type": "Draggables",
           "objects": 4,
-          "dependsOn": []
+          "dependsOn": [
+            "Drawers"
+          ]
         }
       ],
       "hintAvailable": true,
@@ -4803,7 +5270,9 @@
           "name": "Items Placements Draggables",
           "type": "Draggables",
           "objects": 16,
-          "dependsOn": []
+          "dependsOn": [
+            "Cupboard Doors"
+          ]
         },
         {
           "name": "Cupboard Doors",
@@ -4858,7 +5327,123 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "drawers": [
+        {
+          "name": "Main Box",
+          "contains": 0,
+          "containsControllers": [],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Box 2",
+          "contains": 1,
+          "containsControllers": [
+            "CatOrganizer"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Box 3",
+          "contains": 0,
+          "containsControllers": [],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Box 4",
+          "contains": 1,
+          "containsControllers": [
+            "CatOrganizer"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Box 5",
+          "contains": 0,
+          "containsControllers": [],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Box 7",
+          "contains": 0,
+          "containsControllers": [],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Box 8",
+          "contains": 1,
+          "containsControllers": [
+            "CatOrganizer"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Box 9",
+          "contains": 1,
+          "containsControllers": [
+            "CatOrganizer"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Box 10",
+          "contains": 0,
+          "containsControllers": [],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Box 11",
+          "contains": 0,
+          "containsControllers": [],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Box 12",
+          "contains": 1,
+          "containsControllers": [
+            "CatOrganizer"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Box 13",
+          "contains": 0,
+          "containsControllers": [],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        },
+        {
+          "name": "Box 15",
+          "contains": 0,
+          "containsControllers": [],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        }
+      ]
     },
     {
       "levelIndex": 1127,
@@ -4874,7 +5459,8 @@
           "name": "Drawers",
           "type": "DrawerController",
           "objects": 7,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "Draggables",
@@ -4905,13 +5491,40 @@
           "name": "KeysDraggables",
           "type": "Draggables",
           "objects": 4,
-          "dependsOn": []
+          "dependsOn": [
+            "DrawerController",
+            "Landscape Draggables"
+          ]
         },
         {
           "name": "DrawerController",
           "type": "DrawerController",
           "objects": 1,
           "dependsOn": []
+        },
+        {
+          "name": "Dining Room Draggables",
+          "type": "Draggables",
+          "objects": 7,
+          "dependsOn": [
+            "DrawerController"
+          ]
+        },
+        {
+          "name": "Parking Lot Draggables",
+          "type": "Draggables",
+          "objects": 10,
+          "dependsOn": [
+            "Dining Room Draggables"
+          ]
+        },
+        {
+          "name": "Landscape Draggables",
+          "type": "Draggables",
+          "objects": 13,
+          "dependsOn": [
+            "Parking Lot Draggables"
+          ]
         }
       ],
       "hintAvailable": true,
@@ -5209,7 +5822,9 @@
           "name": "Jigsaw",
           "type": "Draggables",
           "objects": 36,
-          "dependsOn": []
+          "dependsOn": [
+            "Sorting (Type & Size)"
+          ]
         },
         {
           "name": "Water Level (Indexable)",
@@ -5441,19 +6056,24 @@
           "name": "GridPuzzleBase",
           "type": "GridPuzzleBase",
           "objects": 9,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "Draggables - Label",
           "type": "Draggables",
           "objects": 9,
-          "dependsOn": []
+          "dependsOn": [
+            "GridPuzzleBase"
+          ]
         },
         {
           "name": "Draggables - Drips",
           "type": "Draggables",
           "objects": 9,
-          "dependsOn": []
+          "dependsOn": [
+            "GridPuzzleBase"
+          ]
         },
         {
           "name": "Pannables",
@@ -5490,7 +6110,8 @@
           "name": "Drawer Controller",
           "type": "DrawerController",
           "objects": 5,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "Containable Controller",
@@ -5571,19 +6192,24 @@
           "name": "Stickables",
           "type": "Stickables",
           "objects": 12,
-          "dependsOn": []
+          "dependsOn": [
+            "DrawerController"
+          ]
         },
         {
           "name": "Draggables",
           "type": "Draggables",
           "objects": 19,
-          "dependsOn": []
+          "dependsOn": [
+            "DrawerController"
+          ]
         },
         {
           "name": "DrawerController",
           "type": "DrawerController",
           "objects": 1,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         }
       ],
       "hintAvailable": true,
@@ -5592,7 +6218,20 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "drawers": [
+        {
+          "name": "Drawer",
+          "contains": 7,
+          "containsControllers": [
+            "Stickables",
+            "Draggables"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        }
+      ]
     },
     {
       "levelIndex": 1222,
@@ -5764,15 +6403,15 @@
           "name": "CatEyesController",
           "type": "CatEyesController",
           "objects": 7,
-          "dependsOn": [
-            "IndexablesController"
-          ]
+          "dependsOn": []
         },
         {
           "name": "IndexablesController",
           "type": "Indexables",
           "objects": 0,
-          "dependsOn": []
+          "dependsOn": [
+            "CatEyesController"
+          ]
         }
       ],
       "hintAvailable": true,
@@ -5787,7 +6426,10 @@
       "randomizerHintPool": 0,
       "randomizerHints": 0,
       "isHolidayDaily": false,
-      "levelClass": "Level"
+      "levelClass": "Level",
+      "bypassedAbilities": [
+        "Ordering"
+      ]
     },
     {
       "levelIndex": 1226,
@@ -5804,6 +6446,7 @@
           "type": "Draggables",
           "objects": 10,
           "dependsOn": [
+            "Drawer Controller",
             "Indexables",
             "Stamps Draggables",
             "Ticket Stubs Draggables"
@@ -5814,6 +6457,7 @@
           "type": "Indexables",
           "objects": 0,
           "dependsOn": [
+            "Drawer Controller",
             "IndexedDraggables",
             "Stamps Draggables",
             "Ticket Stubs Draggables"
@@ -5824,9 +6468,10 @@
           "type": "Draggables",
           "objects": 3,
           "dependsOn": [
+            "Drawer Controller",
             "Indexables",
-            "Ticket Stubs Draggables",
-            "IndexedDraggables"
+            "IndexedDraggables",
+            "Ticket Stubs Draggables"
           ]
         },
         {
@@ -5834,16 +6479,18 @@
           "type": "Draggables",
           "objects": 4,
           "dependsOn": [
+            "Drawer Controller",
             "Indexables",
-            "Stamps Draggables",
-            "IndexedDraggables"
+            "IndexedDraggables",
+            "Stamps Draggables"
           ]
         },
         {
           "name": "Drawer Controller",
           "type": "DrawerController",
           "objects": 1,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         }
       ],
       "hintAvailable": true,
@@ -5855,6 +6502,20 @@
       "levelClass": "Level",
       "bypassedAbilities": [
         "Ordering"
+      ],
+      "drawers": [
+        {
+          "name": "Drawer",
+          "contains": 5,
+          "containsControllers": [
+            "IndexedDraggables",
+            "Stamps Draggables",
+            "Ticket Stubs Draggables"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        }
       ]
     },
     {
@@ -5871,7 +6532,9 @@
           "name": "Organizer",
           "type": "Draggables",
           "objects": 38,
-          "dependsOn": []
+          "dependsOn": [
+            "StateController"
+          ]
         },
         {
           "name": "StateController",
@@ -5902,13 +6565,15 @@
           "name": "Drawer",
           "type": "DrawerController",
           "objects": 1,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "Draggables",
           "type": "Draggables",
           "objects": 24,
           "dependsOn": [
+            "Drawer",
             "Indexables"
           ]
         },
@@ -5930,6 +6595,18 @@
       "levelClass": "Level",
       "bypassedAbilities": [
         "Ordering"
+      ],
+      "drawers": [
+        {
+          "name": "Drawer",
+          "contains": 4,
+          "containsControllers": [
+            "Draggables"
+          ],
+          "unlockOn": [],
+          "openOn": [],
+          "subDrawers": 0
+        }
       ]
     },
     {
@@ -6011,13 +6688,17 @@
           "name": "Spring Containable",
           "type": "Containables",
           "objects": 1,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "Spring Draggable",
           "type": "Draggables",
           "objects": 1,
-          "dependsOn": []
+          "dependsOn": [
+            "Spring Containable"
+          ],
+          "notALocation": true
         }
       ],
       "hintAvailable": true,
@@ -6039,16 +6720,34 @@
       "isDailyTidy": false,
       "controllers": [
         {
-          "name": "Drawer Controller",
-          "type": "DrawerController",
-          "objects": 1,
-          "dependsOn": []
-        },
-        {
           "name": "Hub",
           "type": "Draggables",
           "objects": 16,
+          "dependsOn": [
+            "Compass"
+          ]
+        },
+        {
+          "name": "Locks",
+          "type": "DraggablesOrdered",
+          "objects": 6,
           "dependsOn": []
+        },
+        {
+          "name": "Compass",
+          "type": "Shuffleables",
+          "objects": 5,
+          "dependsOn": [
+            "Locks"
+          ]
+        },
+        {
+          "name": "Knives",
+          "type": "Shuffleables",
+          "objects": 5,
+          "dependsOn": [
+            "Hub"
+          ]
         }
       ],
       "hintAvailable": true,
@@ -6059,6 +6758,7 @@
       "isHolidayDaily": false,
       "levelClass": "DrawerBossDLC2",
       "extraAbilities": [
+        "Drawer",
         "Ordering",
         "Swapping"
       ]

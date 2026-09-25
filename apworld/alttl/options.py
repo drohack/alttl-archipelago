@@ -33,9 +33,13 @@ class PuzzleCount(Range):
     screen. 70 puzzles at the default pack size is 70 + 13 dividers + the
     credits = 84, which fits. Turn it up if you want the whole game; the strip
     scales itself down past that, it just gets smaller.
+
+    AT LEAST 10: two full packs at the pack size of 5 (droha, 2026-09-25).
+    It was 15 while checks with unproven requirements had to be kept free of
+    progression; no part location is guarded any more.
     """
     display_name = "Puzzle Count"
-    range_start = 8
+    range_start = 10
     range_end = 79
     default = 70
 

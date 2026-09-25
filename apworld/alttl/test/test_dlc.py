@@ -67,6 +67,10 @@ BYPASSES = {
     "DLC1 Kitchen Hanging Tools 2": {"Drawer"},
     "DLC2 Junk Drawer Transforming": {"Ordering"},
     "DLC2 Combs": {"Ordering"},
+    # 2026-09-23, two locks-on runs: holding only Gadgets droha finished it
+    # ("eyes appear, level completes, nothing is greyed out") with both groups
+    # solved; holding only Ordering nothing could be picked up.
+    "DLC2 Cat Eyes": {"Ordering"},
 }
 
 
@@ -193,8 +197,14 @@ class TestTheBypassSubtraction(unittest.TestCase):
         group that declares the bypassed ability, so this is not a
         vacuous pass.
         """
+        tested = 0
         for level_id, bypassed in BYPASSES.items():
             level = data.BY_ID[level_id]
+            # DLC2 Combs lost its Drawer part on 2026-09-23 (solved at load,
+            # so notALocation) and has one group left: no part checks.
+            if not level.has_parts:
+                continue
+            tested += 1
             exposed = {p for p, a in level.part_abilities.items()
                        if set(a) & bypassed}
             self.assertTrue(exposed, f"{level_id} would test nothing here")
@@ -208,6 +218,7 @@ class TestTheBypassSubtraction(unittest.TestCase):
                     self.assertEqual(
                         set(), set(out[name]["abilities"]) & bypassed,
                         f"{name} still demands {bypassed}")
+        self.assertGreater(tested, 5)
 
     def test_a_level_without_a_bypass_keeps_every_ability_it_declares(self):
         """The control. A subtraction that fired on everything would pass
@@ -275,13 +286,44 @@ class TestTheDlcIdsNeverMove(unittest.TestCase):
         for level in data.LEVELS:
             per_dlc[level.dlc] += (len(locations.names_for(level, 1))
                                    * level.max_instances)
-        self.assertEqual(431, per_dlc[""])
-        self.assertEqual(146, per_dlc["DLC1"])
-        self.assertEqual(267, per_dlc["DLC2"])
-        self.assertEqual(845, len(locations.ALL_NAMES))
+        # 431 -> 427 on 2026-09-23: Medicine Cabinet's Jar Lid and the three
+        # Drawer Chores drawers are solved the moment the level opens, so they
+        # became notALocation. droha: "we shouldn't be sending checks for
+        # opening a level".
+        # 427 -> 425 on 2026-09-24: droha played Workbench and "Draggables
+        # For Targets" never fired, so it is notALocation; the level is then
+        # single-part, so its Tools part check (same event as Solution 1)
+        # went too.
+        # 425 -> 423 the same day: droha could not peel Fruit Stickers holding
+        # only Tidying, so Remove Stickers depends on Match Stickers too; the
+        # mutual pair is one group and the level has no part checks.
+        self.assertEqual(423, per_dlc[""])
+        # 146 -> 149 on 2026-09-23: DLC1 Boss's Dining Room, Parking Lot and
+        # Landscape registered and solved in droha's play and were restored.
+        # 149 -> 148 the same day: Kitchen Utensils Drawers' "Drawers" check
+        # never fires (the level ends before both drawers can be shut), so it
+        # is notALocation; its contents still need Drawer.
+        # 148 -> 138: ten DLC1 drawers and cupboard doors are solved the
+        # moment the level opens (tools/probe-solved-at-load.py), so they
+        # are notALocation.
+        self.assertEqual(138, per_dlc["DLC1"])
+        # 267 -> 269 on 2026-09-23: DLC2 Boss lost its Drawer Controller (it
+        # never solved, even in a full completion) and gained Locks, Compass
+        # and Knives, which droha's play showed register and solve. Ids after
+        # it moved; droha: "i do not care about seed ids moving ever" - a
+        # version mismatch just means downloading the matching mod.
+        # 269 -> 263: Material Drawers, Sticky Drawer and Combs' drawers and
+        # Robots' spring pair are solved at load, so notALocation.
+        # 263 -> 261: Junk Drawer Transforming's drawer can never be shut
+        # before the last piece (droha, played), so it is notALocation and
+        # the level is left with one merged group - no part checks.
+        # 261 -> 260: Ink Bottles' GridPuzzleBase never fires on either
+        # solution (droha, played both), so it is notALocation.
+        self.assertEqual(260, per_dlc["DLC2"])
+        self.assertEqual(822, len(locations.ALL_NAMES))
 
     def test_credits_is_the_last_base_id(self):
-        self.assertEqual(431, locations.ALL_NAMES.index(data.CREDITS))
+        self.assertEqual(423, locations.ALL_NAMES.index(data.CREDITS))
 
     def test_the_dlc_ability_item_id_is_pinned(self):
         """Appended after Hint Page, never inside the base twelve."""
@@ -317,8 +359,8 @@ def _dlc_slot_data(options, seed):
 #: The gate's own DLC yaml, minus the harness-specific parts. Every
 #: non-DLC source is off, so every slot must be a DLC puzzle.
 DLC_ONLY = {
-    "puzzle_count": 8,
-    "levels_to_beat": 8,
+    "puzzle_count": 15,
+    "levels_to_beat": 15,
     "cupboards_and_drawers": True,
     "seeing_stars": True,
     "cupboards_weight": 50,
@@ -414,3 +456,28 @@ class TestSlotDataCarriesTheDlc(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestNotALocation(unittest.TestCase):
+    """notALocation: a controller the level registers that is no check."""
+
+    def test_it_is_never_a_part_but_still_gates(self):
+        for level in data.LEVELS:
+            with self.subTest(level=level.level_id):
+                self.assertFalse(level.not_locations & set(level.controller_group))
+        kitchen = data.BY_ID["DLC1 Kitchen Utensils Drawers"]
+        self.assertEqual({"Drawers"}, set(kitchen.not_locations))
+        self.assertEqual({"Top Drawer", "Bottom Drawer"}, set(kitchen.parts))
+        for part in kitchen.parts:
+            self.assertIn("Drawer", kitchen.enforced_part_abilities[part])
+
+    def test_slot_data_names_them_for_the_run(self):
+        seen = 0
+        for seed in (1, 2, 3):
+            sd = _dlc_slot_data(DLC_ONLY, seed)
+            want = {lid: sorted(data.BY_ID[lid].not_locations)
+                    for lid in sd["controller_groups"]
+                    if data.BY_ID[lid].not_locations}
+            self.assertEqual(want, sd["not_locations"])
+            seen += len(want)
+        self.assertGreater(seen, 0, "no run carried one, so this proved nothing")
