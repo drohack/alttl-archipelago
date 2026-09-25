@@ -9,6 +9,74 @@ refuses to connect to a seed a different apworld generated.
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
+## 0.4.1 - 2026-09-25
+
+**0.4.0 seeds: finish them on 0.4.0, or regenerate.** Nothing in the item or
+location tables changed, but the mod refuses a seed made by a different apworld
+version, as it has since 0.3.3.
+
+### The retry panel shows while a level still has solutions to find
+
+droha, 2026-09-25: show the three-button panel (restart, pause menu, next
+arrow) when a level has several solutions and the run has not found them all,
+and go on to the next puzzle otherwise. The game decides this per level:
+`LevelSuccess.LevelComplete` reads `LevelInterface.ShowRetryMenu` (DevTools
+`xrefs`), and re-read with both DLCs, 148 of its 186 levels show the panel and
+every generator goes straight on (`docs/data/level-endings.tsv`, now 173 pool
+levels; none of the 111 first read on 2026-09-13 changed). During a run the
+mod now answers that getter for the running slot (`RetryPanel`): the panel
+while the slot has more than one Solution location and they will not all be
+in once this completion is filed. The screen asks at LevelCompleteEarly,
+before the check is filed, so the completion in progress is counted when its
+arrangement is new and earned (`SolutionOrdinals.Peek`). Checked in game on a
+hand-test seed: Pencils (Randomized), which never showed a panel, showed it
+after its first of two solutions and its arrow opened the next run slot; Seed
+Pods, one solution, went straight on instead of showing it; Pencils with both
+solutions in went straight on. Not yet pressed: the panel's restart button.
+
+### The stars on the level-complete screen are the run's
+
+droha, 2026-09-25: the stars that pop when a puzzle is finished were always
+empty, while the level select showed them right. The complete screen
+(LevelSuccess) fills them from the level's save row, which a generator puzzle
+never writes: every completion in droha's run logged `found=0`, Pencils'
+second solution included. Measured on Pencils (Randomized): the stars pop
+during LevelCompleteEarly, before LevelComplete files the Solution check. The
+mod now sets them as they pop from the checks already in, and again the moment
+this completion's check is filed or a Skip releases the card: one per Solution
+location, lit once collected, as the card's hover stars are (`SuccessStars`).
+Checked in game: Pencils showed one of its two stars filled after its first
+solution, and Seed Pods, a base puzzle, its one star. droha, back in the live
+run: "yes the stars are showing up correctly now."
+
+### A drawer no longer unlocks what sits inside it
+
+droha, 2026-09-25, in Paper Plane Supplies holding Drawer but not Containers:
+the knife pieces, blades and pencils moved freely, and putting a knife handle
+in its case turned the case grey while it still dragged. Measured with DevTools
+`sharing:` and `locks` on a hand-test seed: those 14 pieces are held by
+Containables and the Drawer Controller and by nothing else, and the dimmer let
+any unlocked holder free an object, so holding Drawer freed them all (0 of 121
+objects dimmed). A handle in the case makes the game add a new object, Knife
+Case Bottom, to Containables; nothing else holds it, so it was locked and
+greyed, and the case, a plain draggable, looked grey but moved.
+
+droha: "i don't think the container should count as a drawer." A drawer or
+cupboard (DrawerController, DrawerExpandableController, Cupboard) now decides
+only an object no other controller holds (`ObjectLock`, tested). Checked by
+hand on the same level: without Containers the pieces are grey and do not
+move while both cases stay coloured and draggable; with Containers granted
+they unlock at once, and a handle in the case leaves it coloured.
+
+All 18 levels with a drawer or cupboard were re-swept offline the same day:
+28 groups in 9 levels were freed only through a drawer, every object of each,
+and none partly - Paper Plane Supplies (the holders and the eight chalk
+groups), Tool Drawer's holders, Bathroom Drawer's bottle, and DLC1 Craft
+Supplies, Fossils, Game Pieces, Jewelry Box and Sewing Box and DLC2 Material
+Drawers. Every one of those checks already asks the logic for the group's own
+ability, so no seed changes; the other 9 levels, including the hand-tested
+bypasses on Junk Drawer Transforming and Combs, are unchanged.
+
 ## 0.4.0 - 2026-09-25
 
 **0.3.4 SEEDS NEED REGENERATING.** The tables grew from 432 locations to 822
