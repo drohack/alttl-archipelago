@@ -235,7 +235,8 @@ public partial class DevToolsBehaviour
         var sb = new StringBuilder();
 
         sb.AppendLine("levelIndex\tlevelId\ttype\tchapter\tsolutionCount\tfound\tsolved\tcompleted"
-                      + "\tisUnlocked\tunlockedOnLevelSelect\thasSaveEntry\tskipped\thintUsed");
+                      + "\tisUnlocked\tunlockedOnLevelSelect\thasSaveEntry\tskipped\thintUsed"
+                      + "\tstore\tsolutionsInSave\tisDailyTidy");
 
         var all = lm.AllLevelInterfaces(false);
         for (int i = 0; i < (all == null ? 0 : all.Length); i++)
@@ -243,8 +244,18 @@ public partial class DevToolsBehaviour
             var li = all![i];
             if (li == null) continue;
             var idx = Str(() => li.LevelIndex.ToString());
-            // Base campaign only: everything else has a synthetic index >= 100.
-            if (!int.TryParse(idx, out var n) || n >= 100) continue;
+            // EVERY level, not just the base campaign.
+            //
+            // This filtered to index < 100 with the comment "base campaign
+            // only: everything else has a synthetic index >= 100". The indices
+            // are not synthetic - they are the game's own LevelInterface
+            // .LevelIndex - and the filter hid exactly the levels droha
+            // reported the empty completion star on. Procedural Grid Puzzle is
+            // 1000, the randomized Pencils/Post-It/Stamps/Batteries/Books are
+            // 995 to 999, and every DLC level is 1100 or above. The one
+            // instrument that could answer the question could not see the
+            // question.
+            if (!int.TryParse(idx, out _)) continue;
             sb.Append(idx).Append('\t')
               .Append(Str(() => li.LevelId)).Append('\t')
               .Append(Str(() => li.LevelType.ToString())).Append('\t')
@@ -257,7 +268,19 @@ public partial class DevToolsBehaviour
               .Append(Str(() => li.IsUnlockedOnLevelSelect().ToString())).Append('\t')
               .Append(Str(() => SaveSystem.data.LevelHasCompletionData(li).ToString())).Append('\t')
               .Append(Str(() => li.Skipped.ToString())).Append('\t')
-              .Append(Str(() => li.HintUsed.ToString()))
+              .Append(Str(() => li.HintUsed.ToString())).Append('\t')
+              // WHICH STORE, AND HOW MANY SOLUTIONS ARE IN IT.
+              //
+              // The save keeps campaign and archive progress in two separate
+              // lists, which Checks.SeedSolutionsFromSave found out the hard
+              // way - reading only levelCompletionData found nothing for the
+              // 26 archive levels and quietly did nothing, which looked
+              // exactly like the fix working. A star that lights on some
+              // levels and not others is the same shape of question, so the
+              // store is a column rather than an assumption.
+              .Append(StoreOf(li)).Append('\t')
+              .Append(SolutionsInSave(li)).Append('\t')
+              .Append(Str(() => li.IsDailyTidy.ToString()))
               .AppendLine();
         }
 
@@ -319,6 +342,73 @@ public partial class DevToolsBehaviour
             + " gameCompleteCheck=" + Str(() => lm.GameCompleteCheck().ToString()));
 
         DevToolsPlugin.Log.LogInfo("unlocks written to alttl-unlocks.tsv / alttl-chapters.txt");
+    }
+
+    /// <summary>
+    /// Which of the save's two completion lists holds this level's row, or
+    /// "-" when neither does.
+    ///
+    /// Reported rather than assumed. Track.ApplyUnlocks creates a row for
+    /// every level it reveals, so "has a row" is nearly always true and says
+    /// nothing; WHICH list it landed in, and whether that row carries any
+    /// solutions, is the part that differs between a level whose star lights
+    /// and one whose star does not.
+    /// </summary>
+    private static string StoreOf(LevelInterface li)
+    {
+        try
+        {
+            var data = SaveSystem.data;
+            if (data == null) return "<no save>";
+            var id = li.LevelId;
+            if (RowFor(data.levelCompletionData, id) != null) return "campaign";
+            if (RowFor(data.archiveCompletionData, id) != null) return "archive";
+            return "-";
+        }
+        catch (Exception e) { return "<err:" + e.GetType().Name + ">"; }
+    }
+
+    /// <summary>
+    /// How many solutions the save's row records for this level.
+    ///
+    /// "null" and "0" are printed as different things ON PURPOSE.
+    /// Track.ApplyUnlocks calls CreateLevelCompletionData(level, null), so a
+    /// revealed-but-unplayed level can carry a row whose solutions list was
+    /// never constructed. A count of 0 means the list exists and is empty,
+    /// which is a different state and possibly a different bug.
+    /// </summary>
+    private static string SolutionsInSave(LevelInterface li)
+    {
+        try
+        {
+            var data = SaveSystem.data;
+            if (data == null) return "-";
+            var id = li.LevelId;
+            var row = RowFor(data.levelCompletionData, id)
+                      ?? RowFor(data.archiveCompletionData, id);
+            if (row == null) return "-";
+            var solutions = row.solutions;
+            return solutions == null ? "null" : solutions.Count.ToString();
+        }
+        catch (Exception e) { return "<err:" + e.GetType().Name + ">"; }
+    }
+
+    /// <summary>
+    /// The save row for a level id, or null. Both lists are searched by the
+    /// callers above, in that order, for the reason Checks.SolutionIdsFor
+    /// records: reading only the campaign list misses every archive level.
+    /// </summary>
+    private static SaveData.LevelCompletionData? RowFor(
+        Il2CppSystem.Collections.Generic.List<SaveData.LevelCompletionData>? all,
+        string levelId)
+    {
+        if (all == null) return null;
+        for (int i = 0; i < all.Count; i++)
+        {
+            var entry = all[i];
+            if (entry != null && entry.levelId == levelId) return entry;
+        }
+        return null;
     }
 
     /// <summary>

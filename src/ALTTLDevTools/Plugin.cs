@@ -136,6 +136,8 @@ public class DevToolsPlugin : BasePlugin
         harmony.PatchAll(typeof(RegistrationLog));
         harmony.PatchAll(typeof(LaunchTrace));
         harmony.PatchAll(typeof(ZoomFocusGuard));
+        harmony.PatchAll(typeof(PauseTrace));
+        harmony.PatchAll(typeof(StarTrace));
         foreach (var m in harmony.GetPatchedMethods())
         {
             Log.LogInfo($"patched {m.DeclaringType?.Name}.{m.Name}");
@@ -185,6 +187,25 @@ public partial class DevToolsBehaviour : MonoBehaviour
 
     private readonly StringBuilder _surveyOut = new();
 
+    private float _lastTimeScale = -1f;
+
+    /// <summary>
+    /// Log `time: timeScale changed X -> Y` whenever the clock moves. The
+    /// setter is an engine call, so a patch would only see the mods' own
+    /// writes, never the game's; one comparison a frame sees them all.
+    /// </summary>
+    private void WatchTimeScale()
+    {
+        var scale = UnityEngine.Time.timeScale;
+        if (scale == _lastTimeScale) return;
+        if (_lastTimeScale >= 0f)
+        {
+            DevToolsPlugin.Log.LogInfo(
+                $"time: timeScale changed {_lastTimeScale} -> {scale} | {PauseTrace.State()}");
+        }
+        _lastTimeScale = scale;
+    }
+
     private static string GameDir => Path.GetDirectoryName(Application.dataPath)!;
 
     private static string CommandFile => Path.Combine(GameDir, "BepInEx", "alttl-devtools-commands.txt");
@@ -223,6 +244,7 @@ public partial class DevToolsBehaviour : MonoBehaviour
         }
 
         TickWatch();
+        WatchTimeScale();
 
         // Re-asserted rather than set once. The game raises the listener back
         // to 1 on its own at least at startup, and a mute that loses a race
@@ -638,6 +660,14 @@ public partial class DevToolsBehaviour : MonoBehaviour
                 Watch<GameEventManager.GameEvent_ObjectPlaced>("ObjectPlaced");
             }
 
+            // Always on, unlike WatchEvents: it fires only when a part becomes
+            // solved, and it is how a hand test sees which part checks can
+            // fire without needing the level to be a slot in a seed.
+            Il2CppSystem.Action<GameEventManager.GameEventData> onSolved =
+                (Action<GameEventManager.GameEventData>)LogPartSolved;
+            KeepAlive.Add(onSolved);
+            GameEventManager.AddEventListener<GameEventManager.GameEvent_ObjectControllerSolved>(onSolved);
+
             Listen<GameEventManager.GameEvent_LevelSelected>("LevelSelected");
             Listen<GameEventManager.GameEvent_LevelComplete>("LevelComplete");
             Listen<GameEventManager.GameEvent_LevelCompleteEarly>("LevelCompleteEarly");
@@ -683,6 +713,33 @@ public partial class DevToolsBehaviour : MonoBehaviour
         GameEventManager.AddEventListener<T>(action);
     }
 
+    /// <summary>Parts already reported for the level on screen; the game
+    /// re-raises the event for a solved part, so each is logged once.</summary>
+    private static readonly HashSet<string> _partsSolved = new(StringComparer.Ordinal);
+    private static string _partsLevel = "";
+
+    private static void LogPartSolved(GameEventManager.GameEventData data)
+    {
+        try
+        {
+            var li = GameManager.Instance?.levelManager?.ActiveLevelInterface;
+            var level = Str(() => li!.LevelId);
+            var name = Str(() => data.ObjectController.gameObject.name);
+            // Keyed on the level clone, new on every load, so a replay logs
+            // again. Not the LevelInterface: it can outlive a load.
+            var instance = Str(() => li!.Level.Pointer.ToString());
+            if (instance != _partsLevel) { _partsLevel = instance; _partsSolved.Clear(); }
+            if (!_partsSolved.Add(name)) return;
+            DevToolsPlugin.Log.LogInfo(
+                DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture)
+                + $"  PartSolved  id={level}  part={name}");
+        }
+        catch (Exception e)
+        {
+            DevToolsPlugin.Log.LogWarning($"PartSolved log failed: {e.Message}");
+        }
+    }
+
     private static void LogEvent(string label, GameEventManager.GameEventData data)
     {
         try
@@ -705,6 +762,7 @@ public partial class DevToolsBehaviour : MonoBehaviour
             }
             File.AppendAllText(EventLog, line.ToString() + Environment.NewLine);
             DevToolsPlugin.Log.LogInfo(line.ToString());
+            if (label == "LevelComplete") _partsSolved.Clear();
         }
         catch (Exception e)
         {
@@ -993,8 +1051,19 @@ public partial class DevToolsBehaviour : MonoBehaviour
                             "skip: no MainMenu - it exists only while a level is running");
                         return;
                     }
+                    // The loaded level's own flags, read here because they are
+                    // only meaningful with the level loaded (the startup dump
+                    // read Skippable False for every level).
+                    var active = GameManager.Instance?.levelManager?.ActiveLevelInterface;
+                    DevToolsPlugin.Log.LogInfo(
+                        $"skip: {Str(() => active!.LevelId)} skippable={Str(() => active!.Skippable.ToString())}"
+                        + $" allowPause={Str(() => active!.AllowPause.ToString())}"
+                        + $" randomizable={Str(() => active!.IsRandomizable.ToString())}");
                     DevToolsPlugin.Log.LogInfo("skip: calling MainMenu.SkipLevel");
                     menu.SkipLevel();
+                    // Whatever the game logged between these two lines, it did
+                    // inside SkipLevel - the order is the measurement.
+                    DevToolsPlugin.Log.LogInfo("skip: SkipLevel returned");
                 });
             }
             else if (cmd.StartsWith("press:", StringComparison.OrdinalIgnoreCase))
@@ -1023,6 +1092,34 @@ public partial class DevToolsBehaviour : MonoBehaviour
             else if (cmd.Equals("livelevels", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("livelevels", CountLiveLevels);
+            }
+            else if (cmd.Equals("starcalls", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("starcalls", () => DevToolsPlugin.Log.LogInfo(
+                    $"starcalls: {StarTrace.TakeCounts()}"));
+            }
+            else if (cmd.Equals("time", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("time", () => DevToolsPlugin.Log.LogInfo(
+                    $"time: timeScale={UnityEngine.Time.timeScale} "
+                    + $"unscaled={UnityEngine.Time.unscaledTime:F1}s "
+                    + $"scaled={UnityEngine.Time.time:F1}s | {PauseTrace.State()}"));
+            }
+            else if (cmd.StartsWith("timescale:", StringComparison.OrdinalIgnoreCase))
+            {
+                // For the event-queue test: does a pause hold game events, and
+                // does a level torn down while paused leave them stuck?
+                SafeRun("timescale", () =>
+                {
+                    var value = float.Parse(cmd.Substring("timescale:".Length),
+                                            CultureInfo.InvariantCulture);
+                    UnityEngine.Time.timeScale = value;
+                    DevToolsPlugin.Log.LogInfo($"timescale: set to {value}");
+                });
+            }
+            else if (cmd.Equals("dedupe", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("dedupe", Dedupe);
             }
             else if (cmd.StartsWith("clickat", StringComparison.OrdinalIgnoreCase))
             {
@@ -1069,6 +1166,10 @@ public partial class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("members", () => ListMembers(cmd.Substring("members:".Length)));
             }
+            else if (cmd.StartsWith("xrefs:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("xrefs", () => ListXrefs(cmd.Substring("xrefs:".Length)));
+            }
             else if (cmd.Equals("buttons", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("buttons", ListButtons);
@@ -1088,6 +1189,10 @@ public partial class DevToolsBehaviour : MonoBehaviour
             else if (cmd.StartsWith("layout:", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("layout", () => DumpLayout(cmd.Substring("layout:".Length)));
+            }
+            else if (cmd.Equals("reachable", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("reachable", Reachable);
             }
             else if (cmd.StartsWith("solve:", StringComparison.OrdinalIgnoreCase))
             {

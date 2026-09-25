@@ -211,6 +211,156 @@ public partial class DevToolsBehaviour
     }
 
     /// <summary>
+    /// What a game method calls: "xrefs:ReplayMenu.LevelSelect".
+    ///
+    /// Il2CppInterop's cross-reference scan of the method's native code, each
+    /// call resolved back to a managed name where it can be. The interop
+    /// assembly has no method bodies, so without this the only way to learn
+    /// which routine a button runs is to patch a guess and see if it fires.
+    /// Built 2026-09-24 after two such guesses for the post-level route into
+    /// a DLC's level select (GoToLevelSelectForLevel, ContextualState) both
+    /// installed and never ran.
+    /// </summary>
+    ///
+    /// "xrefs:Type.Method|Type.Candidate,Type.Candidate" names what to look
+    /// for instead: each call's target is compared with those methods' native
+    /// entry points and nothing is resolved, since resolving is what froze.
+    private static void ListXrefs(string arg)
+    {
+        var bar = arg.IndexOf('|');
+        var candidates = bar < 0 ? null : CandidatePointers(arg.Substring(bar + 1));
+        if (bar >= 0) arg = arg.Substring(0, bar);
+
+        var dot = arg.LastIndexOf('.');
+        if (dot <= 0 || dot == arg.Length - 1)
+        {
+            DevToolsPlugin.Log.LogWarning($"xrefs: want Type.Method, got '{arg}'");
+            return;
+        }
+        var wanted = arg.Substring(0, dot).Trim();
+        var method = arg.Substring(dot + 1).Trim();
+
+        var found = FindType(wanted);
+        if (found == null)
+        {
+            DevToolsPlugin.Log.LogWarning($"xrefs: no type named {wanted}");
+            return;
+        }
+
+        int overloads = 0;
+        foreach (var m in found.GetMethods(Any))
+        {
+            if (!string.Equals(m.Name, method, StringComparison.OrdinalIgnoreCase)) continue;
+            overloads++;
+            var ps = string.Join(", ", Array.ConvertAll(m.GetParameters(), x => x.ParameterType.Name));
+            DevToolsPlugin.Log.LogInfo($"xrefs: {found.Name}.{m.Name}({ps})");
+
+            int n = 0;
+            foreach (var x in Il2CppInterop.Common.XrefScans.XrefScanner.XrefScan(m))
+            {
+                string what;
+                if (candidates != null)
+                {
+                    what = x.Type == Il2CppInterop.Common.XrefScans.XrefType.Method
+                        ? $"calls 0x{x.Pointer:X}"
+                          + (candidates.TryGetValue(x.Pointer, out var name) ? $" = {name}" : "")
+                        : $"global 0x{x.Pointer:X}";
+                }
+                else if (x.Type == Il2CppInterop.Common.XrefScans.XrefType.Method)
+                {
+                    // Logged BEFORE resolving. Resolving ReplayMenu.LevelSelect's
+                    // eighth call froze the game for good (2026-09-24), and a
+                    // freeze leaves no line to say which pointer did it.
+                    DevToolsPlugin.Log.LogInfo($"  [{n}] resolving 0x{x.Pointer:X}");
+                    MethodBase? callee = null;
+                    try { callee = Il2CppInterop.Runtime.XrefScans.XrefInstanceExtensions.TryResolve(x); }
+                    catch { }
+                    what = callee == null
+                        ? $"calls <unresolved 0x{x.Pointer:X}>"
+                        : $"calls {callee.DeclaringType?.Name}.{callee.Name}";
+                }
+                else
+                {
+                    // The pointer only: reading a global as an object
+                    // dereferences whatever it names, and a global is metadata
+                    // as often as it is an object.
+                    what = $"global 0x{x.Pointer:X}";
+                }
+                DevToolsPlugin.Log.LogInfo($"  {what}");
+                n++;
+            }
+            DevToolsPlugin.Log.LogInfo($"xrefs: {n} reference(s)");
+        }
+        if (overloads == 0)
+            DevToolsPlugin.Log.LogWarning($"xrefs: {found.Name} has no method {method}");
+    }
+
+    private const System.Reflection.BindingFlags Any =
+        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic
+        | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static
+        | System.Reflection.BindingFlags.DeclaredOnly;
+
+    private static Type? FindType(string name)
+    {
+        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            Type?[] types;
+            try { types = asm.GetTypes(); }
+            catch (System.Reflection.ReflectionTypeLoadException e) { types = e.Types; }
+            catch { continue; }
+
+            foreach (var t in types)
+            {
+                if (t != null && string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase))
+                    return t;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Native entry point -> "Type.Method" for each named candidate, every
+    /// overload. The entry point is the first field of the method's
+    /// Il2CppMethodInfo, which the generated class holds a pointer to.
+    /// </summary>
+    private static Dictionary<long, string> CandidatePointers(string list)
+    {
+        var map = new Dictionary<long, string>();
+        foreach (var raw in list.Split(','))
+        {
+            var item = raw.Trim();
+            var dot = item.LastIndexOf('.');
+            if (dot <= 0) continue;
+            var type = FindType(item.Substring(0, dot));
+            if (type == null)
+            {
+                DevToolsPlugin.Log.LogWarning($"xrefs: no type named {item.Substring(0, dot)}");
+                continue;
+            }
+            var wanted = item.Substring(dot + 1);
+            foreach (var m in type.GetMethods(Any))
+            {
+                if (!string.Equals(m.Name, wanted, StringComparison.OrdinalIgnoreCase)) continue;
+                try
+                {
+                    var field = Il2CppInterop.Common.Il2CppInteropUtils
+                        .GetIl2CppMethodInfoPointerFieldForGeneratedMethod(m);
+                    var info = field == null ? IntPtr.Zero : (IntPtr)field.GetValue(null)!;
+                    if (info == IntPtr.Zero) continue;
+                    var entry = System.Runtime.InteropServices.Marshal.ReadIntPtr(info);
+                    map[entry.ToInt64()] = $"{type.Name}.{m.Name}";
+                    DevToolsPlugin.Log.LogInfo($"xrefs: candidate {type.Name}.{m.Name} at 0x{entry.ToInt64():X}");
+                }
+                catch (Exception e)
+                {
+                    DevToolsPlugin.Log.LogWarning($"xrefs: no entry point for {item}: {e.Message}");
+                }
+            }
+        }
+        return map;
+    }
+
+    /// <summary>
     /// Every managed object's world bounds, grouped by controller.
     ///
     /// Feeds the blocking question the plan flagged and the generator audit
@@ -254,10 +404,22 @@ public partial class DevToolsBehaviour
 
             var cname = Str(() => oc.gameObject.name);
             var ctype = Str(() => oc.GetIl2CppType().Name);
-            var managed = oc.ManagedObjects;
-            for (int k = 0; k < (managed == null ? 0 : managed.Count); k++)
+            // AllObjects, NOT ManagedObjects. This read ManagedObjects until
+            // 2026-09-22 and so under-reported a group's footprint by whatever
+            // its subclass keeps to itself - Containables hides three lists,
+            // Stickables and StackablesY one each, Dirtyables keeps its coins
+            // out entirely. The same trap made `freeze` disable ONE collider
+            // where the lock disables fifty-six, and that instrument reported
+            // confidently wrong answers twice before anyone checked it against
+            // a level whose answer was known.
+            //
+            // It matters more here than it looks: this command exists to find
+            // objects sitting physically on top of other objects, and a group
+            // measured at a fraction of its real size is a group whose overlap
+            // silently does not register. The failure is a MISSING lead, which
+            // is the quiet kind.
+            foreach (var obj in AllObjects(oc))
             {
-                var obj = managed![k];
                 if (obj == null) continue;
                 var r = obj.GetComponentInChildren<Renderer>();
                 if (r == null) continue;
@@ -381,6 +543,119 @@ public partial class DevToolsBehaviour
     /// </summary>
     private static readonly Dictionary<int, bool> _frozen = new();
 
+    /// <summary>
+    /// Per controller, how many of its objects a POINTER could actually hit
+    /// right now.
+    ///
+    /// WHY THIS EXISTS, and it replaces a question that was being put to a
+    /// human. "Can the player reach this group yet" has been answered three
+    /// ways in this project and all three were wrong for the same reason:
+    /// `dependsOn` is silent about edges the game does not express that way,
+    /// the sweep's drawer containment was measured against the one hand audit
+    /// available and came back wrong in BOTH directions, and the release
+    /// harness force-solves by setting a flag, which bypasses the physics it
+    /// is supposed to be measuring. The fourth way was "ask droha to try
+    /// dragging it", which is fine for a judgement call and absurd for
+    /// something the engine already knows.
+    ///
+    /// It knows because a pointer hit needs two things and both are readable:
+    /// the GameObject has to be active in the hierarchy, and its collider has
+    /// to exist and be enabled. An object shut inside a drawer fails one or
+    /// the other. That is the whole measurement.
+    ///
+    /// HOW TO USE IT, which matters more than the numbers. Run it at boot,
+    /// then solve whatever opens the container, then run it again. Anything
+    /// that becomes touchable in between was gated by the thing you solved -
+    /// which is exactly the dependsOn edge the table is missing. One run on
+    /// its own says very little.
+    ///
+    /// AllObjects, not ManagedObjects: Dirtyables keeps its coins elsewhere,
+    /// and Containables, Stickables and StackablesY each hide a list. The
+    /// `locks` command read only the one and reported "objects=1" for a level
+    /// full of freely clickable coins.
+    /// </summary>
+    private static void Reachable()
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        var level = li == null ? null : li.Level;
+        if (level == null || level.objectControllers == null)
+        {
+            DevToolsPlugin.Log.LogWarning("reachable: no level running");
+            return;
+        }
+
+        var list = level.objectControllers;
+        // `stuck` is the column that matters: untouchable AND not yet placed,
+        // i.e. the player cannot get at it and it is not finished either.
+        // `done` is untouchable because it is already where it belongs, which
+        // is not a gate and must never be counted as one.
+        DevToolsPlugin.Log.LogInfo(
+            $"reachable: {Str(() => li!.LevelId)} -- controller\ttype\ttotal"
+            + "\ttouchable\tinactive\tnoCollider\tcolliderOff\tstuck\tdone");
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            var oc = list[i];
+            if (oc == null) continue;
+
+            int total = 0, touchable = 0, inactive = 0, missing = 0, off = 0;
+            int stuck = 0, done = 0;
+            foreach (var obj in AllObjects(oc))
+            {
+                total++;
+
+                // THE DISTINCTION THE `locks` COMMAND DOES NOT MAKE, and the
+                // reason a whole afternoon of measurement had to be thrown
+                // away on 2026-09-22.
+                //
+                // `blocked` there is !Interactable || PreventSelection, which
+                // is "the player cannot touch this". That is TWO different
+                // situations wearing one number: an object gated behind
+                // something the player has not done, and an object already
+                // sitting in its correct place. Both are untouchable and only
+                // the first is a missing requirement.
+                //
+                // It is why the count CLIMBS as a level settles - the game
+                // places things during setup - and why archive levels came
+                // back 100 per cent blocked and looked like a dozen findings.
+                // `placed` separates them, and the game has carried the flag
+                // all along.
+                bool untouchable;
+                try { untouchable = !obj.Interactable || obj.PreventSelection; }
+                catch { untouchable = false; }
+                if (untouchable)
+                {
+                    bool settled;
+                    try { settled = obj.placed; }
+                    catch { settled = false; }
+                    if (settled) done++; else stuck++;
+                }
+
+                bool live;
+                try { live = obj.gameObject.activeInHierarchy; }
+                catch { live = false; }
+                if (!live) { inactive++; continue; }
+
+                Collider2D? col;
+                try { col = obj.collider; }
+                catch { col = null; }
+                if (col == null) { missing++; continue; }
+
+                bool on;
+                try { on = col.enabled; }
+                catch { on = false; }
+                if (on) touchable++; else off++;
+            }
+
+            DevToolsPlugin.Log.LogInfo(
+                $"reachable:   {Str(() => oc.gameObject.name)}\t"
+                + $"{Str(() => oc.GetIl2CppType().Name)}\t"
+                + $"{total}\t{touchable}\t{inactive}\t{missing}\t{off}\t"
+                + $"{stuck}\t{done}");
+        }
+        DevToolsPlugin.Log.LogInfo("reachable: done");
+    }
+
     private static void Freeze(string arg)
     {
         var li = GameManager.Instance.levelManager.ActiveLevelInterface;
@@ -405,10 +680,24 @@ public partial class DevToolsBehaviour
                 continue;
             }
 
-            var managed = oc.ManagedObjects;
-            for (int j = 0; j < (managed == null ? 0 : managed.Count); j++)
+            // AllObjects, NOT ManagedObjects. This read ManagedObjects until
+            // 2026-09-22, which is the trap the docstring directly below this
+            // method exists to warn about - and this method walked straight
+            // into it. Drawer Controller manages ONE object, the handle, and
+            // holds fifty-six. So `freeze:Drawer Controller`, meant to
+            // simulate not having the Drawer ability, disabled the handle's
+            // collider and left the drawer fully operable. droha opened and
+            // closed it and moved everything inside, which read as the level
+            // not being gated at all - and would have been written into
+            // levels.json as a correction if the run had been on a level
+            // whose answer was not already known.
+            //
+            // The mod's own AbilityLocks never had this bug: Collect() takes
+            // ManagedObjects AND the subclass's private lists. An instrument
+            // that freezes less than the thing it simulates is not a
+            // simulation.
+            foreach (var obj in AllObjects(oc))
             {
-                var obj = managed![j];
                 if (obj == null) continue;
                 try
                 {

@@ -418,6 +418,12 @@ internal sealed class DataTable
         // Tidy page three separate times before this flag existed to make the
         // real size of the problem visible.
         row.Append($", \"isHolidayDaily\": {Bool(() => li != null && li.IsHolidayDaily)}");
+        // Whether the game offers its own Skip, and its pause menu. Read with
+        // the level loaded: from the startup dump, before any level is loaded,
+        // Skippable read False for all 186 and AllowPause threw (2026-09-25).
+        // Str, not Bool: a read that throws must say so, not read as false.
+        row.Append($", \"skippable\": {Json(Str(() => li!.Skippable.ToString()))}");
+        row.Append($", \"allowPause\": {Json(Str(() => li!.AllowPause.ToString()))}");
         // WHICH SUBCLASS THIS LEVEL IS. Named levelClass, not levelType:
         // the dump already has a levelType and it means something else (Puzzle
         // versus Chapter). One string that names every phased
@@ -813,6 +819,7 @@ internal sealed class DataTable
                 sb.Append('{');
                 sb.Append($"\"name\": {Json(Str(() => drawer.gameObject.name))}");
                 sb.Append($", \"contains\": {Str(() => (drawer.ContainedObjects == null ? 0 : drawer.ContainedObjects.Count).ToString())}");
+                sb.Append($", \"containsControllers\": {ContainedControllersOf(level, drawer)}");
                 sb.Append($", \"unlockOn\": {NamesOf(drawer.UnlockOnSolvedControllers)}");
                 sb.Append($", \"openOn\": {NamesOf(drawer.OpenOnSolvedControllers)}");
                 sb.Append($", \"subDrawers\": {Str(() => (drawer.SubDrawers == null ? 0 : drawer.SubDrawers.Count).ToString())}");
@@ -824,6 +831,86 @@ internal sealed class DataTable
             DevToolsPlugin.Log.LogWarning($"levelsweep: drawers threw: {e.Message}");
         }
         return sb.Append(']').ToString();
+    }
+
+    /// <summary>
+    /// Which CONTROLLERS have objects inside this drawer.
+    ///
+    /// THE JOIN HAPPENS HERE, WHERE BOTH IDENTITIES ARE LIVE. A drawer knows
+    /// its ContainedObjects and a controller knows its ManagedObjects, and
+    /// matching the two needs instance ids - which are meaningless outside the
+    /// running process, change every launch, and would make levels.json
+    /// undiffable. Names are the only durable key, so the ids are resolved to
+    /// controller names before anything is written.
+    ///
+    /// WHY IT MATTERS, and it is the whole reason this method exists. A
+    /// drawer's contents are not a dependency the game expresses as
+    /// ObjectController.dependencies, so the sweep recorded dependsOn: [] on
+    /// every group inside every drawer. The generator then believed those
+    /// groups could be earned with nothing, placed progression behind a shut
+    /// drawer, and a run died on 2026-09-21. The eight drawer edges that DO
+    /// exist in levels.json were hand-written from a playtest report; this is
+    /// the measured version of that list.
+    ///
+    /// Joined on gameObject, not on the component, because the two lists need
+    /// not hold the same TYPE of component - ManagedObjects holds LevelObject
+    /// and a Drawer's contents are DragObjects. One GameObject can carry both.
+    /// </summary>
+    private static string ContainedControllersOf(Level? level, Drawer drawer)
+    {
+        var sb = new StringBuilder("[");
+        try
+        {
+            if (level == null) return "[]";
+
+            var inside = new HashSet<int>();
+            var contained = drawer.ContainedObjects;
+            for (int i = 0; i < (contained == null ? 0 : contained.Count); i++)
+            {
+                var obj = contained![i];
+                if (obj == null) continue;
+                try { inside.Add(obj.gameObject.GetInstanceID()); }
+                catch { /* one awkward object must not cost the rest */ }
+            }
+            if (inside.Count == 0) return "[]";
+
+            var controllers = level.objectControllers;
+            for (int i = 0; i < (controllers == null ? 0 : controllers.Count); i++)
+            {
+                var oc = controllers![i];
+                if (oc == null) continue;
+                if (!OwnsAnyOf(oc, inside)) continue;
+                if (sb.Length > 1) sb.Append(", ");
+                sb.Append(Json(Str(() => oc.gameObject.name)));
+            }
+        }
+        catch (Exception e)
+        {
+            DevToolsPlugin.Log.LogWarning(
+                $"levelsweep: containsControllers threw: {e.Message}");
+        }
+        return sb.Append(']').ToString();
+    }
+
+    /// <summary>Does this controller manage any object in the set?</summary>
+    private static bool OwnsAnyOf(ObjectController oc, HashSet<int> ids)
+    {
+        try
+        {
+            var managed = oc.ManagedObjects;
+            for (int i = 0; i < (managed == null ? 0 : managed.Count); i++)
+            {
+                var obj = managed![i];
+                if (obj == null) continue;
+                try
+                {
+                    if (ids.Contains(obj.gameObject.GetInstanceID())) return true;
+                }
+                catch { /* skip the object, keep the controller */ }
+            }
+        }
+        catch { /* a controller that will not enumerate owns nothing we can see */ }
+        return false;
     }
 
     /// <summary>

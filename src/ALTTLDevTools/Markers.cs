@@ -423,6 +423,11 @@ internal static class Markers
                 + $" colour={Str(() => $"{img.color.r:0.00},{img.color.g:0.00},{img.color.b:0.00},{img.color.a:0.00}")}";
         }
 
+        // A card's solution stars are Toggles (LevelIcon.SetCompletionStars
+        // sets them from the save row), so their state is the star's state.
+        var toggle = t.GetComponent<Toggle>();
+        if (toggle != null) components += $" isOn={Str(() => toggle.isOn.ToString())}";
+
         DevToolsPlugin.Log.LogInfo(
             $"  {pad}{t.gameObject.name}{size} active={t.gameObject.activeSelf}"
             + $" sibling={t.GetSiblingIndex()}"

@@ -117,6 +117,58 @@ public partial class DevToolsBehaviour
     }
 
     /// <summary>
+    /// Keep the level the game calls active and destroy every other copy.
+    ///
+    /// 2026-09-23: booting Spoons after a finished level produced two
+    /// Spoons(Clone)s, and a second boot left one of the old pair alive -
+    /// it was not active when the boot's cleanup scanned, so the scan never
+    /// saw it, and it came back afterwards. droha saw it before any count
+    /// did: "2 levels loaded ontop of eachother, two spoons". So this asks
+    /// the question the other way round: not "what is live" but "what is NOT
+    /// the active level", and it looks at inactive clones too.
+    /// </summary>
+    private static void Dedupe()
+    {
+        var lm = GameManager.Instance?.levelManager;
+        var active = lm?.ActiveLevelInterface;
+        Level? keep = null;
+        try { keep = active?.Level; } catch { keep = null; }
+        if (keep == null)
+        {
+            DevToolsPlugin.Log.LogWarning("dedupe: no active level - nothing kept, nothing destroyed");
+            return;
+        }
+        var keepId = keep.GetInstanceID();
+        var destroyed = 0;
+        foreach (var candidate in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<Level>()))
+        {
+            var lvl = candidate?.TryCast<Level>();
+            if (lvl == null) continue;
+            try
+            {
+                if (lvl.GetInstanceID() == keepId) continue;
+                var go = lvl.gameObject;
+                // A prefab asset has no valid scene; only instantiated copies
+                // in the running scene are candidates.
+                if (!go.scene.IsValid()) continue;
+                if (go.name.IndexOf("(Clone)", StringComparison.Ordinal) < 0) continue;
+                DevToolsPlugin.Log.LogInfo(
+                    $"dedupe: destroying {Str(() => go.name)}#{lvl.GetInstanceID()}"
+                    + (go.activeInHierarchy ? "" : " (inactive)"));
+                UnityEngine.Object.DestroyImmediate(go);
+                destroyed++;
+            }
+            catch (Exception e)
+            {
+                DevToolsPlugin.Log.LogWarning($"dedupe: {e.Message}");
+            }
+        }
+        DevToolsPlugin.Log.LogInfo(
+            $"dedupe: kept {Str(() => keep.name)}#{keepId}, destroyed {destroyed}");
+    }
+
+    /// <summary>
     /// How many levels are alive at once. Exactly one is correct.
     ///
     /// THE SYMPTOM, MADE COUNTABLE. A cat trap resetting a puzzle inside a
@@ -353,6 +405,58 @@ public partial class DevToolsBehaviour
         var gm = GameManager.Instance;
         DevToolsPlugin.Log.LogInfo($"boot: StartLevel(index={index}, seed={seed})");
 
+        // THE CLOCK, reported and reset. 2026-09-23: levels booted after a
+        // finished one could be played and solved, but their win never fired
+        // - Wilting Flowers' cat never came, Desktop Computer's hourglass sat
+        // "stuck upsidwon, the sand is not flowing". Both are timed
+        // animations while dragging kept working, which is what a paused
+        // clock looks like. Logged first so the next occurrence says whether
+        // this was it.
+        // THE STAR GATE, lifted in memory the way the mod's Track does for a
+        // run's own slots. Five Seeing Stars levels need 50-90 solution stars,
+        // and StartLevel on a locked one silently falls back to index 0 - a
+        // chapter header - which is what booting Cupcakes did on 2026-09-23.
+        // Nothing is written to disk and the real star count is untouched.
+        try
+        {
+            var gated = gm.levelManager.GetLevelInterface(index);
+            if (gated != null && gated.NumStarsReqToUnlock > 0)
+            {
+                DevToolsPlugin.Log.LogInfo(
+                    $"boot: cleared a {gated.NumStarsReqToUnlock}-star gate on {Str(() => gated.LevelId)}");
+                gated.NumStarsReqToUnlock = 0;
+            }
+        }
+        catch (Exception e)
+        {
+            DevToolsPlugin.Log.LogWarning($"boot: could not clear a star gate: {e.Message}");
+        }
+
+        // The game's own pause holds every gameplay event, and resetting the
+        // clock below does not release them; Pause(false) does (measured
+        // 2026-09-24).
+        try
+        {
+            if (gm.Paused)
+            {
+                DevToolsPlugin.Log.LogInfo($"boot: the game was paused ({PauseTrace.State()})");
+                gm.Pause(false);
+                DevToolsPlugin.Log.LogInfo($"boot: unpaused it -> {PauseTrace.State()}");
+            }
+        }
+        catch (Exception e)
+        {
+            DevToolsPlugin.Log.LogWarning($"boot: could not read or undo the pause: {e.Message}");
+        }
+
+        var scale = Time.timeScale;
+        DevToolsPlugin.Log.LogInfo($"boot: timeScale was {scale}");
+        if (scale != 1f)
+        {
+            Time.timeScale = 1f;
+            DevToolsPlugin.Log.LogInfo("boot: timeScale reset to 1");
+        }
+
         // Destroy whatever is loaded first, exactly as the level sweep does.
         //
         // forceReload alone leaves the previous level ALIVE, and its listeners
@@ -402,9 +506,55 @@ public partial class DevToolsBehaviour
                 // and destroying them left the run loading and "completing"
                 // 01__Chapter_HomeSweetHome. Do not reach for that again
                 // without a way to tell a chapter from a puzzle.
-                if (!live.gameObject.activeInHierarchy) continue;
+                // THE HOLE ABOVE, CLOSED 2026-09-22, after droha booted a
+                // level, went to the level select, and booted again: the
+                // second boot printed "tore down 0 live level(s)" and they
+                // ended up playing a scene with two sets of drop targets
+                // fighting each other. Their words: "it kind of seems like
+                // there's 2 levels on top of eachother maybe?"
+                //
+                // A menu exit DEACTIVATES the puzzle without destroying it, so
+                // activeInHierarchy alone walks straight past it.
+                //
+                // The discriminator is BUILT-NESS, and it is narrow on
+                // purpose, because the two wider rules named above both made
+                // things worse:
+                //
+                //   "(Clone)" excludes the 186 prefabs by name. A prefab is
+                //   never a clone, and its controllers are authored rather
+                //   than registered - which is what made "any LevelInterface
+                //   with a non-null Level" destroy chapter headers.
+                //
+                //   A registered controller means the level was actually
+                //   PLAYED. The ~107 pooled clones the level select keeps are
+                //   inactive AND empty, so they survive - which matters,
+                //   because destroying Bathroom Drawer's pooled clone is
+                //   exactly what left it unwired when booted third.
+                //
+                // So: active, or a clone that has been built. Nothing else.
+                var name = Str(() => live.gameObject.name);
+                var built = false;
+                if (!live.gameObject.activeInHierarchy)
+                {
+                    if (name.IndexOf("(Clone)", StringComparison.Ordinal) < 0)
+                    {
+                        continue;                      // a prefab
+                    }
+                    try
+                    {
+                        var lvl = live.Level;
+                        var ocs = lvl == null ? null : lvl.objectControllers;
+                        built = ocs != null && ocs.Count > 0;
+                    }
+                    catch
+                    {
+                        built = false;                 // unreadable: leave it
+                    }
+                    if (!built) continue;              // pooled, never played
+                }
                 DevToolsPlugin.Log.LogInfo(
-                    $"boot: tearing down '{Str(() => live.gameObject.name)}'");
+                    $"boot: tearing down '{name}'"
+                    + (built ? " (inactive but built - a menu exit left it)" : ""));
                 live.ReleaseAssetsAndDestroyLevel();
                 torn++;
             }
@@ -416,7 +566,75 @@ public partial class DevToolsBehaviour
         }
         DevToolsPlugin.Log.LogInfo($"boot: tore down {torn} live level(s)");
 
+        // THE LEVEL OBJECTS TOO, not only the interfaces. 2026-09-23: droha
+        // exited Medicine Cabinet to the title screen and `livelevels` still
+        // found MedicineCabinet(Clone) alive, while the loop above - which
+        // walks LevelInterfaces - tore down 0. Booting then put a second
+        // level on top: "i've got multiple levels loaded again.... please
+        // stop doing that". So destroy any Level still in the scene, through
+        // its interface where one owns it, and REFUSE to boot if any survive.
+        var stray = DestroyStrayLevels();
+        if (stray > 0)
+        {
+            DevToolsPlugin.Log.LogWarning(
+                $"boot: REFUSED - {stray} level(s) still loaded after teardown; "
+                + "not starting another on top. Restart the game.");
+            return;
+        }
+
         gm.SetGameState<Gameplay_GameState>(null, false);
         gm.levelManager.StartLevel(index, true, true, seed);
+    }
+
+    /// <summary>
+    /// Destroy every Level object still live in the scene. Returns how many
+    /// are left afterwards (0 is the only good answer).
+    /// </summary>
+    private static int DestroyStrayLevels()
+    {
+        var levels = UnityEngine.Object.FindObjectsOfType<Level>();
+        if (levels == null || levels.Length == 0) return 0;
+
+        var interfaces = Resources.FindObjectsOfTypeAll(
+            Il2CppInterop.Runtime.Il2CppType.Of<LevelInterface>());
+        foreach (var lvl in levels)
+        {
+            if (lvl == null) continue;
+            var name = Str(() => lvl.name + "#" + lvl.GetInstanceID());
+            var released = false;
+            foreach (var candidate in interfaces)
+            {
+                var li = candidate?.TryCast<LevelInterface>();
+                if (li == null) continue;
+                try
+                {
+                    if (li.Level == null
+                        || li.Level.GetInstanceID() != lvl.GetInstanceID())
+                    {
+                        continue;
+                    }
+                    DevToolsPlugin.Log.LogInfo(
+                        $"boot: releasing stray level {name} through "
+                        + $"'{Str(() => li.gameObject.name)}'");
+                    li.ReleaseAssetsAndDestroyLevel();
+                    released = true;
+                    break;
+                }
+                catch (Exception e)
+                {
+                    DevToolsPlugin.Log.LogWarning(
+                        $"boot: releasing {name} threw: {e.Message}");
+                }
+            }
+            if (!released)
+            {
+                // No interface owns it any more - destroy the object itself.
+                DevToolsPlugin.Log.LogInfo($"boot: destroying orphan level {name}");
+                UnityEngine.Object.DestroyImmediate(lvl.gameObject);
+            }
+        }
+
+        var left = UnityEngine.Object.FindObjectsOfType<Level>();
+        return left == null ? 0 : left.Length;
     }
 }
