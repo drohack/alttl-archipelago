@@ -71,7 +71,7 @@ table above, which is organised by what the research needed.
 | `dedupe` | Keep the level `ActiveLevelInterface` owns and destroy every other `Level` clone in the scene, inactive ones included. Run after a boot that `livelevels` counts as more than one |
 | `clickat[:X,Y]` | Dispatch a real pointer click wherever the player would click, defaulting to the middle of the window |
 | `creditscard` | The credits card's unlock state and the names of its own locked/unlocked sprites |
-| `mute` / `unmute` | Hold `AudioListener.volume` at zero, or let it go. Also a config setting, `MuteAudio`, which the harnesses set |
+| `mute` / `unmute` | Hold `AudioListener.volume` at zero, or let it go. Also a config setting, `MuteAudio`, which the harnesses set. They also set `[Window] KeepRunningWhenUnfocused`, which skips the game's own pause when its window loses focus (a paused game holds every solve) |
 | `endings` | What screen every level finishes on, for all of them at once |
 | `shot:<path>[|<n>]` | Screenshot, optionally rendered at n times the window size |
 | `sprites <filter>` | Every loaded sprite name matching a substring |

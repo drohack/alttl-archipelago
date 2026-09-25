@@ -19,6 +19,19 @@ internal static class PauseTrace
     [HarmonyPostfix]
     private static void AfterPause(bool __0) => Report($"Pause({__0})");
 
+    /// <summary>
+    /// A lost focus does not pause a scripted run (KeepRunningWhenUnfocused):
+    /// the game's own handler is what calls Pause(true).
+    /// </summary>
+    [HarmonyPatch(typeof(GameManager), "OnApplicationFocus")]
+    [HarmonyPrefix]
+    private static bool BeforeFocus(bool __0)
+    {
+        if (__0 || !DevToolsPlugin.KeepRunningUnfocused) return true;
+        Report("OnApplicationFocus(False) skipped, KeepRunningWhenUnfocused");
+        return false;
+    }
+
     /// <summary>Patched by NAME: OnApplicationFocus is private.</summary>
     [HarmonyPatch(typeof(GameManager), "OnApplicationFocus")]
     [HarmonyPostfix]

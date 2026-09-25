@@ -1193,8 +1193,13 @@ def write_devtools_config():
     actual progress. Nothing here is persisted and nothing of theirs moves.
 
     One key, set in place: every other devtools setting is kept.
+
+    And KeepRunningWhenUnfocused: the game pauses itself when its window loses
+    focus, and a paused game holds every solve. The 0.4.1 DLC gate rerun lost
+    its arrow session to one click on another window.
     """
     set_cfg_keys(DEVTOOLS_CONFIG, "Debug", {"MuteAudio": "true"})
+    set_cfg_keys(DEVTOOLS_CONFIG, "Window", {"KeepRunningWhenUnfocused": "true"})
 
 
 def yaml_text(quick, steady, dlc_on):

@@ -44,6 +44,15 @@ on by design, Exit worked; through the arrow, Seed Pods went on to the next
 slot and Exit reached the title. The gate's arrow check now waits for the
 mod's own press before pressing `next` itself.
 
+### Release gates keep running when the game window loses focus
+
+The game pauses itself when its window loses focus, and a paused game holds
+every solve: the first DLC gate rerun for this release lost its arrow session
+to one click on another window. DevTools gains `[Window]
+KeepRunningWhenUnfocused`, which skips that pause; the harnesses set it and
+harness_env puts it back. Checked: focus handed away, the game logged the
+skip and stayed unpaused. DevTools is not part of the release.
+
 ### The stars on the level-complete screen are the run's
 
 droha, 2026-09-25: the stars that pop when a puzzle is finished were always

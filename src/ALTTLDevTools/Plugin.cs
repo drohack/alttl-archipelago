@@ -74,6 +74,15 @@ public class DevToolsPlugin : BasePlugin
     /// </summary>
     internal static bool MuteAudio;
 
+    /// <summary>
+    /// Skip the game's own pause when its window loses focus. The game pauses
+    /// itself on focus loss and a paused game holds every gameplay event, so
+    /// a scripted run stalled the moment someone clicked another window: the
+    /// 0.4.1 DLC gate rerun lost its arrow session that way (2026-09-25).
+    /// Off by default; the harnesses turn it on and harness_env puts it back.
+    /// </summary>
+    internal static bool KeepRunningUnfocused;
+
     public override void Load()
     {
         Log = base.Log;
@@ -98,6 +107,15 @@ public class DevToolsPlugin : BasePlugin
             + "as gameplay input. Without this, typing elsewhere during a test "
             + "run lands in the game: menus open, levels get reset, and the "
             + "run fails for a reason that is nowhere in the log.").Value;
+
+        KeepRunningUnfocused = Config.Bind(
+            "Window",
+            "KeepRunningWhenUnfocused",
+            false,
+            "Skip the game's own pause when its window loses focus. A paused "
+            + "game holds every gameplay event, so a scripted run stalls the "
+            + "moment another window is clicked. For scripted runs; off for "
+            + "play.").Value;
 
         RaiseWindow = Config.Bind(
             "Window",
