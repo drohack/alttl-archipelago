@@ -3421,10 +3421,28 @@ def boot_level(log, index):
             dev("state")
             out = log.wait(["state: gameState"], 8, 6, "the level")
             text += out
-            if "Gameplay_GameState" in line_with(out, "state: gameState"):
+            if any(level_is_up(line, index) for line in out.splitlines()
+                   if "state: gameState" in line):
                 return True, text + settle_level(log, sent)
             time.sleep(0.5)
     return False, text
+
+
+def level_is_up(state_line, index):
+    """Whether a DevTools `state` line shows level `index` running and loaded.
+
+    "In gameplay" is not enough: the first line after a boot can still name
+    the level the boot tore down. After a Skip (DLC gate, 2026-09-27) it read
+    "activeLevel=DLC2 Corn index=1203 ... loaded=False ... level=null" for
+    boot:1126, and the harness judged Nesting Boxes unfinishable before its
+    controllers had registered. So the index must be the one booted, and the
+    level loaded and present.
+    """
+    fields = dict(tok.split("=", 1) for tok in state_line.split() if "=" in tok)
+    return (fields.get("gameState") == "Gameplay_GameState"
+            and fields.get("index") == str(index)
+            and fields.get("loaded") == "True"
+            and fields.get("level") == "present")
 
 
 def settle_level(log, since, least=2.5, quiet=1.2, most=8.0):

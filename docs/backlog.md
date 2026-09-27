@@ -141,3 +141,8 @@ already known about it.
   also changed nothing, the route is decided outside that call or by
   something the pointer scan (`xrefs:...|...`) cannot reach: it kills the
   game at the method's eighth reference. Not known what decides it.
+  Seen again in the DLC gate of 2026-09-27 (`e2e-20260927-173019.log`,
+  after DLC2 Bells): the track opened twice before the harness pressed
+  Close, the Close never reached the guard, and DevTools' `menu:title` then
+  threw in `MenuManager.TransitionMenuOut` (check 10). 1 of the 54 unwinds
+  in the DLC gates kept since 2026-09-25; every other one opened once.

@@ -2652,5 +2652,33 @@ class TestTheConfigWritersKeepThePlayersSettings(unittest.TestCase):
                          e2e.cfg_value(self.path, "Display", "WindowSize"))
 
 
+class TestABootWaitsForTheLevelItBooted(unittest.TestCase):
+    """The DLC gate of 2026-09-27 stopped at visit 7: after the Corn Skip,
+    boot:1126 took the torn-down Corn for Nesting Boxes, judged it not
+    finishable before its controllers registered and went off plan. The
+    lines are that run's own (e2e-20260927-173019.log)."""
+
+    STALE = ("[Info   :ALTTL Dev Tools] state: gameState=Gameplay_GameState "
+             "activeLevel=DLC2 Corn index=1203 seed=-1 solutionCount=4 found=0 "
+             "solved=False unlocked=True loaded=False transitioning=False "
+             "level=null")
+    UP = ("[Info   :ALTTL Dev Tools] state: gameState=Gameplay_GameState "
+          "activeLevel=DLC1 Game Pieces index=1117 seed=-1 solutionCount=1 "
+          "found=0 solved=False unlocked=True loaded=True transitioning=False "
+          "level=present")
+
+    def test_the_level_torn_down_is_not_the_one_booted(self):
+        self.assertFalse(e2e.level_is_up(self.STALE, 1126))
+
+    def test_the_booted_level_loaded_is_up(self):
+        self.assertTrue(e2e.level_is_up(self.UP, 1117))
+
+    def test_the_same_index_is_not_up_until_it_has_loaded(self):
+        self.assertFalse(e2e.level_is_up(self.STALE, 1203))
+
+    def test_another_level_loaded_is_not_the_one_booted(self):
+        self.assertFalse(e2e.level_is_up(self.UP, 1126))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
