@@ -96,8 +96,8 @@ public static class LocationNames
     /// <summary>
     /// Every location name the game can ever have, in a stable order. This is
     /// the datapackage: it must not depend on options or on the seed. A level
-    /// that can only appear once contributes one instance; a generator
-    /// contributes MaxGeneratorInstances. Names for instances a given seed
+    /// that can only appear once contributes one instance; a repeatable
+    /// generator (LevelInfo.Repeatable) contributes MaxGeneratorInstances. Names for instances a given seed
     /// never uses simply become no locations.
     /// </summary>
     public static IReadOnlyList<string> AllPossible(LevelTable table)
@@ -105,7 +105,7 @@ public static class LocationNames
         var names = new List<string>();
         foreach (var level in table.Levels.OrderBy(l => l.LevelIndex))
         {
-            int instances = level.Source == "generator" ? MaxGeneratorInstances : 1;
+            int instances = level.Repeatable ? MaxGeneratorInstances : 1;
             for (int i = 1; i <= instances; i++)
             {
                 names.AddRange(ForInstance(level, i));

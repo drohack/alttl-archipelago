@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Helpers;
+using Archipelago.MultiClient.Net.MessageLog.Messages;
 using Archipelago.MultiClient.Net.Packets;
 using ALTTLArchipelago.Core;
 
@@ -22,7 +23,18 @@ internal sealed class Connection
     private readonly Action<Action> _dispatch;
     private ArchipelagoSession? _session;
 
-    internal Connection(Action<Action> dispatch) => _dispatch = dispatch;
+    internal Connection(Action<Action> dispatch)
+    {
+        _dispatch = dispatch;
+        _gate = new SessionGate<ReceivedItem>(dispatch);
+    }
+
+    /// <summary>
+    /// Holds what the server sends until this login is accepted, then lets it
+    /// through items-then-Ready (Core SessionGate). A refused seed's items,
+    /// and a replay handled before the run state, both came from not having it.
+    /// </summary>
+    private readonly SessionGate<ReceivedItem> _gate;
 
     internal bool Connected { get; private set; }
 
@@ -83,6 +95,19 @@ internal sealed class Connection
 
     /// <summary>Raised on the MAIN thread for each item, oldest first.</summary>
     internal event Action<ReceivedItem>? ItemReceived;
+
+    /// <summary>
+    /// Raised on the MAIN thread with the server's own line for an item send
+    /// that involves this slot, painted the way the text client paints it.
+    /// </summary>
+    internal event Action<string>? ItemMessage;
+
+    /// <summary>
+    /// Raised on the MAIN thread with locations the server has marked checked
+    /// for this slot since login: an admin's /send_location, a collect, or our
+    /// own sends coming back.
+    /// </summary>
+    internal event Action<IReadOnlyList<string>>? LocationsChecked;
 
     /// <summary>
     /// Connect on a BACKGROUND thread, reporting the outcome on the main one.
@@ -230,7 +255,9 @@ internal sealed class Connection
             LastError = "";
             Slot = slot;
 
-            _dispatch(() => Ready?.Invoke(slot));
+            _gate.Open(item => ItemReceived?.Invoke(item),
+                       () => Ready?.Invoke(slot),
+                       line => ItemMessage?.Invoke(line));
 
             return "";
         }
@@ -320,6 +347,8 @@ internal sealed class Connection
         {
             _closingDeliberately = true;
             session.Items.ItemReceived -= OnItemReceived;
+            session.MessageLog.OnMessageReceived -= OnMessageReceived;
+            session.Locations.CheckedLocationsUpdated -= OnCheckedLocationsUpdated;
             session.Socket.DisconnectAsync();
         }
         catch (Exception e)
@@ -363,6 +392,8 @@ internal sealed class Connection
     private void WireEvents(ArchipelagoSession session)
     {
         session.Items.ItemReceived += OnItemReceived;
+        session.MessageLog.OnMessageReceived += OnMessageReceived;
+        session.Locations.CheckedLocationsUpdated += OnCheckedLocationsUpdated;
         session.Socket.ErrorReceived += (e, message) =>
         {
             // The message and the exception TYPE, not the exception. The full
@@ -469,11 +500,80 @@ internal sealed class Connection
                 item.ItemName ?? item.ItemId.ToString(), flags, from, fromSelf));
         }
 
-        if (items.Count == 0) return;
-        _dispatch(() =>
+        _gate.Items(items, item => ItemReceived?.Invoke(item));
+    }
+
+    /// <summary>
+    /// The server's own line for an item send that involves this slot - what
+    /// the text client prints, "Grayson sent Progressive Puzzle Pack to Kat
+    /// (Daggers - Draggables)" - painted part by part in the text client's
+    /// colours. droha, 2026-09-25: a finished puzzle said only "Found X" and
+    /// never who got the item; it should read like the text client.
+    ///
+    /// Built into a string here, on the socket thread, like the items. Hints
+    /// are left out: they are not something that happened to the run.
+    /// </summary>
+    private void OnMessageReceived(LogMessage message)
+    {
+        try
         {
-            foreach (var item in items) ItemReceived?.Invoke(item);
-        });
+            if (message is not ItemSendLogMessage send || message is HintItemSendLogMessage) return;
+            if (!send.IsRelatedToActivePlayer) return;
+
+            var line = new System.Text.StringBuilder();
+            foreach (var part in message.Parts)
+            {
+                var text = part.Text ?? "";
+                if (part.PaletteColor == null)
+                {
+                    line.Append(ApPalette.Escape(text));
+                    continue;
+                }
+                var c = part.Color;
+                line.Append(ApPalette.Paint(text, $"{c.R:X2}{c.G:X2}{c.B:X2}"));
+            }
+            if (line.Length == 0) return;
+
+            _gate.Line(line.ToString(), painted => ItemMessage?.Invoke(painted));
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"message: could not read an item send: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Locations the server marks checked while we are connected.
+    ///
+    /// The checked list used to be read only at login (Plugin.OnReady), so a
+    /// check made for this slot by anyone else mid-session never reached the
+    /// cards: droha, 2026-09-25, after /send_location for Kat, "two of the
+    /// levels on Kat's level select show as green square, when all solutions
+    /// are found". The client library raises this for a room update, for the
+    /// login's own list and for our own sends, so it may repeat names the
+    /// ledger already holds; adopting them again changes nothing.
+    /// </summary>
+    private void OnCheckedLocationsUpdated(System.Collections.ObjectModel.ReadOnlyCollection<long> ids)
+    {
+        try
+        {
+            var session = _session;
+            if (session == null || ids == null || ids.Count == 0) return;
+
+            var names = new List<string>();
+            foreach (var id in ids)
+            {
+                var name = session.Locations.GetLocationNameFromId(id, Game);
+                if (!string.IsNullOrEmpty(name)) names.Add(name);
+            }
+            // Before the login is accepted this is the login's own list,
+            // which OnReady reads in full; the gate drops it.
+            _gate.Locations(names, list => LocationsChecked?.Invoke(list));
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"checks: could not read a room update: {e.Message}");
+        }
     }
 
     /// <summary>

@@ -39,6 +39,13 @@ internal static class RunState
 
     internal static IReadOnlyList<string> Beaten() => _state.Beaten;
 
+    /// <summary>Part checks earned out of reach, waiting to be filed.</summary>
+    internal static IReadOnlyList<string> Withheld() => _state.Withheld;
+
+    internal static void AddWithheld(string location) => WriteIf(_state.AddWithheld(location));
+
+    internal static void RemoveWithheld(string location) => WriteIf(_state.RemoveWithheld(location));
+
     /// <summary>Record that the credits were played. Idempotent.</summary>
     internal static void NoteCreditsPlayed() => WriteIf(_state.NoteCreditsPlayed());
 

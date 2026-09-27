@@ -62,7 +62,7 @@ public class LocationNamesTests
 
         foreach (var level in table.Levels)
         {
-            int instances = level.Source == "generator"
+            int instances = level.Repeatable
                 ? LocationNames.MaxGeneratorInstances : 1;
             for (int i = 1; i <= instances; i++)
             {

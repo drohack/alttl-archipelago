@@ -28,9 +28,19 @@ internal static class Inventory
     internal static bool HasCredits { get; private set; }
     internal static int SkipsHeld { get; private set; }
     internal static int TrapsReceived { get; private set; }
-    internal static int LevelsBeaten { get; private set; }
     internal static int HintPagesHeld { get; private set; }
     internal static int BackgroundTraps { get; private set; }
+
+    /// <summary>
+    /// Hand tests only (DevTools traps:off): count no Background Change Traps,
+    /// so the backdrop stays the level's own. The hand-test seed's filler is
+    /// all background traps, and one made a gold ring unreadable (droha,
+    /// 2026-09-26: "can you turn off traps while we're testing").
+    /// </summary>
+    internal static bool BackgroundTrapsOffForTesting;
+
+    /// <summary>Work the counts out again from what has been received.</summary>
+    internal static void Recount() => Apply();
 
 
     /// <summary>
@@ -119,7 +129,6 @@ internal static class Inventory
         HasCredits = false;
         SkipsHeld = 0;
         TrapsReceived = 0;
-        LevelsBeaten = 0;
         HintPagesHeld = 0;
         BackgroundTraps = 0;
         Apply();
@@ -162,9 +171,8 @@ internal static class Inventory
         PacksHeld = counts.Packs;
         SkipsHeld = counts.Skips;
         TrapsReceived = counts.Traps;
-        LevelsBeaten = counts.Beaten;
         HintPagesHeld = counts.HintPages;
-        BackgroundTraps = counts.BackgroundTraps;
+        BackgroundTraps = BackgroundTrapsOffForTesting ? 0 : counts.BackgroundTraps;
         HasCredits = counts.HasCredits;
 
         // Only the abilities that arrived as ITEMS. AbilityState holds the
@@ -175,7 +183,14 @@ internal static class Inventory
 
         // An ability arriving mid-level frees its objects now. This used to
         // wait for the dimmer's once-a-second pass; a replay moves nothing.
-        if (_abilities != null && _abilities.Version != version) AbilityLocks.ApplyNow();
+        if (_abilities != null && _abilities.Version != version)
+        {
+            AbilityLocks.AbilitiesChanged();
+            // And whatever was solved without it is now owed. Deferred to
+            // the check tick: during a reconnect replay this runs before the
+            // new session's router exists.
+            Checks.NoteAbilitiesChanged();
+        }
 
         Track.SetPacksHeld(counts.Packs);
 

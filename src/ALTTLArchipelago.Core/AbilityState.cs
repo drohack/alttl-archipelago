@@ -122,7 +122,34 @@ public sealed class AbilityState
     public int Version { get; private set; }
 
     public bool Has(string ability)
-        => _starting.Contains(ability) || _received.Contains(ability);
+        => !_withheld.Contains(ability)
+           && (_starting.Contains(ability) || _received.Contains(ability));
+
+    /// <summary>
+    /// Abilities to treat as NOT held, whatever arrived: a test hook (DevTools
+    /// `withhold:`), so one seed holding everything can stand in for any
+    /// held set in a hand test instead of generating a seed per set. Lives on
+    /// this object, which every session rebuilds, so it cannot outlast the
+    /// session it was set in.
+    /// </summary>
+    private readonly HashSet<string> _withheld = new(StringComparer.Ordinal);
+
+    public IReadOnlyCollection<string> Withheld => _withheld;
+
+    /// <summary>Replace the withheld set. True when it changed.</summary>
+    public bool Withhold(IEnumerable<string> abilities)
+    {
+        var next = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var ability in abilities)
+        {
+            if (!string.IsNullOrEmpty(ability)) next.Add(ability);
+        }
+        if (next.SetEquals(_withheld)) return false;
+        _withheld.Clear();
+        _withheld.UnionWith(next);
+        Version++;
+        return true;
+    }
 
     /// <summary>
     /// Whether a controller of this class should be dimmed and unmovable.

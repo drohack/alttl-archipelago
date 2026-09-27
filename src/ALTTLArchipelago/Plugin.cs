@@ -67,6 +67,10 @@ public sealed class Plugin : BasePlugin
     private static ConfigEntry<bool> _whyProbe = null!;
     private static ConfigEntry<TypingGuard.Mode> _typingSuppression = null!;
     private static ConfigEntry<string> _windowSize = null!;
+    private static ConfigEntry<bool> _allowAchievements = null!;
+
+    /// <summary>Whether Steam achievements and stats may be sent (SteamAchievements).</summary>
+    internal static bool AllowAchievements => _allowAchievements != null && _allowAchievements.Value;
 
     /// <summary>
     /// Whether the badge "why is this card that colour" file probe is running.
@@ -191,6 +195,12 @@ public sealed class Plugin : BasePlugin
         DisplayGuard.Remember(_windowSize.Value);
         DisplayGuard.OnRemember = size => _windowSize.Value = size;
 
+        _allowAchievements = Config.Bind("Steam", "AllowAchievements", false,
+            "Let the game send Steam achievements and stats. Off by default: "
+            + "a run plays the game out of order, with skips and items from "
+            + "other players, so nothing it does earns what an achievement "
+            + "claims. Blocked whenever this mod is loaded, run or no run.");
+
         _maxAttempts = Config.Bind("Server", "MaxRetries",
             RetryPolicy.DefaultMaxAttempts,
             "How many times to retry a lost connection before giving up. 0 "
@@ -229,6 +239,7 @@ public sealed class Plugin : BasePlugin
                      ("card stars", typeof(CardStars)),
                      ("success stars", typeof(SuccessStars)),
                      ("retry panel", typeof(RetryPanel)),
+                     ("steam achievements", typeof(SteamAchievements)),
                  })
         {
             try
@@ -455,21 +466,30 @@ public sealed class Plugin : BasePlugin
             {
                 _replayed++;
                 _replayedNames.Add(item.Name ?? "(unnamed)");
-                return;
             }
 
-            var painted = ALTTLArchipelago.Core.ApPalette.Paint(
-                item.Name, ALTTLArchipelago.Core.ApPalette.ForItem(item.Flags));
+            // No toast of our own here: the server's line for the send
+            // (ItemMessage below) names the item, who sent it and where from.
+        };
+        // The text client's line for every item send that involves this slot.
+        // The server does not resend these on a reconnect, so they need no
+        // replay window.
+        connection.ItemMessage += line => Toasts.Show(line, Toasts.Plain);
+        // Checks made for this slot mid-session - an admin's /send_location,
+        // a collect - reach the cards now rather than at the next login.
+        connection.LocationsChecked += names =>
+        {
+            var fresh = 0;
+            foreach (var name in names)
+            {
+                if (!Checks.Ledger.IsCollected(name)) fresh++;
+            }
+            if (fresh == 0) return;
 
-            // "from X" only when someone else sent it, which is how the text
-            // client reads: your own items are just found.
-            var line = item.FromSelf || string.IsNullOrEmpty(item.From)
-                ? $"Received {painted}"
-                : $"Received {painted} from "
-                  + ALTTLArchipelago.Core.ApPalette.Paint(
-                      item.From, ALTTLArchipelago.Core.ApPalette.ForPlayer(false));
-
-            Toasts.Show(line, Toasts.Plain);
+            Checks.AdoptServerChecks(names);
+            SlotCache.MarkDirty();
+            Badges.RepaintSoon();
+            Logger.LogInfo($"checks: the server marked {fresh} more location(s) checked");
         };
         connection.Dropped += OnDropped;
 
@@ -712,6 +732,8 @@ public sealed class Plugin : BasePlugin
 
     internal static void TickChecks(float dt)
     {
+        Checks.TickWithheld();
+
         _sinceFlush += dt;
         if (!_checksDirty && _sinceFlush < FlushInterval) return;
 
@@ -977,6 +999,7 @@ public sealed class Plugin : BasePlugin
         Checks.Ledger.RestoreLocal(RunState.Beaten());
         Checks.Ledger.RestoreOwed(RunState.Owed());
         Checks.AdoptServerChecks(cache.Checked);
+        Checks.FileWithheld();
         FlushChecks();
 
         IsOffline = true;
@@ -1063,6 +1086,7 @@ public sealed class Plugin : BasePlugin
         // every login - but it is adopted as COLLECTED, never as acknowledged,
         // so anything earned offline stays owed.
         Checks.AdoptServerChecks(connection.ServerChecks());
+        Checks.FileWithheld();
         FlushChecks();
 
         // Written immediately, not left to the debounce. This is the moment

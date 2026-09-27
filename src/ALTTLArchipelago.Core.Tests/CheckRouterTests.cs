@@ -269,6 +269,21 @@ public class CheckRouterTests
     }
 
     [Fact]
+    public void ASolutionInMeansTheSlotIsBeaten()
+    {
+        // droha, 2026-09-25: beaten means at least one solution, whoever sent it.
+        var router = new CheckRouter(Seed());
+        Assert.Empty(router.BeatenBySolutions(_ => false));
+        Assert.Equal(new[] { "Books 3 - Beaten" },
+                     router.BeatenBySolutions(n => n == "Books 3 - Solution 2"));
+
+        // Already beaten, or a slot the seed gives no Beaten (slot 1): nothing.
+        Assert.Empty(router.BeatenBySolutions(
+            n => n is "Books 3 - Solution 1" or "Books 3 - Beaten"));
+        Assert.Empty(router.BeatenBySolutions(n => n == "Books 3 #2 - Solution 1"));
+    }
+
+    [Fact]
     public void ASlotWithNoSolutionLocationHasNoStars()
     {
         var data = Seed();

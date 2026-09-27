@@ -93,10 +93,12 @@ internal static class Checks
     /// <summary>
     /// Progress toward whichever goal this seed set, as done and needed.
     ///
-    /// ONE PLACE, because there were three. The credits gate, the beaten
-    /// toast and the offline summary each read LevelsBeaten against
-    /// LevelsToBeat directly; adding a second goal to three call sites is
-    /// how two of them end up telling the player a different number.
+    /// ONE PLACE, because there were three. The credits gate, the goal
+    /// counter on the level select and the offline summary each read
+    /// LevelsBeaten against LevelsToBeat directly; adding a second goal to
+    /// three call sites is how two of them end up telling the player a
+    /// different number. (The "Puzzle beaten x/n" toast is gone: droha,
+    /// 2026-09-25, the count is on the level select already.)
     /// </summary>
     internal static (int Done, int Needed, string Unit) GoalProgress(SlotData? slot)
     {
@@ -130,9 +132,18 @@ internal static class Checks
         _solutions.Clear();
     }
 
-    /// <summary>What the server says we have already checked.</summary>
+    /// <summary>
+    /// What the server says we have already checked - at login, offline from
+    /// the cache, or mid-session. A slot with a Solution in counts as beaten
+    /// (CheckRouter.BeatenBySolutions), so a Solution sent by anyone files the
+    /// slot's Beaten event too.
+    /// </summary>
     internal static void AdoptServerChecks(IEnumerable<string> names)
-        => _ledger.AdoptServerChecks(names);
+    {
+        _ledger.AdoptServerChecks(names);
+        if (_router == null) return;
+        foreach (var beaten in _router.BeatenBySolutions(_ledger.IsCollected)) Report(beaten);
+    }
 
     /// <summary>The player just launched this slot's card.</summary>
     internal static void EnterSlot(int slotIndex)
@@ -160,8 +171,25 @@ internal static class Checks
         Backgrounds.ApplyToLevel();
 
         SeedSolutionsFromSave(slotIndex);
+        FileWithheld();
 
         Plugin.Logger.LogInfo($"checks: now playing slot {slotIndex}");
+    }
+
+    /// <summary>
+    /// The running level is no open slot of this run, so nothing earned on it
+    /// is filed. Kept, the slot played before it took its checks: finishing
+    /// Wilting Flowers, which the seed does not contain, straight after Fruit
+    /// Stickers filed "Fruit Stickers - Solution 2" (DevTools boot, 2026-09-26).
+    /// </summary>
+    internal static void LeaveSlot(string what)
+    {
+        if (_currentSlot < 0) return;
+        Plugin.Logger.LogInfo(
+            $"checks: {what} is not an open slot of this run - left slot {_currentSlot}, nothing on it is filed");
+        _currentSlot = -1;
+        _auditedCount = 0;
+        _pendingSlot = -1;
     }
 
     /// <summary>
@@ -278,10 +306,16 @@ internal static class Checks
             var added = _solutions.Seed(slotIndex, ids);
             if (added > 0)
             {
+                // "will file Solution 4" on a 3-solution level read like an
+                // off-by-one (Kat's log, Figurines); say when none are left.
+                var have = _solutions.CountFor(slotIndex);
+                var total = _router == null ? 0 : _router.SolutionStars(slotIndex, _ => false).Item2;
+                var next = total > 0 && have >= total
+                    ? $"all {total} are found"
+                    : $"the next new arrangement will file Solution {have + 1}";
                 Plugin.Logger.LogInfo(
                     $"checks: slot {slotIndex} already had {added} solution(s) "
-                    + "found in an earlier session; the next new arrangement "
-                    + $"will file Solution {_solutions.CountFor(slotIndex) + 1}");
+                    + $"found in an earlier session; {next}");
             }
 
             FileSolutionsAlreadyEarned(slotIndex);
@@ -719,7 +753,9 @@ internal static class Checks
     /// still has something left to check. Earliest-with-work-left is the best
     /// guess available: it cannot distinguish two instances, but it never
     /// routes a check to an instance that is already finished, which is the
-    /// version of being wrong that loses progress.
+    /// version of being wrong that loses progress. A level with no open slot
+    /// leaves the slot (LeaveSlot), so its checks go nowhere rather than to
+    /// the level played before it.
     /// </summary>
     private static void EnsureSlot()
     {
@@ -753,7 +789,11 @@ internal static class Checks
                 if (remaining) { fallback = i; break; }
             }
 
-            if (fallback < 0) return;
+            if (fallback < 0)
+            {
+                LeaveSlot(levelId);
+                return;
+            }
 
             _currentSlot = fallback;
             _auditedCount = 0;
@@ -804,7 +844,14 @@ internal static class Checks
             return;
         }
 
-        if (!Earned(location)) return;
+        if (!Earned(location))
+        {
+            // Remembered, so it can be filed once the run can reach it. The
+            // game rebuilds the level unsolved on every load, so without this
+            // a later visit has nothing to sweep (see RunStateData.Withheld).
+            RunState.AddWithheld(location);
+            return;
+        }
         Report(location);
     }
 
@@ -880,7 +927,11 @@ internal static class Checks
         if (nth > 0)
         {
             var solution = _router.ForSolution(_currentSlot, nth);
-            if (solution != null && Earned(solution)) Report(solution);
+            if (solution != null)
+            {
+                if (Earned(solution)) Report(solution);
+                else RunState.AddWithheld(solution);
+            }
         }
 
         // A skip's completion is paid like any other here; the game's
@@ -949,10 +1000,11 @@ internal static class Checks
     /// was locked - so this is a logic leak rather than a harness artifact.
     ///
     /// WITHHOLDING IS SAFE FOR THE LOCATIONS THIS GUARDS, and that is the
-    /// whole reason it guards only those. A withheld part location is filed
-    /// by SweepAlreadySolved on the next visit once the ability arrives, and
-    /// a withheld solution by FileSolutionsAlreadyEarned; both already consult
-    /// this same predicate, and neither existed by accident. A check nobody
+    /// whole reason it guards only those. A withheld location is kept in the
+    /// run file and filed by FileWithheld once its ability arrives; a withheld
+    /// solution is also re-found by FileSolutionsAlreadyEarned from the save.
+    /// SweepAlreadySolved alone was never enough for a part: the game rebuilds
+    /// the level unsolved, so a later visit found nothing to sweep. A check nobody
     /// re-files is worse than a check sent early, so anything without a
     /// recovery path is deliberately NOT gated:
     ///
@@ -974,8 +1026,55 @@ internal static class Checks
 
         Plugin.Logger.LogInfo(
             $"checks: withheld {location} - the run cannot reach it yet; "
-            + "it will be filed on a later visit once the item arrives");
+            + "kept, and filed as soon as the item arrives");
         return false;
+    }
+
+    /// <summary>
+    /// An ability arrived: file what was withheld on the next check tick,
+    /// once the session is surely up (see FileWithheld).
+    /// </summary>
+    internal static void NoteAbilitiesChanged() => _withheldDirty = true;
+
+    private static bool _withheldDirty;
+
+    /// <summary>Called every check tick; files withheld checks after an ability arrived.</summary>
+    internal static void TickWithheld()
+    {
+        if (!_withheldDirty) return;
+        _withheldDirty = false;
+        FileWithheld();
+    }
+
+    /// <summary>
+    /// File every withheld check the run can now reach.
+    ///
+    /// A check solved out of reach is kept in the run file (Earned's caller
+    /// adds it) and filed here once its ability is held. Called at login,
+    /// offline start and slot entry, and after an ability arrives - never
+    /// directly from the item handler, which runs during a reconnect replay
+    /// before the new session's router exists.
+    /// </summary>
+    internal static void FileWithheld()
+    {
+        if (_router == null || _progress == null) return;
+        var waiting = RunState.Withheld();
+        if (waiting.Count == 0) return;
+
+        foreach (var location in new List<string>(waiting))
+        {
+            if (_ledger.IsCollected(location))
+            {
+                RunState.RemoveWithheld(location);
+                continue;
+            }
+            if (!WouldEarn(location)) continue;
+
+            Plugin.Logger.LogInfo(
+                $"checks: {location} was withheld; the run can reach it now - filing it");
+            RunState.RemoveWithheld(location);
+            Report(location);
+        }
     }
 
     /// <summary>Earned's answer without its log line, for a question asked often.</summary>
@@ -1028,31 +1127,23 @@ internal static class Checks
             // never lists them back at login.
             RunState.SetBeaten(_ledger.LocalForSaving());
 
-            // Beating a puzzle is the thing the credits gate counts, so it is
-            // worth saying out loud - it was silent before, which made
-            // finishing a level feel like nothing had happened.
-            // Reports the GOAL's number, not always the beaten one. On a
-            // star seed "Puzzle beaten (12/40)" counts something the run
-            // does not care about, and the credits would then open at a
-            // moment the toast never predicted.
-            // And the SENTENCE matches the unit too. It used to read
-            // "Puzzle beaten (3/20 starred)" on a star seed - a count of one
-            // thing wearing the name of another, which reads as a bug even
-            // though the numbers were right.
-            var (done, needed, unit) = GoalProgress(Plugin.Seed);
-            var did = unit == "starred" ? "Puzzle starred" : "Puzzle beaten";
-            Toasts.Show(needed > 0
-                ? $"{did} ({done}/{needed})"
-                : did, Toasts.Notice);
+            // No toast. droha, 2026-09-25: the beaten count is on the level
+            // select already ("i don't need to see beaten x/n").
             return;
         }
 
         if (!_ledger.Check(location)) return;      // already ours
 
         Plugin.Logger.LogInfo($"check: {location}");
-        Toasts.Show("Found " + ALTTLArchipelago.Core.ApPalette.Paint(
-                location, ALTTLArchipelago.Core.ApPalette.ForLocation()),
-            Toasts.Plain);
+        // Online, the server's own line for the send says what was found and
+        // who got it (Connection.ItemMessage). Offline there is no server to
+        // say anything, so the location alone is better than silence.
+        if (!Plugin.IsConnected)
+        {
+            Toasts.Show("Found " + ALTTLArchipelago.Core.ApPalette.Paint(
+                    location, ALTTLArchipelago.Core.ApPalette.ForLocation()),
+                Toasts.Plain);
+        }
         Plugin.QueueCheckFlush();
     }
 }

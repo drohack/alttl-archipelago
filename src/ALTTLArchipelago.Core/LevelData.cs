@@ -96,10 +96,10 @@ public sealed class LevelInfo
     /// SEPARATE FROM Source ON PURPOSE, and the four levels where they
     /// disagree are the reason. DLC1 Trophy Cabinet, DLC2 Water Glasses,
     /// Figurines and Bread Crusts all carry the game's randomizer flag, so
-    /// their source is "generator" - they repeat with a fresh seed like any
-    /// other generator. Source alone would therefore say nothing about
-    /// whether a player needs to own Seeing Stars to play them, and a seed
-    /// built on that would hand someone a level that cannot load.
+    /// their source is "generator". Source alone would therefore say nothing
+    /// about whether a player needs to own Seeing Stars to play them, and a
+    /// seed built on that would hand someone a level that cannot load. (They
+    /// do NOT repeat: see <see cref="LevelTable.FixedLayout"/>.)
     ///
     /// Empty rather than null so a table written before this field existed
     /// reads as base content, which is what it was.
@@ -131,6 +131,13 @@ public sealed class LevelInfo
     /// run three times before anyone counted.
     /// </summary>
     [JsonIgnore] public bool InDailyPool => IsDailyTidy || IsHolidayDaily;
+
+    /// <summary>
+    /// Drawn more than once into a run: a generator whose layout the seed
+    /// really changes. The apworld's LevelDef.repeatable says the same.
+    /// </summary>
+    [JsonIgnore]
+    public bool Repeatable => Source == "generator" && !LevelTable.FixedLayout.Contains(LevelId);
 
     /// <summary>
     /// The game's own C# class for this level - "Level" for the ordinary ones,
@@ -198,6 +205,23 @@ public sealed class LevelInfo
 
 public sealed class LevelTable
 {
+    /// <summary>
+    /// Generators whose layout ignores the seed, so they are drawn once.
+    ///
+    /// Kat's copies of these four had different seeds and identical layouts,
+    /// so a solve on one copy was also filed on the other from the shared
+    /// save row (2026-09-25). Mirrors apworld data.FIXED_LAYOUT; names.json
+    /// carries this list and an apworld test pins the two together.
+    /// </summary>
+    public static readonly IReadOnlySet<string> FixedLayout =
+        new HashSet<string>(StringComparer.Ordinal)
+        {
+            "DLC1 Trophy Cabinet",
+            "DLC2 Water Glasses",
+            "DLC2 Figurines",
+            "DLC2 Bread Crusts",
+        };
+
     [JsonPropertyName("gameVersion")] public string GameVersion { get; set; } = "";
     [JsonPropertyName("sweepSeed")] public int SweepSeed { get; set; }
     [JsonPropertyName("levels")] public List<LevelInfo> Levels { get; set; } = new();

@@ -129,6 +129,26 @@ public sealed class CheckRouter
         return (lit, total);
     }
 
+    /// <summary>
+    /// The Beaten events still uncollected on slots that already have a
+    /// Solution in. droha, 2026-09-25: "I wouldn't say 'beaten' is different
+    /// from solving at least 1 solution for the puzzle ... i would expect them
+    /// to be intertwined." A Solution sent for the slot by anyone - an admin's
+    /// /send_location, a collect - counts the puzzle as beaten, which a Beaten
+    /// event (no server address) could otherwise never be told.
+    /// </summary>
+    public IReadOnlyList<string> BeatenBySolutions(Func<string, bool> isCollected)
+    {
+        var owed = new List<string>();
+        for (int slot = 0; slot < _slot.Slots.Count; slot++)
+        {
+            var beaten = ForBeaten(slot);
+            if (beaten == null || isCollected(beaten)) continue;
+            if (SolutionStars(slot, isCollected).Lit > 0) owed.Add(beaten);
+        }
+        return owed;
+    }
+
     /// <summary>Is this a location the seed actually contains?</summary>
     public bool Exists(string? name)
         => !string.IsNullOrEmpty(name) && _slot.Requirements.ContainsKey(name!);

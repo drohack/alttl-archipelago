@@ -76,11 +76,13 @@ internal static class Credits
     }
 
     /// <summary>
-    /// The credits card was played through to the end.
+    /// The credits card was started.
     ///
-    /// Told by Checks, which sees the completion event. The credits are not a
-    /// slot and hold no checks, so everything else in that handler ignores
-    /// them - this is the one thing that cares.
+    /// Told by Checks, whose level watch sees the card load (the completion
+    /// event, minutes later, is only a backstop). The goal is reported as the
+    /// animation starts by design; the old log text "played to the end" said
+    /// otherwise (droha's 19:50:19 log). The credits are not a slot and hold
+    /// no checks, so this is the one thing that cares.
     /// </summary>
     internal static void NotePlayed()
     {
@@ -90,7 +92,7 @@ internal static class Credits
         // not be sendable for a long time (an offline finish), and the process
         // can end before it is.
         RunState.NoteCreditsPlayed();
-        Plugin.Logger.LogInfo("credits: played to the end");
+        Plugin.Logger.LogInfo("credits: started - the goal can be reported");
     }
 
     /// <summary>

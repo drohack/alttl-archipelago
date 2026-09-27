@@ -126,6 +126,24 @@ public sealed class RunStateData
     [JsonPropertyName("creditsPlayed")]
     public bool CreditsPlayed { get; set; }
 
+    /// <summary>
+    /// Part checks the player EARNED while the run could not reach them yet,
+    /// waiting to be filed once it can.
+    ///
+    /// A group solved without its ability is withheld (Checks.Earned) rather
+    /// than filed early. The promise was "it will be filed on a later visit
+    /// once the item arrives", but nothing remembered it: the game rebuilds a
+    /// level unsolved on every load, so a later visit found nothing to sweep.
+    /// Kat's Figurines "Sorting Items" was withheld on both copies and never
+    /// filed after Sticking arrived (2026-09-25). Kept here it survives the
+    /// level, the session and a relaunch.
+    ///
+    /// A missing key deserialises to an empty list, so older run files stay
+    /// valid.
+    /// </summary>
+    [JsonPropertyName("withheld")]
+    public List<string> Withheld { get; set; } = new();
+
     public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);
 
     /// <summary>
@@ -155,7 +173,7 @@ public sealed class RunStateData
     [JsonIgnore]
     public bool HasProgress
         => Owed.Count > 0 || SkipsUsed > 0 || TrapsSprung > 0
-           || Beaten.Count > 0 || HintPages.Count > 0;
+           || Beaten.Count > 0 || HintPages.Count > 0 || Withheld.Count > 0;
 
     /// <summary>One line for the log, when <see cref="HasProgress"/>.</summary>
     public string Summary()
@@ -163,7 +181,9 @@ public sealed class RunStateData
            + $"{SkipsUsed} skip(s) used, "
            + $"{TrapsSprung} trap(s) already sprung, "
            + $"{HintPages.Count} hint page(s) opened, "
-           + $"{Beaten.Count} puzzle(s) beaten";
+           + $"{Beaten.Count} puzzle(s) beaten"
+           // Last, so the harness's parse of the beaten count is unchanged.
+           + (Withheld.Count > 0 ? $", {Withheld.Count} part check(s) waiting on an ability" : "");
 
     /// <summary>Record that the credits were played. Idempotent.</summary>
     /// <returns>True when this changed something.</returns>
@@ -204,6 +224,19 @@ public sealed class RunStateData
         Beaten = new List<string>(beaten);
         return true;
     }
+
+    /// <summary>Remember a part check earned out of reach.</summary>
+    /// <returns>True when it was not already remembered.</returns>
+    public bool AddWithheld(string location)
+    {
+        if (string.IsNullOrEmpty(location) || Withheld.Contains(location)) return false;
+        Withheld.Add(location);
+        return true;
+    }
+
+    /// <summary>Forget one: filed, or collected some other way.</summary>
+    /// <returns>True when it was remembered.</returns>
+    public bool RemoveWithheld(string location) => Withheld.Remove(location);
 
     /// <returns>Always true - a spent Skip always changes the count.</returns>
     public bool SpendSkip()

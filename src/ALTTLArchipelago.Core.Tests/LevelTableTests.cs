@@ -48,9 +48,10 @@ public class LevelTableTests
 
         // 20, not 16: four DLC levels carry the game's own randomizer flag
         // (DLC1 Trophy Cabinet, DLC2 Water Glasses, Figurines and Bread
-        // Crusts), so they are generators like any other and repeat with a
-        // fresh seed. That is why generator is not simply the base sixteen.
+        // Crusts), so their source is generator. They are FIXED_LAYOUT: the
+        // seed does not change them, so they are drawn once.
         Assert.Equal(20, bySource["generator"]);
+        Assert.Equal(16, Table().Levels.Count(l => l.Repeatable));
 
         // The DLC sources, which exist so a yaml can weight each DLC
         // separately. A randomizable DLC level is NOT here - its source says

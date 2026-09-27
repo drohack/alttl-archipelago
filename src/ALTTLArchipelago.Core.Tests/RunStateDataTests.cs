@@ -298,4 +298,33 @@ public class RunStateDataTests
         Assert.True(reloaded.CreditsPlayed);
         Assert.Equal(state.Summary(), reloaded.Summary());
     }
+
+    /// <summary>
+    /// Kat's Figurines "Sorting Items" was withheld and never filed: nothing
+    /// remembered it past the level (2026-09-25).
+    /// </summary>
+    [Fact]
+    public void AWithheldCheckSurvivesTheRoundTripUntilFiled()
+    {
+        var state = new RunStateData();
+        Assert.True(state.AddWithheld("Figurines (Seeing Stars) - Sorting Items"));
+        Assert.False(state.AddWithheld("Figurines (Seeing Stars) - Sorting Items"));
+        Assert.True(state.HasProgress);
+        Assert.EndsWith("0 puzzle(s) beaten, 1 part check(s) waiting on an ability", state.Summary());
+
+        var reloaded = RunStateData.FromJson(state.ToJson())!;
+        Assert.Equal(new[] { "Figurines (Seeing Stars) - Sorting Items" }, reloaded.Withheld);
+
+        Assert.True(reloaded.RemoveWithheld("Figurines (Seeing Stars) - Sorting Items"));
+        Assert.False(reloaded.RemoveWithheld("Figurines (Seeing Stars) - Sorting Items"));
+        Assert.Empty(reloaded.Withheld);
+    }
+
+    [Fact]
+    public void ARunFileWithoutWithheldLoadsEmpty()
+    {
+        var loaded = RunStateData.FromJson("{\"owed\":[],\"beaten\":[\"A - Beaten\"]}")!;
+        Assert.Empty(loaded.Withheld);
+        Assert.DoesNotContain("waiting on an ability", loaded.Summary());
+    }
 }

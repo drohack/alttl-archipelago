@@ -133,8 +133,34 @@ internal static class DailyGuard
     [HarmonyPostfix]
     private static void AfterIsDailyTidy(ref bool __result)
     {
-        if (__result && Track.Active) __result = false;
+        if (__result && Track.Active && !_hintsFromTheLevel) __result = false;
     }
+
+    /// <summary>
+    /// The one question the run lets the level answer truly: which hint pages.
+    ///
+    /// HintMenu.SetHints reads IsDailyTidy and then HintImages (DevTools
+    /// xrefs, 2026-09-25) - a daily draws its randomizer's generic hints, a
+    /// hand-made level its own solution. With IsDailyTidy forced false for the
+    /// whole run, every SEEDED generator slot got the hand-made page: droha,
+    /// on a randomized Calendar, was shown the hand-made Calendar's solution.
+    /// Only for this call; the completion routing never sees the true value.
+    ///
+    /// No slot check, because there cannot be one: SetHints runs as the card
+    /// is clicked, before the run knows which slot is starting (measured: slot
+    /// -1 at that moment). None is needed either: all 16 levels whose real
+    /// IsDailyTidy is true are generators (levels.json), and a run launches
+    /// every generator with its baked seed.
+    /// </summary>
+    private static bool _hintsFromTheLevel;
+
+    [HarmonyPatch(typeof(HintMenu), nameof(HintMenu.SetHints))]
+    [HarmonyPrefix]
+    private static void BeforeSetHints() => _hintsFromTheLevel = Track.Active;
+
+    [HarmonyPatch(typeof(HintMenu), nameof(HintMenu.SetHints))]
+    [HarmonyPostfix]
+    private static void AfterSetHints() => _hintsFromTheLevel = false;
 
     [HarmonyPatch(typeof(LevelInterface), nameof(LevelInterface.IsHolidayDaily),
                   MethodType.Getter)]
@@ -185,6 +211,11 @@ internal static class DailyGuard
     private const int RescueAttempts = 3;
 
     private static float _rescueIn = -1f;
+
+    /// <summary>Seconds left to open the track once the title is up, or 0.</summary>
+    private static float _trackAfterTitle;
+    private const float TrackAfterTitlePatience = 5f;
+    private static float _titleSettled;
     private static float _rescueWaited;
     private static int _attempts;
     private static bool _gaveUp;
@@ -256,6 +287,8 @@ internal static class DailyGuard
     /// </summary>
     internal static void TickRescue(float dt)
     {
+        TickTrackAfterTitle(dt);
+
         if (!Track.Active)
         {
             _rescueIn = -1f;
@@ -309,6 +342,53 @@ internal static class DailyGuard
         Rescue(gm);
     }
 
+    /// <summary>
+    /// The second half of the nothing-playable exit: once the title is up and
+    /// still, open the track (see Rescue).
+    /// </summary>
+    private static void TickTrackAfterTitle(float dt)
+    {
+        if (_trackAfterTitle <= 0f) return;
+        _trackAfterTitle -= dt;
+
+        try
+        {
+            var gm = GameManager.Instance;
+            var state = gm?.GameState == null ? "" : gm.GameState.GetIl2CppType().Name;
+            // THE MENU'S OWN TRANSITION TOO. GameManager.IsTransitioning says
+            // nothing about the title menu sliding in, and a track opened half
+            // a second into it launched nothing (measured 2026-09-25); the
+            // same route taken seconds later worked.
+            var mm = gm?.menuManager;
+            var menuBusy = mm == null || mm.IsTransitioning
+                           || mm.ActiveMenu == null || !mm.ActiveMenu.Interactive;
+            if (gm == null || state != "Title_GameState" || gm.IsTransitioning || menuBusy)
+            {
+                _titleSettled = 0f;
+                if (_trackAfterTitle <= 0f)
+                {
+                    Plugin.Logger.LogWarning(
+                        "daily guard: the title never settled; the track was not opened - press Levels");
+                }
+                return;
+            }
+
+            // A beat on a still title, as a player would take.
+            _titleSettled += dt;
+            if (_titleSettled < 0.5f) return;
+
+            _trackAfterTitle = 0f;
+            _titleSettled = 0f;
+            Plugin.Logger.LogInfo("daily guard: title is up - opening the track");
+            gm.SetGameState<Levels_GameState>(null, false);
+        }
+        catch (Exception e)
+        {
+            _trackAfterTitle = 0f;
+            Plugin.Logger.LogWarning($"daily guard: could not open the track: {e.Message}");
+        }
+    }
+
     private static bool InDailyState()
     {
         try
@@ -353,8 +433,18 @@ internal static class DailyGuard
             }
 
             Plugin.Logger.LogInfo(
-                "daily guard: nothing playable to open, showing the track instead");
-            gm.SetGameState<Levels_GameState>(null, false);
+                "daily guard: nothing playable to open, showing the track by way of the title");
+
+            // BY WAY OF THE TITLE, NOT STRAIGHT TO THE TRACK. From the Daily
+            // Tidy state, a track opened directly - forced Levels_GameState,
+            // and GoToLevelSelectForLevel alike - drew with no Close button,
+            // and its cards selected but never launched: measured 2026-09-25
+            // after Procedural Grid Puzzle with nothing left to play. The
+            // title and then the track, the order a player takes, launched
+            // the same card at once. TickRescue opens the track once the
+            // title has settled.
+            _trackAfterTitle = TrackAfterTitlePatience;
+            gm.SetGameState<Title_GameState>(null, false);
         }
         catch (Exception e)
         {

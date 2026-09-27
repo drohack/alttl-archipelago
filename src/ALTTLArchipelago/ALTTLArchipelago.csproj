@@ -104,6 +104,12 @@
       <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.Physics2DModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- Animator: a scrub object's picture is drawn by its animationToScrub,
+         so AbilityLocks greys that one. -->
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.AnimationModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
@@ -138,6 +144,12 @@
     </Reference>
     <!-- ReInput, for switching the game's input maps off while a text box
          has focus: typing otherwise moved the mouse cursor. -->
+    <!-- Steamworks.SteamUserStats, to keep achievements and stats off while
+         the mod is loaded (SteamAchievements). -->
+    <Reference Include="com.rlabrecque.steamworks.net">
+      <HintPath>$(GameDir)\BepInEx\interop\com.rlabrecque.steamworks.net.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="Rewired_Core">
       <HintPath>$(GameDir)\BepInEx\interop\Rewired_Core.dll</HintPath>
       <Private>false</Private>

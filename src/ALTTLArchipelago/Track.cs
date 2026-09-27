@@ -227,11 +227,11 @@ internal static class Track
     }
 
     /// <summary>
-    /// Whether the credits card was on the track last time it was built.
+    /// Whether the Credits item was held when the track was last built.
     ///
     /// The Credits item can arrive at any moment, and nothing else would
-    /// trigger a rebuild - so the card did not show up until something else
-    /// happened to force one, which in play meant restarting the game.
+    /// trigger a rebuild - so the card kept its locked drawing until something
+    /// else happened to force one, which in play meant restarting the game.
     /// </summary>
     private static bool _creditsShown;
 
@@ -241,7 +241,7 @@ internal static class Track
         if (Inventory.HasCredits == _creditsShown) return;
 
         _creditsShown = Inventory.HasCredits;
-        Plugin.Logger.LogInfo("track: the credits card is now on the track");
+        Plugin.Logger.LogInfo("track: the Credits item arrived; redrawing the credits card");
         Rebuild();
     }
 
@@ -888,12 +888,19 @@ internal static class Track
                 _plan.Add(slot);
             }
 
-            // The finale, once the Credits item has arrived. Appended rather
-            // than being one of the seed's slots, because it is not a puzzle
-            // and holds no checks - it is what the run ends with, and it is on
-            // the track at all only once the item granting it has been found.
+            // The finale, ALWAYS. Appended rather than being one of the
+            // seed's slots, because it is not a puzzle and holds no checks -
+            // it is what the run ends with.
+            //
+            // On the track from the start, drawn locked (the game's outline)
+            // until it is playable. It used to appear only once the Credits
+            // item arrived, and then already filled in: droha, 2026-09-26,
+            // "the credits page was not available on Kat's level select page
+            // till its item was found ... It should always show the outline
+            // version." The drawing follows playability (the completion row
+            // below, in SetLevels' first loop); the click follows IsRefused.
             var credits = CreditsLevel(manager);
-            if (credits != null && Inventory.HasCredits)
+            if (credits != null)
             {
                 // A DIVIDER FIRST, so the finale reads as its own chapter.
                 //
@@ -1301,6 +1308,49 @@ internal static class Track
         return Divider;
     }
 
+    /// <summary>Redraw a shut pack's card locked after the game draws it (DrawLockedIfShut).</summary>
+    [HarmonyPatch(typeof(LevelIcon), nameof(LevelIcon.SetCurrentIcon))]
+    [HarmonyPostfix]
+    private static void AfterSetCurrentIcon(LevelIcon __instance) => DrawLockedIfShut(__instance);
+
+    [HarmonyPatch(typeof(LevelIcon), nameof(LevelIcon.RefreshIconAppearance))]
+    [HarmonyPostfix]
+    private static void AfterRefreshIconAppearance(LevelIcon __instance) => DrawLockedIfShut(__instance);
+
+    /// <summary>
+    /// A card in a pack not opened yet draws locked, whatever its save row says.
+    ///
+    /// The game picks a card's art from the LEVEL's save row, and every copy of
+    /// a generator in the run shares one level: droha, 2026-09-25, on a
+    /// locked Pack 11 whose Microscope #3 and Clock #3 drew in full colour
+    /// because Microscope and Clock were open in earlier packs. A click there
+    /// was already refused (IsRefused reads the run's pack state); only the
+    /// drawing lied. The locked art is the icon's own defaultLevelIcon, the one
+    /// the game draws on a card with no save row. Not yet checked in game.
+    /// </summary>
+    private static void DrawLockedIfShut(LevelIcon icon)
+    {
+        try
+        {
+            if (_state == null || icon == null) return;
+            var slot = SlotAt(CardStars.PositionOf(icon));
+            if (slot < 0 || _state.IsOpen(slot)) return;
+
+            var locked = icon.defaultLevelIcon;
+            var open = icon.unlockedLevelIcon;
+            if (locked == null || open == null || !open.activeSelf) return;
+
+            open.SetActive(false);
+            locked.SetActive(true);
+            icon.currentIcon = locked;
+        }
+        catch (Exception e)
+        {
+            // Cosmetic. The click guard is what keeps the card shut.
+            Plugin.Logger.LogWarning($"track: could not draw a shut card locked: {e.Message}");
+        }
+    }
+
     /// <summary>
     /// Swallow a click on a pack divider completely.
     ///
@@ -1358,17 +1408,25 @@ internal static class Track
         // it could not place, which is the conservative answer.
         if (planned == Divider) return true;
 
-        // The credits card is not a slot. It is playable only once enough
-        // puzzles have actually been beaten.
+        // The credits card is not a slot. It is playable only once the
+        // Credits item is held AND enough puzzles have been beaten. It is on
+        // the track from the start now, so the item has to be asked here too.
         if (planned == CreditsCard)
         {
             var left = Credits.Remaining(Plugin.Seed);
-            if (left <= 0) return false;
+            var held = Inventory.HasCredits;
+            if (held && left <= 0) return false;
 
             if (announce)
             {
-                Plugin.Logger.LogInfo($"track: credits locked, {left} puzzle(s) to go");
-                Toasts.Show($"Beat {left} more puzzle(s) to reach the credits", Toasts.Notice);
+                var why = !held && left > 0
+                    ? $"Find the Credits item and beat {left} more puzzle(s) to reach the credits"
+                    : !held
+                        ? "Find the Credits item to reach the credits"
+                        : $"Beat {left} more puzzle(s) to reach the credits";
+                Plugin.Logger.LogInfo(
+                    $"track: credits locked ({(held ? "item held" : "no Credits item")}, {left} puzzle(s) to go)");
+                Toasts.Show(why, Toasts.Notice);
             }
             return true;
         }
@@ -1490,6 +1548,7 @@ internal static class Track
         // reload and a stable seed derived from its index.
         if (slot < 0)
         {
+            Checks.LeaveSlot($"level {target}");
             if (IsGenerator(manager, target))
             {
                 var stable = unchecked((int)(target * 2654435761u));

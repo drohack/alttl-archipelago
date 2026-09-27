@@ -486,7 +486,14 @@ internal static class Navigation
 
     [HarmonyPatch(typeof(MainMenu), nameof(MainMenu.LevelSelect))]
     [HarmonyPrefix]
-    private static bool BeforePauseLevelSelect() => GoToTrack("pause menu");
+    private static bool BeforePauseLevelSelect()
+    {
+        // The credits end through their own routine here too, or they play
+        // on under the track exactly as they did under the title (see
+        // EndCreditsIfRunning). Their ending then lands on the track itself.
+        if (EndCreditsIfRunning("pause menu Levels")) return false;
+        return GoToTrack("pause menu");
+    }
 
     /// <summary>
     /// Let the GAME open the level select after a puzzle.
@@ -593,6 +600,87 @@ internal static class Navigation
     }
 
     /// <summary>
+    /// End the credits with the game's own Credits.CreditsComplete, if they
+    /// are what is running. True when it did.
+    ///
+    /// Leaving the credits any other way left them playing under whatever
+    /// came next: droha, 2026-09-25, "when i exit out of the credits, and hit
+    /// play from the main menu, or go to a level in level select, the
+    /// credits still playing". Both pause-menu routes out, Exit and Levels,
+    /// come through here. The ending asks for the next level, which
+    /// AfterGetNextLevelIndex answers with the run's track.
+    ///
+    /// Found through the ACTIVE LEVEL first, then a scene search, then one
+    /// that includes inactive objects: the first version only tried
+    /// FindObjectOfType, which skips inactive objects, and droha's exit fell
+    /// through to the forced title with the credits still on screen.
+    /// </summary>
+    private static bool EndCreditsIfRunning(string which)
+    {
+        if (!Track.Active) return false;
+        var active = GameManager.Instance?.levelManager?.ActiveLevelInterface;
+        if (active?.IsCredits != true) return false;
+
+        var (credits, via) = FindCredits(active);
+        if (credits == null)
+        {
+            Plugin.Logger.LogWarning(
+                $"navigation: {which} during the credits, but no Credits object was "
+                + "found - the credits may keep playing");
+            return false;
+        }
+
+        Plugin.Logger.LogInfo(
+            $"navigation: {which} during the credits -> Credits.CreditsComplete ({via})");
+        try
+        {
+            credits.CreditsComplete();
+        }
+        catch (Exception e)
+        {
+            // EXPECTED, AND HARMLESS. CreditsComplete asks for the next level
+            // mid-call; AfterGetNextLevelIndex answers by opening the track
+            // right there, and the rest of the game's own routine then trips
+            // over what it tore down: a NullReferenceException raised inside
+            // the native Credits.CreditsComplete (measured 2026-09-25). The
+            // credits have ended and the track is whole (Close button, cards
+            // launch).
+            Plugin.Logger.LogInfo(
+                $"navigation: the credits ended; the game's own ending tripped afterwards ({e.GetType().Name})");
+        }
+        return true;
+    }
+
+    /// <summary>The running Credits, and how it was found, or (null, "").</summary>
+    private static (global::Credits?, string) FindCredits(LevelInterface active)
+    {
+        try
+        {
+            var viaLevel = active.Level?.TryCast<global::Credits>();
+            if (viaLevel != null) return (viaLevel, "the active level");
+        }
+        catch
+        {
+            // Fall through to the searches.
+        }
+
+        var inScene = UnityEngine.Object.FindObjectOfType<global::Credits>();
+        if (inScene != null) return (inScene, "a scene search");
+
+        foreach (var obj in UnityEngine.Object.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<global::Credits>()))
+        {
+            var one = obj == null ? null : obj.TryCast<global::Credits>();
+            // A prefab asset is in no scene; only a live copy is the credits.
+            if (one != null && one.gameObject != null && one.gameObject.scene.IsValid())
+            {
+                return (one, "a search including inactive objects");
+            }
+        }
+        return (null, "");
+    }
+
+    /// <summary>
     /// Make the pause menu's Exit leave the level.
     ///
     /// MEASURED, not guessed. A probe on MainMenu.ExitGame was shipped first
@@ -631,6 +719,15 @@ internal static class Navigation
 
             var gm = GameManager.Instance;
             if (gm == null) return true;
+
+            // THE CREDITS END THROUGH THEIR OWN ROUTINE. The credits scene has
+            // no ExitGameToTitle, so this fell to the forced title state
+            // below, and the credits sequence kept running under it: droha,
+            // 2026-09-25, "when i exit out of the credits, and hit play from
+            // the main menu, or go to a level in level select, the credits
+            // still playing". Credits.CreditsComplete is the game's own end of
+            // the credits. See EndCreditsIfRunning.
+            if (EndCreditsIfRunning("pause menu Exit")) return false;
 
             // The game's OWN route out, not a forced state change.
             //

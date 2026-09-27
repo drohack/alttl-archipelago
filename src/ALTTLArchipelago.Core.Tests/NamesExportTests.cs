@@ -91,6 +91,8 @@ public class NamesExportTests
                 + "These strings are Archipelago location names: changing one breaks "
                 + "seeds already in flight.",
             ["maxGeneratorInstances"] = LocationNames.MaxGeneratorInstances,
+            // Pinned against apworld data.FIXED_LAYOUT by test_tables.
+            ["fixedLayout"] = LevelTable.FixedLayout.OrderBy(s => s, StringComparer.Ordinal).ToList(),
             ["credits"] = LocationNames.Credits,
             // Pinned across languages for the same reason the location names
             // are: the mod matches these as literal strings, so a mismatch is

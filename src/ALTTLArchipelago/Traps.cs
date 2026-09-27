@@ -197,6 +197,34 @@ internal static class Traps
     }
 
     /// <summary>
+    /// Reset the running puzzle the way a cat does, without the cat: for
+    /// AbilityLocks' levels that reload when their ability arrives
+    /// (ObjectLock.ResetOnUnlockLevels). Nothing happens while the level is
+    /// still loading or transitioning - a fresh load already has the ability.
+    /// </summary>
+    internal static void ResetQuietly(string why)
+    {
+        try
+        {
+            var manager = GameManager.Instance?.levelManager;
+            var active = manager?.ActiveLevelInterface;
+            var level = active?.Level;
+            if (manager == null || active == null || level == null
+                || !active.LevelIsLoaded || active.IsTransitioning) return;
+
+            CancelAnimations(level);
+            manager.ResetLevel();
+            AbilityLocks.HoldDim();
+            Toasts.Show("The puzzle restarts with its new ability", Toasts.Notice);
+            Plugin.Logger.LogInfo($"reset: {why}");
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"reset: could not reset: {e.Message}");
+        }
+    }
+
+    /// <summary>
     /// Undo the puzzle with the game's own reset.
     ///
     /// The paw is ours and lives on our own overlay canvas rather than in the

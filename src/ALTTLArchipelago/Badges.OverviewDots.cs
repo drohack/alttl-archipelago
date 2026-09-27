@@ -75,8 +75,12 @@ internal static partial class Badges
             var dot = strip.GetChild(i);
             if (dot == null) continue;
 
+            // A pack not opened yet keeps the game's own locked look instead of
+            // our red, which is also what a card locked by an ability gets.
+            // droha, 2026-09-25: "it's hard to tell how many packs you actually
+            // have open" - wanted an empty box on the strip for those packs.
             var slot = Track.SlotAt(i);
-            if (slot < 0)
+            if (slot < 0 || !state.IsOpen(slot))
             {
                 RemoveChild(dot, DotName);
                 continue;

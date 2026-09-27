@@ -18,6 +18,34 @@ public class AbilityStateTests
         };
     }
 
+    /// <summary>
+    /// DevTools `withhold:` - one seed holding everything stands in for any
+    /// held set in a hand test (droha, 2026-09-26: "can't you just devtools
+    /// it?"). A starting ability can be withheld too.
+    /// </summary>
+    [Fact]
+    public void AWithheldAbilityLocksItsClassUntilReleased()
+    {
+        var state = new AbilityState(Seed(true, "Ordering"));
+        state.Grant("Stacking");
+        Assert.False(state.IsClassLocked("Stackables"));
+        Assert.False(state.IsClassLocked("DraggablesOrdered"));
+
+        var before = state.Version;
+        Assert.True(state.Withhold(new[] { "Stacking", "Ordering" }));
+        Assert.NotEqual(before, state.Version);
+        Assert.True(state.IsClassLocked("Stackables"));
+        Assert.True(state.IsClassLocked("DraggablesOrdered"));
+
+        var same = state.Version;
+        Assert.False(state.Withhold(new[] { "Ordering", "Stacking" }));
+        Assert.Equal(same, state.Version);
+
+        Assert.True(state.Withhold(Array.Empty<string>()));
+        Assert.False(state.IsClassLocked("Stackables"));
+        Assert.False(state.IsClassLocked("DraggablesOrdered"));
+    }
+
     [Fact]
     public void AClassIsLockedUntilItsAbilityArrives()
     {

@@ -71,7 +71,7 @@ internal static class CardStars
     /// card's own parents: this runs for every card on every build, which is
     /// too often to search the scene each time.
     /// </summary>
-    private static int PositionOf(LevelIcon icon)
+    internal static int PositionOf(LevelIcon icon)
     {
         LevelSelect? select = null;
         for (var t = icon.transform; t != null && select == null; t = t.parent)

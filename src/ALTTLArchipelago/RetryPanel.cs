@@ -21,9 +21,9 @@ namespace ALTTLArchipelago;
 /// route, and after that route the pause menu's Exit does nothing: measured
 /// 2026-09-25 on Seed Pods, where Exit never reached MainMenu.ExitGame, while
 /// after Post-It Notes (a generator, straight on by design) it worked. So a
-/// panel level with nothing left to find shows its panel and Tick presses the
-/// arrow as soon as it is up - ReplayMenu.NextLevel, the route every release
-/// gate has driven.
+/// panel level with nothing left to find shows its panel and Tick presses its
+/// arrow as soon as it is up - a pointer click on its Continue Button, the one
+/// a player clicks.
 /// </summary>
 [HarmonyPatch]
 internal static class RetryPanel
@@ -95,18 +95,83 @@ internal static class RetryPanel
         var state = gm == null || gm.GameState == null ? "" : gm.GameState.GetIl2CppType().Name;
         if (state != "RetryUI_GameState") return;
 
-        // Found even while inactive, the way DevTools' `next` finds it: the
-        // arrow a player presses on this panel runs ReplayMenu.NextLevel.
-        var menu = Navigation.FindEvenIfInactive<ReplayMenu>();
+        // THE PANEL ON SCREEN IS THE RetryMenu, and it is pressed the way a
+        // player presses it: a pointer click on its Continue Button.
+        //
+        // Pressing ReplayMenu.NextLevel, a menu that is not shown, moved on
+        // and left this panel up over the next puzzle (droha, 2026-09-25:
+        // Candy's last solution, then Bones). Calling RetryMenu.NextLevel
+        // directly moved on too, and STILL left it up: measured 2026-09-25 on
+        // Paper Plane Supplies, RetryMenu active at alpha 1 over Broken Eggs.
+        // The hiding lives in the button's pointer handling, not in
+        // NextLevel; a pointer click on the same button advanced and hid it.
+        var menu = UnityEngine.Object.FindObjectOfType<RetryMenu>();
         if (menu == null) return;
+
+        // FULLY SHOWN, NOT JUST PRESENT. Pressed 0.4 s into RetryUI, while the
+        // panel was still animating in, the game advanced and the panel's show
+        // then finished over the next puzzle - measured 2026-09-25, Tea
+        // Cabinet then Shells, with the Continue Button pressed the way a
+        // player does. A player clicks a panel that has stopped moving.
+        // Minimized counts: the panel shrinks to a bar when the pointer is
+        // away, and a panel that did so before the press must still be pressed.
+        bool settled;
+        try { settled = (menu.Showing || menu.Minimized) && !menu.IsTransitioning; }
+        catch { settled = true; }
+        if (!settled)
+        {
+            _panelUp = -1f;
+            return;
+        }
 
         if (_panelUp < 0f) _panelUp = _waited;
         if (_waited - _panelUp < PressAfter) return;
 
         var slot = _continueSlot;
         _continueSlot = -1;
-        Plugin.Logger.LogInfo($"retry panel: slot {slot} has nothing left to find - pressing the arrow");
+        if (PressContinue(menu))
+        {
+            Plugin.Logger.LogInfo($"retry panel: slot {slot} has nothing left to find - pressing the arrow");
+            return;
+        }
+
+        Plugin.Logger.LogWarning(
+            $"retry panel: slot {slot} - no Continue Button to press; calling NextLevel and hiding the panel");
         menu.NextLevel();
+        menu.HideMenu(false);
+    }
+
+    /// <summary>
+    /// A pointer click on the panel's Continue Button, through the
+    /// EventSystem - down, up, click - as DevTools' press: does it.
+    /// </summary>
+    private static bool PressContinue(RetryMenu menu)
+    {
+        try
+        {
+            foreach (var button in menu.GetComponentsInChildren<UnityEngine.UI.Button>(false))
+            {
+                if (button == null || button.gameObject == null) continue;
+                if (button.gameObject.name != "Continue Button") continue;
+
+                var data = new UnityEngine.EventSystems.PointerEventData(
+                    UnityEngine.EventSystems.EventSystem.current)
+                {
+                    button = UnityEngine.EventSystems.PointerEventData.InputButton.Left,
+                };
+                UnityEngine.EventSystems.ExecuteEvents.Execute(
+                    button.gameObject, data, UnityEngine.EventSystems.ExecuteEvents.pointerDownHandler);
+                UnityEngine.EventSystems.ExecuteEvents.Execute(
+                    button.gameObject, data, UnityEngine.EventSystems.ExecuteEvents.pointerUpHandler);
+                return UnityEngine.EventSystems.ExecuteEvents.Execute(
+                    button.gameObject, data, UnityEngine.EventSystems.ExecuteEvents.pointerClickHandler);
+            }
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"retry panel: pressing Continue failed: {e.Message}");
+        }
+        return false;
     }
 
     private static void Log(string line)
