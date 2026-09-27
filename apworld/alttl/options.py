@@ -171,11 +171,11 @@ class MechanicCoverage(Range):
     and brings in more hand-made puzzles; 4 uses up every jigsaw puzzle in the
     base game and 5 every drawer one, so every run would contain all of them.
 
-    WITHOUT DLC the scarce ones are stacking, containers, drawers and jigsaws.
-    Turning on a DLC that brings a generator for one of those takes it off the
-    list rather than reserving puzzles for something no longer rare: Cupboards
-    and Drawers brings a drawer generator, Seeing Stars a jigsaw one. Seeing
-    Stars also adds distributing, which nothing generates.
+    The scarce ones are stacking, containers, drawers and jigsaws, with or
+    without the DLCs: their four puzzles the game calls randomizable keep the
+    same layout whatever the seed, so each appears once and cannot stand in
+    for the hand-made ones. Seeing Stars also adds distributing, which
+    nothing generates.
 
     ABOVE ZERO, EVERY MECHANIC IS GUARANTEED AT LEAST ONE PUZZLE - not only
     the scarce ones. The rest come from generators and turn up on their own

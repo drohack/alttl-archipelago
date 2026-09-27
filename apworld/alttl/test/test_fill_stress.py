@@ -642,12 +642,12 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         ("DLC1 Craft Supplies", "Highlighters"),
         ("DLC1 Craft Supplies", "Paints"),
         ("DLC1 Fossils", "Dragonfly Fossil"),
-        ("DLC1 Fossils", "Fern Fossil"),
         ("DLC1 Fossils", "Fish Fossil"),
         ("DLC1 Fossils", "Leaf Fossil"),
         ("DLC1 Fossils", "Shell Fossil"),
-        ("DLC1 Fossils", "Snake Fossil"),
-        ("DLC1 Game Pieces", "Heart"),
+        # Fern and Snake Fossil, Game Pieces' Heart and Jewelry Box's Rings
+        # LEFT on 2026-09-27: droha did each locks on with Drawer revoked, so
+        # their Drawer edges were relaxed and each needs one ability.
         ("DLC1 Jewelry Box", "Locket"),
         ("DLC1 Sewing Box", "Buttons Sortable"),
         ("DLC1 Sewing Box", "Safety Pin"),
@@ -691,6 +691,35 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # stick (Sticking); holding only Sticking the stickers could be peeled
         # but "i couldn't hold them to stick back on easily".
         ("Fruit Stickers", "Match Stickers"),
+        # Water Glasses, 2026-09-25 in a 0.4.1 multiworld: holding Ordering
+        # but not Sticking, the water levels could not be touched until the
+        # ice cubes (Sorting, Sticking) moved.
+        ("DLC2 Water Glasses", "Water Level (Indexable)"),
+        # 2026-09-25, 0.4.1 multiworld, both without Drawer: Kat could not
+        # finish Sewing Box's Curved Needles (Containers), and droha could not
+        # place Jewelry Box's rings (Ordering) past the locked drawers' items.
+        ("DLC1 Sewing Box", "Curved Needles"),
+        # 2026-09-26, droha, locks on with Drawer revoked: Material Drawers is
+        # "impossible without the drawers as you need to put the items in
+        # them", and the game's hint shows every item inside the five drawers.
+        # The containable is held by the Drawer Controller, so it gained
+        # Drawer on top of its Containers.
+        ("DLC2 Material Drawers", "Containable"),
+        # 2026-09-26, droha, the drawer and door matrix (one ability revoked
+        # at a time, then given back). Jewelry Box with Drawer held and
+        # Ordering revoked: "rings are greyed out, can't complete anything as
+        # it needs to be completed to get the first drawer open", so the five
+        # drawer groups need the rings (Ordering) too. Sewing Box with Drawer
+        # held and Containers revoked: these three solved only once
+        # Containers came back.
+        ("DLC1 Jewelry Box", "Brooches"),
+        ("DLC1 Jewelry Box", "Cameos"),
+        ("DLC1 Jewelry Box", "Gold Bars"),
+        ("DLC1 Jewelry Box", "Radiolaria"),
+        ("DLC1 Jewelry Box", "Watches"),
+        ("DLC1 Sewing Box", "Small Spools"),
+        ("DLC1 Sewing Box", "Supplies"),
+        ("DLC1 Sewing Box", "Top Drawer"),
     }
 
     def test_only_the_known_groups_need_two_abilities(self):
@@ -857,7 +886,22 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # notALocation (tools/probe-solved-at-load.py).
         # Now (43, 151): the base game's two Workbench parts left (see above).
         # Now (43, 149): the base game's two Fruit Stickers parts (see above).
-        self.assertEqual((43, 149), split(base + dlc1))
+        # Now (42, 150): Daggers' loose daggers gained Drawer - droha and
+        # Kat, 2026-09-25, could not place them without the drawer's Box.
+        # Now (41, 151): Lunch Tray's Tray Organizer gained Drawer - Kat,
+        # holding no Drawer, could not finish it (the tray drawer holds it).
+        # Now (40, 152): Sewing Box's Top Drawer gained Drawer - Kat, holding
+        # no Drawer, could not finish it. Curved Needles and Jewelry Box's
+        # Rings gained Drawer too, but were gated already.
+        # Now (40, 150): Daggers' two gated parts are notALocation - the level
+        # is all or nothing (droha).
+        # Now (39, 151): Tea Cabinet's Items Placements gained Gadgets - droha,
+        # 2026-09-26, could not put the items behind the locked doors.
+        # Now (43, 147): four groups relaxed to free on droha's word after he
+        # did them locks on with Drawer revoked (2026-09-26/27): Lunch Tray's
+        # Tray Organizer and Broccoli, Sewing Box's Large Spools and Game
+        # Pieces' Center Tiles.
+        self.assertEqual((43, 147), split(base + dlc1))
         # Seeing Stars leans on multiple solutions rather than on containers,
         # so proportionally more of its groups are free. (38, 125) -> (37, 126):
         # one group, DLC2 Combs' Draggables, behind that DLC's one real drawer.
@@ -877,8 +921,16 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # Now (30, 122): Ink Bottles' dead GridPuzzleBase part left.
         # Now (30, 120): the base game's two Workbench parts left (see above).
         # Now (30, 118): the base game's two Fruit Stickers parts (see above).
-        self.assertEqual((30, 118), split(base + dlc2))
-        self.assertEqual((50, 183), split(data.LEVELS))
+        # Now (29, 119): Material Drawers' Drawer Draggables gained Drawer -
+        # droha, 2026-09-26, locks on without it: "impossible without the
+        # drawers as you need to put the items in them".
+        self.assertEqual((29, 119), split(base + dlc2))
+        # Every level: (47, 186) since Daggers' loose daggers, Lunch Tray's
+        # Tray Organizer and Sewing Box's Top Drawer gained Drawer; (47, 184)
+        # once Daggers' two parts left; (46, 185) with Material Drawers'
+        # Drawer Draggables; (45, 186) with Tea Cabinet's Items Placements;
+        # (49, 182) with the four DLC1 groups relaxed to free (see above).
+        self.assertEqual((49, 182), split(data.LEVELS))
 
     def test_a_part_never_asks_for_more_than_its_level(self):
         """The sanity direction: narrowing must not invent a requirement."""

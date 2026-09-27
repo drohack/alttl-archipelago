@@ -9,11 +9,11 @@ Two passes, in this order and for this reason:
      turn up every seed.
 
      WHICH ONES ARE SCARCE DEPENDS ON THE YAML, and is computed from the
-     eligible pool rather than from the whole catalogue. Cupboards and Drawers
-     ships a drawer generator and Seeing Stars a jigsaw one, so a set derived
-     from every level would drop Drawer and Jigsaw for EVERY player - including
-     one who owns no DLC, whose runs would quietly lose the guarantee. Seeing
-     Stars also adds Distributing, which is scarce only when it is on.
+     eligible pool rather than from the whole catalogue. Seeing Stars adds
+     Distributing, which is scarce only when it is on. (The DLCs' four
+     randomizable levels once counted as drawer and jigsaw generators; their
+     layout does not change with the seed, so they are data.FIXED_LAYOUT and
+     make no mechanic.)
 
   2. Fill the rest by source, generator 80 / archive 10 / base 10 by default,
      plus a weight per enabled DLC, preferring the least-used generator so no
@@ -136,13 +136,11 @@ def draw(random, slots: int, coverage: int, source_weights: Dict[str, int],
     # Which mechanics no generator IN THIS POOL can make, so the reserve below
     # knows what is scarce.
     #
-    # DERIVED PER YAML, not once for the whole catalogue, and that matters as
-    # soon as a DLC ships a generator for a scarce mechanic. DLC1 Trophy
-    # Cabinet is a drawer generator, so a module-level table computed over
-    # every level would drop Drawer out of the scarce set for EVERY player -
-    # including one who owns no DLC and whose runs would quietly lose their
-    # guaranteed drawer puzzle. Computed from the eligible pool it corrects
-    # itself in both directions.
+    # DERIVED PER YAML, not once for the whole catalogue: Distributing exists
+    # only with Seeing Stars on, and a DLC that ever ships a real generator
+    # for a scarce mechanic would take it off the list only for the players
+    # who enabled it. Computed from the eligible pool it corrects itself in
+    # both directions.
     gap_abilities = data.gap_abilities(pool)
 
     used: Set[str] = set()              # one-shot levels already placed
@@ -261,7 +259,7 @@ def draw(random, slots: int, coverage: int, source_weights: Dict[str, int],
         seen[level.level_id] = seen.get(level.level_id, 0) + 1
 
         seed = -1
-        if level.repeatable:
+        if level.seeded:
             taken = used.setdefault(level.level_id, set())
             while True:
                 seed = random.randrange(1, 2_000_000_000)

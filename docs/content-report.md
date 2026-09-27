@@ -283,9 +283,10 @@ DLC2 Water Glasses, DLC2 Figurines and DLC2 Bread Crusts. Their `source` is
 DLC it needs in a separate `dlc` field - source cannot answer that for these
 four.
 
-Trophy Cabinet is a drawer generator and Bread Crusts a jigsaw one, so enabling
-a DLC takes its mechanic off the list `mechanic_coverage` reserves for. That
-list is therefore computed per yaml rather than once for the catalogue.
+The seed does not change these four layouts (droha, 2026-09-25: duplicates
+"exactly the same"), so they are drawn once (`data.FIXED_LAYOUT`) and take no
+mechanic off the list `mechanic_coverage` reserves for. That list is still
+computed per yaml, for Distributing, which exists only with Seeing Stars.
 
 Five controller classes are new. Four sit in existing abilities -
 `DrawerExpandableController` is a drawer, `DLC2NanopetsShuffleables` a

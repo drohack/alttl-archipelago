@@ -56,23 +56,32 @@ class TestTables(unittest.TestCase):
         self.assertEqual({"Stacking", "Containers", "Drawer", "Jigsaw"},
                          set(data.gap_abilities(base)))
 
-    def test_a_dlc_generator_removes_its_mechanic_from_the_scarce_set(self):
-        """And with DLC on, the set corrects itself rather than over-reserving.
+    def test_a_fixed_layout_dlc_level_does_not_make_its_mechanic(self):
+        """A level drawn once cannot stand in for a mechanic's hand-made ones.
 
-        The other half of the same rule: once a generator exists for a
-        mechanic, reserving hand-made levels for it is wasted pinning.
+        Trophy Cabinet counted as a drawer generator, and a DLC2 one as a
+        jigsaw generator, until droha found their copies identical: the seed
+        does not change them (data.FIXED_LAYOUT), so each is drawn once and
+        the reserve still needs the hand-made levels for Drawer and Jigsaw.
         """
         base = [l for l in data.LEVELS if not l.dlc]
         with_dlc1 = base + [l for l in data.LEVELS if l.dlc == "DLC1"]
         with_dlc2 = base + [l for l in data.LEVELS if l.dlc == "DLC2"]
 
-        self.assertNotIn("Drawer", data.gap_abilities(with_dlc1))
-        self.assertNotIn("Jigsaw", data.gap_abilities(with_dlc2))
+        self.assertIn("Drawer", data.gap_abilities(with_dlc1))
+        self.assertIn("Jigsaw", data.gap_abilities(with_dlc2))
+        self.assertFalse(any(l.repeatable for l in data.LEVELS if l.dlc))
 
         # And an ability no level in the pool has is absent, not scarce:
         # reserving for it is a request the draw can never satisfy.
         self.assertNotIn("Distributing", data.gap_abilities(base))
         self.assertIn("Distributing", data.gap_abilities(with_dlc2))
+
+    def test_fixed_layout_matches_the_mod(self):
+        """The mod's Core keeps its own copy (LevelTable.FixedLayout) and
+        exports it in names.json; the two lists must be the same."""
+        self.assertEqual(sorted(data.FIXED_LAYOUT),
+                         sorted(data._NAMES_RAW["fixedLayout"]))
 
     def test_every_ability_has_at_least_one_level(self):
         """ALL_ABILITIES, not the base twelve.
@@ -194,9 +203,15 @@ class TestTables(unittest.TestCase):
         """
         ungrouped = {level.level_id for level in data.LEVELS if not level.parts}
         self.assertEqual(
-            {"Drink Glasses", "MerryMess_Presents", "DLC2 Corn"},
+            {"Drink Glasses", "MerryMess_Presents", "DLC2 Corn", "DLC1 Daggers"},
             ungrouped,
             "the set of levels with no controller groups moved; see the docstring")
+        # DLC1 Daggers is the one member WITH puzzle controllers. droha,
+        # 2026-09-25: every part needs Drawer, like the Solution, so the level
+        # is all or nothing and its part checks are notALocation. Its checks
+        # are NOT free: the level union still asks for Drawer.
+        self.assertEqual({"Drawer"},
+                         set(data.BY_ID["DLC1 Daggers"].enforced_abilities))
 
     def test_every_level_offers_at_least_one_check(self):
         """A level with no checks is a card that can never be collected, and

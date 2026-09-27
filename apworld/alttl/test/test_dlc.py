@@ -71,7 +71,26 @@ BYPASSES = {
     # ("eyes appear, level completes, nothing is greyed out") with both groups
     # solved; holding only Ordering nothing could be picked up.
     "DLC2 Cat Eyes": {"Ordering"},
+    # Its Drawer was an extraAbilities guess. droha's four runs (2026-09-23)
+    # fired every group without it, and Kat finished the whole level without
+    # it (2026-09-25, 0.4.1 multiworld). Bypassed rather than deleted, so the
+    # draw view - and every frozen plan - keeps it.
+    "MedicineCabinet": {"Drawer"},
+    # Kat, 2026-09-25, 0.4.1 multiworld (her LogOutput): finished Pantry and
+    # Trophy Cabinet with nothing locked, before Drawer arrived, so their
+    # Solutions were withheld for an extraAbilities Drawer nothing in either
+    # level needs. Figurines: both copies' Solutions and Sorting Items done
+    # before Sticking arrived - its figurines are also held by a plain
+    # Draggables group, so nothing locks them. Its Gadgets stays: the grouping
+    # was never played.
+    "DLC1 Pantry": {"Drawer"},
+    "DLC1 Trophy Cabinet": {"Drawer"},
+    "DLC2 Figurines": {"Sticking"},
 }
+
+#: Bypassed abilities that came from extraAbilities, which never reach a part,
+#: so these levels have no part to expose; only their Solutions carry it.
+EXTRA_ONLY_BYPASSES = {"MedicineCabinet", "DLC1 Pantry", "DLC1 Trophy Cabinet"}
 
 
 class TestTheContentGate(unittest.TestCase):
@@ -204,9 +223,15 @@ class TestTheBypassSubtraction(unittest.TestCase):
             # so notALocation) and has one group left: no part checks.
             if not level.has_parts:
                 continue
-            tested += 1
             exposed = {p for p, a in level.part_abilities.items()
                        if set(a) & bypassed}
+            # These bypass an extraAbilities entry, and extras never reach a
+            # part, so only their solutions can carry it - the test above
+            # checks that.
+            if level_id in EXTRA_ONLY_BYPASSES:
+                self.assertEqual(set(), exposed)
+                continue
+            tested += 1
             self.assertTrue(exposed, f"{level_id} would test nothing here")
 
             plan = [slots.Slot(level=level, instance=1, seed=-1)]
@@ -306,7 +331,12 @@ class TestTheDlcIdsNeverMove(unittest.TestCase):
         # 148 -> 138: ten DLC1 drawers and cupboard doors are solved the
         # moment the level opens (tools/probe-solved-at-load.py), so they
         # are notALocation.
-        self.assertEqual(138, per_dlc["DLC1"])
+        # 138 -> 136 on 2026-09-25: Daggers' two part checks need Drawer just
+        # as its Solution does, so droha dropped them ("it's all or nothing").
+        # 136 -> 115 the same day: Trophy Cabinet's layout does not change
+        # with the seed (droha: "dup levels that are exactly the same"), so
+        # it is drawn once and its later copies' locations are gone.
+        self.assertEqual(115, per_dlc["DLC1"])
         # 267 -> 269 on 2026-09-23: DLC2 Boss lost its Drawer Controller (it
         # never solved, even in a full completion) and gained Locks, Compass
         # and Knives, which droha's play showed register and solve. Ids after
@@ -319,8 +349,11 @@ class TestTheDlcIdsNeverMove(unittest.TestCase):
         # the level is left with one merged group - no part checks.
         # 261 -> 260: Ink Bottles' GridPuzzleBase never fires on either
         # solution (droha, played both), so it is notALocation.
-        self.assertEqual(260, per_dlc["DLC2"])
-        self.assertEqual(822, len(locations.ALL_NAMES))
+        # 260 -> 141 on 2026-09-25: Water Glasses, Figurines and Bread Crusts
+        # are fixed-layout (data.FIXED_LAYOUT), drawn once, so their later
+        # copies' locations are gone.
+        self.assertEqual(141, per_dlc["DLC2"])
+        self.assertEqual(680, len(locations.ALL_NAMES))
 
     def test_credits_is_the_last_base_id(self):
         self.assertEqual(423, locations.ALL_NAMES.index(data.CREDITS))

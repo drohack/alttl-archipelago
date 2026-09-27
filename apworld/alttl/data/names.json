@@ -1,6 +1,12 @@
 {
   "_comment": "Generated from ALTTLArchipelago.Core by NamesExportTests. Do not hand edit. Regenerate with ALTTL_WRITE_GOLDEN=1 dotnet test. These strings are Archipelago location names: changing one breaks seeds already in flight.",
   "maxGeneratorInstances": 8,
+  "fixedLayout": [
+    "DLC1 Trophy Cabinet",
+    "DLC2 Bread Crusts",
+    "DLC2 Figurines",
+    "DLC2 Water Glasses"
+  ],
   "credits": "Credits",
   "items": {
     "backgroundTrap": "Background Change Trap",
@@ -530,24 +536,7 @@
     },
     "DLC1 Daggers": {
       "display": "Daggers (Cupboards and Drawers)",
-      "parts": {
-        "Draggables": {
-          "display": "Draggables",
-          "abilities": [],
-          "members": [
-            "Draggables"
-          ]
-        },
-        "Drawers Draggables": {
-          "display": "Drawers Draggables",
-          "abilities": [
-            "Drawer"
-          ],
-          "members": [
-            "Drawers Draggables"
-          ]
-        }
-      }
+      "parts": {}
     },
     "DLC1 Filing Cabinet": {
       "display": "Filing Cabinet (Cupboards and Drawers)",
@@ -588,7 +577,6 @@
         "Fern Fossil Jigsaw": {
           "display": "Fern Fossil",
           "abilities": [
-            "Drawer",
             "Jigsaw"
           ],
           "members": [
@@ -628,7 +616,6 @@
         "Snake Fossil Jigsaw": {
           "display": "Snake Fossil",
           "abilities": [
-            "Drawer",
             "Jigsaw"
           ],
           "members": [
@@ -674,9 +661,7 @@
         },
         "Center Tiles Draggables": {
           "display": "Center Tiles",
-          "abilities": [
-            "Drawer"
-          ],
+          "abilities": [],
           "members": [
             "Center Tiles Draggables"
           ]
@@ -684,8 +669,7 @@
         "Heart Containables": {
           "display": "Heart",
           "abilities": [
-            "Containers",
-            "Drawer"
+            "Containers"
           ],
           "members": [
             "Heart Containables"
@@ -726,7 +710,8 @@
         "Brooches Draggables": {
           "display": "Brooches",
           "abilities": [
-            "Drawer"
+            "Drawer",
+            "Ordering"
           ],
           "members": [
             "Brooches Draggables"
@@ -735,7 +720,8 @@
         "Cameos Draggables": {
           "display": "Cameos",
           "abilities": [
-            "Drawer"
+            "Drawer",
+            "Ordering"
           ],
           "members": [
             "Cameos Draggables"
@@ -744,7 +730,8 @@
         "Gold Bars Draggables": {
           "display": "Gold Bars",
           "abilities": [
-            "Drawer"
+            "Drawer",
+            "Ordering"
           ],
           "members": [
             "Gold Bars Draggables"
@@ -754,7 +741,8 @@
           "display": "Locket",
           "abilities": [
             "Containers",
-            "Drawer"
+            "Drawer",
+            "Ordering"
           ],
           "members": [
             "Locket Containables"
@@ -763,7 +751,8 @@
         "Radiolaria Draggables": {
           "display": "Radiolaria",
           "abilities": [
-            "Drawer"
+            "Drawer",
+            "Ordering"
           ],
           "members": [
             "Radiolaria Draggables"
@@ -781,7 +770,8 @@
         "Watches Draggables": {
           "display": "Watches",
           "abilities": [
-            "Drawer"
+            "Drawer",
+            "Ordering"
           ],
           "members": [
             "Watches Draggables"
@@ -887,9 +877,7 @@
       "parts": {
         "BroccoliOrganizer": {
           "display": "Broccoli Organizer",
-          "abilities": [
-            "Drawer"
-          ],
+          "abilities": [],
           "members": [
             "BroccoliOrganizer"
           ]
@@ -984,7 +972,9 @@
       "parts": {
         "Draggables": {
           "display": "Draggables",
-          "abilities": [],
+          "abilities": [
+            "Drawer"
+          ],
           "members": [
             "Draggables"
           ]
@@ -1104,7 +1094,8 @@
         "Curved Needles Containables": {
           "display": "Curved Needles",
           "abilities": [
-            "Containers"
+            "Containers",
+            "Drawer"
           ],
           "members": [
             "Curved Needles Containables"
@@ -1112,9 +1103,7 @@
         },
         "Large Spools Draggables": {
           "display": "Large Spools",
-          "abilities": [
-            "Drawer"
-          ],
+          "abilities": [],
           "members": [
             "Large Spools Draggables"
           ]
@@ -1139,6 +1128,7 @@
         "Small Spools Draggables": {
           "display": "Small Spools",
           "abilities": [
+            "Containers",
             "Drawer"
           ],
           "members": [
@@ -1148,6 +1138,7 @@
         "Supplies Draggables": {
           "display": "Supplies",
           "abilities": [
+            "Containers",
             "Drawer"
           ],
           "members": [
@@ -1156,7 +1147,10 @@
         },
         "Top Drawer Draggables": {
           "display": "Top Drawer",
-          "abilities": [],
+          "abilities": [
+            "Containers",
+            "Drawer"
+          ],
           "members": [
             "Top Drawer Draggables"
           ]
@@ -1216,7 +1210,9 @@
         },
         "Items Placements Draggables": {
           "display": "Items Placements",
-          "abilities": [],
+          "abilities": [
+            "Gadgets"
+          ],
           "members": [
             "Items Placements Draggables"
           ]
@@ -1713,7 +1709,8 @@
         "Containable Controller": {
           "display": "Containable",
           "abilities": [
-            "Containers"
+            "Containers",
+            "Drawer"
           ],
           "members": [
             "Containable Controller"
@@ -1721,7 +1718,9 @@
         },
         "Drawer Draggables": {
           "display": "Drawer Draggables",
-          "abilities": [],
+          "abilities": [
+            "Drawer"
+          ],
           "members": [
             "Drawer Draggables"
           ]
@@ -1982,7 +1981,8 @@
         "Water Level (Indexable)": {
           "display": "Water Level (Indexable)",
           "abilities": [
-            "Ordering"
+            "Ordering",
+            "Sticking"
           ],
           "members": [
             "Water Level (Indexable)"

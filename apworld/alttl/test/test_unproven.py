@@ -250,10 +250,14 @@ class TestTheGapSignalsAreTheOnesWeMeasured(bases.ALTTLTestBase):
         15 DLC1 levels STILL have no edges at all, so the harvest gap this was
         written to watch is still open.
         """
+        # DLC1 Lunch Tray LEFT on 2026-09-27, deliberately: droha finished the
+        # whole level locks on with Drawer revoked (the trays are also held by
+        # the baseline TrayOrganizer, so nothing locks), and relaxed its two
+        # edges. Its Trays part still needs Drawer as the opener's own ability.
         added = {
             "DLC1 Boss", "DLC1 Craft Supplies", "DLC1 Fossils",
             "DLC1 Game Pieces", "DLC1 Jewelry Box",
-            "DLC1 Kitchen Utensils Drawers", "DLC1 Lunch Tray",
+            "DLC1 Kitchen Utensils Drawers",
             "DLC1 Sewing Box",
             # Added 2026-09-22 from droha's own play: "i can move the clocks,
             # but i can't open the cubbord to put the clocks in". Its opener
@@ -264,6 +268,12 @@ class TestTheGapSignalsAreTheOnesWeMeasured(bases.ALTTLTestBase):
             # Added 2026-09-23 from the locks-off sweep: Tea Cabinet's
             # contents wait on its cupboard doors, Daggers' on its drawers.
             "DLC1 Tea Cabinet", "DLC1 Daggers",
+            # Added 2026-09-26 from droha's locks-on play with Drawer revoked:
+            # "impossible with drawers greyed out, the only thing to do is to
+            # put the peanut in the last drawer". The level has no part
+            # checks and its Solution already needed Drawer, so the edge
+            # changes no requirement; it records what play found.
+            "DLC1 Nested Drawers",
         }
         dlc1 = [raw for raw in data._LEVELS_RAW["levels"]
                 if raw["source"] == "dlc1"]

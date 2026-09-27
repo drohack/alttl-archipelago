@@ -738,7 +738,6 @@
     "Medicine Cabinet - Beaten": {
       "abilities": [
         "Containers",
-        "Drawer",
         "Ordering",
         "Stacking"
       ],
@@ -791,7 +790,6 @@
     "Medicine Cabinet - Solution 1": {
       "abilities": [
         "Containers",
-        "Drawer",
         "Ordering",
         "Stacking"
       ],

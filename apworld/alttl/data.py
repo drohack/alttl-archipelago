@@ -81,6 +81,21 @@ PROVEN_LEVELS: FrozenSet[str] = frozenset(_PROVEN_RAW.get("proven", {}))
 #: bound rather than a preference.
 MAX_GENERATOR_INSTANCES: int = _NAMES_RAW["maxGeneratorInstances"]
 
+#: The game marks these randomizable, and they are the only generator-source
+#: levels with no randomizer hints, but the seed does not change their layout:
+#: droha, 2026-09-25, "dup levels that are exactly the same", though Kat's log
+#: shows each copy launched with its own seed. Still seeded, drawn once.
+#: Measured 2026-09-26 over all 20 randomizable levels, booted with seeds
+#: 111111 and 222222: these three kept every object in place and Figurines
+#: all but two figures (a small shift); the other 16 all change (Clock's hands
+#: and Microscope's snowflake by screenshot, the rest by object position).
+FIXED_LAYOUT: FrozenSet[str] = frozenset({
+    "DLC1 Trophy Cabinet",
+    "DLC2 Water Glasses",
+    "DLC2 Figurines",
+    "DLC2 Bread Crusts",
+})
+
 CREDITS: str = _NAMES_RAW["credits"]
 
 #: Ability name -> the ObjectController classes it unlocks. The BASE GAME's
@@ -456,9 +471,16 @@ class Level:
         return understated & self._behind_an_opener
 
     @property
-    def repeatable(self) -> bool:
-        """Generators produce a fresh puzzle per seed, so they may repeat."""
+    def seeded(self) -> bool:
+        """Launched with a baked seed and a forced reload, as the game's
+        randomizable levels need - including the fixed-layout four below."""
         return self.source == "generator"
+
+    @property
+    def repeatable(self) -> bool:
+        """Generators produce a fresh puzzle per seed, so they may repeat -
+        except the ones whose layout the seed does not change."""
+        return self.seeded and self.level_id not in FIXED_LAYOUT
 
     @property
     def max_instances(self) -> int:
@@ -499,11 +521,12 @@ def gap_abilities(pool: Iterable[Level]) -> List[str]:
     turns up by luck or not at all.
 
     A FUNCTION OF THE POOL, not a constant over the whole catalogue, and the
-    DLCs are why. DLC1 Trophy Cabinet is a drawer generator: computed over
-    every level in the table it would take Drawer out of this list for
-    everyone, so a player who owns no DLC would silently lose the guaranteed
-    drawer puzzle that mechanic_coverage promises them. Computed over what a
-    yaml actually enabled, it shrinks only for the players who really did gain
+    DLCs are why. Distributing exists only with Seeing Stars on; and a
+    generator a DLC brings would take its mechanic off this list for everyone
+    if it were computed over the whole table. (DLC1 Trophy Cabinet was counted
+    as a drawer generator until its layout proved fixed - FIXED_LAYOUT.)
+    Computed over what a yaml actually enabled, it shrinks only for the
+    players who really did gain
     a generator for it.
     """
     present = frozenset(a for l in pool for a in l.abilities)
