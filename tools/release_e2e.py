@@ -3465,6 +3465,67 @@ def settle_level(log, since, least=2.5, quiet=1.2, most=8.0):
     return text
 
 
+def post_level_phase(state_line, menus_text):
+    """Where the game is after a finished level: "coming", "panel" or "moved".
+
+    "coming": the completion screen is still on its way - the finished level
+    is still up, the retry state has begun with the panel not yet shown, or
+    a next level is still loading. "panel": the retry panel is on screen.
+    "moved": anywhere else, so there is nothing to wait for.
+    """
+    fields = dict(tok.split("=", 1) for tok in state_line.split() if "=" in tok)
+    state = fields.get("gameState", "")
+    if state == "RetryUI_GameState":
+        shown = re.search(r"RetryMenu object=.* active=True alpha=1(\.0+)?\b",
+                          menus_text)
+        return "panel" if shown else "coming"
+    if state == "Gameplay_GameState":
+        if fields.get("solved") == "True":
+            return "coming"
+        if (fields.get("loaded") != "True" or fields.get("level") != "present"
+                or fields.get("transitioning") == "True"):
+            return "coming"
+    return "moved"
+
+
+def settle_post_level(log, most=12.0, hold=1.0):
+    """Until the completion screen has arrived, before to_title navigates.
+
+    The retry panel takes about four seconds to come up after a completion
+    (measured on DLC2 Bells and after a Skip on DLC2 Corn, 2026-09-27).
+    replayselect sent before that was swallowed at 0.3 s, and from 0.6 to
+    2 s the track opened and the panel then took the state back, leaving a
+    level select with no Close button; menu:title over it threw in
+    MenuManager.TransitionMenuOut (check 10 of the DLC gate, 12 of 13
+    unwinds). At 3 and 7 s it was clean. `hold` lets the mod's own Continue
+    press (0.4 s after the panel settles) land first when it is making one.
+    """
+    text = ""
+    start = time.time()
+    panel_since = None
+    phase = "coming"
+    while time.time() - start < most:
+        dev("state")
+        dev("menus")
+        out = log.wait(["menus: "], 4, 6, "the menu list")
+        time.sleep(0.2)
+        out += log.new()
+        text += out
+        phase = post_level_phase(line_with(out, "state: gameState"), out)
+        if phase == "moved":
+            return text
+        if phase == "panel":
+            panel_since = panel_since or time.time()
+            if time.time() - panel_since >= hold:
+                return text
+        else:
+            panel_since = None
+        time.sleep(0.25)
+    print(f"      the completion screen did not settle in {most:.0f}s "
+          f"({phase}); unwinding anyway", flush=True)
+    return text
+
+
 def to_title(log):
     """Unwind to the title. Only used when the arrow cannot be followed.
 
@@ -3484,6 +3545,7 @@ def to_title(log):
     # back, and the next Skip would have landed on it (21 of 28). The seconds
     # below are doing work after a Skip; shorten them only with a test that
     # spends one.
+    text = settle_post_level(log)
     dev("replayselect", 4.0)
     dev("press:Confirm Button", 1.0)
 
@@ -3509,7 +3571,7 @@ def to_title(log):
     # log.new() CONSUMES the buffer, so every read has to be kept - a retry
     # loop that drops what it read would quietly starve the error census of
     # the lines it exists to inspect.
-    text = log.new()
+    text += log.new()
     for attempt in range(3):
         dev("press:Close Button", 2.5)
         chunk = log.new()

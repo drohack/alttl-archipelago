@@ -2680,5 +2680,53 @@ class TestABootWaitsForTheLevelItBooted(unittest.TestCase):
         self.assertFalse(e2e.level_is_up(self.UP, 1126))
 
 
+class TestTheUnwindWaitsForTheCompletionScreen(unittest.TestCase):
+    """The second DLC gate of 2026-09-27 failed check 10: to_title sent
+    replayselect about a second after the completion, while the retry panel
+    was still coming in (it takes about four), so the track opened and the
+    panel took the state back, leaving no Close button. The lines are the
+    game's own, read after a completion on DLC2 Bells."""
+
+    DEV = "[Info   :ALTTL Dev Tools] "
+    SOLVED = DEV + ("state: gameState=Gameplay_GameState activeLevel=DLC2 Bells "
+                    "index=1222 seed=-1 solutionCount=3 found=1 solved=True "
+                    "unlocked=True loaded=True transitioning=False level=present")
+    RETRY = SOLVED.replace("Gameplay_GameState", "RetryUI_GameState")
+    PANEL_UP = DEV + "  [9] RetryMenu object=Retry Menu active=True alpha=1.0"
+    PANEL_DOWN = DEV + "  [9] RetryMenu object=Retry Menu active=False alpha=0.0"
+    NEXT_UP = TestABootWaitsForTheLevelItBooted.UP
+    TORN_DOWN = TestABootWaitsForTheLevelItBooted.STALE
+    TITLE = DEV + ("state: gameState=Title_GameState activeLevel=none index=- "
+                   "seed=- solutionCount=- found=- solved=- unlocked=- loaded=- "
+                   "transitioning=- level=null")
+
+    def test_the_finished_level_still_up_is_coming(self):
+        # A panel left from the level before counts for nothing yet.
+        self.assertEqual("coming", e2e.post_level_phase(self.SOLVED, self.PANEL_UP))
+
+    def test_the_retry_state_without_its_panel_is_coming(self):
+        self.assertEqual("coming", e2e.post_level_phase(self.RETRY, self.PANEL_DOWN))
+
+    def test_the_retry_panel_shown_is_the_panel(self):
+        self.assertEqual("panel", e2e.post_level_phase(self.RETRY, self.PANEL_UP))
+
+    def test_a_next_level_still_loading_is_coming(self):
+        self.assertEqual("coming", e2e.post_level_phase(self.TORN_DOWN, ""))
+
+    def test_a_next_level_loaded_or_the_title_has_moved(self):
+        self.assertEqual("moved", e2e.post_level_phase(self.NEXT_UP, ""))
+        self.assertEqual("moved", e2e.post_level_phase(self.TITLE, ""))
+
+    def test_to_title_waits_before_it_navigates(self):
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "release_e2e.py"), encoding="utf-8") as fh:
+            text = code_only(fh.read())
+        body = text[text.index("def to_title(log):"):]
+        body = body[:body.index("\ndef ")]
+        self.assertIn("settle_post_level(log)", body)
+        self.assertLess(body.index("settle_post_level(log)"),
+                        body.index('dev("replayselect"'))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
