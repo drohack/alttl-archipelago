@@ -14,7 +14,7 @@ Keep it short: add a rule here as one line, never as a story.
 - End a turn ONLY when one of these is true, and make the last line say which:
   - `Done.` - the task is finished and verified.
   - `Waiting on you: <exact thing to do>` - droha has to play or decide.
-  - `Running in background: <what>, updates every 2 min.` - and nothing
+  - `Running in background: <what>, checked every 10 min.` - and nothing
     independent is left to do meanwhile.
 - A summary is at most ~8 lines and is never the end of the work.
 - "Set it up" means do all of it (server, seed, connection, launch settings)
@@ -24,18 +24,31 @@ Keep it short: add a rule here as one line, never as a story.
 
 ## 2. Simplest thing first
 
+- **You can see the screen: take the screenshot yourself.** DevTools
+  `shot:<abs path>` (game running), then Read the file and delete it. Anything
+  you can SEE - greyed, visible, a panel up, which card or hint shows - is
+  yours to check before droha is asked. droha is only for what needs hands
+  (dragging, whether something can be moved or finished). He has had to say
+  this every session.
 - If the question is "can a player do X in level Y", **ask droha to play it**.
   One playthrough beats any probe: on 2026-09-22 three of four new detectors
   gave confident wrong answers and every real fix came from droha playing.
 - Setup for that: `py -3.13 tools/handtest-queue.py --build` then `--next`
   (or `tools/handtest-level.py <index> [ability ...]` for one level), then give
   numbered steps and the exact question. Record the verdict with `--answer`.
+- **While droha plays, watch the log yourself:** start `tools/watch-handtest.py`
+  in the background first (it wakes you on a crash, an error or `--until`), and
+  read it before asking what happened (droha, 2026-09-26).
 - Testing one level needs NO seed: DevTools `menu:title`, `boot:<index>`,
   `livelevels` (must be 1). DevTools logs `PartSolved  id=.. part=..` for every
   part the game solves; watch that, not the recorder, to see which checks fire.
 - Need an ability mid-test: `tools/handtest-level.py --grant <Ability>` (its
   server reads `testserver/handlevel-commands.txt`; same `/send droha` line).
-  Never generate a new seed just to change what droha holds.
+  Need one GONE: DevTools `revoke:<Ability>[,<Ability>]` (`revoke:none` gives
+  them back) - the mod's real lock, at once. So serve ONE seed holding every
+  ability and revoke per test. Never generate a new seed just to change what
+  droha holds (droha, 2026-09-26: "why do you always go back to making a
+  seed?"). Background traps hiding pieces: DevTools `traps:off`, then reload.
 - `handtest-level.py` deletes every `save_ap_*` file, a live seed's too: first
   `harness_env.take_snapshot`, check droha's save is in it, restore and compare
   checksums after.
@@ -59,9 +72,10 @@ Keep it short: add a rule here as one line, never as a story.
 | Every level alone (fixture) | `tools/probe-forceable.py --all`, `--recheck`, `--groups-rest` -> `fixtures/forceability.jsonl` | ~4 h, 2026-09-24 |
 | Every level's own skip (fixture `skip` field) | `tools/probe-forceable.py --skip-all [--resume]` | ~80 min, 2026-09-25 |
 | One seed's levels alone | `tools/probe-forceable.py [--dlc]` (after make-seed) | ~1 min/level |
+| A lock fix, every level it touches | `tools/probe-lock-roundtrip.py <index ...>` or `--all [--resume]` (hand-test server up) | ~1 min/level; all 132 ~2.5 h, 2026-09-27 |
 | Gate steps 1-5 alone | `tools/release_e2e.py --only-arrow` | ~3 min |
-| Did I break a run | `tools/release_e2e.py --quick` | ~13 min (15 puzzles, 2026-09-23) |
-| Release sign-off | `tools/release_e2e.py` (full) | ~18 min (15 puzzles, 2026-09-24) |
+| Did I break a run | `tools/release_e2e.py --quick` | ~7 min (15 puzzles, 2026-09-27; was 13) |
+| Release sign-off | `tools/release_e2e.py` (full) | ~10 min (15 puzzles, 2026-09-27; was 18.9) |
 
 - Before any `release_e2e.py` run: `tools/package-release.py --out release-test`
   (or pass `--assets dist`); the gate refuses assets older than the source.
@@ -82,20 +96,23 @@ Keep it short: add a rule here as one line, never as a story.
 
 ## 4. Background runs - one recipe, every time
 
-1. Start the job with `run_in_background`, stdout to a file, `2>/dev/null`
-   (or its own `.err` file). Never pipe it through grep/tail/head.
-2. In the same message arm a Monitor: a loop that every 120 s prints ONE
-   self-contained line from the output (`[n/total ID] step: detail`), prints
-   `STALLED <n>s` if the file stopped growing, and exits when the file has
-   not grown for two polls. `timeout_ms: 1800000`; re-arm on expiry.
-   Description = what is running, e.g. `probe-blocked 51 levels`.
+1. Start the job with `run_in_background` and leave stdout ALONE: no
+   `> file`. Its task output is what the preview under droha's textbox
+   shows; a redirect leaves it at 0 bytes (droha, 2026-09-27: "why don't i
+   see the output of that run"). stderr to `/dev/null` (or its own `.err`
+   file). Never pipe it through grep/tail/head.
+2. No Monitor. Its per-poll events and 2-minute check-ins chew context and
+   droha does not want them (2026-09-25). Instead arm ONE heartbeat, a
+   `sleep 600` with `run_in_background` (its exit wakes you), and on waking
+   read the output file once:
+   finished -> report the summary line; still growing -> one line of
+   progress and re-arm; not grown since last wake -> say `STALLED` and look.
 3. Log filters: the game writes `LevelComplete  id=` (two spaces), so grep
-   `'LevelComplete +id='`. Test a filter on a past line before arming it.
-4. On each monitor event, reply with that one line as plain text. droha sees
-   only the description, never the event body. Never sit in a long blocking
-   wait while a monitor runs: its events pile up unrelayed.
-5. Keep doing independent work meanwhile. Stop the monitor with TaskStop when
-   the job ends. Say `Nothing is running.` when that is true.
+   `'LevelComplete +id='`. Test a filter on a past line before using it.
+4. The job itself still prints self-contained lines
+   (`[n/total ID] step: detail`) so one read of the file says where it is.
+5. Keep doing independent work meanwhile; a task notification wakes you when
+   the job exits. Say `Nothing is running.` when that is true.
 
 ## 5. The game
 
@@ -110,14 +127,18 @@ Keep it short: add a rule here as one line, never as a story.
   than one launch: read state from the last one, never the first match.
 - A command still queued when the game froze runs at the next launch (a stale
   `xrefs` killed one): empty the command file after any freeze.
-- Say before you launch or close the game. If droha is about to play, set
-  everything up and let THEM open it. Close it when your testing is done.
+- Say before you launch or close the game, and close it when your testing is
+  done. For a hand test, open it yourself too, including the fresh launch each
+  level gets (droha, 2026-09-27: "i don't want to re-open every single time").
+- Compile checks: `bash tools/deploy.sh --no-kill` or `dotnet build -p:SkipDeploy=true`.
+  A plain `dotnet build` deploys into droha's game whenever it is closed.
 - Cat traps are seed items at fixed locations, so the spoiler says which check
   resets which level: on a part location it resets that level mid-solve (the
   harness refunds the pass); on a Solution/Beaten location, or outside a
   level, it misses (`Traps.cs`). Never call them random.
-- Screenshots: take one to check a level state instead of arguing about it;
-  delete the file right after reading it.
+- Screenshots: take one to check a level state instead of arguing about it,
+  and BEFORE asking droha to look at anything (section 2); delete the file
+  right after reading it.
 
 ## 6. Test server
 

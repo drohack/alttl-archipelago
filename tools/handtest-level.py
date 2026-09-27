@@ -284,7 +284,7 @@ def main():
             break
         time.sleep(1)
     e2e.write_config()
-    e2e.write_devtools_config()
+    e2e.write_devtools_config(mute=False)   # droha plays this one: keep the sound
 
     if "--setup-only" in sys.argv:
         print("", flush=True)

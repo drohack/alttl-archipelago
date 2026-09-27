@@ -33,6 +33,7 @@ That is a separate plugin the randomizer knows nothing about; it is never
 shipped, and it does not participate in anything being asserted here.
 """
 import argparse
+import atexit
 import collections
 import hashlib
 import functools
@@ -210,6 +211,16 @@ def await_skip_target(log, index, tries=10):
 #: a level index, and the one the mod reports is stable across the build.
 CREDITS_LEVEL_INDEX = 84
 MAX_ROUNDS = 60
+
+#: Unwind to the title (to_title) before booting the next puzzle after a
+#: finished one: about 10 s a visit. STILL NEEDED, measured 2026-09-27: with
+#: it off, booting straight over each finished level, the next levels' solves
+#: ran into the finished level's win check ("already solved as far as the
+#: level is concerned"), two threw NullReferenceException, two Skips were
+#: spent where none belong, and the run left its paper plan at visit 9 of 24
+#: (18 of 28 checks). boot:'s teardown of inactive and stray levels does not
+#: cover it. Kept as a switch for trying again after a change to boot:.
+UNWIND_BEFORE_BOOT = True
 QUICK = False
 
 #: --steady: cat traps off, so a run is repeatable. See the flag's help.
@@ -602,20 +613,25 @@ class Log:
             if time.time() - last > 8:
                 last = time.time()
                 say(phase, f"waiting for {what} ({int(end - time.time())}s left)")
-            time.sleep(0.5)
+            # A tenth of a second: a wait returns when its line lands, and the
+            # half-second poll this was made every wait up to that much late.
+            time.sleep(0.1)
         return got
 
 
 def dev(cmd, settle=0.0):
     with open(CMD, "w", encoding="utf-8") as f:
         f.write(cmd)
-    for _ in range(240):
+    # DevTools takes a command on the next frame; polling every 0.05 s rather
+    # than 0.25 s saves most of a quarter second on each of the run's few
+    # hundred commands. Same 60 s ceiling.
+    for _ in range(1200):
         try:
             if os.path.getsize(CMD) == 0:
                 break
         except OSError:
             pass
-        time.sleep(0.25)
+        time.sleep(0.05)
     if settle:
         time.sleep(settle)
 
@@ -1180,7 +1196,7 @@ def write_config():
         set_cfg_keys(MOD_CONFIG, "Display", {"WindowSize": "1280x720"})
 
 
-def write_devtools_config():
+def write_devtools_config(mute=True):
     """Silence the run.
 
     A gate plays real sessions for a quarter of an hour, and until now it did
@@ -1197,9 +1213,16 @@ def write_devtools_config():
     And KeepRunningWhenUnfocused: the game pauses itself when its window loses
     focus, and a paused game holds every solve. The 0.4.1 DLC gate rerun lost
     its arrow session to one click on another window.
+
+    mute=False for anything droha plays: the hand-test tools muted too and
+    nothing put it back, so his own game stayed silent with every slider at
+    max (droha, 2026-09-26: "i still don't have audio in the game"). A muted
+    run sets it back to false when the process exits.
     """
-    set_cfg_keys(DEVTOOLS_CONFIG, "Debug", {"MuteAudio": "true"})
+    set_cfg_keys(DEVTOOLS_CONFIG, "Debug", {"MuteAudio": "true" if mute else "false"})
     set_cfg_keys(DEVTOOLS_CONFIG, "Window", {"KeepRunningWhenUnfocused": "true"})
+    if mute:
+        atexit.register(set_cfg_keys, DEVTOOLS_CONFIG, "Debug", {"MuteAudio": "false"})
 
 
 def yaml_text(quick, steady, dlc_on):
@@ -2743,10 +2766,27 @@ def locked_controllers(log):
     back, which is cheaper than a slower gate.
     """
     log.new()
-    dev("locks", 1.0)
-    out = log.wait(["locks: "], 15, 6, "the lock report")
-    time.sleep(1.5)                      # the header is not the list
-    out += log.new()
+    # The header is not the list: "locks: <level> N controller(s), ..." is
+    # written first and its N rows after it, in the same frame. Read until
+    # every row has landed, where a fixed 2.5 s used to stand in for that.
+    dev("locks")
+    out = ""
+    end = time.time() + 15
+    rows_by = None
+    while time.time() < end:
+        out += log.new()
+        if "locks: no level running" in out:
+            break
+        m = re.search(r"locks: .*? (\d+) controller\(s\)", out)
+        if m:
+            if len(LOCK_ROW.findall(out[m.start():])) >= int(m.group(1)):
+                out += log.new()
+                break
+            if rows_by is None:
+                rows_by = time.time() + 2.0
+            elif time.time() > rows_by:
+                break
+        time.sleep(0.05)
 
     locked = {}
     for line in out.splitlines():
@@ -2831,6 +2871,31 @@ def completion_wait(level_id):
     if took is None or (row.get("passes") or 1) > 2:
         return COMPLETION_WAIT
     return max(COMPLETION_WAIT, took + 15)
+
+
+def controller_listing(log, timeout=8.0):
+    """Ask DevTools for the loaded level's controllers and return the listing
+    once every row its header announces has landed ("controllers: N
+    registered on ..." then N rows, each with " solved="), or "no level
+    running". Two seconds past the header at most, whatever arrived."""
+    dev("controllers")
+    got = ""
+    end = time.time() + timeout
+    rows_by = None
+    while time.time() < end:
+        got += log.new()
+        if "no level running" in got:
+            return got
+        m = re.search(r"controllers: (\d+) registered on ", got)
+        if m:
+            if got[m.start():].count(" solved=") >= int(m.group(1)):
+                return got + log.new()
+            if rows_by is None:
+                rows_by = time.time() + 2.0
+            elif time.time() > rows_by:
+                return got
+        time.sleep(0.05)
+    return got
 
 
 def solve_level(log, refuse=frozenset(), wait=None):
@@ -2946,17 +3011,14 @@ def solve_level(log, refuse=frozenset(), wait=None):
         if attempt >= budget:
             break
         log.new()
-        dev("controllers", 1.0)
-        out = log.wait(["controllers: "], 8, 6, "the controller list")
-        # THE HEADER IS NOT THE LIST. log.wait returns the moment
-        # "controllers: 11 registered on ..." appears, and the eleven
-        # "[n] Name ... solved=False" lines are written after it. Parsing at
-        # that instant found no unsolved controllers, concluded the level was
+        # THE HEADER IS NOT THE LIST. The wait used to return the moment
+        # "controllers: 11 registered on ..." appeared, before the eleven
+        # "[n] Name ... solved=False" lines were written. Parsing at that
+        # instant found no unsolved controllers, concluded the level was
         # finished, and issued no solve commands at all - the log for that run
-        # contains two boot: lines and not one solve:. Give the rest of the
-        # listing time to land.
-        time.sleep(1.5)
-        out += log.new()
+        # contains two boot: lines and not one solve:. controller_listing waits
+        # for every row the header announces, rather than a fixed 1.5 s.
+        out = controller_listing(log)
         text += out
         # "no level running" is NOT proof of completion, and treating it as
         # such is how a run reported 8 of 8 beaten while the mod had banked 7.
@@ -3011,12 +3073,39 @@ def solve_level(log, refuse=frozenset(), wait=None):
 
         if not todo:
             # Every controller is solved. Either the completion already fired
-            # and was read above, or it is about to.
-            more = log.wait(["LevelComplete ", "no level running"],
-                            wait or COMPLETION_WAIT, 6, "the completion")
+            # and was read above, or it is about to - OR, on a PHASED level,
+            # the next phase is still coming. TupperwareNesting's seventh
+            # controller registered a second after a listing showed six of six
+            # solved (2026-09-27), once listings stopped taking a fixed 2.5 s,
+            # and a wait for the completion alone sat out its 30 s and called
+            # the level exhausted. So the level is asked again every few
+            # seconds, and a phase that appears goes back to the solve loop.
+            deadline = time.time() + (wait or COMPLETION_WAIT)
+            registered = listing_counts(out)[0]
+            more, grew, said = "", False, 0.0
+            ask_at = time.time() + 3.0
+            while time.time() < deadline:
+                more += log.new()
+                if "LevelComplete " in more or "no level running" in more:
+                    break
+                if time.time() >= ask_at:
+                    again = controller_listing(log)
+                    more += again
+                    if "LevelComplete " in more or "no level running" in more:
+                        break
+                    if listing_counts(again)[0] > registered:
+                        grew = True
+                        break
+                    ask_at = time.time() + 3.0
+                if time.time() - said > 8:
+                    said = time.time()
+                    say(6, f"waiting for the completion ({int(deadline - time.time())}s left)")
+                time.sleep(0.1)
             text += more
             finished = ("LevelComplete " in more
                         or "no level running" in more)
+            if grew and not finished:
+                continue
             if not finished:
                 # EXHAUSTED: nothing left to solve and the game still will
                 # not call it done. Marked in the returned text because
@@ -3039,7 +3128,7 @@ def solve_level(log, refuse=frozenset(), wait=None):
 
         trapped = False
         for i in todo:
-            dev(f"solve:{i}", 0.9)
+            dev(f"solve:{i}", 0.5)
             solved_so_far.append(i)
             chunk = log.new()
             text += chunk
@@ -3323,15 +3412,39 @@ def boot_level(log, index):
     deadline = time.time() + 40
     while time.time() < deadline:
         log.new()
-        dev(f"boot:{index}", 6.0)
-        for _ in range(6):
-            dev("state", 0.4)
+        sent = time.time()
+        dev(f"boot:{index}")
+        # Asked every half second, not after a fixed six: the level is up in
+        # two or three, and the same eighteen seconds a boot was given before
+        # a second try.
+        while time.time() - sent < 18:
+            dev("state")
             out = log.wait(["state: gameState"], 8, 6, "the level")
             text += out
             if "Gameplay_GameState" in line_with(out, "state: gameState"):
-                return True, text
-            time.sleep(2.5)
+                return True, text + settle_level(log, sent)
+            time.sleep(0.5)
     return False, text
+
+
+def settle_level(log, since, least=2.5, quiet=1.2, most=8.0):
+    """After a boot, until the level's controllers have registered and the
+    lock's passes have gone quiet: no "abilities:" line (the lock's summary)
+    and no registration for `quiet` seconds, at least `least` after the boot
+    and at most `most`. What the fixed six-second settle was standing in for:
+    solve_level reads the lock report first, and a report taken before the
+    lock has painted would let it force a locked group."""
+    text = ""
+    last = time.time()
+    while time.time() - since < most:
+        chunk = log.new()
+        text += chunk
+        if "abilities: " in chunk or "registered" in chunk:
+            last = time.time()
+        if time.time() - since >= least and time.time() - last >= quiet:
+            break
+        time.sleep(0.1)
+    return text
 
 
 def to_title(log):
@@ -3344,6 +3457,15 @@ def to_title(log):
     (after a BEATEN level it does nothing, the state stays RetryUI), and
     replayselect alone made a passing level start failing.
     """
+    # A LEANER UNWIND WAS TRIED AND FAILED, 2026-09-27. Over the gate's 16
+    # unwinds, press:Confirm Button found nothing 16 times and the Close click
+    # made the track launch another slot's puzzle 9 times, so they were
+    # dropped and each step waited for its line instead of a fixed pause. The
+    # run then failed at its first Skip: the boot that followed came before
+    # the game had finished reloading the skipped level, which took the stage
+    # back, and the next Skip would have landed on it (21 of 28). The seconds
+    # below are doing work after a Skip; shorten them only with a test that
+    # spends one.
     dev("replayselect", 4.0)
     dev("press:Confirm Button", 1.0)
 
@@ -3449,15 +3571,22 @@ def check_arrow(log, plan):
         close_game()
         return None, None, text
 
-    log.new()
     # THE MOD MAY PRESS THE ARROW ITSELF, on a level built for the panel with
     # nothing left to find. Pressing it again starts a second advance over the
     # first: the 0.4.1 DLC gate's arrow session did that, and the pause menu's
     # Exit then did nothing. So `next` is pressed only when the mod did not.
-    auto = log.wait([AUTO_ARROW_MARK], 12, 6, "the mod's own arrow press")
-    text += auto
-    if AUTO_ARROW_MARK not in auto:
-        dev("next", 8.0)
+    # Its "retry panel: ... ->" line at the completion says whether it will
+    # ("through the panel's arrow"), so the twelve-second wait for its press
+    # is only sat out when it will make one.
+    text += log.new()
+    if "retry panel: slot" not in text:
+        text += log.wait(["retry panel: slot"], 6, 6, "the mod's panel decision")
+    decision = line_with(text, "retry panel: slot")
+    if "through the panel's arrow" in decision or not decision:
+        auto = log.wait([AUTO_ARROW_MARK], 12, 6, "the mod's own arrow press")
+        text += auto
+    if AUTO_ARROW_MARK not in text:
+        dev("next", 1.0)
     # Capture the mod's own line BEFORE loaded_level runs: its first log.new()
     # discards whatever has arrived, which swallowed "navigation: replay Next"
     # and had the summary print "arrow presses: 0" beside a passing arrow
@@ -3786,7 +3915,7 @@ def play(log, plan, earlier=""):
             #
             # An unfinished level is still ACTIVE, so booting straight over it
             # lets the teardown do its job. Nothing to unwind, nothing to leak.
-            if last_done:
+            if last_done and UNWIND_BEFORE_BOOT:
                 transcript += to_title(log)
             opened, out = boot_level(log, index)
             transcript += out
@@ -3877,7 +4006,19 @@ def play(log, plan, earlier=""):
                 log, refuse=refuse,
                 wait=completion_wait(slots[current][1]))
             transcript += chunk
-            tail = log.wait(["beaten:", "check:", "credits:"], 10, 6, "the check")
+            # WAIT ONLY FOR WHAT HAS NOT ALREADY BEEN READ. The mod files its
+            # checks and the Beaten token as the level completes, so
+            # solve_level has almost always read them already, and a wait
+            # that sees only NEW lines then sat out its full ten seconds - on
+            # 20 of 24 visits of the 2026-09-27 gate, 200 s of the run. A
+            # finished level still waits for its token if it has not come; an
+            # unfinished one filed its part checks while it was solved, so a
+            # short look for a straggler is enough.
+            if done:
+                tail = ("" if "beaten:" in chunk or current in restored
+                        else log.wait(["beaten:"], 10, 6, "the Beaten token"))
+            else:
+                tail = log.wait(["beaten:", "check:", "credits:"], 2, 6, "the check")
             transcript += tail
 
         # AN ATTEMPT THAT ACHIEVED NOTHING MUST NOT REPEAT - the unbeaten
@@ -4205,7 +4346,7 @@ def play(log, plan, earlier=""):
             for attempt in range(3):
                 dev("menu:levels", 3.0 + 2.0 * attempt)
                 log.new()
-                dev(f"clickcard:{CREDITS_LEVEL_INDEX}", 6.0)
+                dev(f"clickcard:{CREDITS_LEVEL_INDEX}", 2.0)
                 clicked = log.new()
                 transcript += clicked
                 if "open menu:levels first" not in clicked:
@@ -4214,9 +4355,15 @@ def play(log, plan, earlier=""):
                        f"retrying ({attempt + 1}/3)")
 
         say(6, "staying connected for the goal report")
-        transcript += log.wait(["goal: reported to the server"], 60, 6,
-                               "the goal report")
-        time.sleep(8)
+        # The mod reports the goal as the credits start, so the click above
+        # has usually read the line already; the wait sees only new lines and
+        # sat out all 60 s on the 2026-09-27 gate. The last few seconds are
+        # for the server to log the goal before the game closes.
+        transcript += log.new()
+        if "goal: reported to the server" not in transcript:
+            transcript += log.wait(["goal: reported to the server"], 60, 6,
+                                   "the goal report")
+        time.sleep(4)
         transcript += log.new()
         if "credits: unlocked" in transcript:
             credits = True

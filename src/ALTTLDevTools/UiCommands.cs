@@ -384,7 +384,8 @@ public partial class DevToolsBehaviour
             DevToolsPlugin.Log.LogInfo(
                 $"hints: randomizer {rnd.GetIl2CppType().Name}"
                 + $" RandomizerHints={Str(() => rnd.RandomizerHints == null ? "null" : rnd.RandomizerHints.Count.ToString())}"
-                + $" GetRandomizerHints={Str(() => rnd.GetRandomizerHints() == null ? "null" : rnd.GetRandomizerHints().Count.ToString())}");
+                + $" GetRandomizerHints={Str(() => rnd.GetRandomizerHints() == null ? "null" : rnd.GetRandomizerHints().Count.ToString())}"
+                + $" sprites=[{Str(() => SpriteNames(rnd.GetRandomizerHints()))}]");
         }
 
         DevToolsPlugin.Log.LogInfo(
@@ -393,7 +394,8 @@ public partial class DevToolsBehaviour
             + $" daily={Str(() => li.IsDailyTidy.ToString())}"
             + $" available={Str(() => li.HintAvailable.ToString())}"
             + $" used={Str(() => li.HintUsed.ToString())}"
-            + $" images={images}");
+            + $" images={images}"
+            + $" sprites=[{Str(() => SpriteNames(li.HintImages))}]");
 
         foreach (var obj in Resources.FindObjectsOfTypeAll(
                      Il2CppInterop.Runtime.Il2CppType.Of<HintMenu>()))
@@ -456,8 +458,21 @@ public partial class DevToolsBehaviour
                 + $" active={Str(() => page.gameObject.activeSelf.ToString())}"
                 + $" surface={(surface == null ? "null" : "yes")}"
                 + $" canBeWiped={(surface == null ? "-" : Str(() => surface.CanBeWiped.ToString()))}"
-                + $" isCleaned={(surface == null ? "-" : Str(() => surface.IsCleaned.ToString()))}");
+                + $" isCleaned={(surface == null ? "-" : Str(() => surface.IsCleaned.ToString()))}"
+                // WHICH PICTURE the page draws: the level's own HintImages
+                // or its randomizer's generic hints (the Calendar hint bug,
+                // 2026-09-25) - compare with the sprites= lists above.
+                + $" shows={Str(() => page.HintImage == null || page.HintImage.sprite == null ? "none" : page.HintImage.sprite.name)}");
         }
+    }
+
+    /// <summary>The names of a sprite list, comma separated.</summary>
+    private static string SpriteNames(Il2CppSystem.Collections.Generic.List<Sprite>? sprites)
+    {
+        if (sprites == null) return "null";
+        var names = new List<string>();
+        for (int i = 0; i < sprites.Count; i++) names.Add(sprites[i] == null ? "null" : sprites[i].name);
+        return string.Join(", ", names);
     }
 
     /// <summary>

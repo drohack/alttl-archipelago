@@ -9,6 +9,341 @@ refuses to connect to a seed a different apworld generated.
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+**New seeds only.** The logic changes below change what a seed requires, so a
+0.4.1 seed stays on 0.4.1.
+
+### Logic from the first two-player multiworld
+
+droha and Kat played a 0.4.1 multiworld on 2026-09-25 and found parts the card
+offered that could not be done. Each now waits for what it physically needs
+(`tools/add-edges.py`, evidence in `proven-requirements.json`):
+
+- DLC1 Daggers: the loose daggers need Drawer (their Box is in the drawer).
+- DLC2 Water Glasses: Water Level needs the ice cubes sorted first.
+- DLC1 Lunch Tray: Tray Organizer needs the tray drawer (Drawer).
+- DLC1 Sewing Box: Top Drawer and Curved Needles need Drawer.
+- DLC1 Jewelry Box: Rings needs Drawer, so the whole level does.
+- DLC1 Daggers has no part checks any more. Both needed Drawer, the same as
+  its Solution, so they always arrived together (droha: "it's all or
+  nothing"). Solution and Beaten still need Drawer.
+
+Two more from droha's locks-on play with Drawer withheld (2026-09-26), where
+the game's own hint puts the pieces inside the drawers:
+
+- DLC2 Material Drawers: Drawer Draggables and the containable need Drawer,
+  since the items are sorted into the drawers ("impossible without the
+  drawers"). Drawer Draggables asked for nothing before, so a seed could put
+  Drawer there and never reach it.
+- DLC1 Nested Drawers: the peanut goes in the innermost drawer. The level has
+  no part checks and its Solution already needed Drawer, so no requirement
+  changes; the table now says what play found.
+
+Three more from droha's drawer and door hand tests (2026-09-26), each played
+with one ability revoked and then given back:
+
+- DLC1 Jewelry Box: Watches, Radiolaria, Brooches, Gold Bars, Cameos and the
+  Locket need the rings, and so Ordering. Finishing the rings is what opens
+  the first drawer ("can't complete anything as it needs to be completed to
+  get the first drawer open").
+- DLC1 Tea Cabinet: Items Placements needs the cupboard doors (Gadgets). The
+  items go behind them, and it asked for nothing before.
+- DLC1 Sewing Box: Small Spools, Supplies and Top Drawer need Containers too.
+  With the drawers open and Containers missing none of them finished; all
+  three did within 11 s of Containers arriving.
+
+The same tests found parts done without the Drawer the table asked for, with
+nothing on screen greyed out, so a player could already do them out of
+logic. On droha's word they no longer need Drawer:
+
+- DLC1 Lunch Tray: Tray Organizer and Broccoli. The whole level finished
+  without Drawer. The Trays part itself did not, and keeps it.
+- DLC1 Jewelry Box: Rings.
+- DLC1 Sewing Box: Large Spools.
+- DLC1 Fossils: Fern and Snake, the two in the drawer that starts open.
+- DLC1 Game Pieces: Heart and Center Tiles.
+
+Four DLC levels are drawn at most once: DLC1 Trophy Cabinet and DLC2 Water
+Glasses, Figurines and Bread Crusts. The game marks them randomizable, but the
+seed does not change their layout - droha found duplicates "exactly the same",
+though Kat's log shows each copy launched with its own seed. Measured on all
+20 randomizable levels with two seeds each: only these four keep their layout. They still launch
+seeded, as before; their later copies' locations are gone (DLC1 136 -> 115,
+DLC2 260 -> 141), so every DLC location id after them moved.
+
+Kat's log also showed Pantry and Trophy Cabinet finished with nothing locked
+before Drawer arrived, and Figurines' solutions and sorting done before
+Sticking, each Solution withheld. Their extra Drawer, and Figurines' Sticking,
+are bypassed like Medicine Cabinet's below.
+
+Medicine Cabinet goes the other way: its Solution and Beaten no longer ask for
+Drawer. Kat finished the whole level without it, after droha's four runs had
+fired every group without it. The Drawer is bypassed rather than deleted, so
+the draw - and every frozen plan in `fixtures/plan-0.3.4.json` - is unchanged.
+
+### Locked drawers, cupboards and doors stay solid
+
+Tea Cabinet's locked doors let the items behind them be grabbed through them,
+and Sewing Box's locked drawers let their contents be pulled out. A locked
+object lost its collider and its rigidbody's simulation, and a cover without
+either stops blocking the pointer (Unity: a collider on a body that is not
+simulated is not seen by raycasts). A cover - an object only a drawer,
+cupboard or door controller holds - now keeps both and is locked by the flags
+and the grey alone; what it holds locks as before. A scrubbed-open door
+(AnimScrubbables) is a cover only on the three cupboard levels: on Wilting
+Flowers the same controller is the puzzle. A locked scrub object now refuses
+the scrub itself (a freeze does not stop one), so the flowers cannot be stood
+up without Gadgets (droha hand-tested it). They also show as locked now: each
+flower is drawn by a separate animated sprite, and the grey went on the logic
+object, which draws nothing. Checked by screenshot, grey without Gadgets and
+full colour once it arrives.
+
+A drawer piece that can neither slide nor be picked up is not locked at all.
+Sewing Box's box is one (its drawers slide 1.86 and 1.89), and locking it
+greyed the whole box at 60%, the closed drawers underneath showing through:
+droha, "the whole box and drawers are greyed out". Now the box draws in full
+colour and only the drawers are dimmed. droha hand-tested it: the drawers
+cannot slide, the box is not greyed, and nothing locked in or on it blocks
+things being put down. What tells the box from the trays and boxes a player
+carries (Lunch Tray, Nesting Boxes), none of which slides either, is the
+game's own "cannot be selected" flag on it; a sliding drawer always locks.
+Tea Cabinet's doors hold too: dimmed, they do not move, and nothing behind
+them can be grabbed.
+
+A locked drawer does not move when the GAME moves it either. On Jewelry Box
+without Drawer, solving the rings opened the greyed Brooches drawer, and it
+could not be closed again. The game's own open and close now wait while the
+drawer is locked, and the latest one happens when Drawer arrives. Closing
+waits too: Kitchen Utensils swaps its drawers with a close and an open, and
+refusing only the open left both shut. droha hand-tested both.
+
+On Daggers the drawers slid open while their Box stayed locked. A drawer that
+slides now follows its drawer lock even when another group frees it, so the
+Box and its drawers lock together (droha: "i can't open the drawer, nor drag
+the box"). Jewelry Box's Main Box, which cannot move at all, is no longer
+greyed. A locked drawer's art is dimmed all the way down: on Bathroom Drawer
+one handle stayed in full colour, because it is drawn by a child sprite.
+
+Two faults left pieces in the drawers dead once their ability arrived, both
+on Sewing Box. They were in colour but could not be picked up. First, pieces
+got their physics back as recorded when first frozen, and some had recorded
+it stopped. They now get it back (droha: "they are physicasble"). Second, a
+drawer saves its contents' "can be picked up" state when it closes and puts
+it back when it opens. Shut over a locked piece, it saved the lock's "no" and
+gave it back after the unlock, and every later close saved it again (droha: "i
+can't move the saftypins that are in drawers"). Now a piece saved while locked
+is saved as free when it unlocks. Checked with DevTools `drawers`: lock,
+close, unlock and open left Zipper (2) and SafetyPin (5) unpickable before
+the fix, and pickable after it. The same steps free Paper Plane Supplies'
+chalk shut in its drawer without Jigsaw. The fix is on the game's drawer
+itself, so it holds on every level with drawers.
+
+Pieces the game keeps fixed stay fixed when their ability arrives. The unlock
+used to make every locked piece interactable, so Sewing Box's Curved Needles
+Container could be moved around once Containers came in. The lock now keeps
+the game's own "interactable" while it holds a piece, including a change the
+game makes meanwhile, such as a phase starting, and puts that back.
+
+A locked piece is grey all over. The grey used to go only on a piece's main
+sprites, so Candles' candles, drawn by Body, Holder and Tip child sprites,
+stayed in full colour while locked, as did Spice Jars' lids, Pencils' wood and
+lead, and Lamp's LEDs. Now every sprite a piece shows is greyed; shadows are
+not.
+
+Clear sprites stay clear. Daggers' drawer masks and Books (Randomized)'s book
+sprites are clear by design. Locked, the masks showed as grey boxes, and after
+the unlock both came back solid. A clear sprite is no longer greyed. One that
+fades in later is greyed then, and comes back fully opaque. A piece's colour
+is put back only while the grey is still on it; if the game has painted it
+since, the game's colour stands.
+
+A piece whose collider or physics the game turns on after the lock took it
+comes back with them on. PawPrints' paw prints and spills start without them
+and get them from the game a moment later. The lock put back what it first
+saw, so 19 pieces came back dead.
+
+A cover stays solid with every ability missing. Sticky Drawer's gum and
+stickers are held by another group while the level loads, and by the drawer
+alone afterwards. Frozen as ordinary pieces at load, they stayed without a
+collider once they counted as covers. A cover frozen earlier now gets its
+collider and physics back.
+
+A sticker's handle and PawPrints' cloth lock with what they move. A sticker
+is peeled by a separate handle and PawPrints' mess is wiped by a cloth, and no
+group lists either, so neither was ever locked. With Sticking missing, Sticky
+Drawer's stickers could still be peeled and stuck through their gum; with
+Tidying missing, the cloth cleaned PawPrints' first screen (droha, hand
+tests). A sticker's handle now locks with its sticker, and a cloth with the
+level's clearable pieces. Candles' match was the same: in no group, in full
+colour, and once lit it grew and shrank the grey candles with Gadgets
+missing. A match now locks with the level's candles.
+
+Cat Food Cans, Boxes (Stacked) and Presents (Stacked) restart when their
+ability arrives while they are open. Unlocked in place, the pieces the game
+keeps fixed under others came back pickable but could not be put down (droha:
+"they don't drop"). Every piece in these levels is locked without the ability,
+so the restart loses nothing; a toast says why.
+
+The lock also runs again when PawPrints' intro ends. The game switches the
+cloth and 19 paw prints back on the frame after it, and picking the cloth up
+does not check the lock's flags, so the grey cloth still cleaned the first
+screen. The extra pass runs only on a level with a cloth, since nothing else
+needs it.
+
+Found with a new probe, `tools/probe-lock-roundtrip.py`. It loads a level with
+every ability held, then locks it, moves its drawers, gives everything back,
+and compares the two, object by object.
+
+### The retry panel's arrow is pressed the way a player presses it
+
+On a level whose own ending is the three-button panel, with nothing left to
+find, the mod presses the arrow for you. It pressed `ReplayMenu.NextLevel`, a
+menu that is not on screen, and the real panel stayed up over the next puzzle
+(droha, twice; in Kat's log the automatic arrow reached the next puzzle 6
+times in 37). Calling `RetryMenu.NextLevel` left it up too. The mod now waits
+until the panel has finished showing, then clicks its Continue button through
+the EventSystem, as a pointer does. Checked in game: Cookies Jigsaw, then
+Spider Web with no panel. DevTools `next` does the same.
+
+### Messages read like the text client
+
+droha: "it should say whatever the normal text client shows." Item toasts are
+now the server's own item messages for this slot, in the text client's colours
+(who found what, for whom). The "Puzzle beaten (x/n)" toast is gone - the
+level select already shows it - and "Found X" shows only while offline, where
+no server message will come.
+
+### Leaving the credits stops them
+
+droha: "when i exit out of the credits, and hit play from the main menu, or
+go to a level in level select, the credits still playing". The credits scene
+has no ExitGameToTitle, so the pause menu's Exit forced the title state and
+the credits sequence ran on underneath. Exit during the credits now ends them
+with the game's own `Credits.CreditsComplete`, found through the running
+level (the first try only searched active objects, missed it, and droha's
+exit fell through to the old route). Checked in game: Exit lands on the
+track, and the next puzzle opens with no credits over it.
+
+The pause menu's Levels button ends them the same way; before, it went to the
+track and left them running too.
+
+The goal is still reported as the credits start, by design; the log line that
+said "credits: played to the end" now says so.
+
+### The credits card is on the track from the start
+
+It appeared only once the Credits item arrived, and then already filled in:
+Kat, with 68 of 40 beaten, never saw it until the item came (droha,
+2026-09-26: "It should always show the outline version"). It is now the last
+card from the start, drawn locked until the item is held and enough puzzles
+are beaten; a click says which of the two is missing.
+
+### No Steam achievements while the mod is loaded
+
+Kat got Steam achievements playing the run's credits. A run plays the game out
+of order, with skips and other players' items, so it earns nothing an
+achievement claims. The mod now stops the game's achievements and Steam stats
+at Steamworks (one call site each in the game, so every route), and logs what
+it withheld. `[Steam] AllowAchievements` turns them back on.
+
+### Checks sent for you mid-session reach the cards
+
+droha sent a location for Kat with `/send_location` and her card did not
+change until she reconnected: the server's checked list was read only at
+login. The mod now takes the server's updates as they arrive. Checked in
+game: a release mid-session arrived as "the server marked 35 more
+location(s) checked", and every card with a Solution turned done.
+
+A Solution counts the puzzle as beaten, however it arrived. droha: "I
+wouldn't say 'beaten' is different from solving at least 1 solution for the
+puzzle." Beaten is an event with no server address, so a Solution sent with
+`/send_location` left the card green and the beaten count short forever. Any
+slot with a Solution in now gets its Beaten filed too, at login, offline and
+mid-session.
+
+### A card in a pack not opened yet draws locked
+
+The game draws a card's art from the level's save row, and every copy of a
+generator in a run shares one level. So with Microscope open in an early
+pack, droha's locked Pack 11 drew Microscope #3 and Clock #3 in full colour
+beside three locked cards. Clicking them was already refused; now they also
+draw locked until their pack opens. Not yet checked in game.
+
+### The level select strip shows which packs are open
+
+droha: "it's hard to tell how many packs you actually have open." A card in a
+pack not yet opened painted the same red as a card locked by an ability. Those
+dots now keep the game's own locked look. Not yet checked in game.
+
+### A refused seed delivers nothing, and a reconnect no longer replays old cats
+
+The server starts sending as soon as the socket is up, before the mod has
+checked the seed. So a seed the mod refused (built for a DLC droha did not
+have) still delivered its Jigsaw into the offline run on screen, with a toast.
+And every reconnect handled the item replay before loading the run state
+that counts traps already sprung: "26 cat(s) found nothing to knock over",
+then "25 trap(s) already sprung" (droha; 40 in Kat's log). On the title
+screen they hit nothing; in a level they would have reset it. The session's
+events are now held until the login is accepted, then delivered in one step:
+items, then the run, then the rest. Checked in game: a refused seed logged
+three refusals and no item, toast or trap.
+
+### A check withheld for a missing item is sent once it arrives
+
+A part solved before its ability arrives is withheld, and the log promised
+"it will be filed on a later visit once the item arrives". Nothing remembered
+it: the game rebuilds the level unsolved, so a later visit had nothing to
+file. Kat's Figurines "Sorting Items" was withheld on both copies and never
+sent after Sticking came. Withheld checks are now kept in the run file and
+sent as soon as the run can reach them, even without revisiting.
+
+### A level outside the run no longer files the last puzzle's checks
+
+Starting a level the run does not contain kept the slot played before it, so
+that slot took the level's checks: finishing Wilting Flowers, which the seed
+did not contain, right after Fruit Stickers sent "Fruit Stickers - Solution 2"
+and showed the panel's arrow as if Fruit Stickers had its second solution.
+Found with a DevTools boot on a local server. The run now leaves the slot when
+such a level starts, and anything solved on it is filed nowhere: the same
+steps after SpiderWeb logged "left slot 3, nothing on it is filed" and sent
+nothing.
+
+### Nothing left to play after a daily puzzle no longer strands the track
+
+After a Daily Tidy puzzle (Procedural Grid Puzzle, the Randomized ones and
+the other generators) with nothing playable left, the mod took the run to the
+track from the Daily page. That track had no Close button and its cards never
+launched: droha's first session ended there. It now goes to the title and
+opens the track once the title has settled. Checked in game: the card
+launches.
+
+### Seeded puzzles show the randomizer's hint
+
+droha: a randomized Calendar showed the hand-made Calendar's solution. The
+hint menu picks the randomizer's pages when the level says it is a Daily
+Tidy, and the run answers "no" to that everywhere to keep its puzzles off the
+Daily page. It now answers truly while the hint pages are chosen. Checked in
+game on all 20 randomizable levels, each opened from the run's track: the 16
+that re-randomize show their randomizer's page (Calendar `Calendar-DT-hint 4`,
+`hint-calendar` without the fix), the four fixed-layout DLC levels their own.
+Before, the ten hand-made generators showed the hand-made solution.
+
+### Ability locks do less work, and cannot run away
+
+The lock pass re-ran on the game's ControllerChanged event, which is about
+INPUT devices, not level objects: it fired 13 to 40 times a second while a
+player moved the mouse (81,810 times in droha's run), each time a full pass
+plus half a second of per-frame passes. It no longer listens to it. The pass
+also writes the interaction flags only on objects it locks, and puts them back
+once on unlock, instead of writing "interactable" to every free object on
+every pass, and it has a re-entry guard.
+
+This fixes a crash. Fruit Stickers crashed with a stack overflow within seconds
+of dragging stickers: twice in droha's run, and again on 0.4.1 in a repro,
+after 10 s with nothing locked. On this build droha stuck, peeled and dragged
+stickers off for a minute with no crash (2026-09-26).
+
 ## 0.4.1 - 2026-09-25
 
 **0.4.0 seeds: finish them on 0.4.0, or regenerate.** Nothing in the item or

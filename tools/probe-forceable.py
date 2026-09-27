@@ -123,6 +123,9 @@ def launch(log, tag):
         print(f"{tag} game still starting, waited {waited + 5}s", flush=True)
     time.sleep(8)
     e2e.dev("setres:1280x720", settle=3.0)
+    # Muted, as tools/probe-lock-roundtrip.py is: a sweep boots level after
+    # level on droha's speakers (droha, 2026-09-27: "why is it not muted?").
+    e2e.dev("mute", settle=1.0)
 
 
 def force_passes(log, index, completed):

@@ -85,6 +85,10 @@ to hold it:
 
 ![The Distributing icon, a whole pizza, labelled DST](docs/images/ability-distributing.png)
 
+Solve a group the run cannot reach yet (a lock that did not hold, say) and its
+check is kept rather than sent early: it goes out the moment the item arrives,
+without revisiting the puzzle.
+
 ### What the mod puts on screen
 
 - **A badge on every card**, saying whether the card is worth opening: green
@@ -97,10 +101,14 @@ to hold it:
 - **An Archipelago pane on the main menu** for the server (host and port
   together), slot name and password, so connecting never means editing a
   config file.
-- **Toasts** for what you find and receive, coloured the way Archipelago's own
-  text client colours them.
+- **Toasts** for every item sent to or from you, worded and coloured the way
+  Archipelago's own text client shows them.
 - **Play and the next arrow** open the next puzzle the RUN wants, rather than
   the next one in the campaign's order.
+- **No Steam achievements.** While the mod is loaded the game's achievements
+  and Steam stats are held back, run or no run: a run plays the game out of
+  order and earns nothing they claim. `[Steam] AllowAchievements = true` in
+  the mod's config turns them back on.
 
 ### Options
 
@@ -211,6 +219,8 @@ queues anything you earn, and sends it on the next connection.
 - `docs/cat-trap-tests.md` - what the cat trap does and the battery that proves
   it. The trap has been wrong three times and passed a test each time
 - `docs/manual-hint-test.md` - the Hint Page gate, which needs hands on a mouse
+- `docs/manual-lock-test.md` - every ability-lock fix, the probe that tests it
+  on every level, and the lock checks that still need hands
 - `docs/backlog.md` - what has been raised and not yet done. Currently empty,
   and says so
 - `docs/data/` - probe output and investigation write-ups: the prefab-derived

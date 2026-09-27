@@ -323,7 +323,7 @@ def setup_session():
     print("[5/5] starting the server and pointing the mod at it", flush=True)
     pid = serve(seed_path)
     e2e.write_config()
-    e2e.write_devtools_config()
+    e2e.write_devtools_config(mute=False)   # droha plays this one: keep the sound
 
     print("", flush=True)
     print(f"  server pid {pid} on localhost:{e2e.PORT}, slot {e2e.SLOT!r}",

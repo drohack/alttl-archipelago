@@ -123,7 +123,7 @@ def main():
             break
         time.sleep(1)
     e2e.write_config()
-    e2e.write_devtools_config()
+    e2e.write_devtools_config(mute=False)   # droha plays this one: keep the sound
 
     print("[4/6] launching and waiting for the mod to connect", flush=True)
     log = e2e.Log()

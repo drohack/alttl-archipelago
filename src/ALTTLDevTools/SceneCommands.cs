@@ -152,25 +152,7 @@ public partial class DevToolsBehaviour
         var wanted = parts[0].Trim();
         var filter = parts.Length > 1 ? parts[1].Trim() : "";
 
-        Type? found = null;
-        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-        {
-            Type?[] types;
-            try { types = asm.GetTypes(); }
-            catch (System.Reflection.ReflectionTypeLoadException e) { types = e.Types; }
-            catch { continue; }
-
-            foreach (var t in types)
-            {
-                if (t != null && string.Equals(t.Name, wanted, StringComparison.OrdinalIgnoreCase))
-                {
-                    found = t;
-                    break;
-                }
-            }
-            if (found != null) break;
-        }
-
+        var found = FindType(wanted);
         if (found == null)
         {
             DevToolsPlugin.Log.LogWarning($"members: no type named {wanted}");
@@ -302,17 +284,24 @@ public partial class DevToolsBehaviour
 
     private static Type? FindType(string name)
     {
-        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+        // The game's own assembly first: `members:Match` found .NET's regex
+        // Match before Candles' match (2026-09-27).
+        foreach (var gameFirst in new[] { true, false })
         {
-            Type?[] types;
-            try { types = asm.GetTypes(); }
-            catch (System.Reflection.ReflectionTypeLoadException e) { types = e.Types; }
-            catch { continue; }
-
-            foreach (var t in types)
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
-                if (t != null && string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase))
-                    return t;
+                var isGame = (asm.GetName().Name ?? "").StartsWith("Assembly-CSharp", StringComparison.Ordinal);
+                if (isGame != gameFirst) continue;
+                Type?[] types;
+                try { types = asm.GetTypes(); }
+                catch (System.Reflection.ReflectionTypeLoadException e) { types = e.Types; }
+                catch { continue; }
+
+                foreach (var t in types)
+                {
+                    if (t != null && string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase))
+                        return t;
+                }
             }
         }
         return null;
@@ -484,7 +473,19 @@ public partial class DevToolsBehaviour
         {
             if (subs![i] != null) return true;
         }
-        return false;
+        return ScrubPicture(obj) != null;
+    }
+
+    /// <summary>
+    /// The sprite a scrub object is drawn with when it has none of its own:
+    /// Wilting Flowers' flowers are logic only, and the flower on screen is on
+    /// their animationToScrub (tree:Flower). The randomizer greys this one.
+    /// </summary>
+    private static SpriteRenderer? ScrubPicture(LevelObject obj)
+    {
+        var scrub = obj.TryCast<AnimScrubObject>();
+        var anim = scrub == null ? null : scrub.animationToScrub;
+        return anim == null ? null : anim.GetComponent<SpriteRenderer>();
     }
 
     /// <summary>
@@ -509,12 +510,31 @@ public partial class DevToolsBehaviour
         {
             if (IsDimColour(subs![i])) return true;
         }
+        if (IsDimColour(ScrubPicture(obj))) return true;
+        if (IsDimColour(obj.GetComponent<SpriteRenderer>())) return true;
+        // An object drawn by the sprites under it (Bathroom Drawer's Floor,
+        // Craft Supplies' Knob2, Candles' Body), not counting other objects.
+        return DimArtUnder(obj.transform);
+    }
+
+    private static bool DimArtUnder(Transform t)
+    {
+        for (int i = 0; i < t.childCount; i++)
+        {
+            var child = t.GetChild(i);
+            if (child == null || child.GetComponent<LevelObject>() != null) continue;
+            if (IsDimColour(child.GetComponent<SpriteRenderer>())) return true;
+            if (DimArtUnder(child)) return true;
+        }
         return false;
     }
 
     private static bool IsDimColour(SpriteRenderer? r)
     {
-        if (r == null) return false;
+        // ONLY A SPRITE THAT DRAWS. Bathroom Drawer's own renderer is switched
+        // off while it is shut, so its grey counted as "dimmed" with nothing
+        // grey on screen (droha, 2026-09-26: "the drawer is not dimmed").
+        if (r == null || !r.enabled || !r.gameObject.activeInHierarchy) return false;
         var c = r.color;
         return Near(c.r, 0.55f) && Near(c.g, 0.55f)
             && Near(c.b, 0.55f) && Near(c.a, 0.6f);
@@ -654,6 +674,288 @@ public partial class DevToolsBehaviour
                 + $"{stuck}\t{done}");
         }
         DevToolsPlugin.Log.LogInfo("reachable: done");
+    }
+
+    /// <summary>
+    /// "tree:&lt;name&gt;" dumps the child tree of every object in the active
+    /// level whose name contains &lt;name&gt;: each node's components, and on a
+    /// renderer its sprite, colour and whether it draws. On an AnimScrubObject
+    /// the animated picture and the grabbed handle (animationToScrub,
+    /// objectToReference) can sit anywhere in the scene, so their trees follow.
+    ///
+    /// Written for Wilting Flowers: `locks` reads its three flowers as having
+    /// no renderer at all, so the lock could not grey them, and which object
+    /// draws a flower was a guess.
+    /// </summary>
+    private static void Tree(string filter)
+    {
+        filter = (filter ?? "").Trim();
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        var level = li == null ? null : li.Level;
+        if (level == null || filter.Length == 0)
+        {
+            DevToolsPlugin.Log.LogWarning("tree: needs a running level and a name, e.g. tree:Flower");
+            return;
+        }
+
+        var matches = new List<Transform>();
+        foreach (var t in level.GetComponentsInChildren<Transform>(true))
+        {
+            if (t == null) continue;
+            if (Str(() => t.gameObject.name).IndexOf(filter, StringComparison.OrdinalIgnoreCase) < 0) continue;
+            // A match inside another match is already in that match's tree.
+            var inside = false;
+            foreach (var m in matches)
+            {
+                if (t.IsChildOf(m)) { inside = true; break; }
+            }
+            if (!inside) matches.Add(t);
+        }
+
+        DevToolsPlugin.Log.LogInfo($"tree: {matches.Count} object(s) named like '{filter}' in {Str(() => li!.LevelId)}");
+        var lines = 0;
+        foreach (var t in matches)
+        {
+            if (lines > 400) { DevToolsPlugin.Log.LogInfo("tree: stopped at 400 lines"); break; }
+            DevToolsPlugin.Log.LogInfo($"tree: {PathOf(t)}");
+            lines += TreeNode(t, 1);
+
+            var scrub = t.GetComponent<AnimScrubObject>();
+            if (scrub == null) continue;
+            var anim = scrub.animationToScrub;
+            var handle = scrub.objectToReference;
+            DevToolsPlugin.Log.LogInfo(
+                $"tree:   animationToScrub={(anim == null ? "null" : PathOf(anim.transform))}"
+                + $" enabled={Str(() => anim!.enabled.ToString())}");
+            if (anim != null && !anim.transform.IsChildOf(t)) lines += TreeNode(anim.transform, 2);
+            DevToolsPlugin.Log.LogInfo(
+                $"tree:   objectToReference={(handle == null ? "null" : PathOf(handle.transform))}");
+            if (handle != null && !handle.transform.IsChildOf(t)) lines += TreeNode(handle.transform, 2);
+        }
+        DevToolsPlugin.Log.LogInfo("tree: done");
+    }
+
+    private static int TreeNode(Transform t, int depth)
+    {
+        if (t == null || depth > 8) return 0;
+
+        var parts = new List<string>();
+        foreach (var c in t.GetComponents<Component>())
+        {
+            if (c == null) continue;
+            var name = Str(() => c.GetIl2CppType().Name);
+            if (name == "Transform") continue;
+            var sprite = c.TryCast<SpriteRenderer>();
+            var renderer = c.TryCast<Renderer>();
+            if (sprite != null)
+            {
+                var col = sprite.color;
+                name += $"(sprite={Str(() => sprite.sprite == null ? "none" : sprite.sprite.name)}"
+                        + $" colour={col.r:0.00},{col.g:0.00},{col.b:0.00},{col.a:0.00}"
+                        + $" enabled={sprite.enabled} order={sprite.sortingOrder})";
+            }
+            else if (renderer != null)
+            {
+                name += $"(enabled={renderer.enabled})";
+            }
+            parts.Add(name);
+        }
+
+        var pad = new string(' ', depth * 2);
+        DevToolsPlugin.Log.LogInfo(
+            $"tree: {pad}{Str(() => t.gameObject.name)} active={t.gameObject.activeSelf}"
+            + (parts.Count > 0 ? $" [{string.Join(", ", parts)}]" : ""));
+
+        var lines = 1;
+        for (int i = 0; i < t.childCount; i++) lines += TreeNode(t.GetChild(i), depth + 1);
+        return lines;
+    }
+
+    /// <summary>
+    /// Every Collider2D under each of a controller's objects, and whether it
+    /// is still in the physics world.
+    ///
+    /// WHY THIS EXISTS. The randomizer's lock turns off obj.collider and stops
+    /// obj.rigidbody, and `reachable` reads the same single collider. droha and
+    /// Kat, 2026-09-25, on Sewing Box: greyed buttons still pushed things
+    /// around, and items went grey and stayed movable. Either needs a collider
+    /// the lock does not reach - one on a child, or a second one on the object.
+    ///
+    /// LIVE means enabled, active in the hierarchy, and on a body that is
+    /// simulated or on no body at all. A collider on a body that is not
+    /// simulated is out of the physics world and raycasts do not see it
+    /// (Unity staff on discussions.unity.com), so it is not live.
+    ///
+    ///   colliders:&lt;controller&gt;   one line per object of that controller
+    ///   colliders:all            the same for every controller
+    /// </summary>
+    private static void Colliders(string arg)
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        var level = li == null ? null : li.Level;
+        if (level == null || level.objectControllers == null)
+        {
+            DevToolsPlugin.Log.LogWarning("colliders: no level running");
+            return;
+        }
+
+        var all = arg.Equals("all", StringComparison.OrdinalIgnoreCase);
+        var list = level.objectControllers;
+        int objects = 0, extraLive = 0;
+        DevToolsPlugin.Log.LogInfo(
+            $"colliders: {Str(() => li!.LevelId)} -- controller\tobject\tdimmed"
+            + "\tmain\tbody\tall\tlive\textra live (not obj.collider)");
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            var oc = list[i];
+            if (oc == null) continue;
+            var cname = Str(() => oc.gameObject.name);
+            if (!all && !cname.Equals(arg, StringComparison.OrdinalIgnoreCase)) continue;
+
+            foreach (var obj in AllObjects(oc))
+            {
+                if (obj == null) continue;
+                objects++;
+
+                Collider2D? main = null;
+                try { main = obj.collider; } catch { }
+                Rigidbody2D? body = null;
+                try { body = obj.rigidbody; } catch { }
+
+                var mainText = main == null ? "none" : (main.enabled ? "on" : "off");
+                var bodyText = body == null ? "none" : (body.simulated ? "simulated" : "stopped");
+
+                int total = 0, live = 0;
+                var extras = new List<string>();
+                try
+                {
+                    foreach (var col in obj.GetComponentsInChildren<Collider2D>(true))
+                    {
+                        if (col == null) continue;
+                        total++;
+                        var rb = col.attachedRigidbody;
+                        var isLive = col.enabled && col.gameObject.activeInHierarchy
+                                     && (rb == null || rb.simulated);
+                        if (!isLive) continue;
+                        live++;
+                        if (main != null && col.GetInstanceID() == main.GetInstanceID()) continue;
+                        extras.Add($"{col.gameObject.name}/{col.GetIl2CppType().Name}"
+                                   + (rb == null ? "/nobody" : ""));
+                    }
+                }
+                catch (Exception e)
+                {
+                    extras.Add($"(could not walk: {e.Message})");
+                }
+                extraLive += extras.Count;
+
+                DevToolsPlugin.Log.LogInfo(
+                    $"colliders:   {cname}\t{Str(() => obj.gameObject.name)}\t"
+                    + $"{(IsDimmed(obj) ? "dimmed" : "-")}\t{mainText}\t{bodyText}\t"
+                    + $"{total}\t{live}\t{(extras.Count == 0 ? "-" : string.Join(", ", extras))}");
+            }
+        }
+
+        DevToolsPlugin.Log.LogInfo(
+            $"colliders: done, {objects} object(s), {extraLive} live collider(s) "
+            + "that are not obj.collider");
+    }
+
+    /// <summary>
+    /// Every Drawer in the level and what it holds: the interactable state the
+    /// drawer RECORDED for each piece (m_contentsInitialInteractableStates)
+    /// beside the piece's flags, body and collider now. Or run one drawer's own
+    /// OpenDrawer or CloseDrawer, which needs hands otherwise.
+    ///
+    ///   drawers                 every drawer and its contents
+    ///   drawers:open:&lt;name|key&gt;  that drawer's OpenDrawer(null), as the game calls it (key: as state: writes it)
+    ///   drawers:close:&lt;name&gt;   that drawer's CloseDrawer(null)
+    ///
+    /// Written for Sewing Box: safety pins that start in a drawer stayed
+    /// unpickable with Ordering given back (droha, 2026-09-26), and every
+    /// drawer level left in the lock tests can carry the same fault.
+    /// </summary>
+    private static void Drawers(string arg)
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        var level = li == null ? null : li.Level;
+        if (level == null)
+        {
+            DevToolsPlugin.Log.LogWarning("drawers: no level running");
+            return;
+        }
+
+        var parts = arg.Split(new[] { ':' }, 2);
+        var verb = parts[0].Trim().ToLowerInvariant();
+        var drawers = level.GetComponentsInChildren<Drawer>(true);
+
+        if (verb == "open" || verb == "close")
+        {
+            var name = parts.Length > 1 ? parts[1].Trim() : "";
+            // A name, or a state: key (names repeat: Nesting Boxes has thirteen drawers).
+            var byKey = name.Contains("#");
+            foreach (var d in drawers)
+            {
+                if (d == null) continue;
+                var id = byKey ? KeyOf(d.transform, level.transform) : Str(() => d.gameObject.name);
+                if (!id.Equals(name, StringComparison.OrdinalIgnoreCase)) continue;
+                DevToolsPlugin.Log.LogInfo($"drawers: running {(verb == "open" ? "OpenDrawer" : "CloseDrawer")} on '{name}'");
+                if (verb == "open") d.OpenDrawer(null);
+                else d.CloseDrawer(null);
+                return;
+            }
+            DevToolsPlugin.Log.LogWarning($"drawers: no drawer named '{name}'");
+            return;
+        }
+
+        foreach (var d in drawers)
+        {
+            if (d == null) continue;
+            var recorded = d.m_contentsInitialInteractableStates;
+            var held = d.ContainedObjects;
+            DevToolsPlugin.Log.LogInfo(
+                $"drawers: '{Str(() => d.gameObject.name)}' class={Str(() => d.GetIl2CppType().Name)}"
+                + $" state={Str(() => d.CurrentState.ToString())}"
+                + $" open={Str(() => d.Open.ToString())} sliding={Str(() => d.IsSlidingDrawer.ToString())}"
+                + $" tray={Str(() => d.IsTray.ToString())} interactable={Str(() => d.Interactable.ToString())}"
+                + $" preventSelection={Str(() => d.PreventSelection.ToString())}"
+                + $" holds={(held == null ? 0 : held.Count)} recorded={(recorded == null ? 0 : recorded.Count)}");
+
+            var seen = new HashSet<int>();
+            if (recorded != null)
+            {
+                foreach (var kv in recorded)
+                {
+                    var obj = kv.Key;
+                    if (obj == null) continue;
+                    seen.Add(obj.GetInstanceID());
+                    DevToolsPlugin.Log.LogInfo($"drawers:   {Content(obj, kv.Value.ToString())}");
+                }
+            }
+            if (held == null) continue;
+            for (int i = 0; i < held.Count; i++)
+            {
+                var obj = held[i];
+                if (obj == null || seen.Contains(obj.GetInstanceID())) continue;
+                DevToolsPlugin.Log.LogInfo($"drawers:   {Content(obj, "-")}");
+            }
+        }
+        DevToolsPlugin.Log.LogInfo($"drawers: done, {drawers.Length} drawer(s)");
+    }
+
+    private static string Content(LevelObject obj, string recorded)
+    {
+        Collider2D? col = null;
+        try { col = obj.collider; } catch { }
+        Rigidbody2D? body = null;
+        try { body = obj.rigidbody; } catch { }
+        return $"'{Str(() => obj.gameObject.name)}' recorded={recorded}"
+               + $" interactable={Str(() => obj.Interactable.ToString())}"
+               + $" preventSelection={Str(() => obj.PreventSelection.ToString())}"
+               + $" body={(body == null ? "none" : body.simulated ? "simulated" : "stopped")}"
+               + $" collider={(col == null ? "none" : col.enabled ? "on" : "off")}"
+               + $" {(IsDimmed(obj) ? "dimmed" : "-")}";
     }
 
     private static void Freeze(string arg)
@@ -1179,5 +1481,45 @@ public partial class DevToolsBehaviour
             + " loaded=" + Str(() => li == null ? "-" : li.LevelIsLoaded.ToString())
             + " transitioning=" + Str(() => li == null ? "-" : li.IsTransitioning.ToString())
             + " level=" + Str(() => li == null || li.Level == null ? "null" : "present"));
+    }
+
+    /// <summary>
+    /// Make the Archipelago mod treat these abilities as NOT held - its real
+    /// lock, not a DevTools freeze - so one seed holding every ability can
+    /// stand in for any held set in a hand test. `revoke:none` gives them all
+    /// back. The mod's DebugHooks.Revoke is found by name: DevTools has no
+    /// compile-time reference to the mod.
+    /// </summary>
+    private static void Revoke(string csv)
+    {
+        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            if (asm.GetName().Name != "ALTTLArchipelago") continue;
+            var hooks = asm.GetType("ALTTLArchipelago.DebugHooks");
+            var method = hooks?.GetMethod("Revoke",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+            if (method == null) break;
+            var line = method.Invoke(null, new object[] { csv }) as string;
+            DevToolsPlugin.Log.LogInfo(line ?? "revoke: no answer from the mod");
+            return;
+        }
+        DevToolsPlugin.Log.LogWarning("revoke: the Archipelago mod (DebugHooks.Revoke) is not loaded");
+    }
+
+    /// <summary>traps:off / traps:on, answered by the mod's DebugHooks.Traps.</summary>
+    private static void Traps(string arg)
+    {
+        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            if (asm.GetName().Name != "ALTTLArchipelago") continue;
+            var hooks = asm.GetType("ALTTLArchipelago.DebugHooks");
+            var method = hooks?.GetMethod("Traps",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+            if (method == null) break;
+            var line = method.Invoke(null, new object[] { arg }) as string;
+            DevToolsPlugin.Log.LogInfo(line ?? "traps: no answer from the mod");
+            return;
+        }
+        DevToolsPlugin.Log.LogWarning("traps: the Archipelago mod (DebugHooks.Traps) is not loaded");
     }
 }

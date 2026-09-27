@@ -15,14 +15,16 @@ set -euo pipefail
 GAME_DIR="G:/Games/Steam/steamapps/common/A Little To The Left"
 PLUGIN_DIR="$GAME_DIR/BepInEx/plugins/ALTTLArchipelago"
 
-# --no-kill compiles without closing a running game.
+# --no-kill compiles without closing a running game, and NEVER deploys.
 #
-# The copy into the plugin folder fails while the DLL is loaded, and that is
-# reported rather than hidden - use it to check a change BUILDS while someone
-# is playing, then deploy properly once they are done. Closing the game out
-# from under a test in progress is worse than waiting.
+# It used to rely on the copy failing while the game held the DLL. The copy
+# succeeds the moment the game is closed - after a crash, say - and droha's
+# next launch then loads an untested build mid-seed (2026-09-25: two crashes,
+# then a session on a dev DLL). SkipDeploy turns the csproj copy off, so a
+# compile check can only ever compile.
 KILL=1
-[ "${1:-}" = "--no-kill" ] && KILL=0
+SKIP=()
+[ "${1:-}" = "--no-kill" ] && KILL=0 && SKIP=(-p:SkipDeploy=true)
 
 if [ "$KILL" = "1" ]; then
     powershell -NoProfile -Command \
@@ -43,14 +45,16 @@ fi
 
 for project in src/ALTTLArchipelago src/ALTTLDevTools; do
     echo "-- building $project --"
-    if ! dotnet build "$project" -c Debug --nologo -v q; then
-        if [ "$KILL" = "1" ]; then
-            echo "BUILD FAILED: $project"
-            exit 1
-        fi
-        echo "(compiled; deploy copy skipped because the game is open)"
+    if ! dotnet build "$project" -c Debug --nologo -v q "${SKIP[@]}"; then
+        echo "BUILD FAILED: $project"
+        exit 1
     fi
 done
+
+if [ "$KILL" = "0" ]; then
+    echo "-- compiled only; nothing deployed --"
+    exit 0
+fi
 
 echo "-- deployed --"
 ls -la --time-style=+%H:%M:%S "$PLUGIN_DIR/ALTTLArchipelago.dll"

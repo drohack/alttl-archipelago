@@ -261,7 +261,7 @@ def main():
         "Host": "localhost", "Port": str(e2e.PORT),
         "SlotName": e2e.SLOT, "AutoConnect": "true"})
     set_config("droha.alttl.devtools.cfg", {
-        "MuteAudio": "true", "TargetVirtualDesktop": str(DESKTOP),
+        "MuteAudio": "false", "TargetVirtualDesktop": str(DESKTOP),
         "RaiseWindowAtStartup": "false"})
 
     say("rolling seeds until one holds both levels")

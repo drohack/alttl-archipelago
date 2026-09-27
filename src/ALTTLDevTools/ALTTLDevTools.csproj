@@ -79,6 +79,11 @@
       <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.Physics2DModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- Animator, for tree:, which follows a scrub object's animationToScrub. -->
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.AnimationModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>$(GameDir)\BepInEx\interop\UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>

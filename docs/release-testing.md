@@ -8,9 +8,53 @@ working tree; this is the only one that tests the artifacts.
 
 ## When to run it, and when not to
 
-**This is a release gate, not an iteration loop.** A full run was about fifteen
-minutes at the old 8 puzzles; at 15 it is longer, and not yet timed. A real
-game, a real MultiServer, fifteen puzzles played to the credits.
+**This is a release gate, not an iteration loop.** A real game, a real
+MultiServer, fifteen puzzles played to the credits: about 10 minutes (9.9 on
+2026-09-27, down from 18.9 that morning; see "Where the time went" below).
+
+### What each mode covers
+
+The full run is a superset: nothing `--quick` or `--only-arrow` checks is
+missed by it.
+
+| | full | `--quick` | `--only-arrow` |
+|---|---|---|---|
+| install from the release files, seed checked on paper | yes | yes | yes |
+| arrow session: the next-level arrow, the pause-menu Exit, two launches | yes | no | yes, and only this |
+| 15 puzzles played to the credits, goal reported and seen by the server | yes | yes | no |
+| ability locks on: gates met and refused (5 on the 2026-09-27 seed) | yes | no | - |
+| cat traps on: puzzles knocked over mid-solve (2 on that seed) | yes | no | - |
+| checks asserted | 28 | 26 | 2 |
+
+`--quick` exists for iterating on the harness, where locks and traps are
+noise. For a release, or after any change to the locks or traps, run the
+full gate.
+
+### Where the time went
+
+Timed line by line on 2026-09-27 (18.9 minutes, 24 visits). Most of it was
+fixed pauses and waits that could not end early:
+
+- **Waits that watched only for NEW log lines, for a line already read.** The
+  mod files a level's checks and Beaten token as it completes, so the solve
+  had read them, and the wait after it sat out its full 10 s on 20 of 24
+  visits. The goal report waited 60 s for a line the credits click had read.
+  Both now look in what was read first.
+- **Fixed settles.** 6 s after every boot (now: poll until the level runs and
+  the lock's passes go quiet), 1.5 s after every controller or lock listing
+  (now: until the header's rows have all landed), 0.9 s after every forced
+  solve (0.5), polls every 0.25 to 0.5 s (0.05 to 0.1).
+- **A progressive level needs the next listing to see its next phase.**
+  TupperwareNesting registers one controller per phase; with listings no
+  longer 2.5 s apart the harness read "6 of 6 solved" before the seventh
+  registered, so the completion wait now re-lists every 3 s and goes back to
+  solving when a phase appears.
+
+What stays: the unwind to the title before each boot after a finished
+level, about 10 s a visit. Booting straight over the finished level failed
+(its win check broke the next level's solves), and a leaner unwind failed at
+the first Skip (the game was still reloading the skipped level). See
+`UNWIND_BEFORE_BOOT` and `to_title` in `tools/release_e2e.py`.
 
 On 2026-09-08 it was run roughly twelve times to land one set of playtest
 fixes. In about ten of those the question was only "did this small change break
@@ -29,7 +73,7 @@ What to reach for instead:
 | Does the option surface still fill? | `ALTTL_STRESS_SEEDS=25` fill stress | ~30s |
 | Can the harness get past a phased level? | `tools/probe-skip-path.py` | ~2 min |
 | Did I break the run or add errors? | a small reproducer, see below | minutes |
-| Is the release good? | this, in full | ~15 min |
+| Is the release good? | this, in full | ~10 min |
 
 ## Before it launches: the seed is checked on paper
 
@@ -282,7 +326,7 @@ opens. The probe is sized so a gated level is always drawn - twenty slots from
 Seeing Stars alone, measured 20 of 20 - rather than rolling seeds and hoping,
 which an earlier version did and missed twelve times running.
 
-### The other two hand tests, which live in their own files
+### The other hand tests, which live in their own files
 
 Neither is automatable and neither is listed anywhere else, so they were easy
 to forget - which is the whole reason they are named here:
@@ -300,6 +344,10 @@ to forget - which is the whole reason they are named here:
   because the reasoning is the useful part: a harness cannot tell "no player
   can earn this" from "I cannot pull a drawer open", so a force-solve probe
   must never be read as evidence that a location is dead.
+- **[manual-lock-test.md](manual-lock-test.md)** - every ability-lock fix,
+  how `tools/probe-lock-roundtrip.py` tests it on every level, and the lock
+  checks that still need hands. Run the probe on any release that touched
+  `AbilityLocks.cs` or `ObjectLock.cs`.
 
 ## The automatic route
 

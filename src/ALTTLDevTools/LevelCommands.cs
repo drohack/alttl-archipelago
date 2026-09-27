@@ -584,6 +584,43 @@ public partial class DevToolsBehaviour
 
         gm.SetGameState<Gameplay_GameState>(null, false);
         gm.levelManager.StartLevel(index, true, true, seed);
+
+        _bootCheckAt = Time.unscaledTime + 1f;
+        _bootChecksLeft = 3;
+    }
+
+    /// <summary>When to look again for a second level after a boot.</summary>
+    private static float _bootCheckAt;
+    private static int _bootChecksLeft;
+
+    /// <summary>
+    /// A SECOND LEVEL THAT COMES UP AFTER THE START. The teardown above looks
+    /// before StartLevel, and a level that is inactive then is not there to
+    /// find: droha, 2026-09-26, booting Nested Drawers again after leaving it
+    /// for the level select, "you've got 2 levels loaded on top of
+    /// eachother". The boot said "tore down 0 live level(s)", and livelevels
+    /// then counted two active Nested Drawers, the old one owned by no
+    /// interface. So for three seconds after a boot, any live level that is
+    /// not the active one is destroyed.
+    /// </summary>
+    private static void TickBootCheck()
+    {
+        if (_bootChecksLeft <= 0 || Time.unscaledTime < _bootCheckAt) return;
+        _bootChecksLeft--;
+        _bootCheckAt = Time.unscaledTime + 1f;
+
+        var keep = GameManager.Instance?.levelManager?.ActiveLevelInterface?.Level;
+        if (keep == null) return;
+        var levels = UnityEngine.Object.FindObjectsOfType<Level>();
+        if (levels == null) return;
+        foreach (var lvl in levels)
+        {
+            if (lvl == null || lvl.GetInstanceID() == keep.GetInstanceID()) continue;
+            DevToolsPlugin.Log.LogWarning(
+                "boot: a second level is live after the start - destroying "
+                + Str(() => lvl.name + "#" + lvl.GetInstanceID()));
+            UnityEngine.Object.DestroyImmediate(lvl.gameObject);
+        }
     }
 
     /// <summary>

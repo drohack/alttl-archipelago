@@ -16,6 +16,68 @@ already known about it.
 
 ## Open
 
+- **Steam's "cloud save not synced" message.** droha, 2026-09-27: every
+  launch of the modded game shows it; stop it, and have the cloud back for
+  play without the mod. What is known (Steam's `logs/cloud_log.txt`, app
+  1629520): Auto-Cloud syncs every `*.json` in the save folder, the mod's
+  `save_ap_*` and `alttl-last-session.json` included. The message is a
+  conflict on the campaign save, `save1.json`: the local copy changed on
+  2026-09-27 00:05 during testing, the cloud copy on 2026-09-25, and the game
+  is started outside Steam (no launch record), so every exit's upload fails.
+  Options: resolve it once in Steam (keep the local copy); untick "Keep game
+  saves in the Steam Cloud" while modding; or a mod setting calling
+  `SteamRemoteStorage.SetCloudEnabledForApp`, which Valve says must only
+  follow an explicit player request, and a crash would leave it off.
+  "Retry sync" in Steam does nothing (droha, 2026-09-27): the log answers
+  "already marked as conflicting" each time; only launching from Steam
+  offers the local/cloud choice. RESOLVED once the same day: droha launched
+  from Steam and kept the local copy ("Upload complete, result OK",
+  17:07). It comes back whenever testing rewrites `save1.json` outside Steam
+  while the cloud copy differs, so what is still open is preventing it. The same log shows the mod's `save_ap_*`
+  files putting the game over its cloud quota ("over quota. Removing from
+  cloud") - naming them outside `*.json` would keep them out of the cloud.
+- **A Background Reset Token.** droha, 2026-09-25: a new filler item, and a
+  button in the pause menu (like the hint notepad's) that spends one to put
+  the backgrounds back to default - "that way you have a way of resetting it,
+  but it's not automatic. you know when you're doing it." A reset clearing
+  the trap automatically was built and reverted the same day. What it
+  showed: the backdrop colour is a function of the trap COUNT
+  (Backgrounds.ColourFor), so clearing needs a count mark in the run file
+  that survives the reconnect replay; ApplyToLevel writes into each
+  LevelInterface without keeping the level's own colour, so every level it
+  touched needs its colour put back, not just the one on screen; the pause
+  screen's Background image and the level select's section colours need
+  the same. New item names go last in their tables (ids are positional).
+  The case that prompted it: droha's Telescope #2 (seed 1385976506) under a
+  Background Change Trap colour, where the last star in one section could
+  not be found in about 12 launches and was sent with `/send_location`.
+- **Nothing playable: show the level select.** droha, 2026-09-26: when the
+  next arrow, Play, or the automatic advance finds no playable puzzle - the
+  rest shut behind packs, or every card left red because of abilities -
+  bring the player to the level select rather than into a blocked puzzle,
+  "it would be more visually better to know when you are blocked". Known so
+  far: Track.NextUnfinishedSlot tries reachable work first and then falls
+  back to any unfinished open slot, which is the case that opens a blocked
+  puzzle; the fallback is where the level select would go instead (the
+  arrow is Navigation.AfterGetNextLevelIndex, Play is TitleScreen, the
+  panel's automatic arrow is RetryPanel). The daily guard already goes to
+  the track by way of the title when nothing is playable.
+- **YAML weights, clearer.** From the 0.4.2 handoff: the source weights are
+  RELATIVE (80/10/10 is 8/1/1), each non-reserve slot rolls a source with
+  weight/sum, the DLC weights add to the sum when a DLC is on (defaults with
+  both DLCs: generator 67%, the others about 8% each), 0 means never, an
+  exhausted one-shot source falls back to generators, and all zero means
+  generators. Two confusing parts to fix: the four FIXED_LAYOUT DLC levels
+  are drawn under generator_weight (source "generator") and should move under
+  their DLC's weight, and player.yaml should put the DLC weights beside the
+  other three and show the resulting percentages.
+- **Achievements as locations.** droha, 2026-09-25: "adding in the
+  achievements as locations (like water glasses removing all ice from
+  cups). I'm not sure if that's easy to track or not." Known so far: the
+  game has per-level achievement checker classes in Assembly-CSharp (for
+  example `DLC2MusicBoxCounterAchievementChecker`). Not yet looked at: how
+  many there are, what event or call marks one earned, and whether a run's
+  save redirect keeps them from reaching the real profile.
 - **The arrow session once solved Post-It Notes and got no completion.**
   Base gate, 2026-09-24 13:34: "the level moved on (1 controller(s), 1
   solved)", then "waiting for the completion", so both arrow checks failed.

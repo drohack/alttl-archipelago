@@ -261,11 +261,11 @@ def main():
         say(2, "playing the credits card")
         off.dev("menu:levels", 3.0)
         off.dev(f"clickcard:{CREDITS_LEVEL_INDEX}", 8.0)
-        text += log.wait(["credits: played to the end"], 60, 2, "the credits")
+        text += log.wait(["credits: started - the goal can be reported"], 60, 2, "the credits")
         time.sleep(4.0)
         text += log.new()
         check("2 the mod sees the credits played offline",
-              "credits: played to the end" in text)
+              "credits: started - the goal can be reported" in text)
 
         state = run_state(seed) or {}
         # THE MECHANISM. Without this key the flag dies with the process and

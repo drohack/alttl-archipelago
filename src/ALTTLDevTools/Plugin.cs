@@ -262,6 +262,7 @@ public partial class DevToolsBehaviour : MonoBehaviour
         }
 
         TickWatch();
+        TickFlip();
         WatchTimeScale();
 
         // Re-asserted rather than set once. The game raises the listener back
@@ -307,6 +308,8 @@ public partial class DevToolsBehaviour : MonoBehaviour
             SafeRun("gensweep step", GenSweepStep);
             return;
         }
+
+        SafeRun("boot check", TickBootCheck);
 
         if (Time.unscaledTime >= _nextCommandPoll)
         {
@@ -960,6 +963,24 @@ public partial class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("next", () =>
                 {
+                    // THE RETRY PANEL, WHEN IT IS THE ONE ON SCREEN. A level
+                    // whose own menu is the retry panel shows RetryMenu, and
+                    // pressing the hidden ReplayMenu's arrow moved on while the
+                    // panel stayed up over the next puzzle (droha,
+                    // 2026-09-25). The mod's RetryPanel presses RetryMenu for
+                    // the same reason; a script must take the same route.
+                    var gm = GameManager.Instance;
+                    var state = gm == null || gm.GameState == null ? "" : gm.GameState.GetIl2CppType().Name;
+                    if (state == "RetryUI_GameState")
+                    {
+                        // A pointer click on its Continue Button, not
+                        // RetryMenu.NextLevel: that advances but leaves the
+                        // panel up over the next puzzle (measured 2026-09-25).
+                        DevToolsPlugin.Log.LogInfo("next: pressing the retry panel's Continue Button");
+                        PressControl("Continue Button");
+                        return;
+                    }
+
                     ReplayMenu? menu = null;
                     foreach (var candidate in Resources.FindObjectsOfTypeAll(
                                  Il2CppInterop.Runtime.Il2CppType.Of<ReplayMenu>()))
@@ -1212,6 +1233,39 @@ public partial class DevToolsBehaviour : MonoBehaviour
             {
                 SafeRun("reachable", Reachable);
             }
+            else if (cmd.StartsWith("colliders:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("colliders", () => Colliders(cmd.Substring("colliders:".Length)));
+            }
+            else if (cmd.StartsWith("scrub:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("scrub", () => Scrub(cmd.Substring("scrub:".Length)));
+            }
+            else if (cmd.StartsWith("state:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("state", () => State(cmd.Substring("state:".Length).Trim()));
+            }
+            else if (cmd.Equals("drawers", StringComparison.OrdinalIgnoreCase)
+                     || cmd.StartsWith("drawers:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("drawers", () => Drawers(cmd.Length > "drawers".Length ? cmd.Substring("drawers:".Length) : ""));
+            }
+            else if (cmd.StartsWith("traps:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("traps", () => Traps(cmd.Substring("traps:".Length)));
+            }
+            else if (cmd.StartsWith("trace:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("trace", () => MethodTrace.Start(cmd.Substring("trace:".Length)));
+            }
+            else if (cmd.StartsWith("tree:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("tree", () => Tree(cmd.Substring("tree:".Length)));
+            }
+            else if (cmd.StartsWith("revoke:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("revoke", () => Revoke(cmd.Substring("revoke:".Length)));
+            }
             else if (cmd.StartsWith("solve:", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("solve", () => SolveController(cmd.Substring("solve:".Length)));
@@ -1223,6 +1277,10 @@ public partial class DevToolsBehaviour : MonoBehaviour
             else if (cmd.StartsWith("watch:", StringComparison.OrdinalIgnoreCase))
             {
                 SafeRun("watch", () => StartWatch(cmd.Substring("watch:".Length)));
+            }
+            else if (cmd.StartsWith("flip:", StringComparison.OrdinalIgnoreCase))
+            {
+                SafeRun("flip", () => StartFlip(cmd.Substring("flip:".Length)));
             }
             else if (cmd.StartsWith("menu:", StringComparison.OrdinalIgnoreCase))
             {
