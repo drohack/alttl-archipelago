@@ -9,7 +9,7 @@ refuses to connect to a seed a different apworld generated.
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
-## Unreleased
+## 0.4.3 - 2026-09-28
 
 **New seeds only.** A new item, new locations and a changed draw: a 0.4.2 seed
 stays on 0.4.2.

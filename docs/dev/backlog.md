@@ -4,9 +4,9 @@ What has been asked for and not yet done, each with what was asked and what is
 already known, so picking one up does not begin with rediscovery. New items go
 here rather than in a message.
 
-## Built 2026-09-27 and 2026-09-28, waiting on a release
+## Built 2026-09-27 and 2026-09-28, in 0.4.3
 
-Each is in the CHANGELOG's Unreleased section, with how it was checked.
+Each is in the CHANGELOG's 0.4.3 section, with how it was checked.
 
 - **Achievements as checks** (droha, 2026-09-25; built 2026-09-28): the
   `achievements` option, off by default, 17 puzzle achievements
