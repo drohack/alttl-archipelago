@@ -7,7 +7,8 @@
   default** - see DLC below.
 - The A Little to the Left Archipelago mod, from the
   [releases page](https://github.com/drohack/alttl-archipelago/releases).
-- [BepInEx 6 for Unity IL2CPP, x64](https://builds.bepinex.dev/projects/bepinex_be).
+- [BepInEx 6 for Unity IL2CPP, x64, build be.697](https://builds.bepinex.dev/projects/bepinex_be/697/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.697%2B5362580.zip), the build the
+  mod is tested with.
   **This is a separate download - the mod release does not include it.** It
   must be BepInEx 6, not BepInEx 5: the game is Unity 2020.3.26f1 / IL2CPP and
   BepInEx 5 will not load it.
@@ -55,13 +56,14 @@ playing a subtly wrong run.
 
 ### Settings worth knowing about
 
-- **Puzzle Count** is how long the run is. The full game is 79; the default is
-  70, so the level select's overview strip fits on screen.
+- **Puzzle Count** is how long the run is, 10 to 130 (the game's own campaign
+  is 79). The default is 70, so the level select's overview strip fits on
+  screen at full size; longer runs shrink it to fit.
 - **Puzzles Per Pack** is how many puzzles each Puzzle Pack opens. Every block
   is the same size, including the free opening; only the last is short, because
-  a run rarely divides evenly. Read the number as a floor rather than a
-  promise: below 5 the run still opens 5, and because a run carries at most 14
-  packs, packs of your size that would need more than that all grow together.
+  a run rarely divides evenly. It is 5 to 20, and a floor rather than a
+  promise: a run carries at most 14 packs, so packs of your size that would
+  need more than that all grow together.
 - **Mechanic Coverage** is the main variety lever. Some mechanics have no
   procedural generator, so hand-made puzzles are the only way to see them -
   without DLC those are stacking, containers, drawers and jigsaws. This setting
@@ -70,9 +72,10 @@ playing a subtly wrong run.
   0 makes those mechanics merely unguaranteed rather than absent.
 
   Which mechanics are scarce depends on what you enabled, and it works itself
-  out: Cupboards and Drawers brings a drawer generator and Seeing Stars a
-  jigsaw one, so turning those on takes drawers and jigsaws off the scarce
-  list rather than reserving puzzles for something no longer rare.
+  out: Seeing Stars adds Distributing, a mechanic only one of its puzzles
+  uses, so that joins the scarce list. Neither DLC brings a generator for a
+  scarce mechanic - their randomizable puzzles keep the same layout whatever
+  the seed.
 - **Ability Locks** off makes every mechanic work from the start, leaving the
   packs as the only gate. Puzzles can no longer be partly solved.
 - **Event Packs** chooses which seasonal Archive packs may appear. Without DLC,
@@ -90,7 +93,8 @@ you own it.
 | **Seeing Stars DLC** | 37 puzzles | 100 |
 
 Each has its own weight, on the same relative scale as the generator, event and
-campaign weights, deciding how much of the run it fills.
+campaign weights, deciding how much of the run it fills. The weight covers all
+of that DLC's puzzles, including the ones it marks randomizable.
 
 Seeing Stars carries more alternate solutions than the entire base campaign, so
 it is the one that changes a **Star Levels** goal most. Five of its puzzles are

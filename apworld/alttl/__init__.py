@@ -68,6 +68,8 @@ class ALTTLWorld(World):
     event_names_in_use: List[str]
     requirements: Dict[str, dict]
     unproven_locations: FrozenSet[str]
+    #: This seed's achievement checks (`achievements`); never progression.
+    achievement_locations: FrozenSet[str]
     #: The run as the FIRST draw left it, and how many draws it took. decide()
     #: redraws when a draw cannot carry the whole unproven guard; the golden
     #: in test_regression pins the first draw so a redraw cannot hide a change.

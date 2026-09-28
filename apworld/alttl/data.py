@@ -21,7 +21,7 @@ called.
 
 import json
 import pkgutil
-from typing import Dict, FrozenSet, Iterable, List, Optional
+from typing import Dict, FrozenSet, Iterable, List, Optional, Tuple
 
 
 def _load(name: str) -> dict:
@@ -98,6 +98,15 @@ FIXED_LAYOUT: FrozenSet[str] = frozenset({
 
 CREDITS: str = _NAMES_RAW["credits"]
 
+#: levelId -> [(achievement id, display name)], the game achievements that
+#: are checks when the yaml turns `achievements` on. From Core's
+#: AchievementChecks by way of names.json, which says why each is in and what
+#: was left out.
+ACHIEVEMENTS: Dict[str, List[Tuple[str, str]]] = {
+    level_id: [(entry["id"], entry["display"]) for entry in entries]
+    for level_id, entries in _NAMES_RAW.get("achievements", {}).items()
+}
+
 #: Ability name -> the ObjectController classes it unlocks. The BASE GAME's
 #: twelve only; DLC mechanics are below.
 ABILITY_CLASSES: Dict[str, List[str]] = _ABILITIES_RAW["abilities"]
@@ -152,7 +161,7 @@ OPENER_ABILITY = "Drawer"
 #: levels.json cannot show, because the sweep never recorded the thing that
 #: proves it. Keys are level ids, values say what is missing.
 #:
-#: These come from docs/data/controller-classes.tsv and from play logs, both of
+#: These come from docs/reference/controller-classes.tsv and from play logs, both of
 #: which know about controllers the shipped table does not have. They are
 #: listed rather than derived because the derivation needs data that is
 #: currently thrown away - see tools/merge-levels.py, which drops the sweep's
@@ -165,7 +174,8 @@ class Level:
     """One level, with everything the generator needs to place it."""
 
     __slots__ = ("level_id", "level_index", "source", "dlc", "solution_count",
-                 "display", "parts", "part_abilities", "abilities",
+                 "display", "parts", "part_locations", "endings",
+                 "finishes_alone", "part_abilities", "abilities",
                  "enforced_abilities", "enforced_part_abilities",
                  "controller_group", "not_locations", "hint_images",
                  "level_class", "structural_gap", "_behind_an_opener",
@@ -193,6 +203,40 @@ class Level:
         # order, and Core emits them sorted.
         parts_raw = names["parts"]
         self.parts: List[str] = [p["display"] for p in parts_raw.values()]
+
+        # The groups that are checks of their own: on a level with more than
+        # one group, every group that is not itself an ending. A group that IS
+        # an ending (Spoons' Stacked) is that ending's check (droha,
+        # 2026-09-28: "No reason to give an ending 2 locations"), and one done
+        # only as part of the Solution (Mirror's "Little Things") has none.
+        self.part_locations: List[str] = [
+            p["display"] for p in parts_raw.values()
+            if not p.get("ending") and not p.get("solutionOnly")
+        ] if len(parts_raw) > 1 else []
+
+        # (solution id or None, location suffix, group display or None), one
+        # per ending, from Core's Endings. A generated puzzle has none in the
+        # export and keeps numbered solutions.
+        endings_raw = names.get("endings")
+        if endings_raw:
+            self.endings: List[Tuple[Optional[str], str, Optional[str]]] = [
+                (e["id"], e["location"],
+                 parts_raw[e["group"]]["display"] if e.get("group") else None)
+                for e in endings_raw]
+        else:
+            self.endings = [(None, f"Solution {n}", None)
+                            for n in range(1, self.solution_count + 1)]
+
+        # The groups that finish the level ALONE, measured by forcing each one
+        # on its own (levels.json "finishesAlone", from
+        # fixtures/forceability.jsonl). Only an ending named for one of these
+        # asks just its group's abilities; every other ending needs the whole
+        # level (rules.requirements). Sharp Pencils' pencil order is an ending
+        # yet finishes nothing until the shavings are gone.
+        alone = set(raw.get("finishesAlone") or ())
+        self.finishes_alone: FrozenSet[str] = frozenset(
+            p["display"] for p in parts_raw.values()
+            if alone & set(p.get("members") or ()))
 
         # What each group needs ON ITS OWN, which is far less than the level as
         # a whole. Re-measured 2026-09-09 across all 200 groups: 57 need
@@ -310,7 +354,7 @@ class Level:
         #
         # Measured, not reasoned: tools/probe-object-sharing.py dumps which
         # controllers hold which objects and works out what frees what, and
-        # docs/gate-sharing.md lists the results. Confirmed by hand on
+        # docs/history/gate-sharing.md lists the results. Confirmed by hand on
         # Books 3 - droha held ZERO abilities, moved all 17 books and
         # completed the Swapping-gated arrangement.
         #
@@ -483,18 +527,42 @@ class Level:
         return self.seeded and self.level_id not in FIXED_LAYOUT
 
     @property
+    def draw_source(self) -> str:
+        """Which source weight rolls this level in the draw's second pass.
+
+        A DLC level is drawn under its DLC's weight whatever its `source`.
+        The four FIXED_LAYOUT levels have source "generator" - they are
+        seeded - and used to be rolled by generator_weight, so a DLC weight
+        of 0 did not keep them out (droha, 0.4.2 handoff).
+        """
+        return self.dlc.lower() if self.dlc else self.source
+
+    @property
     def max_instances(self) -> int:
         return MAX_GENERATOR_INSTANCES if self.repeatable else 1
+
+    @property
+    def achievements(self) -> List[Tuple[str, str]]:
+        """(achievement id, display name) for each achievement this puzzle
+        awards that is a check under `achievements`; usually none."""
+        return ACHIEVEMENTS.get(self.level_id, [])
 
     @property
     def has_parts(self) -> bool:
         """Whether this level contributes controller checks.
 
-        Only levels with more than one group do. On a single-group level the
-        group check and the first solution check are the same event, and
-        minting both would double count.
+        Only levels with more than one group do, and only with groups that are
+        not endings of their own. On a single-group level the group check and
+        the solution check are the same event, and minting both would double
+        count.
         """
-        return len(self.parts) > 1
+        return bool(self.part_locations)
+
+    @property
+    def fixed_endings(self) -> bool:
+        """Endings named for what they are, rather than numbered."""
+        return any(ending_id is not None or not suffix.startswith("Solution ")
+                   for ending_id, suffix, _group in self.endings)
 
     def __repr__(self) -> str:      # pragma: no cover - debugging aid
         return f"<Level {self.level_id!r} {self.source}>"

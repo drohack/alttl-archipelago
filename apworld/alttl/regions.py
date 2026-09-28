@@ -47,9 +47,10 @@ def create_regions(world) -> None:
     # thing that strands a player. See rules.unproven_locations for why silence
     # about a requirement is not the same as confidence in it.
     unproven = getattr(world, "unproven_locations", frozenset())
+    awarded = getattr(world, "achievement_locations", frozenset())
     for name in world.location_names_in_use:
         location = world.create_location(name, LOCATION_NAME_TO_ID[name], tidy)
-        if name in unproven:
+        if name in unproven or name in awarded:
             location.item_rule = _no_progression
         tidy.locations.append(location)
 

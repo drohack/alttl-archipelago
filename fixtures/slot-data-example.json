@@ -70,7 +70,7 @@
     ]
   },
   "ability_locks": true,
-  "cat_trap_chance": 25,
+  "cat_trap_chance": 15,
   "controller_groups": {
     "Batteries (Randomized)": {
       "Controller": "Controller"
@@ -116,17 +116,17 @@
     },
     "MedicineCabinet": {
       "Blue Bottles Draggables": "Blue Bottles",
-      "Brush Draggables": "Brush",
-      "Contact Lenses Draggables": "Contact Lenses",
+      "Brush Draggables": "Red Items",
+      "Contact Lenses Draggables": "Red Items",
       "Creams Draggables Stacked": "Creams Stacked",
-      "Cup Draggables": "Cup",
+      "Cup Draggables": "Red Items",
       "Green Bottles Draggables": "Green Bottles",
-      "Oral Containables": "Oral",
-      "Pick Draggables": "Pick",
-      "Pump Bottle Draggables": "Pump Bottle",
+      "Oral Containables": "Red Items",
+      "Pick Draggables": "Red Items",
+      "Pump Bottle Draggables": "Red Items",
       "Swabs Containables": "Swabs",
       "Trinkets Draggables": "Trinkets",
-      "Tube Draggables": "Tube"
+      "Tube Draggables": "Red Items"
     },
     "MerryMess_CandyCanes": {
       "Match Candy Cane (1)": "Match Candy Cane (1)",
@@ -220,6 +220,234 @@
     }
   },
   "cupboards_and_drawers": false,
+  "endings": {
+    "Batteries (Randomized)": [
+      {
+        "id": "Draggables_0",
+        "location": "Solution"
+      }
+    ],
+    "Books (Randomized)": [
+      {
+        "id": "Shuffle_0",
+        "location": "Solution: Shuffle 1"
+      },
+      {
+        "id": "Shuffle_1|Draggables_0",
+        "location": "Solution: Shuffle 2"
+      }
+    ],
+    "Breadtags": [
+      {
+        "id": "Interlocking_0",
+        "location": "Solution"
+      }
+    ],
+    "Buttons": [
+      {
+        "id": "SortingItems-Draggables_0",
+        "location": "Solution: Sorting Items 1"
+      },
+      {
+        "id": "SortingItems-Draggables_1",
+        "location": "Solution: Sorting Items 2"
+      }
+    ],
+    "Calendar": [
+      {
+        "id": "Repeating-Sequence_0",
+        "location": "Solution"
+      }
+    ],
+    "Cat Toys": [
+      {
+        "id": "Tidy-Up_0",
+        "location": "Solution"
+      }
+    ],
+    "Clock": [
+      {
+        "id": "Match-Shadows_0",
+        "location": "Solution"
+      }
+    ],
+    "Clover": [
+      {
+        "id": "SymmetricalPlaceables_0",
+        "location": "Solution"
+      }
+    ],
+    "Desktop Computer": [
+      {
+        "id": "Computer-Desktop_0",
+        "location": "Solution"
+      }
+    ],
+    "Fridge Inside": [
+      {
+        "id": "Draggables_0",
+        "location": "Solution"
+      }
+    ],
+    "Fruit Stickers": [
+      {
+        "id": "Match-Stickers_0",
+        "location": "Solution: Match Stickers"
+      },
+      {
+        "id": "Remove-Stickers_0",
+        "location": "Solution: Remove Stickers"
+      }
+    ],
+    "MedicineCabinet": [
+      {
+        "id": "Draggables_0",
+        "location": "Solution"
+      }
+    ],
+    "MerryMess_CandyCanes": [
+      {
+        "id": "Ordered_0",
+        "location": "Solution"
+      }
+    ],
+    "Microscope": [
+      {
+        "id": "Build-Snowflakes_0",
+        "location": "Solution"
+      }
+    ],
+    "NeatStreak_Paper Plane Supplies": [
+      {
+        "id": "Draggables_0",
+        "location": "Solution"
+      }
+    ],
+    "NeatStreak_Tool Drawer": [
+      {
+        "id": "Draggables_0",
+        "location": "Solution"
+      }
+    ],
+    "PawPrints": [
+      {
+        "id": "Clearables-01_0",
+        "location": "Solution"
+      }
+    ],
+    "Pencils (Randomized)": [
+      {
+        "id": "Ordered_0",
+        "location": "Solution: Ordered 1"
+      },
+      {
+        "id": "Ordered_1",
+        "location": "Solution: Ordered 2"
+      }
+    ],
+    "Plate": [
+      {
+        "id": "Placement_0",
+        "location": "Solution"
+      }
+    ],
+    "Post-It Notes (Randomized)": [
+      {
+        "id": "Draggable_0",
+        "location": "Solution"
+      }
+    ],
+    "Post-It Notes Scribble #1 (Simple Line)": [
+      {
+        "id": "Arranged_0",
+        "location": "Solution"
+      }
+    ],
+    "Procedural Grid Puzzle": [
+      {
+        "id": "GridPuzzle_0",
+        "location": "Solution"
+      }
+    ],
+    "Shells": [
+      {
+        "id": "Symmetrical-Placeables_0",
+        "location": "Solution"
+      }
+    ],
+    "SnackPack Pretzels": [
+      {
+        "id": "Ordered_0",
+        "location": "Solution: Ordered 1"
+      },
+      {
+        "id": "Ordered_1",
+        "location": "Solution: Ordered 2"
+      },
+      {
+        "id": "Ordered_2",
+        "location": "Solution: Ordered 3"
+      }
+    ],
+    "Spice Jars": [
+      {
+        "id": "SpiceJarShuffleables_0",
+        "location": "Solution: Spice Jar 1"
+      },
+      {
+        "id": "SpiceJarShuffleables_1",
+        "location": "Solution: Spice Jar 2"
+      }
+    ],
+    "SpiderWeb": [
+      {
+        "id": "Web-Symmetry_0",
+        "location": "Solution"
+      }
+    ],
+    "Stacked Papers": [
+      {
+        "id": "Stack-Papers_0",
+        "location": "Solution"
+      }
+    ],
+    "Stamps (Randomized)": [
+      {
+        "id": "Stamps-Pattern_0",
+        "location": "Solution"
+      }
+    ],
+    "Telescope": [
+      {
+        "id": "Constellations_0",
+        "location": "Solution"
+      }
+    ],
+    "TrickOrTidy_Bones": [
+      {
+        "id": "Match-Bones_0",
+        "location": "Solution"
+      }
+    ],
+    "Trim Plant": [
+      {
+        "id": "Pluckables_0",
+        "location": "Solution"
+      }
+    ],
+    "TupperwareNesting": [
+      {
+        "id": "Nested-Tupperware_0",
+        "location": "Solution"
+      }
+    ],
+    "TupperwareTower": [
+      {
+        "id": "Tower_0",
+        "location": "Solution"
+      }
+    ]
+  },
   "goal": "beat_levels",
   "levels_to_beat": 40,
   "levels_to_star": 20,
@@ -257,7 +485,7 @@
       "abilities": [],
       "packs": 8
     },
-    "Batteries (Randomized) #2 - Solution 1": {
+    "Batteries (Randomized) #2 - Solution": {
       "abilities": [],
       "packs": 8
     },
@@ -265,7 +493,7 @@
       "abilities": [],
       "packs": 10
     },
-    "Batteries (Randomized) #3 - Solution 1": {
+    "Batteries (Randomized) #3 - Solution": {
       "abilities": [],
       "packs": 10
     },
@@ -273,7 +501,7 @@
       "abilities": [],
       "packs": 13
     },
-    "Batteries (Randomized) #4 - Solution 1": {
+    "Batteries (Randomized) #4 - Solution": {
       "abilities": [],
       "packs": 13
     },
@@ -281,7 +509,7 @@
       "abilities": [],
       "packs": 5
     },
-    "Batteries (Randomized) - Solution 1": {
+    "Batteries (Randomized) - Solution": {
       "abilities": [],
       "packs": 5
     },
@@ -291,7 +519,7 @@
       ],
       "packs": 1
     },
-    "Bones (Trick or Tidy) - Solution 1": {
+    "Bones (Trick or Tidy) - Solution": {
       "abilities": [
         "Jigsaw"
       ],
@@ -303,13 +531,13 @@
       ],
       "packs": 6
     },
-    "Books (Randomized) #2 - Solution 1": {
+    "Books (Randomized) #2 - Solution: Shuffle 1": {
       "abilities": [
         "Swapping"
       ],
       "packs": 6
     },
-    "Books (Randomized) #2 - Solution 2": {
+    "Books (Randomized) #2 - Solution: Shuffle 2": {
       "abilities": [
         "Swapping"
       ],
@@ -321,13 +549,13 @@
       ],
       "packs": 12
     },
-    "Books (Randomized) #3 - Solution 1": {
+    "Books (Randomized) #3 - Solution: Shuffle 1": {
       "abilities": [
         "Swapping"
       ],
       "packs": 12
     },
-    "Books (Randomized) #3 - Solution 2": {
+    "Books (Randomized) #3 - Solution: Shuffle 2": {
       "abilities": [
         "Swapping"
       ],
@@ -339,13 +567,13 @@
       ],
       "packs": 3
     },
-    "Books (Randomized) - Solution 1": {
+    "Books (Randomized) - Solution: Shuffle 1": {
       "abilities": [
         "Swapping"
       ],
       "packs": 3
     },
-    "Books (Randomized) - Solution 2": {
+    "Books (Randomized) - Solution: Shuffle 2": {
       "abilities": [
         "Swapping"
       ],
@@ -369,7 +597,7 @@
       ],
       "packs": 7
     },
-    "Breadtags #2 - Solution 1": {
+    "Breadtags #2 - Solution": {
       "abilities": [
         "Tidying"
       ],
@@ -393,7 +621,7 @@
       ],
       "packs": 12
     },
-    "Breadtags #3 - Solution 1": {
+    "Breadtags #3 - Solution": {
       "abilities": [
         "Tidying"
       ],
@@ -417,7 +645,7 @@
       ],
       "packs": 4
     },
-    "Breadtags - Solution 1": {
+    "Breadtags - Solution": {
       "abilities": [
         "Tidying"
       ],
@@ -429,13 +657,13 @@
       ],
       "packs": 7
     },
-    "Buttons #2 - Solution 1": {
+    "Buttons #2 - Solution: Sorting Items 1": {
       "abilities": [
         "Sticking"
       ],
       "packs": 7
     },
-    "Buttons #2 - Solution 2": {
+    "Buttons #2 - Solution: Sorting Items 2": {
       "abilities": [
         "Sticking"
       ],
@@ -447,13 +675,13 @@
       ],
       "packs": 11
     },
-    "Buttons #3 - Solution 1": {
+    "Buttons #3 - Solution: Sorting Items 1": {
       "abilities": [
         "Sticking"
       ],
       "packs": 11
     },
-    "Buttons #3 - Solution 2": {
+    "Buttons #3 - Solution: Sorting Items 2": {
       "abilities": [
         "Sticking"
       ],
@@ -465,13 +693,13 @@
       ],
       "packs": 5
     },
-    "Buttons - Solution 1": {
+    "Buttons - Solution: Sorting Items 1": {
       "abilities": [
         "Sticking"
       ],
       "packs": 5
     },
-    "Buttons - Solution 2": {
+    "Buttons - Solution: Sorting Items 2": {
       "abilities": [
         "Sticking"
       ],
@@ -483,7 +711,7 @@
       ],
       "packs": 8
     },
-    "Calendar #2 - Solution 1": {
+    "Calendar #2 - Solution": {
       "abilities": [
         "Sticking"
       ],
@@ -495,7 +723,7 @@
       ],
       "packs": 10
     },
-    "Calendar #3 - Solution 1": {
+    "Calendar #3 - Solution": {
       "abilities": [
         "Sticking"
       ],
@@ -507,7 +735,7 @@
       ],
       "packs": 5
     },
-    "Calendar - Solution 1": {
+    "Calendar - Solution": {
       "abilities": [
         "Sticking"
       ],
@@ -557,7 +785,7 @@
       ],
       "packs": 1
     },
-    "Candy Canes (Merry Mess) - Solution 1": {
+    "Candy Canes (Merry Mess) - Solution": {
       "abilities": [
         "Jigsaw",
         "Ordering"
@@ -568,7 +796,7 @@
       "abilities": [],
       "packs": 10
     },
-    "Cat Toys - Solution 1": {
+    "Cat Toys - Solution": {
       "abilities": [],
       "packs": 10
     },
@@ -578,7 +806,7 @@
       ],
       "packs": 9
     },
-    "Clock #2 - Solution 1": {
+    "Clock #2 - Solution": {
       "abilities": [
         "Rotating"
       ],
@@ -590,7 +818,7 @@
       ],
       "packs": 9
     },
-    "Clock #3 - Solution 1": {
+    "Clock #3 - Solution": {
       "abilities": [
         "Rotating"
       ],
@@ -602,7 +830,7 @@
       ],
       "packs": 13
     },
-    "Clock #4 - Solution 1": {
+    "Clock #4 - Solution": {
       "abilities": [
         "Rotating"
       ],
@@ -614,7 +842,7 @@
       ],
       "packs": 3
     },
-    "Clock - Solution 1": {
+    "Clock - Solution": {
       "abilities": [
         "Rotating"
       ],
@@ -626,7 +854,7 @@
       ],
       "packs": 1
     },
-    "Clover - Solution 1": {
+    "Clover - Solution": {
       "abilities": [
         "Symmetry"
       ],
@@ -675,7 +903,7 @@
       ],
       "packs": 2
     },
-    "Desktop Computer - Solution 1": {
+    "Desktop Computer - Solution": {
       "abilities": [
         "Containers",
         "Gadgets",
@@ -696,7 +924,7 @@
       ],
       "packs": 2
     },
-    "Fridge Inside - Solution 1": {
+    "Fridge Inside - Solution": {
       "abilities": [
         "Stacking"
       ],
@@ -721,14 +949,14 @@
       ],
       "packs": 3
     },
-    "Fruit Stickers - Solution 1": {
+    "Fruit Stickers - Solution: Match Stickers": {
       "abilities": [
         "Sticking",
         "Tidying"
       ],
       "packs": 3
     },
-    "Fruit Stickers - Solution 2": {
+    "Fruit Stickers - Solution: Remove Stickers": {
       "abilities": [
         "Sticking",
         "Tidying"
@@ -741,73 +969,49 @@
         "Ordering",
         "Stacking"
       ],
-      "packs": 0
+      "packs": 10
     },
     "Medicine Cabinet - Blue Bottles": {
       "abilities": [
         "Ordering"
       ],
-      "packs": 0
-    },
-    "Medicine Cabinet - Brush": {
-      "abilities": [],
-      "packs": 0
-    },
-    "Medicine Cabinet - Contact Lenses": {
-      "abilities": [],
-      "packs": 0
+      "packs": 10
     },
     "Medicine Cabinet - Creams Stacked": {
       "abilities": [
         "Stacking"
       ],
-      "packs": 0
-    },
-    "Medicine Cabinet - Cup": {
-      "abilities": [],
-      "packs": 0
+      "packs": 10
     },
     "Medicine Cabinet - Green Bottles": {
       "abilities": [
         "Ordering"
       ],
-      "packs": 0
+      "packs": 10
     },
-    "Medicine Cabinet - Oral": {
+    "Medicine Cabinet - Red Items": {
       "abilities": [
         "Containers"
       ],
-      "packs": 0
+      "packs": 10
     },
-    "Medicine Cabinet - Pick": {
-      "abilities": [],
-      "packs": 0
-    },
-    "Medicine Cabinet - Pump Bottle": {
-      "abilities": [],
-      "packs": 0
-    },
-    "Medicine Cabinet - Solution 1": {
+    "Medicine Cabinet - Solution": {
       "abilities": [
         "Containers",
         "Ordering",
         "Stacking"
       ],
-      "packs": 0
+      "packs": 10
     },
     "Medicine Cabinet - Swabs": {
       "abilities": [
         "Containers"
       ],
-      "packs": 0
+      "packs": 10
     },
     "Medicine Cabinet - Trinkets": {
       "abilities": [],
-      "packs": 0
-    },
-    "Medicine Cabinet - Tube": {
-      "abilities": [],
-      "packs": 0
+      "packs": 10
     },
     "Microscope #2 - Beaten": {
       "abilities": [
@@ -815,7 +1019,7 @@
       ],
       "packs": 0
     },
-    "Microscope #2 - Solution 1": {
+    "Microscope #2 - Solution": {
       "abilities": [
         "Gadgets"
       ],
@@ -827,7 +1031,7 @@
       ],
       "packs": 10
     },
-    "Microscope #3 - Solution 1": {
+    "Microscope #3 - Solution": {
       "abilities": [
         "Gadgets"
       ],
@@ -839,7 +1043,7 @@
       ],
       "packs": 0
     },
-    "Microscope - Solution 1": {
+    "Microscope - Solution": {
       "abilities": [
         "Gadgets"
       ],
@@ -924,7 +1128,7 @@
       ],
       "packs": 4
     },
-    "Paper Plane Supplies (Drawer Chores) - Solution 1": {
+    "Paper Plane Supplies (Drawer Chores) - Solution": {
       "abilities": [
         "Containers",
         "Drawer",
@@ -969,7 +1173,7 @@
       ],
       "packs": 2
     },
-    "Paw Prints - Solution 1": {
+    "Paw Prints - Solution": {
       "abilities": [
         "Tidying"
       ],
@@ -981,13 +1185,13 @@
       ],
       "packs": 6
     },
-    "Pencils (Randomized) #2 - Solution 1": {
+    "Pencils (Randomized) #2 - Solution: Ordered 1": {
       "abilities": [
         "Ordering"
       ],
       "packs": 6
     },
-    "Pencils (Randomized) #2 - Solution 2": {
+    "Pencils (Randomized) #2 - Solution: Ordered 2": {
       "abilities": [
         "Ordering"
       ],
@@ -999,13 +1203,13 @@
       ],
       "packs": 12
     },
-    "Pencils (Randomized) #3 - Solution 1": {
+    "Pencils (Randomized) #3 - Solution: Ordered 1": {
       "abilities": [
         "Ordering"
       ],
       "packs": 12
     },
-    "Pencils (Randomized) #3 - Solution 2": {
+    "Pencils (Randomized) #3 - Solution: Ordered 2": {
       "abilities": [
         "Ordering"
       ],
@@ -1017,13 +1221,13 @@
       ],
       "packs": 2
     },
-    "Pencils (Randomized) - Solution 1": {
+    "Pencils (Randomized) - Solution: Ordered 1": {
       "abilities": [
         "Ordering"
       ],
       "packs": 2
     },
-    "Pencils (Randomized) - Solution 2": {
+    "Pencils (Randomized) - Solution: Ordered 2": {
       "abilities": [
         "Ordering"
       ],
@@ -1033,7 +1237,7 @@
       "abilities": [],
       "packs": 4
     },
-    "Plate - Solution 1": {
+    "Plate - Solution": {
       "abilities": [],
       "packs": 4
     },
@@ -1041,7 +1245,7 @@
       "abilities": [],
       "packs": 6
     },
-    "Post-It Notes (Randomized) #2 - Solution 1": {
+    "Post-It Notes (Randomized) #2 - Solution": {
       "abilities": [],
       "packs": 6
     },
@@ -1049,7 +1253,7 @@
       "abilities": [],
       "packs": 9
     },
-    "Post-It Notes (Randomized) #3 - Solution 1": {
+    "Post-It Notes (Randomized) #3 - Solution": {
       "abilities": [],
       "packs": 9
     },
@@ -1057,7 +1261,7 @@
       "abilities": [],
       "packs": 13
     },
-    "Post-It Notes (Randomized) #4 - Solution 1": {
+    "Post-It Notes (Randomized) #4 - Solution": {
       "abilities": [],
       "packs": 13
     },
@@ -1065,7 +1269,7 @@
       "abilities": [],
       "packs": 0
     },
-    "Post-It Notes (Randomized) - Solution 1": {
+    "Post-It Notes (Randomized) - Solution": {
       "abilities": [],
       "packs": 0
     },
@@ -1073,7 +1277,7 @@
       "abilities": [],
       "packs": 4
     },
-    "Post-It Notes Scribble #1 (Simple Line) - Solution 1": {
+    "Post-It Notes Scribble #1 (Simple Line) - Solution": {
       "abilities": [],
       "packs": 4
     },
@@ -1083,19 +1287,19 @@
       ],
       "packs": 9
     },
-    "Pretzels (Snack Pack) - Solution 1": {
+    "Pretzels (Snack Pack) - Solution: Ordered 1": {
       "abilities": [
         "Swapping"
       ],
       "packs": 9
     },
-    "Pretzels (Snack Pack) - Solution 2": {
+    "Pretzels (Snack Pack) - Solution: Ordered 2": {
       "abilities": [
         "Swapping"
       ],
       "packs": 9
     },
-    "Pretzels (Snack Pack) - Solution 3": {
+    "Pretzels (Snack Pack) - Solution: Ordered 3": {
       "abilities": [
         "Swapping"
       ],
@@ -1107,7 +1311,7 @@
       ],
       "packs": 7
     },
-    "Procedural Grid Puzzle #2 - Solution 1": {
+    "Procedural Grid Puzzle #2 - Solution": {
       "abilities": [
         "Grids"
       ],
@@ -1119,7 +1323,7 @@
       ],
       "packs": 11
     },
-    "Procedural Grid Puzzle #3 - Solution 1": {
+    "Procedural Grid Puzzle #3 - Solution": {
       "abilities": [
         "Grids"
       ],
@@ -1131,7 +1335,7 @@
       ],
       "packs": 5
     },
-    "Procedural Grid Puzzle - Solution 1": {
+    "Procedural Grid Puzzle - Solution": {
       "abilities": [
         "Grids"
       ],
@@ -1143,7 +1347,7 @@
       ],
       "packs": 7
     },
-    "Shells #2 - Solution 1": {
+    "Shells #2 - Solution": {
       "abilities": [
         "Symmetry"
       ],
@@ -1155,7 +1359,7 @@
       ],
       "packs": 12
     },
-    "Shells #3 - Solution 1": {
+    "Shells #3 - Solution": {
       "abilities": [
         "Symmetry"
       ],
@@ -1167,7 +1371,7 @@
       ],
       "packs": 3
     },
-    "Shells - Solution 1": {
+    "Shells - Solution": {
       "abilities": [
         "Symmetry"
       ],
@@ -1179,13 +1383,13 @@
       ],
       "packs": 9
     },
-    "Spice Jars #2 - Solution 1": {
+    "Spice Jars #2 - Solution: Spice Jar 1": {
       "abilities": [
         "Swapping"
       ],
       "packs": 9
     },
-    "Spice Jars #2 - Solution 2": {
+    "Spice Jars #2 - Solution: Spice Jar 2": {
       "abilities": [
         "Swapping"
       ],
@@ -1197,13 +1401,13 @@
       ],
       "packs": 11
     },
-    "Spice Jars #3 - Solution 1": {
+    "Spice Jars #3 - Solution: Spice Jar 1": {
       "abilities": [
         "Swapping"
       ],
       "packs": 11
     },
-    "Spice Jars #3 - Solution 2": {
+    "Spice Jars #3 - Solution: Spice Jar 2": {
       "abilities": [
         "Swapping"
       ],
@@ -1215,13 +1419,13 @@
       ],
       "packs": 5
     },
-    "Spice Jars - Solution 1": {
+    "Spice Jars - Solution: Spice Jar 1": {
       "abilities": [
         "Swapping"
       ],
       "packs": 5
     },
-    "Spice Jars - Solution 2": {
+    "Spice Jars - Solution: Spice Jar 2": {
       "abilities": [
         "Swapping"
       ],
@@ -1231,7 +1435,7 @@
       "abilities": [],
       "packs": 8
     },
-    "Spider Web #2 - Solution 1": {
+    "Spider Web #2 - Solution": {
       "abilities": [],
       "packs": 8
     },
@@ -1239,7 +1443,7 @@
       "abilities": [],
       "packs": 11
     },
-    "Spider Web #3 - Solution 1": {
+    "Spider Web #3 - Solution": {
       "abilities": [],
       "packs": 11
     },
@@ -1247,7 +1451,7 @@
       "abilities": [],
       "packs": 3
     },
-    "Spider Web - Solution 1": {
+    "Spider Web - Solution": {
       "abilities": [],
       "packs": 3
     },
@@ -1257,7 +1461,7 @@
       ],
       "packs": 6
     },
-    "Stacked Papers - Solution 1": {
+    "Stacked Papers - Solution": {
       "abilities": [
         "Stacking"
       ],
@@ -1267,7 +1471,7 @@
       "abilities": [],
       "packs": 7
     },
-    "Stamps (Randomized) #2 - Solution 1": {
+    "Stamps (Randomized) #2 - Solution": {
       "abilities": [],
       "packs": 7
     },
@@ -1275,7 +1479,7 @@
       "abilities": [],
       "packs": 12
     },
-    "Stamps (Randomized) #3 - Solution 1": {
+    "Stamps (Randomized) #3 - Solution": {
       "abilities": [],
       "packs": 12
     },
@@ -1283,7 +1487,7 @@
       "abilities": [],
       "packs": 13
     },
-    "Stamps (Randomized) #4 - Solution 1": {
+    "Stamps (Randomized) #4 - Solution": {
       "abilities": [],
       "packs": 13
     },
@@ -1291,7 +1495,7 @@
       "abilities": [],
       "packs": 4
     },
-    "Stamps (Randomized) - Solution 1": {
+    "Stamps (Randomized) - Solution": {
       "abilities": [],
       "packs": 4
     },
@@ -1301,7 +1505,7 @@
       ],
       "packs": 8
     },
-    "Telescope #2 - Solution 1": {
+    "Telescope #2 - Solution": {
       "abilities": [
         "Gadgets"
       ],
@@ -1311,13 +1515,13 @@
       "abilities": [
         "Gadgets"
       ],
-      "packs": 10
+      "packs": 0
     },
-    "Telescope #3 - Solution 1": {
+    "Telescope #3 - Solution": {
       "abilities": [
         "Gadgets"
       ],
-      "packs": 10
+      "packs": 0
     },
     "Telescope #4 - Beaten": {
       "abilities": [
@@ -1325,7 +1529,7 @@
       ],
       "packs": 13
     },
-    "Telescope #4 - Solution 1": {
+    "Telescope #4 - Solution": {
       "abilities": [
         "Gadgets"
       ],
@@ -1337,7 +1541,7 @@
       ],
       "packs": 0
     },
-    "Telescope - Solution 1": {
+    "Telescope - Solution": {
       "abilities": [
         "Gadgets"
       ],
@@ -1363,7 +1567,7 @@
       ],
       "packs": 1
     },
-    "Tool Drawer (Drawer Chores) - Solution 1": {
+    "Tool Drawer (Drawer Chores) - Solution": {
       "abilities": [
         "Containers",
         "Drawer"
@@ -1376,7 +1580,7 @@
       ],
       "packs": 6
     },
-    "Trim Plant #2 - Solution 1": {
+    "Trim Plant #2 - Solution": {
       "abilities": [
         "Tidying"
       ],
@@ -1388,7 +1592,7 @@
       ],
       "packs": 11
     },
-    "Trim Plant #3 - Solution 1": {
+    "Trim Plant #3 - Solution": {
       "abilities": [
         "Tidying"
       ],
@@ -1400,7 +1604,7 @@
       ],
       "packs": 2
     },
-    "Trim Plant - Solution 1": {
+    "Trim Plant - Solution": {
       "abilities": [
         "Tidying"
       ],
@@ -1436,7 +1640,7 @@
       ],
       "packs": 8
     },
-    "Tupperware Nesting - Solution 1": {
+    "Tupperware Nesting - Solution": {
       "abilities": [
         "Containers",
         "Grids",
@@ -1475,7 +1679,7 @@
       ],
       "packs": 1
     },
-    "Tupperware Tower - Solution 1": {
+    "Tupperware Tower - Solution": {
       "abilities": [
         "Grids",
         "Stacking"
@@ -1519,11 +1723,11 @@
     },
     {
       "dlc": "",
-      "instance": 1,
-      "levelId": "MedicineCabinet",
-      "levelIndex": 49,
-      "seed": -1,
-      "source": "base"
+      "instance": 3,
+      "levelId": "Telescope",
+      "levelIndex": 75,
+      "seed": 1336013988,
+      "source": "generator"
     },
     {
       "dlc": "",
@@ -1911,11 +2115,11 @@
     },
     {
       "dlc": "",
-      "instance": 3,
-      "levelId": "Telescope",
-      "levelIndex": 75,
-      "seed": 1336013988,
-      "source": "generator"
+      "instance": 1,
+      "levelId": "MedicineCabinet",
+      "levelIndex": 49,
+      "seed": -1,
+      "source": "base"
     },
     {
       "dlc": "",

@@ -5,7 +5,8 @@
 #
 # The full description of every setting is on the Archipelago webhost player
 # options page for this game, which is generated from the same source as this
-# file. What is here is the short version.
+# file. What is here is the short version. Each setting ends with the values
+# it accepts.
 
 # Your name in-game, limited to 16 characters.
 #     {player} will be replaced with the player's slot number.
@@ -38,59 +39,74 @@ A Little to the Left:
   goal: beat_levels
 
   # Puzzles to beat before the credits unlock, when goal is beat_levels. A
-  # puzzle counts once solved any one way, or skipped. Clamped to
-  # puzzle_count. 1 to 79.
+  # puzzle counts once solved any one way, or skipped. More than
+  # puzzle_count means all of them. 1 to 130.
   levels_to_beat: 40
 
   # Puzzles to star before the credits unlock, when goal is star_levels.
-  # Ignored otherwise. Lower than levels_to_beat by default because starring
-  # is a great deal more work than beating. Clamped to puzzle_count. 1 to 79.
+  # Lower than levels_to_beat by default because starring is a great deal
+  # more work than beating. More than puzzle_count means all of them.
+  # 1 to 130.
   levels_to_star: 20
 
-  # How many puzzles the run contains. The full game is 79, laid out over
-  # five chapters exactly as vanilla. A lower number truncates the track
-  # rather than rescaling it. 10 to 79: the smallest run is two full packs
-  # of 5.
+  # How many puzzles the run contains. The run has no chapters: its puzzles
+  # are drawn as described under "What goes in the run" and opened pack by
+  # pack. The least is two full packs of 5; the game's own campaign is 79.
   #
-  # 70 rather than 79 so the level select's overview strip fits the screen:
-  # 70 puzzles + 13 pack dividers + the credits card is 84 cards, and the
-  # game's own strip is sized for about 85. Higher still works - the strip
-  # scales itself down - it just gets smaller.
+  # The default leaves room on the level select's overview strip: 70
+  # puzzles + 13 pack dividers + the credits card is 84 cards, and the
+  # game's own strip is sized for about 85. Longer runs shrink the strip to
+  # fit, down to the smallest it will draw at 130. 10 to 130.
   puzzle_count: 70
 
   # How many puzzles each Puzzle Pack unlocks. EVERY block is this size,
   # including the free opening; only the last is short, because a run rarely
   # divides evenly.
   #
-  # 1 to 10, but read that as a FLOOR rather than a promise. Two things
-  # raise it. Below 5 the run still opens 5, so it cannot start on a puzzle
-  # an unlucky ability draw has locked. And a run can only carry 14 packs,
+  # Read it as a FLOOR rather than a promise: a run can only carry 14 packs,
   # so when packs of your size would need more than that they all grow
-  # together - at puzzle_count 79 you get packs of 6 whether you asked for
-  # 1 or 5. At the default 70 you get exactly the 5 you asked for.
+  # together - a 79-puzzle run gets packs of 6 even if you asked for 5. At
+  # the default puzzle_count you get exactly the size you asked for. 5 to 20.
   pack_size: 5
 
   # ---- What goes in the run -------------------------------------------
 
-  # How strongly to favour procedurally generated puzzles - the sixteen that
-  # build a fresh layout from a seed, so they are new even if you have
-  # finished the game.
+  # Where the puzzles come from: five weights, one per source. They are
+  # RELATIVE - compared with each other - so they do not have to add up to
+  # 100, and 80/10/10 means the same as 8/1/1. A weight of 20 is twice as
+  # likely as 10; 0 means never. Every puzzle the mechanic reserve
+  # (mechanic_coverage, below) does not place rolls one source, each weight
+  # divided by the sum of the weights in play. A DLC's weight is only in
+  # play while that DLC is on, so turning one on shrinks every other share a
+  # little. A one-shot source that runs out falls back to the generators,
+  # and if every weight is 0 the whole run is generators.
   #
-  # This and the two below are RELATIVE weights, not percentages. 80/10/10
-  # and 8/1/1 mean the same thing; what matters is the ratio between them.
-  # The name is about where a puzzle comes from, not about it being
-  # randomly generated in the Archipelago sense. 0 to 100.
+  # With the defaults, each puzzle rolls:
+  #
+  #   no DLC      generator 80%, event 10%, campaign 10%
+  #   one DLC     generator 73%, event 9%, campaign 9%, the DLC 9%
+  #   both DLCs   generator 67%, event 8%, campaign 8%, each DLC 8%
+
+  # The sixteen procedurally generated puzzles, which build a fresh layout
+  # from a seed, so they are new even if you have finished the game. The
+  # name is about where a puzzle comes from, not about Archipelago. 0 to 100.
   generator_weight: 80
 
-  # How strongly to favour the seasonal event puzzles. Most players have
-  # never seen them, and they are the richest levels for checks. 0 to 100.
+  # The seasonal event puzzles. Most players have never seen them, and they
+  # are the richest levels for checks. 0 to 100.
   archive_weight: 10
 
-  # How strongly to favour the 69 main-campaign puzzles. This is the largest
-  # pool of one-shot levels in the game, so it is what stops a long run
-  # repeating the same generator. Set it to 0 and the campaign is invisible
-  # except where mechanic_coverage drags a level in. 0 to 100.
+  # The 69 main-campaign puzzles - the largest pool of one-shot levels, so
+  # this is what stops a long run repeating the same generator. At 0 the
+  # campaign appears only where mechanic_coverage drags a level in. 0 to 100.
   base_weight: 10
+
+  # Each DLC's puzzles, ignored while its toggle (under DLC, below) is off.
+  # They cover every puzzle of that DLC, including the ones it marks
+  # randomizable (Trophy Cabinet; Water Glasses, Figurines, Bread Crusts):
+  # the seed does not change their layout, so each is drawn once. 0 to 100.
+  cupboards_weight: 10
+  stars_weight: 10
 
   # Puzzles RESERVED for each mechanic no generator can make - stacking,
   # containers, drawers and jigsaws. Four mechanics that only exist as
@@ -103,26 +119,37 @@ A Little to the Left:
   # before this. The number below is the count for the four scarce ones.
   #
   # HIGHER IS LESS RANDOM, not more: every point pins more of the run to a
-  # fixed set of levels. Measured across seeds, at any run length:
+  # fixed set of levels. Measured across seeds, without a DLC:
   #
   #   0   the reserve is OFF entirely - no floor, no guarantee, every
   #       mechanic left to the weighted draw. This is the simpler run.
   #   3   3 jigsaws, 3 or 4 drawer puzzles, one of everything else
   #   4   all 4 jigsaws the game has, every seed
   #   5   all 4 jigsaws AND all 5 drawer puzzles, every seed
-  #   6   identical to 5 - there is nothing left to reserve
+  #   6+  as 5, plus more stacking and container puzzles
   #
-  # So 6 is the LEAST random setting, not the most, and it buys nothing
-  # over 5.
-  #
-  # A floor, not the only door - campaign puzzles also arrive through
-  # base_weight above. 0 to 6.
+  # A DLC adds drawer and jigsaw puzzles, so with one on, 5 and up reserve
+  # more of those too. A floor, not the only door - campaign puzzles also
+  # arrive through base_weight above. 0 to 10.
   mechanic_coverage: 3
 
   # Most times any one generated puzzle may appear. 0 uses the maximum.
   # Each appearance is a genuinely different layout, but the card art
-  # repeats.
+  # repeats. 0 to 8.
   generator_repeat_limit: 0
+
+  # Make the game's puzzle achievements checks: 7 in the base game, 17 with
+  # both DLCs. Off by default. Each belongs to one puzzle - Exacting Eggs to
+  # Eggs, Draw Me A Rainbow to Junk Drawer - and is a check only when that
+  # puzzle is in the run, whether or not your Steam profile has it already.
+  # Left out: achievements that name no puzzle (chapters, hints), Sweep Them
+  # On The Floor (needs two puzzles), Path of Destruction (the same as two
+  # Paw Prints checks) and Keep Away (never fires in a run). The clean-up
+  # checks those two stood for - crumbs, shavings, leaves, spill - stay.
+  # They need every mechanic their puzzle uses, never hold anything your run
+  # depends on, and are extra: a puzzle's star and its Skip leave them out.
+  # Steam achievements themselves stay off while the mod is loaded.
+  achievements: false
 
   # Which seasonal event packs may appear. These six are every valid key,
   # and the list below is the default - delete a line to drop that pack.
@@ -163,10 +190,8 @@ A Little to the Left:
   cupboards_and_drawers: false
   seeing_stars: false
 
-  # Their share of the run, on the same relative scale as the three weights
-  # above. Ignored while the matching toggle is off.
-  cupboards_weight: 10
-  stars_weight: 10
+  # Their share of the run is cupboards_weight and stars_weight, beside the
+  # other weights under "What goes in the run".
 
   # ---- Abilities -------------------------------------------------------
 
@@ -175,28 +200,41 @@ A Little to the Left:
   # solved and returned to. Off, the packs are the only gate.
   ability_locks: true
 
-  # How many mechanics you begin with. 0 to 6.
+  # How many mechanics you begin with. The run may start you with more if
+  # its opening would otherwise have too little to do. 0 to 13.
   starting_abilities: 1
 
-  # How many opening puzzles must be solvable straight away. Four always
-  # are, so this only has an effect above four. 0 to 10.
-  guaranteed_open_slots: 4
+  # How many of the opening puzzles must be solvable with the abilities you
+  # start with. The default is the whole opening at the default pack_size;
+  # more than pack_size means all of it. At least 4, or a seed cannot be
+  # built. Ignored when ability_locks is off. 4 to 20.
+  guaranteed_open_slots: 5
 
   # ---- Items -----------------------------------------------------------
 
   # How many Skip items are shuffled in. A Skip clears a puzzle you are
-  # stuck on. A skip finishes it, and DOES count towards the credits. 0 to 20.
+  # stuck on. A skip finishes it, and DOES count towards the credits. 0 to 50.
   skip_count: 5
 
-  # Percentage of this seed's hint pages that get a Hint Page item. A
-  # 79-puzzle seed holds about 110 pages, so 50 is roughly 55 items. At 100
-  # the hints crowd out almost everything else. Without a Hint Page the
+  # Percentage of this seed's hint pages that is sure to get a Hint Page
+  # item - a floor, since half the leftover filler is Hint Pages too. A
+  # default 70-puzzle run holds about 90 pages. Without a Hint Page the
   # notepad still opens - you just cannot erase the scribble. 0 to 100.
   hint_coverage: 50
 
   # Percentage of FILLER items that are the cat knocking your work over.
-  # Costs you time, never progress. 0 to 100.
-  cat_trap_chance: 25
+  # Costs you time, never progress. 0 means no Cat Traps. 0 to 100.
+  cat_trap_chance: 15
+
+  # Percentage of FILLER items that are Background Change Traps: every
+  # backdrop recoloured, and pieces can hide against the new colour. 0 means
+  # none. 0 to 100.
+  #
+  # Whatever filler is left after both traps and hint_coverage is split
+  # evenly between more Hint Pages (up to one per page the seed has) and
+  # Background Reset Tokens. A token is spent from the pause menu and puts
+  # every backdrop back to the game's own colour, until the next trap.
+  background_trap_chance: 15
 
   # ---- Standard Archipelago options ------------------------------------
 

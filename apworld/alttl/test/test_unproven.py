@@ -443,17 +443,36 @@ class TestNothingLoadBearingLandsOnAGuess(unittest.TestCase):
         """They already require the level's whole enforced set.
 
         Which is why the guard costs as little as it does: the fill keeps every
-        Solution and every Beaten location, and those are the majority. If this
-        fails, rules.requirements has started deriving them from something
-        narrower and the guard's cost assumption is stale.
+        Solution and every Beaten location, and those are the majority. The
+        one exception is an ending narrowed to its group (rules.narrowed_group),
+        guarded as that group's part check was. If this fails otherwise,
+        rules.requirements has started deriving them from something narrower
+        and the guard's cost assumption is stale.
         """
+        from .. import locations
         world = self._world()
+        narrowed = {locations.ending_name(slot.level, slot.instance, suffix)
+                    for slot in world.plan
+                    for _id, suffix, _group in slot.level.endings
+                    if rules.narrowed_group(slot.level, suffix) is not None}
         for name in world.unproven_locations:
             tail = name.rsplit(" - ", 1)[-1]
             self.assertFalse(
-                tail.startswith("Solution ") or tail == "Beaten",
+                (" - Solution" in name and name not in narrowed) or tail == "Beaten",
                 "%s is a solution or beaten location and should never need "
                 "the guard" % name)
+
+    def test_a_narrowed_ending_on_an_unproven_group_is_guarded(self):
+        """Spoons' Stacked ending asks only for Stacking. Were the Stacked
+        group unproven, the ending would carry the guard its part check did."""
+        from unittest import mock
+        from .. import locations, slots
+        spoons = data.BY_ID["Spoons"]
+        plan = [slots.Slot(level=spoons, instance=1, seed=-1)]
+        with mock.patch.object(data.Level, "unproven_parts", new_callable=mock.PropertyMock,
+                               return_value=frozenset({"Stacked"})):
+            guarded = rules.unproven_locations(plan, True)
+        self.assertEqual([locations.ending_name(spoons, 1, "Solution: Stacked")], guarded)
 
     def test_the_guard_leaves_room_to_place_progression(self):
         """A safety net that strangles the fill is not a safety net.

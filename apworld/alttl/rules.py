@@ -31,12 +31,45 @@ def packs_needed(slot_index: int, boundaries: List[int]) -> int:
     return len(boundaries) - 1
 
 
+def narrowed_group(level: data.Level, suffix: str):
+    """The group an ending asks for instead of the whole level, or None.
+
+    AN ENDING THAT IS ONE GROUP SOLVED needs that group's abilities, as its
+    part check did: Spoons' Size ending does not touch the Stacked group. Only
+    where that group finishes the level ALONE (Level.finishes_alone,
+    measured): Sharp Pencils' pencil order is an ending yet the shavings must
+    go too, and DLC2 Bells' one group sits in a drawer the level asks for.
+    Every other ending - one that needs the whole level, or one nobody has
+    seen - needs the level's whole set.
+    """
+    for _id, own, group in level.endings:
+        if own == suffix:
+            return group if group in level.finishes_alone else None
+    return None
+
+
+def ending_abilities(level: data.Level, suffix: str, ability_locks: bool) -> List[str]:
+    """What this ending needs: its group's set (narrowed_group), else the level's."""
+    if not ability_locks:
+        return []
+    group = narrowed_group(level, suffix)
+    if group is None:
+        return sorted(level.enforced_abilities)
+    return sorted(level.enforced_part_abilities.get(group, level.enforced_abilities))
+
+
 def requirements(plan: List[slots.Slot], pack_size: int,
-                 ability_locks: bool) -> Dict[str, dict]:
+                 ability_locks: bool, achievements: bool = False) -> Dict[str, dict]:
     """Location name -> {"packs": n, "abilities": [...]}.
 
     Omits nothing: a location with no ability requirement still records its
     pack count, because that is a real gate.
+
+    `achievements`: include the achievement checks, each needing its level's
+    abilities BEFORE bypasses (level.abilities) - the widest set, since what
+    an achievement touches is not known object by object. That can be more
+    than the Beaten event asks, which is why the mod keeps achievements out of
+    the star (CheckRouter.ForAchievements).
     """
     out: Dict[str, dict] = {}
     boundaries = items.pack_boundaries(len(plan), pack_size)
@@ -48,13 +81,13 @@ def requirements(plan: List[slots.Slot], pack_size: int,
         # ability the level uses. A controller group needs only its own.
         level_abilities = (sorted(level.enforced_abilities)
                            if ability_locks else [])
-        for n in range(1, level.solution_count + 1):
-            out[locations.solution_name(level, slot.instance, n)] = {
-                "packs": packs, "abilities": level_abilities,
+        for _id, suffix, _group in level.endings:
+            out[locations.ending_name(level, slot.instance, suffix)] = {
+                "packs": packs, "abilities": ending_abilities(level, suffix, ability_locks),
             }
 
         if level.has_parts:
-            for part in level.parts:
+            for part in level.part_locations:
                 # A controller group's OWN requirement, from Core, not the
                 # level's. The difference is large and it is not cosmetic:
                 # across the 200 groups the level-wide set demands up to four
@@ -78,6 +111,11 @@ def requirements(plan: List[slots.Slot], pack_size: int,
         out[locations.beaten_name(level, slot.instance)] = {
             "packs": packs, "abilities": level_abilities,
         }
+
+        if achievements:
+            widest = sorted(level.abilities) if ability_locks else []
+            for name in locations.achievement_names_for(level, slot.instance):
+                out[name] = {"packs": packs, "abilities": widest}
     return out
 
 
@@ -102,9 +140,10 @@ def unproven_locations(plan: List[slots.Slot], ability_locks: bool) -> List[str]
     first and dropped last. Ties break on the name, so the order is stable
     across runs and a seed is reproducible.
 
-    Solution and Beaten locations are never in here. They already require the
-    level's whole enforced set, so they cannot ask for less than the level
-    does, which is the only understatement this guards against.
+    Beaten locations are never in here, nor endings asking for the whole
+    level: they cannot ask for less than the level does, which is the only
+    understatement this guards against. An ending narrowed to an unproven
+    group (narrowed_group) IS in here, as that group's part check was.
 
     With ability_locks off there is nothing to understate: every requirement is
     empty, so no group can need strictly less than its level, and this is empty
@@ -118,12 +157,20 @@ def unproven_locations(plan: List[slots.Slot], ability_locks: bool) -> List[str]
     scored = []
     for slot in plan:
         level = slot.level
-        if not level.has_parts:
+        unproven = level.unproven_parts
+        if not unproven:
             continue
         whole = level.enforced_abilities
-        for part in level.unproven_parts:
+        for part in unproven:
+            if part not in level.part_locations:
+                continue
             gap = len(whole - level.enforced_part_abilities[part])
             scored.append((gap, locations.part_name(level, slot.instance, part)))
+        for _id, suffix, _group in level.endings:
+            group = narrowed_group(level, suffix)
+            if group in unproven:
+                gap = len(whole - level.enforced_part_abilities[group])
+                scored.append((gap, locations.ending_name(level, slot.instance, suffix)))
 
     scored.sort(key=lambda row: (-row[0], row[1]))
     return [name for _gap, name in scored]

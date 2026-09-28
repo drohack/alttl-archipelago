@@ -14,6 +14,8 @@ seed-independent facts here, and put anything probabilistic there.
 
 from . import bases
 from .. import data
+from .. import items
+from .. import locations
 from .. import options as apoptions
 from .. import pool
 from .. import slots
@@ -167,7 +169,7 @@ class TestDefaults(bases.ALTTLTestBase):
         # wrong. The comment said they "are assembled on the desk, so
         # requiring Drawer for them would mark a card blocked when it is
         # playable" - and nothing was ever observed to support it.
-        # docs/verification-log.md records the opposite: "the drawer test
+        # docs/history/verification-log.md records the opposite: "the drawer test
         # written alongside the fix was wrong... The test was corrected to
         # match the implementation, not the other way round."
         #
@@ -238,28 +240,41 @@ class TestDefaults(bases.ALTTLTestBase):
         entries = hint_data[self.player]
         self.assertTrue(entries)
         for text in entries.values():
-            self.assertTrue(text.startswith("Ch.") or "end of the track" in text,
-                            text)
+            self.assertTrue(text.startswith(("Opening, puzzle ", "Pack "))
+                            or "end of the track" in text, text)
 
-    def test_the_chapter_position_is_exactly_vanillas(self):
+    def test_the_position_names_the_track_section(self):
         """The text a player reads in a hint, pinned to the value not the shape.
 
-        This used to be pinned in C# instead, by ALTTLArchipelago.Core's
-        HintText and Chapters - a second implementation of pool's own
-        _chapter_and_position that nothing shipped and that could have drifted
-        from it silently. The C# copy is gone; the assertions moved here, to
-        the implementation that actually runs.
-
-        The boundaries are FIXED at vanilla's, deliberately, and do not follow
-        puzzle_count: a hint is a human-readable pointer at the base game's
-        layout, not at this seed's.
+        Named the way the level select titles its sections - "Opening", then
+        "Pack 1", "Pack 2" - so a hint points at something on the screen. It
+        read "Ch.2 Level 3" from vanilla's chapter sizes until 2026-09-28,
+        which a run's track has never shown.
         """
-        self.assertEqual("Ch.1 Level 1", pool._chapter_and_position(0))
-        self.assertEqual("Ch.1 Level 20", pool._chapter_and_position(19))
-        self.assertEqual("Ch.2 Level 1", pool._chapter_and_position(20))
-        self.assertEqual("Ch.2 Level 3", pool._chapter_and_position(22))
-        self.assertEqual("Ch.5 Level 12", pool._chapter_and_position(78))
-        self.assertEqual(79, sum(pool.CHAPTER_SIZES))
+        bounds = [5, 10, 15, 18]
+        self.assertEqual("Opening, puzzle 1", pool._pack_and_position(0, bounds))
+        self.assertEqual("Opening, puzzle 5", pool._pack_and_position(4, bounds))
+        self.assertEqual("Pack 1, puzzle 1", pool._pack_and_position(5, bounds))
+        self.assertEqual("Pack 2, puzzle 5", pool._pack_and_position(14, bounds))
+        self.assertEqual("Pack 3, puzzle 3", pool._pack_and_position(17, bounds))
+        # Past the last boundary cannot happen for a planned slot; it still
+        # reads as something rather than raising.
+        self.assertEqual("puzzle 19", pool._pack_and_position(18, bounds))
+
+    def test_every_hint_position_matches_the_seeds_packs(self):
+        """Every slot's hint names the block slot_data puts it in."""
+        world = self.multiworld.worlds[self.player]
+        bounds = pool.slot_data(world)["pack_boundaries"]
+        hint_data = {}
+        world.extend_hint_information(hint_data)
+        entries = hint_data[self.player]
+        for index, slot in enumerate(world.plan):
+            block = next(k for k, end in enumerate(bounds) if index < end)
+            want = "Opening" if block == 0 else f"Pack {block}"
+            name = locations.names_for(slot.level, slot.instance)[0]
+            address = locations.LOCATION_NAME_TO_ID[name]
+            self.assertTrue(entries[address].startswith(want),
+                            (index, entries[address], bounds))
 
 
 class TestNoArchive(bases.ALTTLTestBase):
@@ -317,7 +332,7 @@ class TestTinyRun(bases.ALTTLTestBase):
     """The smallest legal run: 10 puzzles since 2026-09-25 (15 from
     2026-09-23, 8 before that)."""
 
-    options = {"puzzle_count": 10, "pack_size": 4, "levels_to_beat": 40,
+    options = {"puzzle_count": 10, "pack_size": 5, "levels_to_beat": 40,
                "levels_to_star": 40}
 
     def test_the_floor_is_ten(self):
@@ -405,6 +420,74 @@ class TestNoAbilityLocks(bases.ALTTLTestBase):
         self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
 
 
+class TestTheFillerSplit(bases.ALTTLTestBase):
+    """droha, 2026-09-28: each trap its own share of the filler, then the
+    rest split evenly between more Hint Pages and Background Reset Tokens."""
+
+    def _counts(self):
+        names = [i.name for i in self.multiworld.itempool]
+        return {name: names.count(name) for name in (
+            items.CAT_TRAP, items.BACKGROUND_TRAP, items.HINT_PAGE,
+            items.BACKGROUND_RESET, items.SKIP)}
+
+    def test_each_trap_is_its_share_of_the_same_filler(self):
+        from .. import pool
+        world = self.multiworld.worlds[self.player]
+        got = self._counts()
+        filler = (got[items.CAT_TRAP] + got[items.BACKGROUND_TRAP]
+                  + got[items.HINT_PAGE] + got[items.BACKGROUND_RESET])
+        self.assertEqual(filler * 15 // 100, got[items.CAT_TRAP])
+        self.assertEqual(filler * 15 // 100, got[items.BACKGROUND_TRAP])
+        self.assertLessEqual(got[items.HINT_PAGE], pool.available_hint_pages(world))
+
+    def test_the_rest_is_hint_pages_and_tokens_evenly(self):
+        from .. import pool
+        world = self.multiworld.worlds[self.player]
+        got = self._counts()
+        pages = pool.available_hint_pages(world)
+        floor = pages * 50 // 100
+        extra_hints = got[items.HINT_PAGE] - floor
+        tokens = got[items.BACKGROUND_RESET]
+        self.assertGreater(tokens, 0, "a default seed should hold tokens")
+        if got[items.HINT_PAGE] < pages:
+            # Not capped by the pages: an even split, the odd one a hint.
+            self.assertIn(extra_hints - tokens, (0, 1))
+
+    def test_no_other_filler_is_minted(self):
+        from .. import pool
+        world = self.multiworld.worlds[self.player]
+        self.assertEqual([items.BACKGROUND_RESET] * 3, pool.filler_sequence(world, 3))
+
+    def test_pool_is_zero_sum(self):
+        self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
+
+
+class TestNoBackgroundTraps(bases.ALTTLTestBase):
+    options = {"background_trap_chance": 0}
+
+    def test_none_are_minted(self):
+        names = [i.name for i in self.multiworld.itempool]
+        self.assertNotIn(items.BACKGROUND_TRAP, names)
+        self.assertIn(items.BACKGROUND_RESET, names)
+
+
+class TestHintPagesStopAtThePages(bases.ALTTLTestBase):
+    """A short run with no traps: more filler than pages, so the overflow of
+    the even split is tokens, never a Hint Page with nothing to open."""
+
+    options = {"puzzle_count": 10, "cat_trap_chance": 0, "background_trap_chance": 0,
+               "hint_coverage": 100}
+
+    def test_hint_pages_never_exceed_the_pages(self):
+        from .. import pool
+        world = self.multiworld.worlds[self.player]
+        names = [i.name for i in self.multiworld.itempool]
+        self.assertEqual(pool.available_hint_pages(world), names.count(items.HINT_PAGE))
+
+    def test_pool_is_zero_sum(self):
+        self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
+
+
 class TestAllTraps(bases.ALTTLTestBase):
     options = {"cat_trap_chance": 100}
 
@@ -457,3 +540,69 @@ class TestTheReserveLeavesRoomOnAShortRun(bases.ALTTLTestBase):
             len(elaborate), len(levels) // 2,
             f"{len(elaborate)} of {len(levels)} levels need 3+ abilities: "
             f"{[l.level_id for l in levels]}")
+
+
+#: A campaign-heavy run, so the draw reaches the puzzles that award achievements.
+_ACHIEVEMENT_RUN = {"puzzle_count": 70, "base_weight": 100, "generator_weight": 1,
+                    "archive_weight": 0, "mechanic_coverage": 0}
+
+
+class TestAchievementsAreOffByDefault(bases.ALTTLTestBase):
+    options = dict(_ACHIEVEMENT_RUN)
+
+    def test_no_achievement_check_exists(self):
+        world = self.multiworld.worlds[self.player]
+        self.assertTrue(any(slot.level.achievements for slot in world.plan),
+                        "the run drew no puzzle with an achievement, so this "
+                        "test proves nothing")
+        self.assertFalse([n for n in world.location_names_in_use
+                          if " - Achievement: " in n])
+        self.assertFalse([n for n in world.requirements if " - Achievement: " in n])
+
+
+class TestAchievements(bases.ALTTLTestBase):
+    options = dict(_ACHIEVEMENT_RUN, achievements=True)
+
+    def _awarded(self):
+        world = self.multiworld.worlds[self.player]
+        return world, [n for n in world.location_names_in_use if " - Achievement: " in n]
+
+    def test_every_drawn_puzzle_with_an_achievement_has_its_check(self):
+        world, awarded = self._awarded()
+        want = [locations.achievement_name(slot.level, slot.instance, display)
+                for slot in world.plan for _id, display in slot.level.achievements]
+        self.assertTrue(want, "the run drew no puzzle with an achievement")
+        self.assertEqual(sorted(want), sorted(awarded))
+        self.assertEqual(frozenset(awarded), world.achievement_locations)
+
+    def test_an_achievement_needs_its_whole_level(self):
+        """level.abilities, before bypasses: the widest set, never less than
+        the level's Beaten event asks."""
+        world, _awarded = self._awarded()
+        for slot in world.plan:
+            beaten = world.requirements[locations.beaten_name(slot.level, slot.instance)]
+            for _id, display in slot.level.achievements:
+                req = world.requirements[
+                    locations.achievement_name(slot.level, slot.instance, display)]
+                self.assertEqual(sorted(slot.level.abilities), req["abilities"])
+                self.assertEqual(beaten["packs"], req["packs"])
+                self.assertTrue(set(beaten["abilities"]) <= set(req["abilities"]))
+
+    def test_no_achievement_holds_progression(self):
+        world, awarded = self._awarded()
+        progression = world.create_item(items.PROGRESSIVE_PACK)
+        for name in awarded:
+            location = self.multiworld.get_location(name, self.player)
+            self.assertFalse(location.item_rule(progression), name)
+            if location.item is not None:
+                self.assertFalse(location.item.advancement, (name, location.item.name))
+
+    def test_their_ids_come_after_every_other_location(self):
+        ids = locations.LOCATION_NAME_TO_ID
+        last_other = max(i for n, i in ids.items() if " - Achievement: " not in n)
+        first_awarded = min(i for n, i in ids.items() if " - Achievement: " in n)
+        self.assertEqual(last_other + 1, first_awarded)
+        self.assertIn("Achievements", locations.LOCATION_NAME_GROUPS)
+
+    def test_pool_is_zero_sum(self):
+        self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))

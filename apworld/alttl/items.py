@@ -61,6 +61,14 @@ DLC_ABILITY_ITEMS: List[str] = list(data.DLC_ABILITIES)
 #: them, which is a trap and, in droha's words, "still funny".
 BACKGROUND_TRAP = "Background Change Trap"
 
+#: Spent from the pause menu to put every backdrop back to the game's own
+#: colour. droha, 2026-09-25: a way to undo the traps above, "but it's not
+#: automatic. you know when you're doing it." Half of the filler left after
+#: the traps and the Hint Pages (droha, 2026-09-28), and what
+#: get_filler_item_name hands out. Its name goes last in _ALL_NAMES (ids are
+#: positional).
+BACKGROUND_RESET = "Background Reset Token"
+
 #: Filler that actually does something.
 #:
 #: This list used to read Title Theme, Colour Scheme and Daily Badge, and all
@@ -116,6 +124,10 @@ _ALL_NAMES: List[str] = (
     # DLC abilities last, after every base name. Ids are positional, so this
     # is the only place a new ability can go without moving an existing id.
     + DLC_ABILITY_ITEMS
+    # Appended after the DLC abilities, 2026-09-27. A future DLC ability
+    # would go before it and move it one id; ids may move between versions
+    # (the mod refuses a seed from another world_version).
+    + [BACKGROUND_RESET]
 )
 
 ITEM_NAME_TO_ID: Dict[str, int] = {
@@ -134,7 +146,7 @@ def classification(name: str) -> ItemClassification:
         return ItemClassification.progression
     if name in ABILITY_ITEMS or name in DLC_ABILITY_ITEMS:
         return ItemClassification.progression
-    if name in TRAP_ITEMS:
+    if name in TRAP_ITEMS or name == BACKGROUND_TRAP:
         return ItemClassification.trap
     if name in (SKIP, HINT_PAGE):
         # Useful, not progression: nothing in the access rules asks whether a

@@ -7,7 +7,7 @@ flight", and the fix is almost never to update the expectation.
 
 import unittest
 
-from .. import data, items, locations
+from .. import data, items, locations, rules, slots
 
 
 class TestTables(unittest.TestCase):
@@ -228,6 +228,37 @@ class TestTables(unittest.TestCase):
                 self.assertTrue(abilities <= level.abilities,
                                 f"{level.level_id} / {part}")
 
+    def test_an_ending_asks_less_than_its_level_only_where_its_group_finishes_it(self):
+        """Understating softlocks a seed. An ending asks only its group's
+        abilities where forcing that group alone finished the level
+        (levels.json finishesAlone); every other ending asks the whole level.
+        Sharp Pencils, DLC1 Fountain Pens, DLC2 Robots and DLC2 Bells asked
+        only their group's until 2026-09-28: none of those groups finishes
+        its level."""
+        narrowed = set()
+        for level in data.LEVELS:
+            out = rules.requirements([slots.Slot(level=level, instance=1, seed=-1)], 2, True)
+            whole = sorted(level.enforced_abilities)
+            for _id, suffix, group in level.endings:
+                need = out[locations.ending_name(level, 1, suffix)]["abilities"]
+                if need == whole:
+                    continue
+                narrowed.add(level.level_id)
+                with self.subTest(level=level.level_id, ending=suffix):
+                    self.assertIn(group, level.finishes_alone)
+                    self.assertGreater(len(level.parts), 1)
+                    self.assertTrue(set(need) < set(whole))
+        for level_id in ("Sharp Pencils", "DLC1 Fountain Pens", "DLC2 Robots", "DLC2 Bells"):
+            self.assertNotIn(level_id, narrowed)
+        self.assertIn("Spoons", narrowed)
+
+    def test_spoons_endings_ask_their_own_group(self):
+        spoons = data.BY_ID["Spoons"]
+        out = rules.requirements([slots.Slot(level=spoons, instance=1, seed=-1)], 2, True)
+        self.assertEqual(["Ordering"], out["Spoons - Solution: Size (Elastic)"]["abilities"])
+        self.assertEqual(["Stacking"], out["Spoons - Solution: Stacked"]["abilities"])
+        self.assertEqual(["Ordering", "Stacking"], out["Spoons - Beaten"]["abilities"])
+
     def test_single_group_levels_get_no_part_locations(self):
         """On a single-group level the group check and the first solution check
         are the same event; minting both would double count."""
@@ -313,6 +344,7 @@ class TestItemNamesAgreeAcrossLanguages(unittest.TestCase):
                 "beatenToken": items.BEATEN_TOKEN,
                 "hintPage": items.HINT_PAGE,
                 "backgroundTrap": items.BACKGROUND_TRAP,
+                "backgroundReset": items.BACKGROUND_RESET,
             },
             exported,
             "ALTTLArchipelago.Core.ItemNames and items.py disagree; regenerate "

@@ -13,10 +13,6 @@ from Options import OptionError
 
 from . import data, items, locations, rules, slots
 
-#: Abbreviated because it sits inside an already long hint line:
-#: "... at Medicine Cabinet - Blue Bottles in droha's World at Ch.2 Level 3."
-CHAPTER_SIZES = (20, 16, 16, 15, 12)
-
 #: Checks the free opening should offer before the run is handed to the fill.
 #:
 #: Not a difficulty knob - it is the room the fill needs to place its first
@@ -36,13 +32,17 @@ OPENING_FLOOR = 6
 DRAW_ATTEMPTS = 25
 
 
-def _chapter_and_position(slot_index: int) -> str:
-    seen = 0
-    for chapter, size in enumerate(CHAPTER_SIZES, start=1):
-        if slot_index < seen + size:
-            return f"Ch.{chapter} Level {slot_index - seen + 1}"
-        seen += size
-    return f"Level {slot_index + 1}"
+def _pack_and_position(slot_index: int, boundaries: List[int]) -> str:
+    """Where a slot sits on the track, named as the level select titles its
+    sections: "Opening, puzzle 3", "Pack 2, puzzle 4". `boundaries` is
+    items.pack_boundaries for the run - element k is where block k ends."""
+    start = 0
+    for block, end in enumerate(boundaries):
+        if slot_index < end:
+            section = "Opening" if block == 0 else f"Pack {block}"
+            return f"{section}, puzzle {slot_index - start + 1}"
+        start = end
+    return f"puzzle {slot_index + 1}"
 
 
 def _free_checks(plan_slice, held) -> int:
@@ -88,7 +88,7 @@ def _free_checks(plan_slice, held) -> int:
             total += level.solution_count
         if level.has_parts:
             guarded = level.unproven_parts
-            for part in level.parts:
+            for part in level.part_locations:
                 if part in guarded:
                     continue
                 if level.part_abilities.get(part, frozenset()) <= held:
@@ -131,28 +131,10 @@ def decide(world) -> None:
     world.levels_to_star = min(o.levels_to_star.value, puzzle_count)
     world.goal_is_stars = o.goal.value == o.goal.option_star_levels
 
-    source_weights = {
-        "generator": o.generator_weight.value,
-        "archive": o.archive_weight.value,
-        # The campaign. Absent from this dict until 2026-09-09, which meant 57
-        # of the 69 campaign puzzles could never be drawn at all: pass 2 fills
-        # by source, so a source with no weight is a source that never appears,
-        # and the only other door was the mechanic-coverage reserve in pass 1.
-        "base": o.base_weight.value,
-    }
-    # The DLC sources, and ONLY when their toggle is on. A weight left here
-    # for content _eligible has filtered out makes pass 2 roll a source with
-    # no candidates and fall through to the repeatable-generator backstop,
-    # which quietly skews the mix away from what the yaml asked for.
-    if o.cupboards_and_drawers.value:
-        source_weights["dlc1"] = o.cupboards_weight.value
-    if o.seeing_stars.value:
-        source_weights["dlc2"] = o.stars_weight.value
-    if not any(source_weights.values()):
-        # ALL of them zeroed. Generators are the only source that can always
-        # supply a slot - they repeat, the other two are one-shot - so fall
-        # back to them rather than failing.
-        source_weights = {"generator": 1}
+    source_weights = slots.source_weights(
+        o.generator_weight.value, o.archive_weight.value, o.base_weight.value,
+        dlc1=o.cupboards_weight.value if o.cupboards_and_drawers.value else None,
+        dlc2=o.stars_weight.value if o.seeing_stars.value else None)
 
     # REDRAW RATHER THAN GIVE A GUARD BACK. A guard the pool cannot afford is
     # a part location that may ask for less than the player needs, handed to
@@ -289,7 +271,9 @@ def _draw_once(world, puzzle_count, pack_size, source_weights) -> int:
                     world.random, world.plan, pack_size,
                     o.guaranteed_open_slots.value, held)
 
-    world.requirements = rules.requirements(world.plan, pack_size, ability_locks)
+    achievements = bool(o.achievements.value)
+    world.requirements = rules.requirements(world.plan, pack_size, ability_locks,
+                                            achievements)
 
     # Nothing forces abilities early any more, and that is deliberate.
     #
@@ -319,6 +303,17 @@ def _draw_once(world, puzzle_count, pack_size, source_weights) -> int:
     # location list, which is only built above.
     world.unproven_locations, dropped = _affordable_guard(
         world, rules.unproven_locations(world.plan, ability_locks))
+
+    # Added after the guard is sized, and never a home for progression: a
+    # hard achievement must never block a run (the option's promise; all 17
+    # were seen firing in a run on 2026-09-28), and the guard's budget must
+    # not count homes that refuse progression.
+    world.achievement_locations = frozenset()
+    if achievements:
+        awarded = [name for slot in world.plan
+                   for name in locations.achievement_names_for(slot.level, slot.instance)]
+        world.location_names_in_use += awarded
+        world.achievement_locations = frozenset(awarded)
     return dropped
 
 
@@ -454,19 +449,34 @@ def create_items(world) -> None:
     # costs the hints nothing: full coverage is capped by the pages the seed
     # actually contains, so it is the do-nothing filler underneath that
     # shrinks.
-    traps = remaining * world.options.cat_trap_chance.value // 100
-    for _ in range(traps):
+    # Both traps are shares of the same filler, so each dial means what it
+    # says whatever the other is set to. Together they cannot take more than
+    # there is.
+    filler = remaining
+    cats = filler * world.options.cat_trap_chance.value // 100
+    backdrops = min(filler * world.options.background_trap_chance.value // 100,
+                    filler - cats)
+    for _ in range(cats):
         pool.append(world.create_item(items.CAT_TRAP))
-    remaining -= traps
+    for _ in range(backdrops):
+        pool.append(world.create_item(items.BACKGROUND_TRAP))
+    remaining -= cats + backdrops
 
-    hints = min(available_hint_pages(world) * world.options.hint_coverage.value
-                // 100, remaining)
-    for _ in range(hints):
-        pool.append(world.create_item(items.HINT_PAGE))
+    pages = available_hint_pages(world)
+    hints = min(pages * world.options.hint_coverage.value // 100, remaining)
     remaining -= hints
 
-    for name in filler_sequence(world, remaining):
-        pool.append(world.create_item(name))
+    # THE REST, SPLIT EVENLY between more Hint Pages and Background Reset
+    # Tokens (droha, 2026-09-28). Hint Pages stop at one per page the seed
+    # has - a page with no notepad to open is nothing - and the overflow is
+    # tokens.
+    more_hints = min((remaining + 1) // 2, pages - hints)
+    hints += more_hints
+    remaining -= more_hints
+    for _ in range(hints):
+        pool.append(world.create_item(items.HINT_PAGE))
+    for _ in range(remaining):
+        pool.append(world.create_item(items.BACKGROUND_RESET))
 
     world.multiworld.itempool += pool
 
@@ -489,10 +499,11 @@ def available_hint_pages(world) -> int:
 
 
 def filler_sequence(world, count: int) -> List[str]:
-    """Cosmetic junk, chosen at random. Never empty for count > 0."""
+    """Filler for Archipelago to hand out beyond this world's own pool (item
+    links, plando): Background Reset Tokens, which are never wasted."""
     if count <= 0:
         return []
-    return [world.random.choice(items.FILLER_ITEMS) for _ in range(count)]
+    return [items.BACKGROUND_RESET for _ in range(count)]
 
 
 def hint_information(world, hint_data: Dict[int, Dict[int, str]]) -> None:
@@ -503,11 +514,12 @@ def hint_information(world, hint_data: Dict[int, Dict[int, str]]) -> None:
     that, and it means a hint reads:
 
         droha's Swapping is at Medicine Cabinet - Blue Bottles
-        in droha's World at Ch.2 Level 3.
+        in droha's World at Pack 2, puzzle 4.
     """
     entries: Dict[int, str] = {}
+    boundaries = items.pack_boundaries(len(world.plan), world.pack_size)
     for index, slot in enumerate(world.plan):
-        where = _chapter_and_position(index)
+        where = _pack_and_position(index, boundaries)
         for name in locations.names_for(slot.level, slot.instance):
             address = locations.LOCATION_NAME_TO_ID.get(name)
             if address is not None:
@@ -589,6 +601,15 @@ def slot_data(world) -> Mapping[str, Any]:
         "controller_groups": {
             level_id: dict(sorted(data.BY_ID[level_id].controller_group.items()))
             for level_id in sorted({slot.level.level_id for slot in world.plan})
+        },
+        # Each drawn level's endings, so the mod files a completion by its
+        # solution id (Core CheckRouter.ForEnding). Absent for a generated
+        # puzzle, which the mod numbers in the order found.
+        "endings": {
+            level_id: [{"id": ending_id, "location": suffix}
+                       for ending_id, suffix, _group in data.BY_ID[level_id].endings]
+            for level_id in sorted({slot.level.level_id for slot in world.plan})
+            if data.BY_ID[level_id].fixed_endings
         },
         # Controllers the level registers that are no location on purpose, so
         # the mod's registration audit does not report them as unknown.

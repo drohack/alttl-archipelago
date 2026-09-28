@@ -15,7 +15,7 @@ Names are content-based rather than positional - "Medicine Cabinet - Blue
 Bottles", not "Slot 07 - Part 3" - because slot 7 holds a different puzzle in
 every seed. Position is carried per-seed by extend_hint_information instead,
 so a hint reads "... at Medicine Cabinet - Blue Bottles in droha's World at
-Ch.2 Level 3".
+Pack 2, puzzle 4".
 """
 
 from typing import Dict, List, Set
@@ -27,6 +27,7 @@ LOCATION_BASE_ID = BASE_ID + 1000
 
 SOLUTION = "Solution"
 BEATEN = "Beaten"
+ACHIEVEMENT = "Achievement"
 
 
 def instance_tag(level: data.Level, instance: int) -> str:
@@ -47,6 +48,29 @@ def beaten_name(level: data.Level, instance: int) -> str:
     return f"{instance_tag(level, instance)} - {BEATEN}"
 
 
+def achievement_name(level: data.Level, instance: int, display: str) -> str:
+    """One of the game's achievements as a check, when the yaml asks for them.
+    The kind is in the name: an achievement's own ("Show Off") could pass for
+    a part."""
+    return f"{instance_tag(level, instance)} - {ACHIEVEMENT}: {display}"
+
+
+def achievement_names_for(level: data.Level, instance: int) -> List[str]:
+    """This instance's achievement checks; only used under `achievements`."""
+    return [achievement_name(level, instance, display)
+            for _id, display in level.achievements]
+
+
+def ending_name(level: data.Level, instance: int, suffix: str) -> str:
+    """One ending's location: "Spoons - Solution: Stacked", or numbered
+    ("Books (Randomized) - Solution 2") on a generated puzzle."""
+    return f"{instance_tag(level, instance)} - {suffix}"
+
+
+def ending_names_for(level: data.Level, instance: int) -> List[str]:
+    return [ending_name(level, instance, suffix) for _id, suffix, _group in level.endings]
+
+
 def names_for(level: data.Level, instance: int) -> List[str]:
     """The real, checkable locations one instance of a level contributes.
 
@@ -55,10 +79,9 @@ def names_for(level: data.Level, instance: int) -> List[str]:
     and the first solution check are the same event, so minting both would
     double count.
     """
-    out = [solution_name(level, instance, n)
-           for n in range(1, level.solution_count + 1)]
+    out = ending_names_for(level, instance)
     if level.has_parts:
-        out += [part_name(level, instance, p) for p in level.parts]
+        out += [part_name(level, instance, p) for p in level.part_locations]
     return out
 
 
@@ -80,11 +103,14 @@ def _build() -> List[str]:
     """
     base: List[str] = []
     dlc: List[str] = []
+    # Achievements last of all (2026-09-28), so adding them moved no id.
+    awarded: List[str] = []
     for level in sorted(data.LEVELS, key=lambda l: l.level_index):
         target = dlc if level.dlc else base
         for instance in range(1, level.max_instances + 1):
             target.extend(names_for(level, instance))
-    return base + [data.CREDITS] + dlc
+            awarded.extend(achievement_names_for(level, instance))
+    return base + [data.CREDITS] + dlc + awarded
 
 
 ALL_NAMES: List[str] = _build()
@@ -111,12 +137,15 @@ def _name_groups() -> Dict[str, Set[str]]:
     groups: Dict[str, Set[str]] = {}
     for level in sorted(data.LEVELS, key=lambda l: l.level_index):
         for instance in range(1, level.max_instances + 1):
-            names = names_for(level, instance)
+            names = names_for(level, instance) + achievement_names_for(level, instance)
             if not names:
                 continue
             groups.setdefault(instance_tag(level, instance), set()).update(names)
             for key in _source_group_names(level.source):
                 groups.setdefault(key, set()).update(names)
+            awarded = achievement_names_for(level, instance)
+            if awarded:
+                groups.setdefault("Achievements", set()).update(awarded)
     return groups
 
 

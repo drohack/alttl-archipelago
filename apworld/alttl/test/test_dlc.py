@@ -19,6 +19,7 @@ release gate. Three seams had no test at all:
 These need no multiworld and no fill. They run in milliseconds.
 """
 
+import random
 import unittest
 
 from .. import data, items, locations, rules, slots
@@ -86,11 +87,45 @@ BYPASSES = {
     "DLC1 Pantry": {"Drawer"},
     "DLC1 Trophy Cabinet": {"Drawer"},
     "DLC2 Figurines": {"Sticking"},
+    # Kat (0.4.1) and droha's hand test (2026-09-28, holding only Ordering and
+    # Stacking, opened from the track) both finished it with its Solution
+    # withheld for the extraAbilities Drawer.
+    "DLC1 Media Cabinet": {"Drawer"},
 }
 
 #: Bypassed abilities that came from extraAbilities, which never reach a part,
 #: so these levels have no part to expose; only their Solutions carry it.
-EXTRA_ONLY_BYPASSES = {"MedicineCabinet", "DLC1 Pantry", "DLC1 Trophy Cabinet"}
+EXTRA_ONLY_BYPASSES = {"MedicineCabinet", "DLC1 Pantry", "DLC1 Trophy Cabinet",
+                       "DLC1 Media Cabinet"}
+
+
+class TestTheFixedLayoutFourFollowTheirDlc(unittest.TestCase):
+    """Level.draw_source: the four DLC levels whose source is "generator"
+    roll under their DLC's weight, never under generator_weight.
+
+    Measured before the change, 2026-09-27, 300 seeds of 70 puzzles with
+    both DLCs on: all four were in every run at the default weights, and
+    still in every run with both DLC weights at 0. mechanic_coverage is 0
+    here so the reserve, which picks by ability, cannot bring one in.
+    """
+
+    def draws(self, weights, seeds=range(40)):
+        options = _Options(dlc1=True, dlc2=True)
+        for seed in seeds:
+            plan = slots.draw(random.Random(seed), 30, 0, weights, 0, options)
+            yield {slot.level.level_id for slot in plan}
+
+    def test_a_dlc_weight_of_zero_keeps_them_out(self):
+        weights = slots.source_weights(80, 10, 10, dlc1=0, dlc2=0)
+        for ids in self.draws(weights):
+            self.assertEqual(set(), GENERATOR_SOURCE_DLC & ids)
+
+    def test_they_come_in_with_no_generator_weight_at_all(self):
+        weights = slots.source_weights(0, 0, 0, dlc1=50, dlc2=50)
+        seen = set()
+        for ids in self.draws(weights):
+            seen |= GENERATOR_SOURCE_DLC & ids
+        self.assertEqual(GENERATOR_SOURCE_DLC, seen)
 
 
 class TestTheContentGate(unittest.TestCase):
@@ -193,19 +228,21 @@ class TestTheBypassSubtraction(unittest.TestCase):
         """The wiring. A correct subtraction nothing calls is worth nothing.
 
         Both DLC bypass shapes are covered: Kitchen Hanging Tools drops
-        Drawer, Combs drops Ordering.
+        Drawer, Combs drops Ordering. Every ending and the Beaten token,
+        which read separate code since fixed endings (rules.ending_abilities).
         """
         for level_id, bypassed in BYPASSES.items():
             level = data.BY_ID[level_id]
             plan = [slots.Slot(level=level, instance=1, seed=-1)]
             out = rules.requirements(plan, 2, True)
-            solution = locations.solution_name(level, 1, 1)
-            with self.subTest(level_id):
-                self.assertIn(solution, out)
-                self.assertEqual(
-                    set(), set(out[solution]["abilities"]) & bypassed,
-                    f"{solution} still demands {bypassed}, which the level "
-                    f"was hand-tested not to need")
+            for name in (locations.ending_names_for(level, 1)
+                         + [locations.beaten_name(level, 1)]):
+                with self.subTest(level_id=level_id, location=name):
+                    self.assertIn(name, out)
+                    self.assertEqual(
+                        set(), set(out[name]["abilities"]) & bypassed,
+                        f"{name} still demands {bypassed}, which the level "
+                        f"was hand-tested not to need")
 
     def test_part_requirements_use_the_enforced_view_too(self):
         """The solution and the part read SEPARATE tables.
@@ -220,8 +257,9 @@ class TestTheBypassSubtraction(unittest.TestCase):
         for level_id, bypassed in BYPASSES.items():
             level = data.BY_ID[level_id]
             # DLC2 Combs lost its Drawer part on 2026-09-23 (solved at load,
-            # so notALocation) and has one group left: no part checks.
-            if not level.has_parts:
+            # so notALocation) and has one group left: no part checks. A level
+            # whose groups are its endings is still tested, through those.
+            if len(level.parts) <= 1:
                 continue
             exposed = {p for p, a in level.part_abilities.items()
                        if set(a) & bypassed}
@@ -236,8 +274,13 @@ class TestTheBypassSubtraction(unittest.TestCase):
 
             plan = [slots.Slot(level=level, instance=1, seed=-1)]
             out = rules.requirements(plan, 2, True)
+            # A group that is an ending of its own is checked through that
+            # ending's location (Endings, 2026-09-28).
+            ending_of = {group: locations.ending_name(level, 1, suffix)
+                         for _id, suffix, group in level.endings if group}
             for part in exposed:
-                name = locations.part_name(level, 1, part)
+                name = (locations.part_name(level, 1, part) if part in level.part_locations
+                        else ending_of[part])
                 with self.subTest(level_id=level_id, part=part):
                     self.assertIn(name, out)
                     self.assertEqual(
@@ -248,18 +291,20 @@ class TestTheBypassSubtraction(unittest.TestCase):
     def test_a_level_without_a_bypass_keeps_every_ability_it_declares(self):
         """The control. A subtraction that fired on everything would pass
         every assertion above and quietly delete the logic."""
+        # An ending that is no single group needs the level's whole set.
         plain = [l for l in data.LEVELS
-                 if l.abilities and l.level_id not in BYPASSES][0]
+                 if l.abilities and l.level_id not in BYPASSES
+                 and l.endings[0][2] is None][0]
         plan = [slots.Slot(level=plain, instance=1, seed=-1)]
         out = rules.requirements(plan, 2, True)
-        name = locations.solution_name(plain, 1, 1)
+        name = locations.ending_names_for(plain, 1)[0]
         self.assertEqual(sorted(plain.abilities), out[name]["abilities"])
 
     def test_locks_off_means_no_ability_requirement_at_all(self):
         level = data.BY_ID["DLC2 Combs"]
         plan = [slots.Slot(level=level, instance=1, seed=-1)]
         out = rules.requirements(plan, 2, False)
-        self.assertEqual([], out[locations.solution_name(level, 1, 1)]["abilities"])
+        self.assertEqual([], out[locations.ending_names_for(level, 1)[0]]["abilities"])
 
 
 class TestTheDlcAbility(unittest.TestCase):
@@ -322,7 +367,12 @@ class TestTheDlcIdsNeverMove(unittest.TestCase):
         # 425 -> 423 the same day: droha could not peel Fruit Stickers holding
         # only Tidying, so Remove Stickers depends on Match Stickers too; the
         # mutual pair is one group and the level has no part checks.
-        self.assertEqual(423, per_dlc[""])
+        # 423 -> 404 on 2026-09-28: fixed endings. A part that is an ending of
+        # its own is that ending's check, and Medicine Cabinet's thirteen
+        # parts are six per colour, Mirror's eight four.
+        # 404 -> 402 the same day: Mirror is two parts, the big items and the little things (droha, 2026-09-28).
+        # 402 -> 401: Mirror's little things folded into its Solution (droha, 2026-09-28).
+        self.assertEqual(401, per_dlc[""])
         # 146 -> 149 on 2026-09-23: DLC1 Boss's Dining Room, Parking Lot and
         # Landscape registered and solved in droha's play and were restored.
         # 149 -> 148 the same day: Kitchen Utensils Drawers' "Drawers" check
@@ -336,7 +386,8 @@ class TestTheDlcIdsNeverMove(unittest.TestCase):
         # 136 -> 115 the same day: Trophy Cabinet's layout does not change
         # with the seed (droha: "dup levels that are exactly the same"), so
         # it is drawn once and its later copies' locations are gone.
-        self.assertEqual(115, per_dlc["DLC1"])
+        # 115 -> 114 on 2026-09-28: fixed endings (see above).
+        self.assertEqual(114, per_dlc["DLC1"])
         # 267 -> 269 on 2026-09-23: DLC2 Boss lost its Drawer Controller (it
         # never solved, even in a full completion) and gained Locks, Compass
         # and Knives, which droha's play showed register and solve. Ids after
@@ -352,11 +403,22 @@ class TestTheDlcIdsNeverMove(unittest.TestCase):
         # 260 -> 141 on 2026-09-25: Water Glasses, Figurines and Bread Crusts
         # are fixed-layout (data.FIXED_LAYOUT), drawn once, so their later
         # copies' locations are gone.
-        self.assertEqual(141, per_dlc["DLC2"])
-        self.assertEqual(680, len(locations.ALL_NAMES))
+        # 141 -> 124 on 2026-09-28: fixed endings (see above).
+        self.assertEqual(124, per_dlc["DLC2"])
+        # 680 -> 708 on 2026-09-28: the achievement checks, appended after
+        # everything else - 18 base (Breadtags' repeats one each), 5 DLC1 and
+        # 5 DLC2 - so no earlier id moved.
+        # 708 -> 698 the same day: Sweep (Sharp Pencils, Breadtags' eight) and
+        # Path of Destruction are part checks the run already has, so 8 base.
+        # 698 -> 697: Keep Away never fired in a run with its condition met,
+        # so 7 base.
+        awarded = sum(len(locations.achievement_names_for(level, 1)) * level.max_instances
+                      for level in data.LEVELS)
+        self.assertEqual(17, awarded)
+        self.assertEqual(401 + 1 + 114 + 124 + awarded, len(locations.ALL_NAMES))
 
     def test_credits_is_the_last_base_id(self):
-        self.assertEqual(423, locations.ALL_NAMES.index(data.CREDITS))
+        self.assertEqual(401, locations.ALL_NAMES.index(data.CREDITS))
 
     def test_the_dlc_ability_item_id_is_pinned(self):
         """Appended after Hint Page, never inside the base twelve."""
@@ -415,9 +477,15 @@ class TestSlotDataCarriesTheDlc(unittest.TestCase):
     exercised at all.
     """
 
+    #: Was the gate's seed, 20260906, until 2026-09-27: the four
+    #: FIXED_LAYOUT levels moved under their DLC's weight
+    #: (Level.draw_source), the DLC-only draw changed, and that seed stopped
+    #: drawing DLC2 Pizza. 20260908 is the first after it that does.
+    SEED = 20260908
+
     @classmethod
     def setUpClass(cls):
-        cls.data = _dlc_slot_data(DLC_ONLY, 20260906)
+        cls.data = _dlc_slot_data(DLC_ONLY, cls.SEED)
 
     def test_both_dlc_flags_reach_the_mod(self):
         """The mod refuses to connect if these disagree with what is
@@ -476,13 +544,13 @@ class TestSlotDataCarriesTheDlc(unittest.TestCase):
     def test_this_seed_really_does_exercise_the_dlc_ability(self):
         """Guard against the invariant above passing vacuously.
 
-        The gate's own seed draws DLC2 Pizza at slot 0, the only level in
-        the table that uses Distributing. If a table change stops it being
-        drawn here, the invariant test becomes "no level needs it, none
-        was minted" - true, and worth nothing. This says so out loud.
+        SEED draws DLC2 Pizza, the only level in the table that uses
+        Distributing. If a table or draw change stops it being drawn here,
+        the invariant test becomes "no level needs it, none was minted" -
+        true, and worth nothing. This says so out loud.
         """
         self.assertIn("Distributing", self.data["abilities"],
-                      "seed 20260906 no longer draws the one level that "
+                      f"seed {self.SEED} no longer draws the one level that "
                       "uses Distributing, so the invariant test above is "
                       "now vacuous - pick a seed that does")
 

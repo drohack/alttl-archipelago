@@ -9,6 +9,7 @@
   ],
   "credits": "Credits",
   "items": {
+    "backgroundReset": "Background Reset Token",
     "backgroundTrap": "Background Change Trap",
     "beatenToken": "Level Beaten",
     "catTrap": "Cat Trap",
@@ -28,9 +29,18 @@
           ],
           "members": [
             "Angled"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Angled_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Batteries": {
       "display": "Batteries",
@@ -40,9 +50,18 @@
           "abilities": [],
           "members": [
             "Sort Batteries"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Sort-Batteries_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Batteries (Randomized)": {
       "display": "Batteries (Randomized)",
@@ -52,9 +71,18 @@
           "abilities": [],
           "members": [
             "Controller"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Books": {
       "display": "Books",
@@ -66,9 +94,23 @@
           ],
           "members": [
             "Shuffle"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Shuffle_0",
+          "location": "Solution: Shuffle 1",
+          "group": "Shuffle"
+        },
+        {
+          "id": "Shuffle_1",
+          "location": "Solution: Shuffle 2",
+          "group": "Shuffle"
+        }
+      ]
     },
     "Books (Randomized)": {
       "display": "Books (Randomized)",
@@ -80,9 +122,23 @@
           ],
           "members": [
             "Shuffle"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Shuffle_0",
+          "location": "Solution: Shuffle 1",
+          "group": "Shuffle"
+        },
+        {
+          "id": "Shuffle_1|Draggables_0",
+          "location": "Solution: Shuffle 2",
+          "group": "Shuffle"
+        }
+      ]
     },
     "Books 2": {
       "display": "Books 2",
@@ -94,9 +150,23 @@
           ],
           "members": [
             "Shuffle"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Shuffle_0",
+          "location": "Solution: Shuffle 1",
+          "group": "Shuffle"
+        },
+        {
+          "id": "Shuffle_1",
+          "location": "Solution: Shuffle 2",
+          "group": "Shuffle"
+        }
+      ]
     },
     "Books 3": {
       "display": "Books 3",
@@ -108,16 +178,32 @@
           ],
           "members": [
             "Design (Shuffle)"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         },
         "Height (Draggables)": {
           "display": "Height",
           "abilities": [],
           "members": [
             "Height (Draggables)"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Design-(Shuffle)_0",
+          "location": "Solution: Design (Shuffle)",
+          "group": "Design (Shuffle)"
+        },
+        {
+          "id": "Height-(Draggables)_1",
+          "location": "Solution: Height",
+          "group": "Height (Draggables)"
+        }
+      ]
     },
     "Bowls": {
       "display": "Bowls",
@@ -127,16 +213,32 @@
           "abilities": [],
           "members": [
             "Crack"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Pattern": {
           "display": "Pattern",
           "abilities": [],
           "members": [
             "Pattern"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Match-(Draggables)_0",
+          "location": "Solution: Match 1",
+          "group": null
+        },
+        {
+          "id": "Match-(Draggables)_1",
+          "location": "Solution: Match 2",
+          "group": null
+        }
+      ]
     },
     "Boxes (Stacked)": {
       "display": "Boxes (Stacked)",
@@ -148,9 +250,23 @@
           ],
           "members": [
             "Stacked Boxes"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Stacked-Boxes_0",
+          "location": "Solution: Stacked Boxes 1",
+          "group": "Stacked Boxes"
+        },
+        {
+          "id": "Stacked-Boxes_1",
+          "location": "Solution: Stacked Boxes 2",
+          "group": "Stacked Boxes"
+        }
+      ]
     },
     "Breadtags": {
       "display": "Breadtags",
@@ -162,7 +278,9 @@
           ],
           "members": [
             "Crumbs"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Interlocking": {
           "display": "Interlocking",
@@ -171,9 +289,18 @@
           ],
           "members": [
             "Interlocking"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Interlocking_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Broken Vase": {
       "display": "Broken Vase",
@@ -183,9 +310,18 @@
           "abilities": [],
           "members": [
             "Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Buttons": {
       "display": "Buttons",
@@ -197,9 +333,23 @@
           ],
           "members": [
             "SortingItems Draggables"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "SortingItems-Draggables_0",
+          "location": "Solution: Sorting Items 1",
+          "group": "SortingItems Draggables"
+        },
+        {
+          "id": "SortingItems-Draggables_1",
+          "location": "Solution: Sorting Items 2",
+          "group": "SortingItems Draggables"
+        }
+      ]
     },
     "Calendar": {
       "display": "Calendar",
@@ -211,9 +361,18 @@
           ],
           "members": [
             "Repeating Sequence"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Repeating-Sequence_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Candles": {
       "display": "Candles",
@@ -225,9 +384,23 @@
           ],
           "members": [
             "CandlesObjectController"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "CandlesObjectController_0",
+          "location": "Solution: Candles Object 1",
+          "group": "CandlesObjectController"
+        },
+        {
+          "id": "CandlesObjectController_1",
+          "location": "Solution: Candles Object 2",
+          "group": "CandlesObjectController"
+        }
+      ]
     },
     "Cat Food Cans": {
       "display": "Cat Food Cans",
@@ -239,9 +412,18 @@
           ],
           "members": [
             "Matching Stacks"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Matching-Stacks_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Cat Frame": {
       "display": "Cat Frame",
@@ -253,9 +435,18 @@
           ],
           "members": [
             "Straighten"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Straighten_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Cat Toys": {
       "display": "Cat Toys",
@@ -265,9 +456,18 @@
           "abilities": [],
           "members": [
             "Tidy Up"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Tidy-Up_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Chess Shadows": {
       "display": "Chess Shadows",
@@ -280,9 +480,18 @@
           "members": [
             "Shuffleables Pieces",
             "Shuffleables Shadows"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Shuffleables-Shadows_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Cleaning Supplies": {
       "display": "Cleaning Supplies",
@@ -292,7 +501,9 @@
           "abilities": [],
           "members": [
             "Sponge"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Supplies Order": {
           "display": "Supplies Order",
@@ -301,9 +512,18 @@
           ],
           "members": [
             "Supplies Order"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Supplies-Order_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Clock": {
       "display": "Clock",
@@ -315,9 +535,18 @@
           ],
           "members": [
             "Match Shadows"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Match-Shadows_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Clover": {
       "display": "Clover",
@@ -329,9 +558,18 @@
           ],
           "members": [
             "Symmetrical Placeables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "SymmetricalPlaceables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Coins 1 (Shape)": {
       "display": "Coins 1 (Shape)",
@@ -343,7 +581,9 @@
           ],
           "members": [
             "Ordered"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         },
         "Stacked": {
           "display": "Stacked",
@@ -352,9 +592,28 @@
           ],
           "members": [
             "Stacked"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Ordered_0",
+          "location": "Solution: Ordered 1",
+          "group": "Ordered"
+        },
+        {
+          "id": "Ordered_1",
+          "location": "Solution: Ordered 2",
+          "group": "Ordered"
+        },
+        {
+          "id": "Stacked_0",
+          "location": "Solution: Stacked",
+          "group": "Stacked"
+        }
+      ]
     },
     "Coins 2 (Dirtyness)": {
       "display": "Coins 2 (Dirtyness)",
@@ -366,9 +625,28 @@
           ],
           "members": [
             "Dirtyables"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Dirtyables_0",
+          "location": "Solution: Dirtyables 1",
+          "group": "Dirtyables"
+        },
+        {
+          "id": "Dirtyables_1",
+          "location": "Solution: Dirtyables 2",
+          "group": "Dirtyables"
+        },
+        {
+          "id": "Dirtyables_2",
+          "location": "Solution: Dirtyables 3",
+          "group": "Dirtyables"
+        }
+      ]
     },
     "Colored Pencils": {
       "display": "Colored Pencils",
@@ -378,9 +656,18 @@
           "abilities": [],
           "members": [
             "Gradient"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Gradient_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Bathroom Cupboard": {
       "display": "Bathroom Cupboard (Cupboards and Drawers)",
@@ -392,7 +679,9 @@
           ],
           "members": [
             "Broom/Dustpan Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Glove Hanging Controller": {
           "display": "Glove Hanging",
@@ -401,16 +690,27 @@
           ],
           "members": [
             "Glove Hanging Controller"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Items Draggables": {
           "display": "Items",
           "abilities": [],
           "members": [
             "Items Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Cupboard_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Boss": {
       "display": "Boss (Cupboards and Drawers)",
@@ -422,7 +722,9 @@
           ],
           "members": [
             "Dining Room Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "DrawerController": {
           "display": "Drawer",
@@ -431,7 +733,9 @@
           ],
           "members": [
             "DrawerController"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "KeysDraggables": {
           "display": "Keys",
@@ -440,7 +744,9 @@
           ],
           "members": [
             "KeysDraggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Landscape Draggables": {
           "display": "Landscape",
@@ -449,7 +755,9 @@
           ],
           "members": [
             "Landscape Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Parking Lot Draggables": {
           "display": "Parking Lot",
@@ -458,9 +766,18 @@
           ],
           "members": [
             "Parking Lot Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "KeysDraggables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Clock Cupboard": {
       "display": "Clock Cupboard (Cupboards and Drawers)",
@@ -472,9 +789,18 @@
           ],
           "members": [
             "Items Placements Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Cupboard_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Coin Box": {
       "display": "Coin Box (Cupboards and Drawers)",
@@ -486,9 +812,28 @@
           ],
           "members": [
             "Match-Lines"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Match-Lines_0",
+          "location": "Solution: Match-Lines 1",
+          "group": "Match-Lines"
+        },
+        {
+          "id": "Match-Lines_1",
+          "location": "Solution: Match-Lines 2",
+          "group": "Match-Lines"
+        },
+        {
+          "id": "Match-Lines_2",
+          "location": "Solution: Match-Lines 3",
+          "group": "Match-Lines"
+        }
+      ]
     },
     "DLC1 Craft Supplies": {
       "display": "Craft Supplies (Cupboards and Drawers)",
@@ -501,7 +846,9 @@
           ],
           "members": [
             "Brushes DraggablesOrdered"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Highlighters DraggablesOrdered": {
           "display": "Highlighters",
@@ -511,7 +858,9 @@
           ],
           "members": [
             "Highlighters DraggablesOrdered"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Misc Draggables": {
           "display": "Misc",
@@ -520,7 +869,9 @@
           ],
           "members": [
             "Misc Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Paints DraggablesOrdered": {
           "display": "Paints",
@@ -530,13 +881,29 @@
           ],
           "members": [
             "Paints DraggablesOrdered"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Drawers_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Daggers": {
       "display": "Daggers (Cupboards and Drawers)",
-      "parts": {}
+      "parts": {},
+      "endings": [
+        {
+          "id": "Drawers_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Filing Cabinet": {
       "display": "Filing Cabinet (Cupboards and Drawers)",
@@ -548,9 +915,28 @@
           ],
           "members": [
             "FolderShuffleables"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "FolderShuffleables_0",
+          "location": "Solution: Folder 1",
+          "group": "FolderShuffleables"
+        },
+        {
+          "id": "FolderShuffleables_1",
+          "location": "Solution: Folder 2",
+          "group": "FolderShuffleables"
+        },
+        {
+          "id": "FolderShuffleables_2",
+          "location": "Solution: Folder 3",
+          "group": "FolderShuffleables"
+        }
+      ]
     },
     "DLC1 Fossils": {
       "display": "Fossils (Cupboards and Drawers)",
@@ -563,7 +949,9 @@
           ],
           "members": [
             "Dragonfly Fossil Jigsaw"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Drawers": {
           "display": "Drawers",
@@ -572,7 +960,9 @@
           ],
           "members": [
             "Drawers"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Fern Fossil Jigsaw": {
           "display": "Fern Fossil",
@@ -581,7 +971,9 @@
           ],
           "members": [
             "Fern Fossil Jigsaw"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Fish Fossil Jigsaw": {
           "display": "Fish Fossil",
@@ -591,7 +983,9 @@
           ],
           "members": [
             "Fish Fossil Jigsaw"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Leaf Fossil Jigsaw": {
           "display": "Leaf Fossil",
@@ -601,7 +995,9 @@
           ],
           "members": [
             "Leaf Fossil Jigsaw"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Shell Fossil Jigsaw": {
           "display": "Shell Fossil",
@@ -611,7 +1007,9 @@
           ],
           "members": [
             "Shell Fossil Jigsaw"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Snake Fossil Jigsaw": {
           "display": "Snake Fossil",
@@ -620,9 +1018,18 @@
           ],
           "members": [
             "Snake Fossil Jigsaw"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Fern-Fossil-Jigsaw_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Fountain Pens": {
       "display": "Fountain Pens (Cupboards and Drawers)",
@@ -634,7 +1041,9 @@
           ],
           "members": [
             "Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Draggables Ordered": {
           "display": "Ordered",
@@ -643,9 +1052,33 @@
           ],
           "members": [
             "Draggables Ordered"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables-Ordered_0",
+          "location": "Solution: Ordered 1",
+          "group": "Draggables Ordered"
+        },
+        {
+          "id": "Draggables-Ordered_1",
+          "location": "Solution: Ordered 2",
+          "group": "Draggables Ordered"
+        },
+        {
+          "id": "Draggables-Ordered_2",
+          "location": "Solution: Ordered 3",
+          "group": "Draggables Ordered"
+        },
+        {
+          "id": "Draggables-Ordered_3",
+          "location": "Solution: Ordered 4",
+          "group": "Draggables Ordered"
+        }
+      ]
     },
     "DLC1 Game Pieces": {
       "display": "Game Pieces (Cupboards and Drawers)",
@@ -657,14 +1090,18 @@
           ],
           "members": [
             "Bottom Drawer Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Center Tiles Draggables": {
           "display": "Center Tiles",
           "abilities": [],
           "members": [
             "Center Tiles Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Heart Containables": {
           "display": "Heart",
@@ -673,7 +1110,9 @@
           ],
           "members": [
             "Heart Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Left Drawer Draggables": {
           "display": "Left Drawer",
@@ -682,7 +1121,9 @@
           ],
           "members": [
             "Left Drawer Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Right Drawer Draggables": {
           "display": "Right Drawer",
@@ -691,7 +1132,9 @@
           ],
           "members": [
             "Right Drawer Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Top Drawer Draggables": {
           "display": "Top Drawer",
@@ -700,9 +1143,18 @@
           ],
           "members": [
             "Top Drawer Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Drawers_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Jewelry Box": {
       "display": "Jewelry Box (Cupboards and Drawers)",
@@ -715,7 +1167,9 @@
           ],
           "members": [
             "Brooches Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Cameos Draggables": {
           "display": "Cameos",
@@ -725,7 +1179,9 @@
           ],
           "members": [
             "Cameos Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Gold Bars Draggables": {
           "display": "Gold Bars",
@@ -735,7 +1191,9 @@
           ],
           "members": [
             "Gold Bars Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Locket Containables": {
           "display": "Locket",
@@ -746,7 +1204,9 @@
           ],
           "members": [
             "Locket Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Radiolaria Draggables": {
           "display": "Radiolaria",
@@ -756,7 +1216,9 @@
           ],
           "members": [
             "Radiolaria Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Rings Draggables": {
           "display": "Rings",
@@ -765,7 +1227,9 @@
           ],
           "members": [
             "Rings Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Watches Draggables": {
           "display": "Watches",
@@ -775,9 +1239,18 @@
           ],
           "members": [
             "Watches Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Drawers_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Junk Drawer 2": {
       "display": "Junk Drawer 2 (Cupboards and Drawers)",
@@ -787,7 +1260,9 @@
           "abilities": [],
           "members": [
             "Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Shuffleables": {
           "display": "Shuffleables",
@@ -796,9 +1271,18 @@
           ],
           "members": [
             "Shuffleables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Kitchen Hanging Tools 1": {
       "display": "Kitchen Hanging Tools 1 (Cupboards and Drawers)",
@@ -808,7 +1292,9 @@
           "abilities": [],
           "members": [
             "GuidingTargets"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "HangingObjectsController": {
           "display": "Hanging Objects",
@@ -817,16 +1303,27 @@
           ],
           "members": [
             "HangingObjectsController"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Knives Draggables": {
           "display": "Knives",
           "abilities": [],
           "members": [
             "Knives Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "HangingObjectsController_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Kitchen Hanging Tools 2": {
       "display": "Kitchen Hanging Tools 2 (Cupboards and Drawers)",
@@ -836,7 +1333,9 @@
           "abilities": [],
           "members": [
             "DraggablesForConsoleController"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "HangingObjectsController": {
           "display": "Hanging Objects",
@@ -845,9 +1344,18 @@
           ],
           "members": [
             "HangingObjectsController"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "HangingObjectsController_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Kitchen Utensils Drawers": {
       "display": "Kitchen Utensils Drawers (Cupboards and Drawers)",
@@ -859,7 +1367,9 @@
           ],
           "members": [
             "Bottom Drawer"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Top Drawer": {
           "display": "Top Drawer",
@@ -868,9 +1378,18 @@
           ],
           "members": [
             "Top Drawer"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Top-Drawer_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Lunch Tray": {
       "display": "Lunch Tray (Cupboards and Drawers)",
@@ -880,42 +1399,54 @@
           "abilities": [],
           "members": [
             "BroccoliOrganizer"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "CeleryController": {
           "display": "Celery",
           "abilities": [],
           "members": [
             "CeleryController"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "CrackerController": {
           "display": "Cracker",
           "abilities": [],
           "members": [
             "CrackerController"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "PeasController": {
           "display": "Peas",
           "abilities": [],
           "members": [
             "PeasController"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Sandwich Controller": {
           "display": "Sandwich",
           "abilities": [],
           "members": [
             "Sandwich Controller"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "TrayOrganizer": {
           "display": "Tray Organizer",
           "abilities": [],
           "members": [
             "TrayOrganizer"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Trays": {
           "display": "Trays",
@@ -924,9 +1455,18 @@
           ],
           "members": [
             "Trays"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "TrayOrganizer_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Media Cabinet": {
       "display": "Media Cabinet (Cupboards and Drawers)",
@@ -938,14 +1478,18 @@
           ],
           "members": [
             "DVD DraggablesOrdered"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Joysticks \u002B Gameboy Draggables": {
           "display": "Joysticks \u002B Gameboy",
           "abilities": [],
           "members": [
             "Joysticks \u002B Gameboy Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "NES Stack": {
           "display": "NES Stack",
@@ -954,7 +1498,9 @@
           ],
           "members": [
             "NES Stack"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Rubix Stack": {
           "display": "Rubix Stack",
@@ -963,9 +1509,18 @@
           ],
           "members": [
             "Rubix Stack"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Cupboard_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Nested Drawers": {
       "display": "Nested Drawers (Cupboards and Drawers)",
@@ -977,9 +1532,18 @@
           ],
           "members": [
             "Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Drawers_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Nesting Boxes": {
       "display": "Nesting Boxes (Cupboards and Drawers)",
@@ -989,7 +1553,9 @@
           "abilities": [],
           "members": [
             "BoxOrganizer"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Boxes": {
           "display": "Boxes",
@@ -998,16 +1564,27 @@
           ],
           "members": [
             "Boxes"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "CatOrganizer": {
           "display": "Cat Organizer",
           "abilities": [],
           "members": [
             "CatOrganizer"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "BoxOrganizer_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Pantry": {
       "display": "Pantry (Cupboards and Drawers)",
@@ -1019,7 +1596,9 @@
           ],
           "members": [
             "Apple Basket Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Can Stacks": {
           "display": "Can Stacks",
@@ -1028,14 +1607,18 @@
           ],
           "members": [
             "Can Stacks"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Items Placements Draggables": {
           "display": "Items Placements",
           "abilities": [],
           "members": [
             "Items Placements Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Mixer Containables": {
           "display": "Mixer",
@@ -1044,7 +1627,9 @@
           ],
           "members": [
             "Mixer Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Mixing Bowl Containables": {
           "display": "Mixing Bowl",
@@ -1053,7 +1638,9 @@
           ],
           "members": [
             "Mixing Bowl Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Potato Crate Containables": {
           "display": "Potato Crate",
@@ -1062,9 +1649,18 @@
           ],
           "members": [
             "Potato Crate Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Cupboard_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Pressed Flowers": {
       "display": "Pressed Flowers (Cupboards and Drawers)",
@@ -1074,9 +1670,18 @@
           "abilities": [],
           "members": [
             "Flower Shapes"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Flower-Shapes_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Sewing Box": {
       "display": "Sewing Box (Cupboards and Drawers)",
@@ -1089,7 +1694,9 @@
           ],
           "members": [
             "Buttons Sortable"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Curved Needles Containables": {
           "display": "Curved Needles",
@@ -1099,14 +1706,18 @@
           ],
           "members": [
             "Curved Needles Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Large Spools Draggables": {
           "display": "Large Spools",
           "abilities": [],
           "members": [
             "Large Spools Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Safety Pin DraggablesOrdered": {
           "display": "Safety Pin",
@@ -1116,14 +1727,18 @@
           ],
           "members": [
             "Safety Pin DraggablesOrdered"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Scissors Draggables": {
           "display": "Scissors",
           "abilities": [],
           "members": [
             "Scissors Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Small Spools Draggables": {
           "display": "Small Spools",
@@ -1133,7 +1748,9 @@
           ],
           "members": [
             "Small Spools Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Supplies Draggables": {
           "display": "Supplies",
@@ -1143,7 +1760,9 @@
           ],
           "members": [
             "Supplies Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Top Drawer Draggables": {
           "display": "Top Drawer",
@@ -1153,7 +1772,9 @@
           ],
           "members": [
             "Top Drawer Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Zipper DraggablesOrdered": {
           "display": "Zipper",
@@ -1163,9 +1784,18 @@
           ],
           "members": [
             "Zipper DraggablesOrdered"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Drawers_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Tackle Box": {
       "display": "Tackle Box (Cupboards and Drawers)",
@@ -1177,23 +1807,36 @@
           ],
           "members": [
             "Bugs DraggableOrdered"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Supplies Draggables": {
           "display": "Supplies",
           "abilities": [],
           "members": [
             "Supplies Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Weight Draggables": {
           "display": "Weight",
           "abilities": [],
           "members": [
             "Weight Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Supplies-Draggables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Tea Cabinet": {
       "display": "Tea Cabinet (Cupboards and Drawers)",
@@ -1206,7 +1849,9 @@
           ],
           "members": [
             "Cupcake Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Items Placements Draggables": {
           "display": "Items Placements",
@@ -1215,7 +1860,9 @@
           ],
           "members": [
             "Items Placements Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Jam Jars Stack": {
           "display": "Jam Jars Stack",
@@ -1224,7 +1871,9 @@
           ],
           "members": [
             "Jam Jars Stack"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Spoon Containables": {
           "display": "Spoon",
@@ -1234,7 +1883,9 @@
           ],
           "members": [
             "Spoon Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Teacup Stack": {
           "display": "Teacup Stack",
@@ -1244,7 +1895,9 @@
           ],
           "members": [
             "Teacup Stack"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Teapot Stack": {
           "display": "Teapot Stack",
@@ -1253,9 +1906,18 @@
           ],
           "members": [
             "Teapot Stack"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Cupboard_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC1 Trophy Cabinet": {
       "display": "Trophy Cabinet (Cupboards and Drawers)",
@@ -1267,7 +1929,9 @@
           ],
           "members": [
             "Cupboard Doors"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Items Placements Draggables": {
           "display": "Items Placements",
@@ -1276,9 +1940,18 @@
           ],
           "members": [
             "Items Placements Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Cupboard_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC2 Balls": {
       "display": "Balls (Seeing Stars)",
@@ -1290,9 +1963,28 @@
           ],
           "members": [
             "Shuffle"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Shuffle_0",
+          "location": "Solution: Shuffle 1",
+          "group": "Shuffle"
+        },
+        {
+          "id": "Shuffle_1",
+          "location": "Solution: Shuffle 2",
+          "group": "Shuffle"
+        },
+        {
+          "id": "Shuffle_2",
+          "location": "Solution: Shuffle 3",
+          "group": "Shuffle"
+        }
+      ]
     },
     "DLC2 Bells": {
       "display": "Bells (Seeing Stars)",
@@ -1304,9 +1996,28 @@
           ],
           "members": [
             "OrderedGroups"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "OrderedGroups_0",
+          "location": "Solution: Ordered Groups 1",
+          "group": "OrderedGroups"
+        },
+        {
+          "id": "OrderedGroups_1",
+          "location": "Solution: Ordered Groups 2",
+          "group": "OrderedGroups"
+        },
+        {
+          "id": "OrderedGroups_2",
+          "location": "Solution: Ordered Groups 3",
+          "group": "OrderedGroups"
+        }
+      ]
     },
     "DLC2 Books Stacked": {
       "display": "Books Stacked (Seeing Stars)",
@@ -1318,9 +2029,38 @@
           ],
           "members": [
             "StackedGroups"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "StackedGroups_0",
+          "location": "Solution: Stacked Groups 1",
+          "group": "StackedGroups"
+        },
+        {
+          "id": "StackedGroups_1",
+          "location": "Solution: Stacked Groups 2",
+          "group": "StackedGroups"
+        },
+        {
+          "id": "StackedGroups_2",
+          "location": "Solution: Stacked Groups 3",
+          "group": "StackedGroups"
+        },
+        {
+          "id": "StackedGroups_3",
+          "location": "Solution: Stacked Groups 4",
+          "group": "StackedGroups"
+        },
+        {
+          "id": "StackedGroups_4",
+          "location": "Solution: Stacked Groups 5",
+          "group": "StackedGroups"
+        }
+      ]
     },
     "DLC2 Bookshelf": {
       "display": "Bookshelf (Seeing Stars)",
@@ -1337,9 +2077,28 @@
             "Shuffle - Mid Right",
             "Shuffle - Top Left",
             "Shuffle - Top Right"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Shuffle---Top-Left_0",
+          "location": "Solution: Shuffle - Top Left 1",
+          "group": "Shuffle - Bottom Left"
+        },
+        {
+          "id": "Shuffle---Top-Left_1",
+          "location": "Solution: Shuffle - Top Left 2",
+          "group": "Shuffle - Bottom Left"
+        },
+        {
+          "id": "Shuffle---Top-Left_2",
+          "location": "Solution: Shuffle - Top Left 3",
+          "group": "Shuffle - Bottom Left"
+        }
+      ]
     },
     "DLC2 Boss": {
       "display": "Boss (Seeing Stars)",
@@ -1352,7 +2111,9 @@
           ],
           "members": [
             "Compass"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Hub": {
           "display": "Hub",
@@ -1362,7 +2123,9 @@
           ],
           "members": [
             "Hub"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Knives": {
           "display": "Knives",
@@ -1372,7 +2135,9 @@
           ],
           "members": [
             "Knives"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Locks": {
           "display": "Locks",
@@ -1381,9 +2146,28 @@
           ],
           "members": [
             "Locks"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "DLC2Boss_Knife",
+          "location": "Solution: Knife",
+          "group": null
+        },
+        {
+          "id": "DLC2Boss_Lock",
+          "location": "Solution: Lock",
+          "group": null
+        },
+        {
+          "id": "DLC2Boss_Compass",
+          "location": "Solution: Compass",
+          "group": null
+        }
+      ]
     },
     "DLC2 Bread Crusts": {
       "display": "Bread Crusts (Seeing Stars)",
@@ -1395,7 +2179,9 @@
           ],
           "members": [
             "BreadLoopDraggables"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         },
         "ConcentricCrustDraggables": {
           "display": "Concentric Crust",
@@ -1404,9 +2190,23 @@
           ],
           "members": [
             "ConcentricCrustDraggables"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "BreadLoopDraggables_0",
+          "location": "Solution: Bread Loop",
+          "group": "BreadLoopDraggables"
+        },
+        {
+          "id": "ConcentricCrustDraggables_0",
+          "location": "Solution: Concentric Crust",
+          "group": "ConcentricCrustDraggables"
+        }
+      ]
     },
     "DLC2 Broken Vases": {
       "display": "Broken Vases (Seeing Stars)",
@@ -1416,9 +2216,18 @@
           "abilities": [],
           "members": [
             "Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC2 Cacti": {
       "display": "Cacti (Seeing Stars)",
@@ -1431,9 +2240,38 @@
           "members": [
             "Shuffleables Cacti",
             "Shuffleables Pots"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Shuffleables-Pots_0",
+          "location": "Solution: Pots 1",
+          "group": "Shuffleables Cacti"
+        },
+        {
+          "id": "Shuffleables-Pots_1",
+          "location": "Solution: Pots 2",
+          "group": "Shuffleables Cacti"
+        },
+        {
+          "id": "Shuffleables-Pots_2",
+          "location": "Solution: Pots 3",
+          "group": "Shuffleables Cacti"
+        },
+        {
+          "id": "Shuffleables-Pots_3",
+          "location": "Solution: Pots 4",
+          "group": "Shuffleables Cacti"
+        },
+        {
+          "id": "Shuffleables-Pots_4",
+          "location": "Solution: Pots 5",
+          "group": "Shuffleables Cacti"
+        }
+      ]
     },
     "DLC2 Canapes": {
       "display": "Canapes (Seeing Stars)",
@@ -1443,7 +2281,9 @@
           "abilities": [],
           "members": [
             "Cracker Positions"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Stacked Groups": {
           "display": "Stacked Groups",
@@ -1452,9 +2292,28 @@
           ],
           "members": [
             "Stacked Groups"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Stacked-Groups_0",
+          "location": "Solution: Stacked Groups 1",
+          "group": "Stacked Groups"
+        },
+        {
+          "id": "Stacked-Groups_1",
+          "location": "Solution: Stacked Groups 2",
+          "group": "Stacked Groups"
+        },
+        {
+          "id": "Stacked-Groups_2",
+          "location": "Solution: Stacked Groups 3",
+          "group": "Stacked Groups"
+        }
+      ]
     },
     "DLC2 Cat Eyes": {
       "display": "Cat Eyes (Seeing Stars)",
@@ -1466,7 +2325,9 @@
           ],
           "members": [
             "CatEyesController"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "IndexablesController": {
           "display": "Indexables",
@@ -1476,9 +2337,18 @@
           ],
           "members": [
             "IndexablesController"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "IndexablesController_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC2 Combs": {
       "display": "Combs (Seeing Stars)",
@@ -1492,13 +2362,49 @@
           "members": [
             "Draggables",
             "Indexables"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables_0",
+          "location": "Solution: Draggables 1",
+          "group": "Draggables"
+        },
+        {
+          "id": "Draggables_1",
+          "location": "Solution: Draggables 2",
+          "group": "Draggables"
+        }
+      ]
     },
     "DLC2 Corn": {
       "display": "Corn (Seeing Stars)",
-      "parts": {}
+      "parts": {},
+      "endings": [
+        {
+          "id": "Pannables-Controller_0",
+          "location": "Solution: Pannables 1",
+          "group": null
+        },
+        {
+          "id": "Pannables-Controller_1",
+          "location": "Solution: Pannables 2",
+          "group": null
+        },
+        {
+          "id": "Pannables-Controller_2",
+          "location": "Solution: Pannables 3",
+          "group": null
+        },
+        {
+          "id": "Pannables-Controller_3",
+          "location": "Solution: Pannables 4",
+          "group": null
+        }
+      ]
     },
     "DLC2 Cupcakes": {
       "display": "Cupcakes (Seeing Stars)",
@@ -1508,7 +2414,9 @@
           "abilities": [],
           "members": [
             "Draggables Colors"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         },
         "Shuffleables Candles": {
           "display": "Candles",
@@ -1519,9 +2427,28 @@
             "Shuffleables Candles",
             "Shuffleables Cupcakes",
             "Shuffleables Wrappers"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables-Colors_0",
+          "location": "Solution: Colors",
+          "group": "Draggables Colors"
+        },
+        {
+          "id": "Shuffleables-Candles_0",
+          "location": "Solution: Candles 1",
+          "group": "Shuffleables Candles"
+        },
+        {
+          "id": "Shuffleables-Candles_1",
+          "location": "Solution: Candles 2",
+          "group": "Shuffleables Candles"
+        }
+      ]
     },
     "DLC2 Curtains": {
       "display": "Curtains (Seeing Stars)",
@@ -1531,9 +2458,18 @@
           "abilities": [],
           "members": [
             "Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC2 Figurines": {
       "display": "Figurines (Seeing Stars)",
@@ -1543,7 +2479,9 @@
           "abilities": [],
           "members": [
             "Draggables"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         },
         "Groupables (Achievement)": {
           "display": "Groupables (Achievement)",
@@ -1552,7 +2490,9 @@
           ],
           "members": [
             "Groupables (Achievement)"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         },
         "SortingItemsDraggables": {
           "display": "Sorting Items",
@@ -1561,9 +2501,28 @@
           ],
           "members": [
             "SortingItemsDraggables"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables_0",
+          "location": "Solution: Draggables",
+          "group": "Draggables"
+        },
+        {
+          "id": "Groupables-(Achievement)_0",
+          "location": "Solution: Groupables (Achievement)",
+          "group": "Groupables (Achievement)"
+        },
+        {
+          "id": "SortingItemsDraggables_0",
+          "location": "Solution: Sorting Items",
+          "group": "SortingItemsDraggables"
+        }
+      ]
     },
     "DLC2 First Aid Kit": {
       "display": "First Aid Kit (Seeing Stars)",
@@ -1575,14 +2534,18 @@
           ],
           "members": [
             "Bottle Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Draggables": {
           "display": "Draggables",
           "abilities": [],
           "members": [
             "Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Pump State Controller": {
           "display": "Pump State",
@@ -1591,7 +2554,9 @@
           ],
           "members": [
             "Pump State Controller"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Wipe Containables": {
           "display": "Wipe",
@@ -1600,9 +2565,18 @@
           ],
           "members": [
             "Wipe Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC2 Forks": {
       "display": "Forks (Seeing Stars)",
@@ -1614,9 +2588,38 @@
           ],
           "members": [
             "Shuffle"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Shuffle_0",
+          "location": "Solution: Shuffle 1",
+          "group": "Shuffle"
+        },
+        {
+          "id": "Shuffle_1",
+          "location": "Solution: Shuffle 2",
+          "group": "Shuffle"
+        },
+        {
+          "id": "Shuffle_2",
+          "location": "Solution: Shuffle 3",
+          "group": "Shuffle"
+        },
+        {
+          "id": "Shuffle_3",
+          "location": "Solution: Shuffle 4",
+          "group": "Shuffle"
+        },
+        {
+          "id": "Shuffle_4",
+          "location": "Solution: Shuffle 5",
+          "group": "Shuffle"
+        }
+      ]
     },
     "DLC2 Ghost Cat": {
       "display": "Ghost Cat (Seeing Stars)",
@@ -1628,9 +2631,18 @@
           ],
           "members": [
             "Indexables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Indexables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC2 Ink Bottles": {
       "display": "Ink Bottles (Seeing Stars)",
@@ -1642,7 +2654,9 @@
           ],
           "members": [
             "Draggables - Drips"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         },
         "Draggables - Label": {
           "display": "Label",
@@ -1651,9 +2665,23 @@
           ],
           "members": [
             "Draggables - Label"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables---Drips_0",
+          "location": "Solution: Drips",
+          "group": "Draggables - Drips"
+        },
+        {
+          "id": "Draggables---Label_0",
+          "location": "Solution: Label",
+          "group": "Draggables - Label"
+        }
+      ]
     },
     "DLC2 Junk Drawer Transforming": {
       "display": "Junk Drawer Transforming (Seeing Stars)",
@@ -1669,9 +2697,23 @@
             "IndexedDraggables",
             "Stamps Draggables",
             "Ticket Stubs Draggables"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "IndexedDraggables_0",
+          "location": "Solution: Indexed 1",
+          "group": "Indexables"
+        },
+        {
+          "id": "IndexedDraggables_1",
+          "location": "Solution: Indexed 2",
+          "group": "Indexables"
+        }
+      ]
     },
     "DLC2 Leftovers": {
       "display": "Leftovers (Seeing Stars)",
@@ -1683,9 +2725,38 @@
           ],
           "members": [
             "StackableGrid"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "StackableGrid_0",
+          "location": "Solution: Stackable Grid 1",
+          "group": "StackableGrid"
+        },
+        {
+          "id": "StackableGrid_1",
+          "location": "Solution: Stackable Grid 2",
+          "group": "StackableGrid"
+        },
+        {
+          "id": "StackableGrid_2",
+          "location": "Solution: Stackable Grid 3",
+          "group": "StackableGrid"
+        },
+        {
+          "id": "StackableGrid_3",
+          "location": "Solution: Stackable Grid 4",
+          "group": "StackableGrid"
+        },
+        {
+          "id": "StackableGrid_4",
+          "location": "Solution: Stackable Grid 5",
+          "group": "StackableGrid"
+        }
+      ]
     },
     "DLC2 Markers": {
       "display": "Markers (Seeing Stars)",
@@ -1699,9 +2770,28 @@
           "members": [
             "Marker Lids",
             "Markers Ordered"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Markers-Ordered_0",
+          "location": "Solution: Markers Ordered 1",
+          "group": "Marker Lids"
+        },
+        {
+          "id": "Markers-Ordered_1",
+          "location": "Solution: Markers Ordered 2",
+          "group": "Marker Lids"
+        },
+        {
+          "id": "Markers-Ordered_2",
+          "location": "Solution: Markers Ordered 3",
+          "group": "Marker Lids"
+        }
+      ]
     },
     "DLC2 Material Drawers": {
       "display": "Material Drawers (Seeing Stars)",
@@ -1714,7 +2804,9 @@
           ],
           "members": [
             "Containable Controller"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Drawer Draggables": {
           "display": "Drawer Draggables",
@@ -1723,9 +2815,18 @@
           ],
           "members": [
             "Drawer Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Drawer-Draggables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC2 Math Set": {
       "display": "Math Set (Seeing Stars)",
@@ -1738,9 +2839,23 @@
           "members": [
             "Indexables",
             "Items Placements Draggables"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Indexables_0",
+          "location": "Solution: Indexables 1",
+          "group": "Indexables"
+        },
+        {
+          "id": "Indexables_1",
+          "location": "Solution: Indexables 2",
+          "group": "Indexables"
+        }
+      ]
     },
     "DLC2 Moths": {
       "display": "Moths (Seeing Stars)",
@@ -1750,7 +2865,9 @@
           "abilities": [],
           "members": [
             "Draggables"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         },
         "DraggablesOrdered": {
           "display": "DraggablesOrdered",
@@ -1759,9 +2876,33 @@
           ],
           "members": [
             "DraggablesOrdered"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables_0",
+          "location": "Solution: Draggables",
+          "group": "Draggables"
+        },
+        {
+          "id": "DraggablesOrdered_0",
+          "location": "Solution: DraggablesOrdered 1",
+          "group": "DraggablesOrdered"
+        },
+        {
+          "id": "DraggablesOrdered_1",
+          "location": "Solution: DraggablesOrdered 2",
+          "group": "DraggablesOrdered"
+        },
+        {
+          "id": "DraggablesOrdered_2",
+          "location": "Solution: DraggablesOrdered 3",
+          "group": "DraggablesOrdered"
+        }
+      ]
     },
     "DLC2 Mugs": {
       "display": "Mugs (Seeing Stars)",
@@ -1773,9 +2914,33 @@
           ],
           "members": [
             "Grid"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Grid_0",
+          "location": "Solution: Grid 1",
+          "group": "Grid"
+        },
+        {
+          "id": "Grid_1",
+          "location": "Solution: Grid 2",
+          "group": "Grid"
+        },
+        {
+          "id": "Grid_2",
+          "location": "Solution: Grid 3",
+          "group": "Grid"
+        },
+        {
+          "id": "Grid_3",
+          "location": "Solution: Grid 4",
+          "group": "Grid"
+        }
+      ]
     },
     "DLC2 Music Box": {
       "display": "Music Box (Seeing Stars)",
@@ -1787,7 +2952,9 @@
           ],
           "members": [
             "Organizer"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "StateController": {
           "display": "State",
@@ -1796,9 +2963,18 @@
           ],
           "members": [
             "StateController"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Organizer_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC2 Nanopets": {
       "display": "Nanopets (Seeing Stars)",
@@ -1810,7 +2986,9 @@
           ],
           "members": [
             "Indexables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Shuffle": {
           "display": "Shuffle",
@@ -1819,9 +2997,38 @@
           ],
           "members": [
             "Shuffle"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Shuffle_0",
+          "location": "Solution: Shuffle 1",
+          "group": "Shuffle"
+        },
+        {
+          "id": "Shuffle_1",
+          "location": "Solution: Shuffle 2",
+          "group": "Shuffle"
+        },
+        {
+          "id": "Shuffle_2",
+          "location": "Solution: Shuffle 3",
+          "group": "Shuffle"
+        },
+        {
+          "id": "Shuffle_3",
+          "location": "Solution: Shuffle 4",
+          "group": "Shuffle"
+        },
+        {
+          "id": "Shuffle_4",
+          "location": "Solution: Shuffle 5",
+          "group": "Shuffle"
+        }
+      ]
     },
     "DLC2 ObsoleteTech": {
       "display": "Obsolete Tech (Seeing Stars)",
@@ -1833,7 +3040,9 @@
           ],
           "members": [
             "CassettesOrdered"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "CellPhonesOrdered": {
           "display": "Cell Phones Ordered",
@@ -1842,7 +3051,9 @@
           ],
           "members": [
             "CellPhonesOrdered"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Floppy Containables": {
           "display": "Floppy",
@@ -1851,14 +3062,18 @@
           ],
           "members": [
             "Floppy Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Organizer": {
           "display": "Organizer",
           "abilities": [],
           "members": [
             "Organizer"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "VHSOrdered": {
           "display": "VHSOrdered",
@@ -1867,9 +3082,18 @@
           ],
           "members": [
             "VHSOrdered"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Organizer_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC2 Origami": {
       "display": "Origami (Seeing Stars)",
@@ -1879,9 +3103,18 @@
           "abilities": [],
           "members": [
             "OrigamiPad"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "OrigamiPad_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC2 Pizza": {
       "display": "Pizza (Seeing Stars)",
@@ -1893,9 +3126,33 @@
           ],
           "members": [
             "Distributables"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Distributables_0",
+          "location": "Solution: Distributables 1",
+          "group": "Distributables"
+        },
+        {
+          "id": "Distributables_1",
+          "location": "Solution: Distributables 2",
+          "group": "Distributables"
+        },
+        {
+          "id": "Distributables_2",
+          "location": "Solution: Distributables 3",
+          "group": "Distributables"
+        },
+        {
+          "id": "Distributables_3",
+          "location": "Solution: Distributables 4",
+          "group": "Distributables"
+        }
+      ]
     },
     "DLC2 Pressed Leaves": {
       "display": "Pressed Leaves (Seeing Stars)",
@@ -1905,9 +3162,28 @@
           "abilities": [],
           "members": [
             "Leaves Draggables"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Leaves-Draggables_0",
+          "location": "Solution: Leaves 1",
+          "group": "Leaves Draggables"
+        },
+        {
+          "id": "Leaves-Draggables_1",
+          "location": "Solution: Leaves 2",
+          "group": "Leaves Draggables"
+        },
+        {
+          "id": "Leaves-Draggables_2",
+          "location": "Solution: Leaves 3",
+          "group": "Leaves Draggables"
+        }
+      ]
     },
     "DLC2 Robots": {
       "display": "Robots (Seeing Stars)",
@@ -1919,7 +3195,9 @@
           ],
           "members": [
             "Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Indexables": {
           "display": "Indexables",
@@ -1929,9 +3207,23 @@
           "members": [
             "Indexables",
             "IndexedDraggables"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "IndexedDraggables_0",
+          "location": "Solution: Indexed 1",
+          "group": "Indexables"
+        },
+        {
+          "id": "IndexedDraggables_1",
+          "location": "Solution: Indexed 2",
+          "group": "Indexables"
+        }
+      ]
     },
     "DLC2 Sticky Drawer": {
       "display": "Sticky Drawer (Seeing Stars)",
@@ -1943,7 +3235,9 @@
           ],
           "members": [
             "Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Stickables": {
           "display": "Stickables",
@@ -1953,9 +3247,18 @@
           ],
           "members": [
             "Stickables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "DLC2 Water Glasses": {
       "display": "Water Glasses (Seeing Stars)",
@@ -1967,7 +3270,9 @@
           ],
           "members": [
             "Jigsaw"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         },
         "Sorting (Type \u0026 Size)": {
           "display": "Sorting (Type \u0026 Size)",
@@ -1976,7 +3281,9 @@
           ],
           "members": [
             "Sorting (Type \u0026 Size)"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         },
         "Water Level (Indexable)": {
           "display": "Water Level (Indexable)",
@@ -1986,9 +3293,33 @@
           ],
           "members": [
             "Water Level (Indexable)"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Jigsaw_0",
+          "location": "Solution: Jigsaw",
+          "group": "Jigsaw"
+        },
+        {
+          "id": "Sorting-(Type-\u0026-Size)_0",
+          "location": "Solution: Sorting (Type \u0026 Size) 1",
+          "group": "Sorting (Type \u0026 Size)"
+        },
+        {
+          "id": "Sorting-(Type-\u0026-Size)_1",
+          "location": "Solution: Sorting (Type \u0026 Size) 2",
+          "group": "Sorting (Type \u0026 Size)"
+        },
+        {
+          "id": "Water-Level-(Indexable)_0",
+          "location": "Solution: Water Level (Indexable)",
+          "group": "Water Level (Indexable)"
+        }
+      ]
     },
     "DLC2 Whistles": {
       "display": "Whistles (Seeing Stars)",
@@ -2002,9 +3333,38 @@
           "members": [
             "DraggablesOrdered",
             "HangingToolsController"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "DraggablesOrdered_0",
+          "location": "Solution: Draggables Ordered 1",
+          "group": "DraggablesOrdered"
+        },
+        {
+          "id": "DraggablesOrdered_1",
+          "location": "Solution: Draggables Ordered 2",
+          "group": "DraggablesOrdered"
+        },
+        {
+          "id": "DraggablesOrdered_2",
+          "location": "Solution: Draggables Ordered 3",
+          "group": "DraggablesOrdered"
+        },
+        {
+          "id": "DraggablesOrdered_3",
+          "location": "Solution: Draggables Ordered 4",
+          "group": "DraggablesOrdered"
+        },
+        {
+          "id": "DraggablesOrdered_4",
+          "location": "Solution: Draggables Ordered 5",
+          "group": "DraggablesOrdered"
+        }
+      ]
     },
     "DLC2 Windows": {
       "display": "Windows (Seeing Stars)",
@@ -2014,9 +3374,18 @@
           "abilities": [],
           "members": [
             "Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Desktop Computer": {
       "display": "Desktop Computer",
@@ -2026,7 +3395,9 @@
           "abilities": [],
           "members": [
             "Computer Desktop"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Computer Errors": {
           "display": "Computer Errors",
@@ -2035,7 +3406,9 @@
           ],
           "members": [
             "Computer Errors"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Containables - Keys": {
           "display": "Keys",
@@ -2044,7 +3417,9 @@
           ],
           "members": [
             "Containables - Keys"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Containables - Paintbrushes": {
           "display": "Paintbrushes",
@@ -2053,7 +3428,9 @@
           ],
           "members": [
             "Containables - Paintbrushes"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Rotateables - Clock hands": {
           "display": "Clock hands",
@@ -2062,7 +3439,9 @@
           ],
           "members": [
             "Rotateables - Clock hands"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Shuffleables - Notes": {
           "display": "Notes",
@@ -2071,13 +3450,29 @@
           ],
           "members": [
             "Shuffleables - Notes"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Computer-Desktop_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Drink Glasses": {
       "display": "Drink Glasses",
-      "parts": {}
+      "parts": {},
+      "endings": [
+        {
+          "id": "Backface-Aligned_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Eggs": {
       "display": "Eggs",
@@ -2089,9 +3484,18 @@
           ],
           "members": [
             "Eggs Pattern"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Eggs-Pattern_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Frame Maze": {
       "display": "Frame Maze",
@@ -2103,9 +3507,18 @@
           ],
           "members": [
             "Frames"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Frame_Rotateables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Fridge Inside": {
       "display": "Fridge Inside",
@@ -2117,7 +3530,9 @@
           ],
           "members": [
             "Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Stackables Tupperware Controller ": {
           "display": "Tupperware",
@@ -2126,7 +3541,9 @@
           ],
           "members": [
             "Stackables Tupperware Controller "
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Stackables Yogurt / Jam Controller": {
           "display": "Yogurt / Jam",
@@ -2135,9 +3552,18 @@
           ],
           "members": [
             "Stackables Yogurt / Jam Controller"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Front of Fridge 1 (Postcards)": {
       "display": "Front of Fridge 1 (Postcards)",
@@ -2147,9 +3573,18 @@
           "abilities": [],
           "members": [
             "Match Edges"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Match-Edges_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Front of Fridge 2 (Polaroids)": {
       "display": "Front of Fridge 2 (Polaroids)",
@@ -2159,9 +3594,18 @@
           "abilities": [],
           "members": [
             "Fit Rect"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Fit-Rect_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Fruit Stickers": {
       "display": "Fruit Stickers",
@@ -2175,9 +3619,23 @@
           "members": [
             "Match Stickers",
             "Remove Stickers"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Match-Stickers_0",
+          "location": "Solution: Match Stickers",
+          "group": "Match Stickers"
+        },
+        {
+          "id": "Remove-Stickers_0",
+          "location": "Solution: Remove Stickers",
+          "group": "Match Stickers"
+        }
+      ]
     },
     "Gems (Jigsaw)": {
       "display": "Gems (Jigsaw)",
@@ -2187,9 +3645,18 @@
           "abilities": [],
           "members": [
             "GemsDrawer"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "GemsDrawer_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Gems (Simple)": {
       "display": "Gems (Simple)",
@@ -2201,9 +3668,28 @@
           ],
           "members": [
             "Ordered"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Ordered_0",
+          "location": "Solution: Ordered 1",
+          "group": "Ordered"
+        },
+        {
+          "id": "Ordered_1",
+          "location": "Solution: Ordered 2",
+          "group": "Ordered"
+        },
+        {
+          "id": "Ordered_2",
+          "location": "Solution: Ordered 3",
+          "group": "Ordered"
+        }
+      ]
     },
     "GoodTidings_Cookies": {
       "display": "Cookies (Good Tidings)",
@@ -2215,9 +3701,28 @@
           ],
           "members": [
             "RowColSets"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "RowColSets_0",
+          "location": "Solution: Row Col Sets 1",
+          "group": "RowColSets"
+        },
+        {
+          "id": "RowColSets_1",
+          "location": "Solution: Row Col Sets 2",
+          "group": "RowColSets"
+        },
+        {
+          "id": "RowColSets_2",
+          "location": "Solution: Row Col Sets 3",
+          "group": "RowColSets"
+        }
+      ]
     },
     "GoodTidings_Cookies (Jigsaw)": {
       "display": "Cookies Jigsaw (Good Tidings)",
@@ -2229,7 +3734,9 @@
           ],
           "members": [
             "Match Candy Cane"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Match Gingerbread Man": {
           "display": "Match Gingerbread Man",
@@ -2238,7 +3745,9 @@
           ],
           "members": [
             "Match Gingerbread Man"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Match Reindeer": {
           "display": "Match Reindeer",
@@ -2247,7 +3756,9 @@
           ],
           "members": [
             "Match Reindeer"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Match Snowflake": {
           "display": "Match Snowflake",
@@ -2256,7 +3767,9 @@
           ],
           "members": [
             "Match Snowflake"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Match Tree": {
           "display": "Match Tree",
@@ -2265,9 +3778,18 @@
           ],
           "members": [
             "Match Tree"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Match-Candy-Cane_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "GoodTidings_Ornament Box": {
       "display": "Ornament Box (Good Tidings)",
@@ -2277,9 +3799,18 @@
           "abilities": [],
           "members": [
             "BulbsBox"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "BulbsBox_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "GoodTidings_Popcorn": {
       "display": "Popcorn (Good Tidings)",
@@ -2291,7 +3822,9 @@
           ],
           "members": [
             "BotRow"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "MidRow": {
           "display": "Mid Row",
@@ -2300,7 +3833,9 @@
           ],
           "members": [
             "MidRow"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "TopRow": {
           "display": "Top Row",
@@ -2309,9 +3844,18 @@
           ],
           "members": [
             "TopRow"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "TopRow_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "GoodTidings_Presents (Stacked)": {
       "display": "Presents Stacked (Good Tidings)",
@@ -2323,9 +3867,18 @@
           ],
           "members": [
             "Stacked Boxes"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Stacked-Boxes_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "GoodTidings_Wreath": {
       "display": "Wreath (Good Tidings)",
@@ -2337,9 +3890,18 @@
           ],
           "members": [
             "Symmetrical Placeables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "SymmetricalPlaceables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Jars": {
       "display": "Jars",
@@ -2351,9 +3913,28 @@
           ],
           "members": [
             "Order"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Order_0",
+          "location": "Solution: Order 1",
+          "group": "Order"
+        },
+        {
+          "id": "Order_1",
+          "location": "Solution: Order 2",
+          "group": "Order"
+        },
+        {
+          "id": "Order_2",
+          "location": "Solution: Order 3",
+          "group": "Order"
+        }
+      ]
     },
     "Junk Drawer": {
       "display": "Junk Drawer",
@@ -2363,9 +3944,18 @@
           "abilities": [],
           "members": [
             "Organizer"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Organizer_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Keys": {
       "display": "Keys",
@@ -2377,9 +3967,28 @@
           ],
           "members": [
             "Ordered"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Ordered_0",
+          "location": "Solution: Ordered 1",
+          "group": "Ordered"
+        },
+        {
+          "id": "Ordered_1",
+          "location": "Solution: Ordered 2",
+          "group": "Ordered"
+        },
+        {
+          "id": "Ordered_2",
+          "location": "Solution: Ordered 3",
+          "group": "Ordered"
+        }
+      ]
     },
     "Lamp": {
       "display": "Lamp",
@@ -2391,7 +4000,9 @@
           ],
           "members": [
             "Light Rotatable"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Switches Toggleables": {
           "display": "Switches Toggleables",
@@ -2400,9 +4011,18 @@
           ],
           "members": [
             "Switches Toggleables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Switches-Toggleables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Leaves": {
       "display": "Leaves",
@@ -2414,9 +4034,28 @@
           ],
           "members": [
             "LeavesShuffleables"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "LeavesShuffleables_0",
+          "location": "Solution: Leaves 1",
+          "group": "LeavesShuffleables"
+        },
+        {
+          "id": "LeavesShuffleables_1",
+          "location": "Solution: Leaves 2",
+          "group": "LeavesShuffleables"
+        },
+        {
+          "id": "LeavesShuffleables_2",
+          "location": "Solution: Leaves 3",
+          "group": "LeavesShuffleables"
+        }
+      ]
     },
     "Light Bulbs": {
       "display": "Light Bulbs",
@@ -2426,9 +4065,18 @@
           "abilities": [],
           "members": [
             "BulbsBox"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "BulbsBox_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Matchboxes": {
       "display": "Matchboxes",
@@ -2440,9 +4088,18 @@
           ],
           "members": [
             "MatchboxesObjectController"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "MatchboxesObjectController_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "MedicineCabinet": {
       "display": "Medicine Cabinet",
@@ -2454,21 +4111,26 @@
           ],
           "members": [
             "Blue Bottles Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Brush Draggables": {
-          "display": "Brush",
-          "abilities": [],
+          "display": "Red Items",
+          "abilities": [
+            "Containers"
+          ],
           "members": [
-            "Brush Draggables"
-          ]
-        },
-        "Contact Lenses Draggables": {
-          "display": "Contact Lenses",
-          "abilities": [],
-          "members": [
-            "Contact Lenses Draggables"
-          ]
+            "Brush Draggables",
+            "Contact Lenses Draggables",
+            "Cup Draggables",
+            "Oral Containables",
+            "Pick Draggables",
+            "Pump Bottle Draggables",
+            "Tube Draggables"
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Creams Draggables Stacked": {
           "display": "Creams Stacked",
@@ -2477,14 +4139,9 @@
           ],
           "members": [
             "Creams Draggables Stacked"
-          ]
-        },
-        "Cup Draggables": {
-          "display": "Cup",
-          "abilities": [],
-          "members": [
-            "Cup Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Green Bottles Draggables": {
           "display": "Green Bottles",
@@ -2493,30 +4150,9 @@
           ],
           "members": [
             "Green Bottles Draggables"
-          ]
-        },
-        "Oral Containables": {
-          "display": "Oral",
-          "abilities": [
-            "Containers"
           ],
-          "members": [
-            "Oral Containables"
-          ]
-        },
-        "Pick Draggables": {
-          "display": "Pick",
-          "abilities": [],
-          "members": [
-            "Pick Draggables"
-          ]
-        },
-        "Pump Bottle Draggables": {
-          "display": "Pump Bottle",
-          "abilities": [],
-          "members": [
-            "Pump Bottle Draggables"
-          ]
+          "ending": false,
+          "solutionOnly": false
         },
         "Swabs Containables": {
           "display": "Swabs",
@@ -2525,23 +4161,27 @@
           ],
           "members": [
             "Swabs Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Trinkets Draggables": {
           "display": "Trinkets",
           "abilities": [],
           "members": [
             "Trinkets Draggables"
-          ]
-        },
-        "Tube Draggables": {
-          "display": "Tube",
-          "abilities": [],
-          "members": [
-            "Tube Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "MerryMess_CandyCanes": {
       "display": "Candy Canes (Merry Mess)",
@@ -2553,7 +4193,9 @@
           ],
           "members": [
             "Match Candy Cane (1)"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Match Candy Cane (2)": {
           "display": "Match Candy Cane (2)",
@@ -2562,7 +4204,9 @@
           ],
           "members": [
             "Match Candy Cane (2)"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Match Candy Cane (3)": {
           "display": "Match Candy Cane (3)",
@@ -2571,7 +4215,9 @@
           ],
           "members": [
             "Match Candy Cane (3)"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Match Candy Cane (4)": {
           "display": "Match Candy Cane (4)",
@@ -2580,7 +4226,9 @@
           ],
           "members": [
             "Match Candy Cane (4)"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Match Candy Cane (5)": {
           "display": "Match Candy Cane (5)",
@@ -2589,7 +4237,9 @@
           ],
           "members": [
             "Match Candy Cane (5)"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Ordered": {
           "display": "Ordered",
@@ -2599,9 +4249,18 @@
           ],
           "members": [
             "Ordered"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Ordered_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "MerryMess_Crackers": {
       "display": "Crackers (Merry Mess)",
@@ -2613,7 +4272,9 @@
           ],
           "members": [
             "Build Train"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "CrackerShuffleables": {
           "display": "Cracker",
@@ -2622,9 +4283,18 @@
           ],
           "members": [
             "CrackerShuffleables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Build-Train_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "MerryMess_NutCrackers": {
       "display": "Nut Crackers (Merry Mess)",
@@ -2636,13 +4306,49 @@
           ],
           "members": [
             "Shuffle"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Shuffle_0",
+          "location": "Solution: Shuffle 1",
+          "group": "Shuffle"
+        },
+        {
+          "id": "Shuffle_1",
+          "location": "Solution: Shuffle 2",
+          "group": "Shuffle"
+        },
+        {
+          "id": "Shuffle_2",
+          "location": "Solution: Shuffle 3",
+          "group": "Shuffle"
+        },
+        {
+          "id": "Shuffle_3",
+          "location": "Solution: Shuffle 4",
+          "group": "Shuffle"
+        },
+        {
+          "id": "Shuffle_4",
+          "location": "Solution: Shuffle 5",
+          "group": "Shuffle"
+        }
+      ]
     },
     "MerryMess_Presents": {
       "display": "Presents (Merry Mess)",
-      "parts": {}
+      "parts": {},
+      "endings": [
+        {
+          "id": "Presents-Aligned_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "MerryMess_SnowGlobes": {
       "display": "Snow Globes (Merry Mess)",
@@ -2652,9 +4358,28 @@
           "abilities": [],
           "members": [
             "Match Pan (Draggables)"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Match-Pan-(Draggables)_0",
+          "location": "Solution: Match Pan 1",
+          "group": "Match Pan (Draggables)"
+        },
+        {
+          "id": "Match-Pan-(Draggables)_1",
+          "location": "Solution: Match Pan 2",
+          "group": "Match Pan (Draggables)"
+        },
+        {
+          "id": "Match-Pan-(Draggables)_2",
+          "location": "Solution: Match Pan 3",
+          "group": "Match Pan (Draggables)"
+        }
+      ]
     },
     "Microscope": {
       "display": "Microscope",
@@ -2666,77 +4391,60 @@
           ],
           "members": [
             "Build Snowflakes"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Build-Snowflakes_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Mirror": {
       "display": "Mirror",
       "parts": {
         "Books \u002B Box StackablesY ": {
-          "display": "Books \u002B Box Stackables Y",
+          "display": "Still Life",
           "abilities": [
             "Stacking"
           ],
           "members": [
-            "Books \u002B Box StackablesY "
-          ]
-        },
-        "BottlePositionController": {
-          "display": "Bottle Position",
-          "abilities": [],
-          "members": [
-            "BottlePositionController"
-          ]
-        },
-        "CandlePositionController": {
-          "display": "Candle Position",
-          "abilities": [],
-          "members": [
-            "CandlePositionController"
-          ]
+            "Books \u002B Box StackablesY ",
+            "BottlePositionController",
+            "CandlePositionController",
+            "DishPositionController",
+            "JugPositionController"
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "CandleStateController": {
-          "display": "Candle State",
-          "abilities": [
-            "Gadgets"
-          ],
-          "members": [
-            "CandleStateController"
-          ]
-        },
-        "ContainablesController": {
-          "display": "Containables",
+          "display": "Little Things",
           "abilities": [
             "Containers",
+            "Gadgets",
             "Stacking"
           ],
           "members": [
-            "ContainablesController"
-          ]
-        },
-        "DishPositionController": {
-          "display": "Dish Position",
-          "abilities": [],
-          "members": [
-            "DishPositionController"
-          ]
-        },
-        "JugPositionController": {
-          "display": "Jug Position",
-          "abilities": [],
-          "members": [
-            "JugPositionController"
-          ]
-        },
-        "LemonWedgePositionController": {
-          "display": "Lemon Wedge Position",
-          "abilities": [],
-          "members": [
+            "CandleStateController",
+            "ContainablesController",
             "LemonWedgePositionController"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": true
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "StackablesY_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Multiple Frames": {
       "display": "Multiple Frames",
@@ -2748,9 +4456,18 @@
           ],
           "members": [
             "Straighten"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Straighten_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "NES Games": {
       "display": "NES Games",
@@ -2762,9 +4479,18 @@
           ],
           "members": [
             "Stack Aligned"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "StackablesY_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "NeatStreak_Bathroom Drawer": {
       "display": "Bathroom Drawer (Drawer Chores)",
@@ -2777,7 +4503,9 @@
           ],
           "members": [
             "Bottle Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Draggables": {
           "display": "Draggables",
@@ -2786,7 +4514,9 @@
           ],
           "members": [
             "Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Indexable": {
           "display": "Indexable",
@@ -2796,9 +4526,18 @@
           ],
           "members": [
             "Indexable"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "NeatStreak_Paper Plane Supplies": {
       "display": "Paper Plane Supplies (Drawer Chores)",
@@ -2812,7 +4551,9 @@
           ],
           "members": [
             "Chalk DraggablesOrdered"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "ChalkBlue Jigsaw": {
           "display": "Chalk Blue",
@@ -2822,7 +4563,9 @@
           ],
           "members": [
             "ChalkBlue Jigsaw"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "ChalkGreen Jigsaw": {
           "display": "Chalk Green",
@@ -2832,7 +4575,9 @@
           ],
           "members": [
             "ChalkGreen Jigsaw"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "ChalkMint Jigsaw": {
           "display": "Chalk Mint",
@@ -2842,7 +4587,9 @@
           ],
           "members": [
             "ChalkMint Jigsaw"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "ChalkPink Jigsaw": {
           "display": "Chalk Pink",
@@ -2852,7 +4599,9 @@
           ],
           "members": [
             "ChalkPink Jigsaw"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "ChalkPurple Jigsaw": {
           "display": "Chalk Purple",
@@ -2862,7 +4611,9 @@
           ],
           "members": [
             "ChalkPurple Jigsaw"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "ChalkRed Jigsaw": {
           "display": "Chalk Red",
@@ -2872,7 +4623,9 @@
           ],
           "members": [
             "ChalkRed Jigsaw"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "ChalkYellow Jigsaw": {
           "display": "Chalk Yellow",
@@ -2882,7 +4635,9 @@
           ],
           "members": [
             "ChalkYellow Jigsaw"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Containables": {
           "display": "Containables",
@@ -2892,7 +4647,9 @@
           ],
           "members": [
             "Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Draggables": {
           "display": "Draggables",
@@ -2901,9 +4658,18 @@
           ],
           "members": [
             "Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "NeatStreak_Tool Drawer": {
       "display": "Tool Drawer (Drawer Chores)",
@@ -2916,7 +4682,9 @@
           ],
           "members": [
             "Containables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Draggables": {
           "display": "Draggables",
@@ -2925,9 +4693,18 @@
           ],
           "members": [
             "Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "PaintCans": {
       "display": "Paint Cans",
@@ -2937,9 +4714,23 @@
           "abilities": [],
           "members": [
             "Match (Draggables)"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Match-(Draggables)_0",
+          "location": "Solution: Match 1",
+          "group": "Match (Draggables)"
+        },
+        {
+          "id": "Match-(Draggables)_1",
+          "location": "Solution: Match 2",
+          "group": "Match (Draggables)"
+        }
+      ]
     },
     "PartsOrganizer": {
       "display": "Parts Organizer",
@@ -2949,9 +4740,18 @@
           "abilities": [],
           "members": [
             "Organizer"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Organizer_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Pasta": {
       "display": "Pasta",
@@ -2963,9 +4763,18 @@
           ],
           "members": [
             "Ordered"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Ordered_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "PawPrints": {
       "display": "Paw Prints",
@@ -2977,7 +4786,9 @@
           ],
           "members": [
             "Clearables 01"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Clearables 02": {
           "display": "Clearables 02",
@@ -2986,7 +4797,9 @@
           ],
           "members": [
             "Clearables 02"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Clearables 03": {
           "display": "Clearables 03",
@@ -2995,7 +4808,9 @@
           ],
           "members": [
             "Clearables 03"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Coffee Spill": {
           "display": "Coffee Spill",
@@ -3004,7 +4819,9 @@
           ],
           "members": [
             "Coffee Spill"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Free Leaves": {
           "display": "Free Leaves",
@@ -3013,9 +4830,18 @@
           ],
           "members": [
             "Free Leaves"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Clearables-01_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Pencils (Randomized)": {
       "display": "Pencils (Randomized)",
@@ -3027,9 +4853,23 @@
           ],
           "members": [
             "Ordered"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Ordered_0",
+          "location": "Solution: Ordered 1",
+          "group": "Ordered"
+        },
+        {
+          "id": "Ordered_1",
+          "location": "Solution: Ordered 2",
+          "group": "Ordered"
+        }
+      ]
     },
     "Pencils 3": {
       "display": "Pencils 3",
@@ -3041,9 +4881,28 @@
           ],
           "members": [
             "Ordered"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Ordered_0",
+          "location": "Solution: Ordered 1",
+          "group": "Ordered"
+        },
+        {
+          "id": "Ordered_1",
+          "location": "Solution: Ordered 2",
+          "group": "Ordered"
+        },
+        {
+          "id": "Ordered_2",
+          "location": "Solution: Ordered 3",
+          "group": "Ordered"
+        }
+      ]
     },
     "Place Setting": {
       "display": "Place Setting",
@@ -3053,16 +4912,27 @@
           "abilities": [],
           "members": [
             "Placemat"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Utensils": {
           "display": "Utensils",
           "abilities": [],
           "members": [
             "Utensils"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Utensils_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Plant Pots": {
       "display": "Plant Pots",
@@ -3072,9 +4942,18 @@
           "abilities": [],
           "members": [
             "Interlocking"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Interlocking_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Plate": {
       "display": "Plate",
@@ -3084,9 +4963,18 @@
           "abilities": [],
           "members": [
             "Placement"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Placement_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Post-It Notes (Randomized)": {
       "display": "Post-It Notes (Randomized)",
@@ -3096,9 +4984,18 @@
           "abilities": [],
           "members": [
             "Draggable"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggable_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Post-It Notes Scribble #1 (Simple Line)": {
       "display": "Post-It Notes Scribble #1 (Simple Line)",
@@ -3108,9 +5005,18 @@
           "abilities": [],
           "members": [
             "Arranged"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Arranged_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Post-It Notes Scribble #2 (3x3 Grid)": {
       "display": "Post-It Notes Scribble #2 (3x3 Grid)",
@@ -3120,9 +5026,18 @@
           "abilities": [],
           "members": [
             "Arranged"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Arranged_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Post-It Notes Scribble #3 (5x3 Grid)": {
       "display": "Post-It Notes Scribble #3 (5x3 Grid)",
@@ -3132,9 +5047,18 @@
           "abilities": [],
           "members": [
             "Arranged"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Arranged_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Procedural Grid Puzzle": {
       "display": "Procedural Grid Puzzle",
@@ -3146,9 +5070,18 @@
           ],
           "members": [
             "Grid Puzzle"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "GridPuzzle_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Radial Dance Party": {
       "display": "Radial Dance Party",
@@ -3160,7 +5093,9 @@
           ],
           "members": [
             "Radial Cat Food Cans 3"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Radial Cat Toys 1": {
           "display": "Radial Cat Toys 1",
@@ -3169,7 +5104,9 @@
           ],
           "members": [
             "Radial Cat Toys 1"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Radial Chess 9": {
           "display": "Radial Chess 9",
@@ -3178,7 +5115,9 @@
           ],
           "members": [
             "Radial Chess 9"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Radial Food 4": {
           "display": "Radial Food 4",
@@ -3187,7 +5126,9 @@
           ],
           "members": [
             "Radial Food 4"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Radial Ladybugs 8": {
           "display": "Radial Ladybugs 8",
@@ -3196,7 +5137,9 @@
           ],
           "members": [
             "Radial Ladybugs 8"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Radial Nuts \u0026 Bolts 6": {
           "display": "Radial Nuts \u0026 Bolts 6",
@@ -3205,7 +5148,9 @@
           ],
           "members": [
             "Radial Nuts \u0026 Bolts 6"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Radial Pencils 0": {
           "display": "Radial Pencils 0",
@@ -3214,7 +5159,9 @@
           ],
           "members": [
             "Radial Pencils 0"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Radial Soup Cans 5": {
           "display": "Radial Soup Cans 5",
@@ -3223,7 +5170,9 @@
           ],
           "members": [
             "Radial Soup Cans 5"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Radial Sticky Notes 2": {
           "display": "Radial Sticky Notes 2",
@@ -3232,7 +5181,9 @@
           ],
           "members": [
             "Radial Sticky Notes 2"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Radial Tools 7": {
           "display": "Radial Tools 7",
@@ -3241,9 +5192,18 @@
           ],
           "members": [
             "Radial Tools 7"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Radial-Pencils-0_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Record Player": {
       "display": "Record Player",
@@ -3255,9 +5215,18 @@
           ],
           "members": [
             "Needle \u0026 Knobs"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Record-Player_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Rock Collection": {
       "display": "Rock Collection",
@@ -3269,9 +5238,18 @@
           ],
           "members": [
             "Match-Lines"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Match-Lines_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Rock Gradient": {
       "display": "Rock Gradient",
@@ -3283,9 +5261,23 @@
           ],
           "members": [
             "Gradient"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Gradient_0",
+          "location": "Solution: Gradient 1",
+          "group": "Gradient"
+        },
+        {
+          "id": "Gradient_1",
+          "location": "Solution: Gradient 2",
+          "group": "Gradient"
+        }
+      ]
     },
     "Seed Pods": {
       "display": "Seed Pods",
@@ -3297,9 +5289,18 @@
           ],
           "members": [
             "Symmetrical Placeables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "SymmetricalPlaceables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Sharp Pencils": {
       "display": "Sharp Pencils",
@@ -3311,7 +5312,9 @@
           ],
           "members": [
             "Pencil Order"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         },
         "Shavings Removed": {
           "display": "Shavings Removed",
@@ -3320,9 +5323,23 @@
           ],
           "members": [
             "Shavings Removed"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Pencil-Order_0",
+          "location": "Solution: Pencil Order 1",
+          "group": "Pencil Order"
+        },
+        {
+          "id": "Pencil-Order_1",
+          "location": "Solution: Pencil Order 2",
+          "group": "Pencil Order"
+        }
+      ]
     },
     "Shells": {
       "display": "Shells",
@@ -3334,9 +5351,18 @@
           ],
           "members": [
             "Symmetrical Placeables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Symmetrical-Placeables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "SnackPack Cereal": {
       "display": "Cereal (Snack Pack)",
@@ -3346,9 +5372,18 @@
           "abilities": [],
           "members": [
             "Draggables Controller"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Draggables-Controller_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "SnackPack Pretzels": {
       "display": "Pretzels (Snack Pack)",
@@ -3360,9 +5395,28 @@
           ],
           "members": [
             "Ordered"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Ordered_0",
+          "location": "Solution: Ordered 1",
+          "group": "Ordered"
+        },
+        {
+          "id": "Ordered_1",
+          "location": "Solution: Ordered 2",
+          "group": "Ordered"
+        },
+        {
+          "id": "Ordered_2",
+          "location": "Solution: Ordered 3",
+          "group": "Ordered"
+        }
+      ]
     },
     "SnackPack Sandwich": {
       "display": "Sandwich (Snack Pack)",
@@ -3374,9 +5428,18 @@
           ],
           "members": [
             "Stack Ingredients"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Stack-Ingredients_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "SomethingEggstra Broken Eggs": {
       "display": "Broken Eggs (Something Eggstra)",
@@ -3386,23 +5449,36 @@
           "abilities": [],
           "members": [
             "Egg #1 (Center) Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Egg #2 (Left) Draggables": {
           "display": "Egg #2 (Left)",
           "abilities": [],
           "members": [
             "Egg #2 (Left) Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Egg #3 (Right) Draggables": {
           "display": "Egg #3 (Right)",
           "abilities": [],
           "members": [
             "Egg #3 (Right) Draggables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Egg-#1-(Center)-Draggables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "SomethingEggstra Egg Cups": {
       "display": "Egg Cups (Something Eggstra)",
@@ -3415,9 +5491,28 @@
           "members": [
             "Shuffleables Cups",
             "Shuffleables Eggs"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Shuffleables-Eggs_0",
+          "location": "Solution: Eggs 1",
+          "group": "Shuffleables Cups"
+        },
+        {
+          "id": "Shuffleables-Eggs_1",
+          "location": "Solution: Eggs 2",
+          "group": "Shuffleables Cups"
+        },
+        {
+          "id": "Shuffleables-Eggs_2",
+          "location": "Solution: Eggs 3",
+          "group": "Shuffleables Cups"
+        }
+      ]
     },
     "SomethingEggstra Fridge": {
       "display": "Fridge (Something Eggstra)",
@@ -3429,9 +5524,18 @@
           ],
           "members": [
             "EggsContainable"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "EggsContainable_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "SomethingEggstra PaintedEggs": {
       "display": "Painted Eggs (Something Eggstra)",
@@ -3443,9 +5547,23 @@
           ],
           "members": [
             "RowColSets"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "RowColSets_0",
+          "location": "Solution: Row Col Sets 1",
+          "group": "RowColSets"
+        },
+        {
+          "id": "RowColSets_1",
+          "location": "Solution: Row Col Sets 2",
+          "group": "RowColSets"
+        }
+      ]
     },
     "Soup Cans": {
       "display": "Soup Cans",
@@ -3455,9 +5573,23 @@
           "abilities": [],
           "members": [
             "Match Label (Draggables)"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Match-Label-(Draggables)_0",
+          "location": "Solution: Match Label 1",
+          "group": "Match Label (Draggables)"
+        },
+        {
+          "id": "Match-Label-(Draggables)_1",
+          "location": "Solution: Match Label 2",
+          "group": "Match Label (Draggables)"
+        }
+      ]
     },
     "Spice Jars": {
       "display": "Spice Jars",
@@ -3470,9 +5602,23 @@
           "members": [
             "SpiceJarShuffleables",
             "SpiceJarShuffleables_BottomShelf"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "SpiceJarShuffleables_0",
+          "location": "Solution: Spice Jar 1",
+          "group": "SpiceJarShuffleables"
+        },
+        {
+          "id": "SpiceJarShuffleables_1",
+          "location": "Solution: Spice Jar 2",
+          "group": "SpiceJarShuffleables"
+        }
+      ]
     },
     "SpiderWeb": {
       "display": "Spider Web",
@@ -3482,9 +5628,18 @@
           "abilities": [],
           "members": [
             "Web Symmetry"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Web-Symmetry_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Spoons": {
       "display": "Spoons",
@@ -3496,7 +5651,9 @@
           ],
           "members": [
             "Size (Elastic)"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         },
         "Stacked": {
           "display": "Stacked",
@@ -3505,9 +5662,23 @@
           ],
           "members": [
             "Stacked"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Size-(Elastic)_0",
+          "location": "Solution: Size (Elastic)",
+          "group": "Size (Elastic)"
+        },
+        {
+          "id": "Stacked_0",
+          "location": "Solution: Stacked",
+          "group": "Stacked"
+        }
+      ]
     },
     "Stacked Papers": {
       "display": "Stacked Papers",
@@ -3519,9 +5690,18 @@
           ],
           "members": [
             "Stack Papers"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Stack-Papers_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Stamps": {
       "display": "Stamps",
@@ -3531,9 +5711,18 @@
           "abilities": [],
           "members": [
             "Stamps Pattern"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Stamps-Pattern_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Stamps (Randomized)": {
       "display": "Stamps (Randomized)",
@@ -3543,9 +5732,18 @@
           "abilities": [],
           "members": [
             "Stamps Pattern"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Stamps-Pattern_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Storage Boxes": {
       "display": "Storage Boxes",
@@ -3557,9 +5755,23 @@
           ],
           "members": [
             "SortingItems Draggables"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "SortingItems-Draggables_0",
+          "location": "Solution: Sorting Items 1",
+          "group": "SortingItems Draggables"
+        },
+        {
+          "id": "SortingItems-Draggables_1",
+          "location": "Solution: Sorting Items 2",
+          "group": "SortingItems Draggables"
+        }
+      ]
     },
     "Tacks": {
       "display": "Tacks",
@@ -3569,9 +5781,18 @@
           "abilities": [],
           "members": [
             "Colour \u0026 Count Sort"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Colour-\u0026-Count-Sort_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Telescope": {
       "display": "Telescope",
@@ -3583,9 +5804,18 @@
           ],
           "members": [
             "Constellations"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Constellations_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "TrickOrTidy_Bats": {
       "display": "Bats (Trick or Tidy)",
@@ -3595,9 +5825,18 @@
           "abilities": [],
           "members": [
             "Interlocking"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Interlocking_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "TrickOrTidy_Bones": {
       "display": "Bones (Trick or Tidy)",
@@ -3609,9 +5848,18 @@
           ],
           "members": [
             "Match Bones"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Match-Bones_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "TrickOrTidy_Candy": {
       "display": "Candy (Trick or Tidy)",
@@ -3623,9 +5871,23 @@
           ],
           "members": [
             "Grouped"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Grouped_0",
+          "location": "Solution: Grouped 1",
+          "group": "Grouped"
+        },
+        {
+          "id": "Grouped_1",
+          "location": "Solution: Grouped 2",
+          "group": "Grouped"
+        }
+      ]
     },
     "TrickOrTidy_ChocolateBars": {
       "display": "Chocolate Bars (Trick or Tidy)",
@@ -3637,16 +5899,42 @@
           ],
           "members": [
             "Design (Shuffle)"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         },
         "Height (Draggables)": {
           "display": "Height",
           "abilities": [],
           "members": [
             "Height (Draggables)"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Design-(Shuffle)_0",
+          "location": "Solution: Design (Shuffle) 1",
+          "group": "Design (Shuffle)"
+        },
+        {
+          "id": "Design-(Shuffle)_1",
+          "location": "Solution: Design (Shuffle) 2",
+          "group": "Design (Shuffle)"
+        },
+        {
+          "id": "Design-(Shuffle)_2",
+          "location": "Solution: Design (Shuffle) 3",
+          "group": "Design (Shuffle)"
+        },
+        {
+          "id": "Height-(Draggables)_0",
+          "location": "Solution: Height",
+          "group": "Height (Draggables)"
+        }
+      ]
     },
     "TrickOrTidy_JackOLanterns": {
       "display": "Jack O\u0027Lanterns (Trick or Tidy)",
@@ -3658,9 +5946,33 @@
           ],
           "members": [
             "Ordered"
-          ]
+          ],
+          "ending": true,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Ordered_0",
+          "location": "Solution: Ordered 1",
+          "group": "Ordered"
+        },
+        {
+          "id": "Ordered_1",
+          "location": "Solution: Ordered 2",
+          "group": "Ordered"
+        },
+        {
+          "id": "Ordered_2",
+          "location": "Solution: Ordered 3",
+          "group": "Ordered"
+        },
+        {
+          "id": "Ordered_3",
+          "location": "Solution: Ordered 4",
+          "group": "Ordered"
+        }
+      ]
     },
     "Trim Plant": {
       "display": "Trim Plant",
@@ -3672,9 +5984,18 @@
           ],
           "members": [
             "Pluckables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Pluckables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Trim Plant (Vines)": {
       "display": "Trim Plant (Vines)",
@@ -3686,9 +6007,18 @@
           ],
           "members": [
             "Pluckables"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Pluckables_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "TupperwareNesting": {
       "display": "Tupperware Nesting",
@@ -3702,7 +6032,9 @@
           "members": [
             "Draggables (Large Square)",
             "Layout (Grid)"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Food": {
           "display": "Food",
@@ -3712,7 +6044,9 @@
           ],
           "members": [
             "Food"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Lids": {
           "display": "Lids",
@@ -3723,7 +6057,9 @@
           ],
           "members": [
             "Lids"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Stack 1": {
           "display": "Stack 1",
@@ -3732,7 +6068,9 @@
           ],
           "members": [
             "Stack 1"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Stack 2": {
           "display": "Stack 2",
@@ -3741,7 +6079,9 @@
           ],
           "members": [
             "Stack 2"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Stack 3": {
           "display": "Stack 3",
@@ -3750,7 +6090,9 @@
           ],
           "members": [
             "Stack 3"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Tray": {
           "display": "Tray",
@@ -3759,9 +6101,18 @@
           ],
           "members": [
             "Tray"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Nested-Tupperware_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "TupperwareTower": {
       "display": "Tupperware Tower",
@@ -3773,9 +6124,18 @@
           ],
           "members": [
             "Tower"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Tower_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "UtensilsDrawer": {
       "display": "Utensils Drawer",
@@ -3785,9 +6145,18 @@
           "abilities": [],
           "members": [
             "Utensils Drawer"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Utensils-Drawer_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Wilting Flowers": {
       "display": "Wilting Flowers",
@@ -3800,7 +6169,9 @@
           ],
           "members": [
             "Cleanable"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         },
         "Upright": {
           "display": "Upright",
@@ -3809,9 +6180,18 @@
           ],
           "members": [
             "Upright"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Upright_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Workbench": {
       "display": "Workbench",
@@ -3823,9 +6203,18 @@
           ],
           "members": [
             "ToolsController"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "ToolsController_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     },
     "Wrong Aspect Papers": {
       "display": "Wrong Aspect Papers",
@@ -3835,9 +6224,120 @@
           "abilities": [],
           "members": [
             "Fit Rect"
-          ]
+          ],
+          "ending": false,
+          "solutionOnly": false
         }
-      }
+      },
+      "endings": [
+        {
+          "id": "Fit-Rect_0",
+          "location": "Solution",
+          "group": null
+        }
+      ]
     }
+  },
+  "achievements": {
+    "Cat Toys": [
+      {
+        "id": "UNIQUE_FUN_FOR_HUMANS",
+        "display": "Fun for Humans Too"
+      }
+    ],
+    "Eggs": [
+      {
+        "id": "UNIQUE_EXACTING_EGGS",
+        "display": "Exacting Eggs"
+      }
+    ],
+    "Place Setting": [
+      {
+        "id": "UNIQUE_BAD_KITTY",
+        "display": "Bad Kitty"
+      }
+    ],
+    "Junk Drawer": [
+      {
+        "id": "UNIQUE_DRAW_RAINBOW",
+        "display": "Draw Me A Rainbow"
+      }
+    ],
+    "Radial Dance Party": [
+      {
+        "id": "UNIQUE_PERFECT_PET_CAT",
+        "display": "Harmonized Purr"
+      }
+    ],
+    "TupperwareTower": [
+      {
+        "id": "UNIQUE_TUPPERWARE_RAINBOW",
+        "display": "Rainbow To The Moon"
+      },
+      {
+        "id": "UNIQUE_STABLE_STACKER",
+        "display": "Unstable Stacker"
+      }
+    ],
+    "DLC1 Fountain Pens": [
+      {
+        "id": "DLC1_UNIQUE_PEN_CAPS",
+        "display": "Where Is My Cap?"
+      }
+    ],
+    "DLC1 Lunch Tray": [
+      {
+        "id": "DLC1_UNIQUE_BALANCED_MEAL",
+        "display": "A Balanced Meal"
+      }
+    ],
+    "DLC1 Pantry": [
+      {
+        "id": "DLC1_UNIQUE_CAN_DO_ALTITUDE",
+        "display": "Can Do Altitude"
+      }
+    ],
+    "DLC1 Media Cabinet": [
+      {
+        "id": "DLC1_UNIQUE_PLAYING_WITH_POWER",
+        "display": "Now You\u0027re Playing With Power"
+      }
+    ],
+    "DLC1 Trophy Cabinet": [
+      {
+        "id": "DLC1_UNIQUE_SHOW_OFF",
+        "display": "Show Off"
+      }
+    ],
+    "DLC2 Water Glasses": [
+      {
+        "id": "DLC2_UNIQUE_WATER",
+        "display": "I\u0027ll Take My Water Neat"
+      }
+    ],
+    "DLC2 Pizza": [
+      {
+        "id": "DLC2_UNIQUE_TOP_HEAVY",
+        "display": "Top Heavy Slice"
+      }
+    ],
+    "DLC2 Sticky Drawer": [
+      {
+        "id": "DLC2_UNIQUE_STICKY",
+        "display": "Sticky Wand"
+      }
+    ],
+    "DLC2 Junk Drawer Transforming": [
+      {
+        "id": "DLC2_UNIQUE_WRONG_END",
+        "display": "Grabbed the Wrong End"
+      }
+    ],
+    "DLC2 Music Box": [
+      {
+        "id": "DLC2_UNIQUE_KEEPING_COUNT",
+        "display": "Keeping Count"
+      }
+    ]
   }
 }

@@ -20,11 +20,13 @@ from . import data
 
 
 class PuzzleCount(Range):
-    """How many puzzles the run contains.
+    """How many puzzles the run contains, 10 to 130.
 
-    The full game is 79, laid out over five chapters exactly as vanilla. A
-    lower number truncates the track rather than rescaling it, so a short run
-    simply ends part way through a chapter.
+    The run has no chapters: its puzzles are drawn from the sources under
+    "What Goes In The Run" and opened pack by pack. The smallest run, 10, is
+    two full packs of 5. The largest, 130, is where the level select's
+    overview strip reaches the smallest it will draw; the game's own campaign
+    is 79.
 
     THE DEFAULT IS 70, NOT 79, AND THAT IS ABOUT THE LEVEL SELECT. The game
     lays out one dot per card along the bottom of that screen, sized for its
@@ -33,44 +35,50 @@ class PuzzleCount(Range):
     screen. 70 puzzles at the default pack size is 70 + 13 dividers + the
     credits = 84, which fits. Turn it up if you want the whole game; the strip
     scales itself down past that, it just gets smaller.
-
-    AT LEAST 10: two full packs at the pack size of 5 (droha, 2026-09-25).
-    It was 15 while checks with unproven requirements had to be kept free of
-    progression; no part location is guarded any more.
     """
     display_name = "Puzzle Count"
     range_start = 10
-    range_end = 79
+    range_end = 130
     default = 70
 
 
 class PackSize(Range):
-    """How many puzzles each Puzzle Pack unlocks.
+    """How many puzzles each Puzzle Pack unlocks, 5 to 20.
 
     Vanilla hands you one level at a time. Five means you always have several
-    things to work on, so a single hard puzzle never stops the run.
+    things to work on, so a single hard puzzle never stops the run. It is also
+    the least the run opens at a time, so the run cannot start on a puzzle an
+    unlucky ability draw has locked.
 
     EVERY BLOCK IS THIS SIZE, including the free opening - only the last is
     short, because a run rarely divides evenly. If the run is long enough that
     packs of this size would need more packs than it can carry, they all grow
-    together rather than the run growing a ramp. So this is a floor on how much
-    the run opens at a time, not the rate for the first pack only.
-
-    Below five the run still opens five, so it cannot start on a puzzle an
-    unlucky ability draw has locked.
+    together rather than the run growing a ramp: at 79 puzzles every pack is
+    6. So this is a floor on how much the run opens at a time, not the rate
+    for the first pack only.
     """
     display_name = "Puzzles Per Pack"
-    range_start = 1
-    range_end = 10
+    range_start = 5
+    range_end = 20
     default = 5
 
 
 class GeneratorWeight(Range):
-    """How strongly to favour procedurally generated puzzles.
+    """How strongly to favour procedurally generated puzzles, 0 to 100.
 
     Sixteen of the game's puzzles are generators that build a fresh layout from
-    a seed, so they are new even if you have finished the game. Weighed against
-    the event and campaign weights below.
+    a seed, so they are new even if you have finished the game.
+
+    This and the four weights below are RELATIVE, compared with each other:
+    they do not have to add up to 100, and 80/10/10 means the same as 8/1/1.
+    A weight of 20 is twice as likely as 10; 0 means never. Every puzzle the
+    mechanic reserve does not place rolls one source, each weight divided by
+    the sum of those in play, so turning a DLC on adds its weight to the sum
+    and every other share shrinks a little. With the defaults a puzzle rolls a
+    generator 80% of the time, 73% with one DLC on and 67% with both.
+
+    A one-shot source that runs out falls back to generators, and if every
+    weight is 0 the run is all generators.
     """
     display_name = "Generated Puzzle Weight"
     range_start = 0
@@ -79,9 +87,10 @@ class GeneratorWeight(Range):
 
 
 class ArchiveWeight(Range):
-    """How strongly to favour the seasonal event puzzles.
+    """How strongly to favour the seasonal event puzzles, 0 to 100.
 
-    Good Tidings, Trick or Tidy, Merry Mess, Snack Pack, Something Eggstra and
+    A relative weight, compared with the other puzzle weights (see Generated
+    Puzzle Weight). Good Tidings, Trick or Tidy, Merry Mess, Snack Pack, Something Eggstra and
     Drawer Chores were limited-time events, so most players have never seen
     them. They are also the richest levels for checks.
     """
@@ -92,16 +101,16 @@ class ArchiveWeight(Range):
 
 
 class BaseWeight(Range):
-    """How strongly to favour puzzles from the main campaign.
+    """How strongly to favour puzzles from the main campaign, 0 to 100.
 
-    The 69 hand-made campaign puzzles. Sixty-nine is by far the largest pool of
-    one-shot levels in the game - more than the events and generators together
-    - so this is what stops a long run repeating the same generator over and
-    over.
+    A relative weight, compared with the other puzzle weights (see Generated
+    Puzzle Weight). The 69 hand-made campaign puzzles are by far the largest
+    pool of one-shot levels in the game - more than the events and generators
+    together - so this is what stops a long run repeating the same generator
+    over and over.
 
-    Set it to 0 and the campaign is invisible except where Mechanic Coverage
-    below drags a level in, which is how every run worked before this option
-    existed: 57 of the 69 could not appear at all.
+    Set it to 0 and the campaign appears only where Mechanic Coverage below
+    drags a level in.
     """
     display_name = "Campaign Puzzle Weight"
     range_start = 0
@@ -138,11 +147,13 @@ class SeeingStars(Toggle):
 
 
 class CupboardsWeight(Range):
-    """How strongly to favour Cupboards and Drawers puzzles.
+    """How strongly to favour Cupboards and Drawers puzzles, 0 to 100.
 
-    Ignored unless that DLC is turned on. Weighed against the generator, event
-    and campaign weights above, on the same scale: these are RELATIVE weights,
-    so what matters is the ratio between them.
+    Ignored unless that DLC is turned on. A relative weight, compared with the
+    other puzzle weights (see Generated Puzzle Weight). Covers all 25 of its
+    puzzles,
+    Trophy Cabinet included - the DLC marks it randomizable, but the seed does
+    not change its layout, so it is drawn once like the rest.
     """
     display_name = "Cupboards and Drawers Weight"
     range_start = 0
@@ -151,11 +162,14 @@ class CupboardsWeight(Range):
 
 
 class StarsWeight(Range):
-    """How strongly to favour Seeing Stars puzzles.
+    """How strongly to favour Seeing Stars puzzles, 0 to 100.
 
-    Ignored unless that DLC is turned on. Worth more than its share if you are
-    playing a Star Levels goal, since its puzzles carry most of the game's
-    alternate solutions.
+    Ignored unless that DLC is turned on. A relative weight, compared with the
+    other puzzle weights (see Generated Puzzle Weight). Worth more than its share if you are playing a Star Levels
+    goal, since its puzzles carry most of the game's alternate solutions.
+    Covers all 37 of its puzzles, Water Glasses, Figurines and Bread Crusts
+    included - marked randomizable, but the seed does not change their layout,
+    so each is drawn once like the rest.
     """
     display_name = "Seeing Stars Weight"
     range_start = 0
@@ -164,12 +178,15 @@ class StarsWeight(Range):
 
 
 class MechanicCoverage(Range):
-    """How many puzzles are guaranteed for each mechanic no generator can make.
+    """How many puzzles are guaranteed for each mechanic no generator can make,
+    0 to 10.
 
     Some mechanics only exist as hand-made puzzles, so without this they turn
     up by luck or not at all. Raising it makes the run's mechanics more even
-    and brings in more hand-made puzzles; 4 uses up every jigsaw puzzle in the
-    base game and 5 every drawer one, so every run would contain all of them.
+    and brings in more hand-made puzzles; without a DLC, 4 uses up every
+    jigsaw puzzle and 5 every drawer one, so every run would contain all of
+    them. Stacking and containers have more puzzles than that, and a DLC adds
+    drawer and jigsaw puzzles, so higher numbers still reserve more.
 
     The scarce ones are stacking, containers, drawers and jigsaws, with or
     without the DLCs: their four puzzles the game calls randomizable keep the
@@ -186,14 +203,35 @@ class MechanicCoverage(Range):
     Set it to 0 for a simpler run: that turns the whole reserve off, including
     the one-of-each floor, and leaves every mechanic to the weighted draw.
 
-    This is a floor, not the only door. Campaign puzzles are also drawn by the
-    campaign weight above - and before that option existed this setting really
-    was the only way in, which left 57 of the 69 unreachable.
+    This is a floor, not the only door: campaign puzzles are also drawn by the
+    campaign weight above.
     """
     display_name = "Mechanic Coverage"
     range_start = 0
-    range_end = 6
+    range_end = 10
     default = 3
+
+
+class Achievements(Toggle):
+    """Make the game's puzzle achievements checks: 7 in the base game, 17
+    with both DLCs. Off by default.
+
+    Each belongs to one puzzle - Exacting Eggs to Eggs, Draw Me A Rainbow to
+    Junk Drawer, I'll Take My Water Neat to Water Glasses - and is a check only
+    when that puzzle is in the run, earned the way the game awards it, whether
+    or not your Steam profile already has it. Achievements that name no
+    puzzle (chapters, hints, finishing the campaign), that need two puzzles
+    (Sweep Them On The Floor) or that repeat a check the run has (Path of
+    Destruction) are not included - their clean-up checks (crumbs, shavings,
+    leaves, spill) stay - and neither is Keep Away, which never fired in a
+    run.
+
+    An achievement check needs every mechanic its puzzle uses, and holds
+    nothing your run depends on, so a hard one never blocks you. It is extra:
+    a puzzle's star and its Skip leave it out. Steam achievements themselves
+    stay off while the mod is loaded.
+    """
+    display_name = "Achievements"
 
 
 class GeneratorRepeatLimit(Range):
@@ -231,27 +269,32 @@ class AbilityLocks(DefaultOnToggle):
 
 
 class StartingAbilities(Range):
-    """How many mechanics you begin with."""
+    """How many mechanics you begin with, 0 to 13 (every mechanic).
+
+    The run may start you with more if its opening would otherwise have too
+    little to do.
+    """
     display_name = "Starting Abilities"
     range_start = 0
-    range_end = 6
+    range_end = 13
     default = 1
 
 
 class GuaranteedOpenSlots(Range):
-    """How many of the opening puzzles must be solvable straight away.
+    """How many of the opening puzzles must be solvable with the abilities you
+    start with, 4 to 20.
 
     Insurance against an opening where everything needs a mechanic you do not
-    have yet. Raise it to be handed a wider choice on the first screen.
+    have yet. The default, 5, is the whole opening at the default pack size.
 
-    Four are always solvable whatever you set here - below that there is too
-    little to do for a seed to be built at all - so this only has an effect
-    above four.
+    At least 4: below that there is too little to do for a seed to be built.
+    At most the size of the opening, which is Puzzles Per Pack - a higher
+    number means all of it. Ignored when Ability Locks is off.
     """
     display_name = "Guaranteed Open Puzzles"
-    range_start = 0
-    range_end = 10
-    default = 4
+    range_start = 4
+    range_end = 20
+    default = 5
 
 
 class Goal(Choice):
@@ -277,7 +320,7 @@ class Goal(Choice):
 
 
 class LevelsToStar(Range):
-    """How many puzzles to star before the credits unlock.
+    """How many puzzles to star before the credits unlock, 1 to 130.
 
     Only used when the goal is Star Levels; ignored otherwise. Separate from
     Puzzles To Beat because starring is a great deal more work than beating,
@@ -287,35 +330,55 @@ class LevelsToStar(Range):
     """
     display_name = "Puzzles To Star"
     range_start = 1
-    range_end = 79
+    range_end = 130
     default = 20      # half of the beaten default; starring is the harder ask
 
 
 class LevelsToBeat(Range):
-    """How many puzzles to beat before the credits unlock.
+    """How many puzzles to beat before the credits unlock, 1 to 130.
 
     A puzzle counts once you have solved it any one way, or skipped it. Skips do
     count. Clamped to the puzzle count.
     """
     display_name = "Puzzles To Beat"
     range_start = 1
-    range_end = 79
+    range_end = 130
     default = 40      # of the default 70-puzzle run; droha's call, not a ratio
 
 
 class CatTrapChance(Range):
-    """Percentage of filler items that are the cat knocking your work over.
+    """Percentage of filler items that are the cat knocking your work over,
+    0 to 100.
 
-    Costs you time, never progress.
+    Costs you time, never progress. 0 means no Cat Traps.
     """
     display_name = "Cat Trap Chance"
     range_start = 0
     range_end = 100
-    default = 25
+    default = 15
+
+
+class BackgroundTrapChance(Range):
+    """Percentage of filler items that are Background Change Traps, 0 to 100.
+
+    A Background Change Trap recolours every backdrop - the puzzle, the pause
+    screen and the level select - and a puzzle's pieces can hide against the
+    new colour. A Background Reset Token, spent from the pause menu, puts them
+    back. 0 means no Background Change Traps.
+
+    Taken from the same filler as the Cat Traps. Whatever filler is left after
+    the traps and the Hint Pages is split evenly between more Hint Pages and
+    Background Reset Tokens.
+    """
+    display_name = "Background Change Trap Chance"
+    range_start = 0
+    range_end = 100
+    default = 15
 
 
 class HintCoverage(Range):
-    """Percentage of this seed's hint pages that get a Hint Page item.
+    """Percentage of this seed's hint pages that get a Hint Page item, 0 to
+    100.
 
     A percentage rather than a count, because how many pages a run contains
     depends on what it drew: every puzzle in the game has at least one, most
@@ -328,6 +391,10 @@ class HintCoverage(Range):
     can be opened. Note that at 100 the hint items crowd out almost everything
     else, and can exceed the number of item slots the seed has to give.
 
+    A floor, not the only source: the filler left after the traps and these
+    is split evenly between more Hint Pages and Background Reset Tokens, so a
+    seed usually holds more.
+
     Without a Hint Page the notepad still opens, so you can see that a hint
     exists and how long it is - you just cannot erase the scribble.
     """
@@ -338,7 +405,7 @@ class HintCoverage(Range):
 
 
 class SkipCount(Range):
-    """How many Skip items are shuffled in.
+    """How many Skip items are shuffled in, 0 to 50.
 
     A Skip clears a puzzle you are stuck on outright: every solution, every
     controller group and the "beaten" credit are all sent, so a skipped puzzle
@@ -352,7 +419,7 @@ class SkipCount(Range):
     """
     display_name = "Skips"
     range_start = 0
-    range_end = 20
+    range_end = 50
     default = 5
 
 
@@ -365,6 +432,7 @@ class ALTTLOptions(PerGameCommonOptions):
     base_weight: BaseWeight
     mechanic_coverage: MechanicCoverage
     generator_repeat_limit: GeneratorRepeatLimit
+    achievements: Achievements
     archive_packs: ArchivePacks
     cupboards_and_drawers: CupboardsAndDrawers
     seeing_stars: SeeingStars
@@ -377,6 +445,7 @@ class ALTTLOptions(PerGameCommonOptions):
     levels_to_beat: LevelsToBeat
     levels_to_star: LevelsToStar
     cat_trap_chance: CatTrapChance
+    background_trap_chance: BackgroundTrapChance
     skip_count: SkipCount
     hint_coverage: HintCoverage
 
@@ -393,13 +462,14 @@ option_groups = [
         GeneratorWeight,
         ArchiveWeight,
         BaseWeight,
+        CupboardsWeight,
+        StarsWeight,
         MechanicCoverage,
         GeneratorRepeatLimit,
+        Achievements,
         ArchivePacks,
         CupboardsAndDrawers,
-        CupboardsWeight,
         SeeingStars,
-        StarsWeight,
     ], start_collapsed=True),
     OptionGroup("Abilities", [
         AbilityLocks,
@@ -410,6 +480,7 @@ option_groups = [
         SkipCount,
         HintCoverage,
         CatTrapChance,
+        BackgroundTrapChance,
     ], start_collapsed=True),
 ]
 

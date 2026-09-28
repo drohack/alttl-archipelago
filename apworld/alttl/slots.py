@@ -17,7 +17,8 @@ Two passes, in this order and for this reason:
 
   2. Fill the rest by source, generator 80 / archive 10 / base 10 by default,
      plus a weight per enabled DLC, preferring the least-used generator so no
-     one puzzle type dominates.
+     one puzzle type dominates. Every DLC level rolls under its DLC's weight
+     (Level.draw_source), the four FIXED_LAYOUT ones included.
 
 ALL THREE SOURCES ARE ROLLABLE. This text used to say the opposite - that
 base-campaign levels enter through pass 1 alone, "because it brings something
@@ -63,7 +64,7 @@ The same measurement with base_weight 0 reproduces the old behaviour exactly:
 weight takes six slots a seed away from generator repeats.
 """
 
-from typing import Dict, List, NamedTuple, Set
+from typing import Dict, List, NamedTuple, Optional, Set
 
 from . import data, items
 
@@ -97,6 +98,44 @@ DLC_OPTIONS = {
     "DLC1": "cupboards_and_drawers",
     "DLC2": "seeing_stars",
 }
+
+
+def source_weights(generator: int, archive: int, base: int,
+                   dlc1: Optional[int] = None,
+                   dlc2: Optional[int] = None) -> Dict[str, int]:
+    """The second pass's weight per source, from the five yaml weights.
+
+    A DLC weight is passed only while its toggle is on (None means off). A
+    weight left in for content _eligible has filtered out makes pass 2 roll
+    a source with no candidates and fall through to the repeatable-generator
+    backstop, which quietly skews the mix away from what the yaml asked for.
+
+    The campaign ("base") was absent until 2026-09-09, which meant 57 of the
+    69 campaign puzzles could never be drawn at all: pass 2 fills by source,
+    so a source with no weight never appears, and the only other door was
+    the mechanic-coverage reserve in pass 1.
+    """
+    weights = {"generator": generator, "archive": archive, "base": base}
+    if dlc1 is not None:
+        weights["dlc1"] = dlc1
+    if dlc2 is not None:
+        weights["dlc2"] = dlc2
+    if not any(weights.values()):
+        # ALL of them zeroed. Generators are the only source that can always
+        # supply a slot - they repeat, the others are one-shot - so fall back
+        # to them rather than failing.
+        return {"generator": 1}
+    return weights
+
+
+def roll_shares(weights: Dict[str, int]) -> Dict[str, float]:
+    """Percent chance each source is rolled for one pass-2 slot.
+
+    What player.yaml quotes, and test_player_yaml holds it to this, so the
+    numbers in the template cannot drift from the draw.
+    """
+    total = sum(w for w in weights.values() if w > 0)
+    return {s: 100.0 * w / total for s, w in weights.items() if w > 0}
 
 
 def _eligible(world_options) -> List[data.Level]:
@@ -227,7 +266,10 @@ def draw(random, slots: int, coverage: int, source_weights: Dict[str, int],
         candidates: List[data.Level] = []
         if sources:
             source = random.choices(sources, weights=weights)[0]
-            candidates = [l for l in pool if l.source == source and available(l)]
+            # draw_source, not source: a DLC level answers to its DLC's
+            # weight even when its source says "generator" (FIXED_LAYOUT).
+            candidates = [l for l in pool
+                          if l.draw_source == source and available(l)]
         if not candidates:
             # That source is exhausted (or none were enabled). Generators can
             # always repeat, so they are the fallback that keeps the run full.

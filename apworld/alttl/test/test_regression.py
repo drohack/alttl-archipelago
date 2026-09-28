@@ -108,15 +108,29 @@ class TestTheIdTablesNeverMoved(unittest.TestCase):
 #: to compare.
 RETIRED_BELOW_THE_FLOOR = {"tiny run", "tiny run, pack size 1"}
 
+#: Golden configurations whose option values left the option's range on
+#: 2026-09-28, when pack_size's range became 5 to 10 and
+#: guaranteed_open_slots' 4 to 10 - the floors the generator already raised
+#: them to. Skipped out loud, the same as the set above.
+RETIRED_OUT_OF_RANGE = {"no guaranteed open slots", "pack size 1", "pack size 2"}
+
+#: guaranteed_open_slots' default when the golden was recorded.
+GOLDEN_GUARANTEED_OPEN = 4
+
 #: Golden entries whose first draw changed ON PURPOSE, each with why. Checked
 #: the other way round: the plan must still DIFFER from the golden, so an entry
 #: here cannot quietly turn into a skip for something that moved back.
 #:
-#: Empty again since 2026-09-23. `short run` seeds 20260902 and 20260903 moved
-#: when pool._free_checks stopped counting guarded parts, and moved BACK when
-#: Medicine Cabinet was proven by play - this test's own "draws what 0.3.4 drew
-#: again" check is what said so.
-MOVED_BY_DESIGN = {}
+#: `short run` seeds 20260902 and 20260903 moved when pool._free_checks stopped
+#: counting guarded parts, and moved BACK when Medicine Cabinet was proven by
+#: play (2026-09-23); they moved again with fixed endings (2026-09-28).
+MOVED_BY_DESIGN = {
+    # 2026-09-28, fixed endings: a part that is an ending of its own is no
+    # check, so the opening counts fewer free checks (pool._free_checks) and
+    # grants a starting ability where it did not, which reorders the opening.
+    "short run|20260902": "fixed endings: fewer free opening checks, another grant",
+    "short run|20260903": "fixed endings: fewer free opening checks, another grant",
+}
 
 
 class TestTheDrawNeverMoved(unittest.TestCase):
@@ -146,7 +160,7 @@ class TestTheDrawNeverMoved(unittest.TestCase):
             name, seed = key.rsplit("|", 1)
             if int(seed) not in seeds:
                 continue
-            if name in RETIRED_BELOW_THE_FLOOR:
+            if name in RETIRED_BELOW_THE_FLOOR or name in RETIRED_OUT_OF_RANGE:
                 # Counted, so the total below still proves nothing was
                 # skipped silently - these are skipped out loud, by name.
                 compared += 1
@@ -155,7 +169,14 @@ class TestTheDrawNeverMoved(unittest.TestCase):
                 differences.append(f"  {name}: the configuration is gone")
                 continue
             compared += 1
-            world = _generate(CONFIGURATIONS[name], int(seed))
+            # Under the default the golden was recorded with. The first plan
+            # includes open_the_start's reorder, which the guaranteed opening
+            # drives, and its default rose from 4 to 5 on 2026-09-28 (droha:
+            # "in step with default pack size") - a new rule, not a moved
+            # draw, so the comparison keeps the old one.
+            options = dict(CONFIGURATIONS[name])
+            options.setdefault("guaranteed_open_slots", GOLDEN_GUARANTEED_OPEN)
+            world = _generate(options, int(seed))
             world = world.multiworld.worlds[world.player]
             # The FIRST draw, not the final plan. pool.decide redraws a run
             # that cannot carry its unproven guard, and a redraw is a

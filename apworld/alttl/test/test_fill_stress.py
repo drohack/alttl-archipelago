@@ -64,22 +64,31 @@ CONFIGURATIONS = {
     "no ability locks": {"ability_locks": False},
     "no starting abilities": {"starting_abilities": 0},
     "many starting abilities": {"starting_abilities": 6},
-    "no guaranteed open slots": {"guaranteed_open_slots": 0},
+    "fewest guaranteed open slots": {"guaranteed_open_slots": 4},
     "max guaranteed open slots": {"guaranteed_open_slots": 10},
-    "pack size 1": {"pack_size": 1},
-    "pack size 2": {"pack_size": 2},
+    "pack size 7": {"pack_size": 7},
     "pack size 10": {"pack_size": 10},
     # The option's floor, 10 since 2026-09-25. These were "tiny run" at 8
     # puzzles until 2026-09-23, then 15 - see pool.DRAW_ATTEMPTS.
     "small run": {"puzzle_count": 10},
-    "small run, pack size 1": {"puzzle_count": 10, "pack_size": 1},
+    # One block holding the whole run: no Puzzle Pack items at all.
+    "small run, pack size 10": {"puzzle_count": 10, "pack_size": 10},
     "small run, max skips": {"puzzle_count": 10, "skip_count": 20},
     "short run": {"puzzle_count": 20},
     "no mechanic coverage": {"mechanic_coverage": 0},
     "max mechanic coverage": {"mechanic_coverage": 6},
     "repeat limit 2": {"generator_repeat_limit": 2},
+    # Achievement checks refuse progression; a campaign-heavy short run is
+    # where they are the largest share of the locations.
+    "achievements": {"achievements": True},
+    "achievements, campaign short run": {"achievements": True, "puzzle_count": 20,
+                                         "base_weight": 100},
+    "achievements, both dlc": {"achievements": True, "cupboards_and_drawers": True,
+                               "seeing_stars": True},
     "all traps": {"cat_trap_chance": 100},
-    "no traps": {"cat_trap_chance": 0},
+    "all background traps": {"background_trap_chance": 100},
+    "both traps at 100": {"cat_trap_chance": 100, "background_trap_chance": 100},
+    "no traps": {"cat_trap_chance": 0, "background_trap_chance": 0},
     "no skips": {"skip_count": 0},
     "max skips": {"skip_count": 20},
     "no hint pages": {"hint_coverage": 0},
@@ -148,10 +157,19 @@ CONFIGURATIONS = {
     # Everything on at once, at full length.
     "both dlc, long run": {"cupboards_and_drawers": True, "seeing_stars": True,
                            "puzzle_count": 79, "levels_to_beat": 79},
+    # Every range at its top (2026-09-28).
+    "longest run": {"puzzle_count": 130, "levels_to_beat": 130},
+    "longest run, both dlc, star goal": {"cupboards_and_drawers": True, "seeing_stars": True,
+                                         "puzzle_count": 130, "goal": "star_levels",
+                                         "levels_to_star": 130},
+    "biggest packs": {"pack_size": 20, "guaranteed_open_slots": 20},
+    "every starting ability": {"starting_abilities": 13, "seeing_stars": True},
+    "widest coverage": {"mechanic_coverage": 10},
+    "most skips": {"skip_count": 50},
 
     # Deliberately hostile: the thinnest content with the tightest gates.
-    "worst case": {"pack_size": 1, "starting_abilities": 0,
-                   "guaranteed_open_slots": 0, "mechanic_coverage": 0,
+    "worst case": {"pack_size": 5, "starting_abilities": 0,
+                   "guaranteed_open_slots": 4, "mechanic_coverage": 0,
                    "archive_weight": 0, "base_weight": 0,
                    "archive_packs": [], "skip_count": 0},
 }
@@ -351,7 +369,7 @@ class TestEverySeedIsWinnable(unittest.TestCase):
         group shares every object with the gated one. That is a table
         problem rather than a rules problem, and it is not what this test
         covers: this one asserts the RULES honour the requirements they are
-        given. docs/gate-sharing.md carries the other half.
+        given. docs/history/gate-sharing.md carries the other half.
         """
         leaked = []
         for name, options in CONFIGURATIONS.items():
@@ -557,7 +575,7 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         #
         # The chalk jigsaws were DELIBERATELY EXCLUDED from the drawer's
         # contents in 0.3.1 on the grounds that they are "assembled on the
-        # desk". That had no observation behind it - docs/verification-log.md
+        # desk". That had no observation behind it - docs/history/verification-log.md
         # records the test being "corrected to match the implementation, not
         # the other way round". The 2026-09-22 sweep put five of the seven
         # inside the drawer, and the play test settled it for all seven:
@@ -676,10 +694,12 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # Cabinet's three waited on the cupboard doors (Gadgets); Mirror's
         # skull goes into the stacking group's box ("the latch in the
         # mirror", droha); Wilting Flowers' dirt cleans only once upright.
+        # Mirror's skull is in its "Little Things" since the level became
+        # two parts (droha, 2026-09-28): with the candle put out, three.
         ("DLC1 Tea Cabinet", "Cupcake"),
         ("DLC1 Tea Cabinet", "Spoon"),
         ("DLC1 Tea Cabinet", "Teacup Stack"),
-        ("Mirror", "Containables"),
+        ("Mirror", "Little Things"),
         ("Wilting Flowers", "Cleanable"),
         # DLC2 Boss's restored groups (Locks, Compass, Knives registered and
         # solved in droha's play); Compass and Knives are Shuffleables after
@@ -767,8 +787,8 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
             for level in levels:
                 if not level.has_parts:
                     continue
-                for abilities in level.part_abilities.values():
-                    if abilities:
+                for part in level.part_locations:
+                    if level.part_abilities[part]:
                         need_one += 1
                     else:
                         free += 1
@@ -840,7 +860,10 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # (Tidying + Sticking), became one mutual group. droha could not peel
         # a sticker holding only Tidying (2026-09-24), so Remove needs Sticking
         # too; the single-part level has no part checks.
-        self.assertEqual((23, 84), (free, need_one),
+        # Now (11, 77): parts that are endings of their own are that ending's check (Endings, 2026-09-28), and Medicine Cabinet's and Mirror's parts are merged.
+        # (10, 76) the same day: Mirror is two parts, the big items and the little things (droha, 2026-09-28).
+        # (10, 75): Mirror's little things folded into its Solution (droha, 2026-09-28).
+        self.assertEqual((10, 75), (free, need_one),
                          "the BASE GAME part requirement split changed; "
                          "regenerate names.json and re-measure before "
                          "accepting. The DLCs must not move this number - if "
@@ -901,7 +924,10 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # did them locks on with Drawer revoked (2026-09-26/27): Lunch Tray's
         # Tray Organizer and Broccoli, Sewing Box's Large Spools and Game
         # Pieces' Center Tiles.
-        self.assertEqual((43, 147), split(base + dlc1))
+        # Now (31, 139): parts that are endings of their own are that ending's check (Endings, 2026-09-28), and Medicine Cabinet's and Mirror's parts are merged.
+        # (30, 138) the same day: Mirror is two parts, the big items and the little things (droha, 2026-09-28).
+        # (30, 137): Mirror's little things folded into its Solution (droha, 2026-09-28).
+        self.assertEqual((30, 137), split(base + dlc1))
         # Seeing Stars leans on multiple solutions rather than on containers,
         # so proportionally more of its groups are free. (38, 125) -> (37, 126):
         # one group, DLC2 Combs' Draggables, behind that DLC's one real drawer.
@@ -924,13 +950,19 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # Now (29, 119): Material Drawers' Drawer Draggables gained Drawer -
         # droha, 2026-09-26, locks on without it: "impossible without the
         # drawers as you need to put the items in them".
-        self.assertEqual((29, 119), split(base + dlc2))
+        # Now (14, 98): parts that are endings of their own are that ending's check (Endings, 2026-09-28), and Medicine Cabinet's and Mirror's parts are merged.
+        # (13, 97) the same day: Mirror is two parts, the big items and the little things (droha, 2026-09-28).
+        # (13, 96): Mirror's little things folded into its Solution (droha, 2026-09-28).
+        self.assertEqual((13, 96), split(base + dlc2))
         # Every level: (47, 186) since Daggers' loose daggers, Lunch Tray's
         # Tray Organizer and Sewing Box's Top Drawer gained Drawer; (47, 184)
         # once Daggers' two parts left; (46, 185) with Material Drawers'
         # Drawer Draggables; (45, 186) with Tea Cabinet's Items Placements;
         # (49, 182) with the four DLC1 groups relaxed to free (see above).
-        self.assertEqual((49, 182), split(data.LEVELS))
+        # (34, 160) once parts that are endings of their own are that ending's check (Endings, 2026-09-28), and Medicine Cabinet's and Mirror's parts are merged.
+        # (33, 159) the same day: Mirror is two parts, the big items and the little things (droha, 2026-09-28).
+        # (33, 158): Mirror's little things folded into its Solution (droha, 2026-09-28).
+        self.assertEqual((33, 158), split(data.LEVELS))
 
     def test_a_part_never_asks_for_more_than_its_level(self):
         """The sanity direction: narrowing must not invent a requirement."""

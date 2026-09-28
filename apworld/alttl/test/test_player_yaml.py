@@ -142,6 +142,42 @@ class TestPlayerYaml(unittest.TestCase):
                 str(written), str(default),
                 f"{name}: template says {written}, default is {default}")
 
+    def test_the_quoted_roll_shares_are_the_draws(self):
+        """The template and the GeneratorWeight tooltip quote per-puzzle
+        percentages for the default weights. Computed here with the helper
+        the draw itself uses, so a changed default cannot leave them stale."""
+        from .. import slots
+        from ..options import (ArchiveWeight, BaseWeight, CupboardsWeight,
+                               GeneratorWeight, StarsWeight)
+
+        g, a, b = GeneratorWeight.default, ArchiveWeight.default, BaseWeight.default
+        c, s = CupboardsWeight.default, StarsWeight.default
+
+        def pct(weights):
+            return {k: round(v) for k, v in slots.roll_shares(weights).items()}
+
+        none = pct(slots.source_weights(g, a, b))
+        one = pct(slots.source_weights(g, a, b, dlc1=c))
+        both = pct(slots.source_weights(g, a, b, dlc1=c, dlc2=s))
+        # One line serves either DLC, and "each DLC" serves both: that only
+        # holds while the two DLC defaults are equal.
+        self.assertEqual(c, s, "player.yaml quotes one share for either DLC")
+
+        text = YAML.read_text(encoding="utf-8")
+        for line in (
+                f"no DLC      generator {none['generator']}%, event "
+                f"{none['archive']}%, campaign {none['base']}%",
+                f"one DLC     generator {one['generator']}%, event "
+                f"{one['archive']}%, campaign {one['base']}%, the DLC "
+                f"{one['dlc1']}%",
+                f"both DLCs   generator {both['generator']}%, event "
+                f"{both['archive']}%, campaign {both['base']}%, each DLC "
+                f"{both['dlc1']}%"):
+            self.assertIn(line, text)
+
+        for share in (none["generator"], one["generator"], both["generator"]):
+            self.assertIn(f"{share}%", GeneratorWeight.__doc__)
+
     def test_the_required_version_is_the_declared_minimum(self):
         """A template requiring a version older than the world supports lets a
         player generate against an Archipelago this world was never tested on."""
