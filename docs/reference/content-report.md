@@ -1,6 +1,6 @@
 # Content report: what the game actually contains
 
-Companion to [research-findings.md](research-findings.md), which covers the
+Companion to [research-findings.md](../history/research-findings.md), which covers the
 modding surface. This one covers the *content* and the *player-facing flow*.
 
 All numbers verified against build 24060652 / game version 3.6.1 on
@@ -257,7 +257,7 @@ SomethingEggstra Egg Cups  -> Shuffleables-Eggs_0 | Shuffleables-Eggs_1 | Shuffl
 | **Base campaign, for comparison** | **79** | **108** |
 | **Non-DLC grand total** | **111** | **162** |
 
-## DLC, noted and set aside
+## DLC
 
 Both DLCs are defined in the base build whether or not they are installed, so
 adding them later is a data change, not a code change. Their controllers are

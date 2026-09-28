@@ -64,16 +64,9 @@ cat traps and a live server make every run vary, so a flaky arrow session cost
 one run outright and muddied two others - noise mistaken for signal, because
 the instrument was much larger than the question.
 
-What to reach for instead:
-
-| Question | Tool | Cost |
-|---|---|---|
-| Did the logic change? | `dotnet test src/ALTTLArchipelago.Core.Tests` | ~1s |
-| Did generation or the id tables change? | the apworld suite | ~7s |
-| Does the option surface still fill? | `ALTTL_STRESS_SEEDS=25` fill stress | ~30s |
-| Can the harness get past a phased level? | `tools/probe-skip-path.py` | ~2 min |
-| Did I break the run or add errors? | a small reproducer, see below | minutes |
-| Is the release good? | this, in full | ~10 min |
+What to reach for instead is the smallest rung of the test ladder in
+`CLAUDE.md` that can see the bug: Core tests, the apworld suite, the fill
+stress sweep, a probe on one level, then `--quick`, then this in full.
 
 ## Before it launches: the seed is checked on paper
 
@@ -90,8 +83,19 @@ says why it passed over any other, for example:
     seed 20260907: the paper plan clears 15/15 in 24 visit(s), 2 Skip(s),
        3 cat-trap reset(s)
 
+With the arrow check in the run (not `--quick`), a seed must also open with a
+slot that ends on the panel's arrow: one the session can finish that is not a
+generator, since a generator with nothing left moves straight on. At the
+default weights most openings are all generators, so this skips several:
+
+    seed 20260906: no slot in the opening ends on the arrow (every one is a
+       generator or a level forcing cannot finish), so the arrow check would
+       test nothing
+
 `tools/make-seed.py` uses the same walk, so `test_harness_data.py` reads
 exactly the seed the gate will play. No seed in 20 clearing refuses the run.
+`tools/predict_gate.py` then reads that seed's pre-flight as the assertions
+it implies.
 
 The paper plan's per-level facts come from `fixtures/forceability.jsonl`:
 every level forced alone by `tools/probe-forceable.py --all` (then
@@ -113,7 +117,7 @@ in-game setup on its own, in about three minutes.
 
 Every counter carries its total. Setup steps are `[step 2/7 assets]`; during
 play every line is `[visit 4/24 | 4/15 beaten]`, the visit counted against the
-paper plan; the verdicts are `[check 12/27] PASS ...`.
+paper plan; the verdicts are `[check 12/28] PASS ...`.
 
 It stops itself, loudly, instead of improvising: a visit that is not the
 planned one, a Skip about to land on a level other than the one it was bought
@@ -231,9 +235,8 @@ manual, once per release:
 > Confirm the level completes, the mod banks a Beaten token, and the checks
 > reach the server.
 
-`tools/setup-handtest.py` does the setup: it rolls seeds until one holds both
-levels, opens the whole run, serves it, and grants one level's declared
-abilities at a time.
+`tools/handtest-level.py <index> <ability ...>` does the setup: it serves a
+seed holding exactly the abilities named and boots the level.
 
 **Grant the declared set, not every ability**, which is the one thing worth
 being strict about. Granting everything answers "does the level work", which
@@ -326,28 +329,23 @@ opens. The probe is sized so a gated level is always drawn - twenty slots from
 Seeing Stars alone, measured 20 of 20 - rather than rolling seeds and hoping,
 which an earlier version did and missed twelve times running.
 
-### The other hand tests, which live in their own files
+### The other in-game checks
 
-Neither is automatable and neither is listed anywhere else, so they were easy
-to forget - which is the whole reason they are named here:
+The gate cannot do these, so they are named here to be remembered. All of them
+are in [testing.md](testing.md):
 
-- **[manual-hint-test.md](manual-hint-test.md)** - the Hint Page gate. Six
-  checks that need hands on a mouse, because the notepad only reveals a page
-  in response to a real click.
-- **[cat-trap-tests.md](cat-trap-tests.md)** - what the cat trap does, what has
-  actually been proven about it, and the battery that has to stay green. Worth
-  re-reading rather than re-running for a release that touched `Traps.cs`: the
-  trap has been wrong three times, and each time it passed a test first.
-- **[manual-container-test.md](manual-container-test.md)** - whether a drawer,
-  cupboard door or lid pays its check. ANSWERED 2026-09-17: yes, every flagged
-  group fires, and the data was right while the harness was wrong. Kept
-  because the reasoning is the useful part: a harness cannot tell "no player
-  can earn this" from "I cannot pull a drawer open", so a force-solve probe
-  must never be read as evidence that a location is dead.
-- **[manual-lock-test.md](manual-lock-test.md)** - every ability-lock fix,
-  how `tools/probe-lock-roundtrip.py` tests it on every level, and the lock
-  checks that still need hands. Run the probe on any release that touched
-  `AbilityLocks.cs` or `ObjectLock.cs`.
+- **Hint Pages** - the erasing needs hands on a mouse.
+- **Cat traps** - worth re-reading for any release that touched `Traps.cs`:
+  the trap has been wrong three times, and each time it passed a test first.
+- **Ability locks** - run `tools/probe-lock-roundtrip.py` on any release that
+  touched `AbilityLocks.cs` or `ObjectLock.cs`.
+- **Background Reset Token, navigation after a puzzle** - the checks listed
+  there.
+
+A harness cannot tell "no player can earn this" from "I cannot pull a drawer
+open", so a force-solve probe must never be read as evidence that a location
+is dead ([history/manual-container-test.md](../history/manual-container-test.md)
+has the case that taught it).
 
 ## The automatic route
 
@@ -360,10 +358,10 @@ install the world from its `.apworld`, generate a 15-puzzle seed,
 launch and connect, play the run to the credits, and check the campaign save
 was never written.
 
-15 because it is the option's floor since 2026-09-23 (it was 8). The
-generator, not the yaml, decides the packs: at 15 puzzles the pack cap is 3 and
-`MIN_OPENING` raises the size to 5, so a requested `pack_size: 2` becomes 5
-open free and two packs of 5 (boundaries `[5, 10, 15]`).
+15 puzzles: three blocks of 5 (the option's floor is 10, two full packs).
+The yaml asks for `pack_size: 5`, the option's floor; the generator decides
+how many packs that buys (the cap is 3 at 15 puzzles): 5 open free and two
+packs of 5 (boundaries `[5, 10, 15]`).
 
 The whole run happens in **one game launch**, and that is asserted rather than
 hoped for - it took two fixes to get there and both are easy to undo by
@@ -425,7 +423,7 @@ and make sure there is no `Archipelago/worlds/alttl/` folder - a loose copy
 satisfies the import and the packaged world never gets exercised.
 
 **4. Generate.** Copy `apworld/alttl/player.yaml`, set `puzzle_count: 15`,
-`levels_to_beat: 15`, `pack_size: 2` for a short run (15 is the floor), and:
+`levels_to_beat: 15`, `pack_size: 5` for a short run (the floor is 10), and:
 
 ```
 cd Archipelago
@@ -450,8 +448,8 @@ name, and press Connect.
 
 | Claim | Where you see it |
 |---|---|
-| the mod loaded | `features live: save redirect, connection pane, track, skips, hints, navigation, daily guard, title screen, ability locks, card stars` in `BepInEx/LogOutput.log`, and no `PATCH FAILED` |
-| the seed came through | `connected. 15 puzzles, 2 packs of 2, beat 15 to unlock the credits` |
+| the mod loaded | `features live: save redirect, connection pane, track, skips, hints, navigation, daily guard, title screen, ability locks, card stars, success stars, retry panel, steam achievements, cursor guard` in `BepInEx/LogOutput.log`, and no `PATCH FAILED` |
+| the seed came through | `connected. 15 puzzles, 2 packs of 5, beat 15 to unlock the credits` |
 | the track is gated | `track: 15 puzzles, 5 open, 2 packs` - five of fifteen, not all fifteen |
 | checks reach the server | `checks: sent 1, 0 still owed` |
 | packs open more | `track: 1/2 packs, 10 puzzles open (+5)` |

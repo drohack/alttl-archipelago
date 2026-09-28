@@ -123,7 +123,7 @@ Keep it short: add a rule here as one line, never as a story.
   ignores the registry for size, so registry reads are not evidence. Never
   fullscreen, never 4K.
 - DevTools commands go in `<game>/BepInEx/alttl-devtools-commands.txt`; see
-  `docs/devtools.md`. Log: `<game>/BepInEx/LogOutput.log`. It can hold more
+  `docs/dev/devtools.md`. Log: `<game>/BepInEx/LogOutput.log`. It can hold more
   than one launch: read state from the last one, never the first match.
 - A command still queued when the game froze runs at the next launch (a stale
   `xrefs` killed one): empty the command file after any freeze.
@@ -166,12 +166,14 @@ Keep it short: add a rule here as one line, never as a story.
 
 ## 8. Docs
 
-Read when relevant: `README.md`, `docs/installation.md`, `docs/devtools.md`,
-`docs/release-testing.md`, `docs/in-game-testing.md`.
+Map: `docs/dev/README.md`. Read when relevant: `docs/dev/devtools.md` (DevTools
+commands), `docs/dev/testing.md` (harness safety, hand tests, lock probe),
+`docs/dev/release-testing.md` (the gate), `docs/dev/level-data.md`
+(levels.json), `docs/dev/backlog.md`, `tools/README.md` (every tool),
+`docs/installation.md` and `README.md` (players).
 
-History, do NOT read by default (large, mostly past incidents):
-`CHANGELOG.md`, `docs/verification-log.md`, `docs/research-findings.md`,
-`docs/superpowers/`, `docs/data/*.md`.
+`docs/reference/`: game facts and tool output. `docs/history/` and
+`CHANGELOG.md`: closed records - do NOT read by default (large, past incidents).
 
 - Answer chat questions in chat. Do not create a new `.md` file unless asked.
 - Commit messages: subject + a few lines. Not essays.

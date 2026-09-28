@@ -6,7 +6,7 @@ obj/
 /src/GameDir.props
 
 # DevTools output. It is written into the game's BepInEx folder, not here, so
-# these only catch a stray copy; the curated copies live in docs/data/.
+# these only catch a stray copy; the curated copies live in docs/reference/.
 /alttl-dump.json
 /alttl-solutions.tsv
 /alttl-events.log
@@ -39,10 +39,10 @@ __pycache__/
 # ... except the ability icons, which are SOURCE rather than an artifact.
 # They are embedded in the mod DLL and are what the level-select strip
 # draws; without them a clean clone builds a strip of lettered plates and
-# nothing says why. See docs/data/ability-icons.md.
+# nothing says why. See docs/reference/ability-icons.md.
 !src/ALTTLArchipelago/Icons/*.png
 
-# ... and the two README pictures of the level-select strip, which are the
+# ... and the three README pictures of the level-select strip, which are the
 # only thing that shows a reader what ability locks look like. Cut by
 # tools/crop-ability-strip.py from frames tools/capture-ability-strip.py
 # takes out of the running game.

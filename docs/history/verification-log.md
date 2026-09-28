@@ -17,7 +17,7 @@ rather than `borderImage` (S5, resolved 2026-09-02), and the opaque solution
 id.
 
 Game build 24060652, version 3.6.1. Probe commands used are in
-[devtools.md](devtools.md).
+[devtools.md](../dev/devtools.md).
 
 ---
 
@@ -498,7 +498,7 @@ test was corrected to match the implementation, not the other way round.
 ### S4 - how common are controller dependencies? PASS
 
 Folded into the solution survey as a `dependsOn` column
-([fixtures/controller-survey.tsv](../fixtures/controller-survey.tsv)).
+([fixtures/controller-survey.tsv](../../fixtures/controller-survey.tsv)).
 
 **Only 9 of 380 controllers have any dependency, across 5 levels** - and most
 are *mutual* pairs, which is more interesting than a dependency chain:
@@ -2435,7 +2435,7 @@ should be the harness's job, not a habit.
 plugin configs and every file in the game's save folder on entry, and on exit
 restores them and deletes anything the run created. `tools/playthrough.py` and
 `tools/emptysoak.py` are wrapped in it. Written up in
-[docs/in-game-testing.md](in-game-testing.md).
+[docs/in-game-testing.md](../dev/testing.md).
 
 Verified against the real install rather than a fixture, by fingerprinting all
 17 protected files, mutating them the way a harness does, and comparing after:
@@ -2556,7 +2556,7 @@ Three assets, one version, built by `tools/package-release.py`:
     alttl.apworld                 40,717 bytes   the world
     A Little to the Left.yaml      3,862 bytes   the player template
 
-Plus `CHANGELOG.md` and [docs/installation.md](installation.md).
+Plus `CHANGELOG.md` and [docs/installation.md](../installation.md).
 
 **The packager refuses rather than warns.** Both refusals were tested by
 causing them:

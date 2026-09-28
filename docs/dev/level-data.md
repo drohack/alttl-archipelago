@@ -1,4 +1,14 @@
-# Shared data
+# Level data
+
+`apworld/alttl/data/` holds what both the apworld and the mod know about the
+game. This is how it is made and maintained.
+
+| File | Made by | What it is |
+|---|---|---|
+| `levels.json` | the DevTools sweep, merged (below) | every level: controllers, phases, drawers, hints, cats |
+| `abilities.json` | hand-authored | which controller classes each ability unlocks; the base twelve's key order is frozen (item ids hang off it), DLC abilities under `dlcAbilities` |
+| `names.json` | Core `NamesExportTests` (`ALTTL_WRITE_GOLDEN=1 dotnet test`) | location and item names exported from C#, pinned by the Python tests |
+| `proven-requirements.json` | hand-authored | which levels' part requirements are proven (by a hand test, with a date) or suspect; see its `_comment` |
 
 `levels.json` is the single source of truth about the game's content, consumed
 by **both** the Python apworld and the C# mod. It is generated, not hand
@@ -17,14 +27,60 @@ and writes it back changes nothing but what it meant to change.
 
 ### Fields worth knowing about
 
-- `source` is which pool a level is drawn from: `generator`, `archive`, `base`,
-  `dlc1` or `dlc2`.
+- `source` is which pool a level comes from: `generator`, `archive`, `base`,
+  `dlc1` or `dlc2`. A `generator` level is launched with a baked seed.
 - `dlc` is which DLC the player must own, or absent for base content. **It is
   not derivable from `source`**: four DLC levels carry the game's own
   randomizer flag, so their source is `generator` while they still need the DLC
-  installed. Eligibility keys off `dlc`; weighting keys off `source`.
+  installed. Eligibility and the draw's weights both key off `dlc`
+  (`Level.draw_source`); the seed off `source`.
+- `controllers[]`: `name`, `type` (the controller class, which `abilities.json`
+  maps to an ability), `objects`, `dependsOn` (controllers that must be solved
+  before this one can be), and `notALocation` for a group solved at load or
+  never solvable (`tools/probe-solved-at-load.py`).
 - `extraAbilities` is the hand-authored escape hatch for an ability a level
-  needs but its registered controllers do not reveal.
+  needs but its registered controllers do not reveal; `bypassedAbilities` the
+  reverse, an ability a level declares but a hand test showed it does not need.
+- `drawers[]`: each drawer or cupboard, what it contains and what opens or
+  unlocks it, harvested from the game's own Drawer component
+  (`tools/merge-drawers.py` backfills rows that predate it).
+- `endings` (2026-09-28): the solution id of each ending, in the table's
+  order, `null` for one nobody has seen yet. Core's `Endings` names them
+  from the ids ("Solution: Stacked", "Solution: Ordered 2", "Solution: Other
+  1" for an unseen one) and matches each to the group its id names. Ids come
+  from `LevelComplete  id=... solutionId=...` lines in play and gate logs
+  (`fixtures/solution-ids-observed.tsv`), and from the game's own save,
+  which records every id found (`levelCompletionData[].solutions[]
+  .solutionId`, decoded by `harness_env._decode_save`) - the Seeing Stars
+  Boss's phase endings (Lock, Compass) only ever show up there. Every
+  ending has been seen since droha's hand tests of 2026-09-28; a new one
+  goes in place of a `null`, never reordering. Generators too:
+  their ids are the same on every seed, by position ("Ordered_0",
+  "Ordered_1"), even where the seed picks which sorting rules count. An
+  entry may answer to several ids, `|`-separated: Books (Randomized)'s
+  second is `"Shuffle_1|Draggables_0"`, since a symmetric seed checks its
+  second solution with a second controller over the same books (`gensweep`
+  shows each controller's solutions after generation).
+- `mergedParts`: `{"part name": [controllers]}`, several groups checked as
+  one part (Medicine Cabinet's "Red Items", Mirror's "Still Life" and
+  "Little Things").
+- `solutionOnlyParts`: part names done only as part of the Solution - still
+  a group, so the level keeps its other part checks and the group's
+  abilities stay in the Solution, but no check of its own (Mirror's "Little
+  Things", droha 2026-09-28). Not `notALocation`: a level left with one group
+  mints no part check at all.
+- `finishesAlone`: controllers whose group, forced alone, finished the level
+  (`groups` in `fixtures/forceability.jsonl`). Only there does an ending
+  named for a group ask for just that group's abilities
+  (`rules.narrowed_group`); anywhere else it asks for the whole level.
+  Re-measure with `tools/probe-forceable.py` before adding one.
+- `phases`, `cats`, `levelClass`, `hint*`: see below and `DataTable.cs` in
+  DevTools.
+
+Hand-test results go in `proven-requirements.json`, and a missing ordering
+between groups as a `dependsOn` edge through `tools/add-edges.py`, which
+refuses anything it cannot justify. Understating a requirement softlocks a
+seed; overstating is safe.
 
 It is a **runtime** sweep, and that matters. Walking a loaded level prefab with
 `GetComponentsInChildren<ObjectController>` finds a different set than
@@ -72,8 +128,8 @@ gated on a solve rather than on time.
 **The level knows, and the sweep now asks it.** PhasedLevel.phases,
 TupperwareNesting.GetPhaseControllers() and RadialDanceParty.dances are ordered,
 authored lists naming exactly which controllers a level reveals. They are
-recorded in the `phases` field, and exactly three levels in the game have one:
-PawPrints (3), TupperwareNesting (6) and Radial Dance Party (10).
+recorded in the `phases` field, and four levels have one: PawPrints (3),
+TupperwareNesting (6), Radial Dance Party (10) and DLC2 Ghost Cat (9).
 
 That turned the phased-versus-ghost question from a judgement call into a
 deduction: anything in the prefab, absent at boot, and named in no phase list
@@ -84,7 +140,7 @@ So when regenerating, do NOT assume a fresh sweep is complete - it still records
 only phase one. Run the C# test suite: `SurveyCrossCheckTests` holds the new
 table up against the prefab survey and pins the remaining gaps, so losing more
 of them fails the build. `tools/classify-controllers.py` writes the full
-per-controller classification to `docs/data/controller-classes.tsv`.
+per-controller classification to `docs/reference/controller-classes.tsv`.
 
 `fixtures/controller-survey.tsv` is the prefab-derived survey. It walks
 `GetComponentsInChildren<ObjectController>(true)` - note the `true`, so it

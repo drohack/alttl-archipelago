@@ -66,7 +66,7 @@ drawn from files.
 
 ## The tools this needed
 
-All in `src/ALTTLDevTools/Plugin.cs`:
+Dispatched in `src/ALTTLDevTools/Plugin.cs`, implemented in `SpriteCommands.cs` and `LevelCommands.cs`:
 
 - `sprites <filter>` - every loaded sprite name. 998 at the title screen.
 - `spritegrid:<names>` - draws a batch on screen at full size AND at icon

@@ -23,9 +23,11 @@ that are probably fine.
 
 The mod is a BepInEx plugin, so BepInEx has to be there first.
 
-1. Get **BepInEx 6 for Unity IL2CPP, x64** - the bleeding-edge builds, not
-   BepInEx 5. The game is Unity 2020.3.26f1 / IL2CPP, and BepInEx 5 will not
-   load it.
+1. Get **BepInEx 6 for Unity IL2CPP, x64**, build be.697 - the one the mod
+   is tested with:
+   [BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.697](https://builds.bepinex.dev/projects/bepinex_be/697/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.697%2B5362580.zip).
+   Not BepInEx 5: the game is Unity 2020.3.26f1 / IL2CPP, and BepInEx 5 will
+   not load it. Newer bleeding-edge builds have not been tested.
 2. Extract it into the game folder: the one containing
    `A Little To The Left.exe`. On Steam that is usually
    `steamapps/common/A Little To The Left`.
@@ -44,6 +46,7 @@ is laid out so the files land in the right place:
 ```
 <game folder>/
   A Little To The Left.exe
+  README.txt              (these steps, short)
   BepInEx/
     plugins/
       ALTTLArchipelago/
@@ -60,7 +63,7 @@ Launch the game. The main menu gains an **Archipelago** entry.
 
 Open the Archipelago entry and fill in:
 
-- **Address** - the host and port from the room page, as `host:port`
+- **Server** - the host and port from the room page, as `host:port`
 - **Slot name** - your player name in the multiworld, exactly as in your yaml
 - **Password** - only if the room has one
 
@@ -100,8 +103,10 @@ tested against in CI, and the version the template declares.
 
 Delete `BepInEx/plugins/ALTTLArchipelago/`. The campaign save was never
 modified, so the ordinary game is exactly where you left it. Randomized runs
-live in their own `save_ap_*` files beside it and can be deleted too, or kept
-in case you rejoin.
+live in an `Archipelago` folder inside the game's save folder
+(`%USERPROFILE%/AppData/LocalLow/maxinferno/A Little To The Left/Archipelago`),
+which can be deleted too, or kept in case you rejoin. It sits outside what
+Steam Cloud syncs, so runs never crowd out the campaign save there.
 
 ## Troubleshooting
 

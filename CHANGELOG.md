@@ -9,6 +9,185 @@ refuses to connect to a seed a different apworld generated.
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+**New seeds only.** A new item, new locations and a changed draw: a 0.4.2 seed
+stays on 0.4.2.
+
+### From the 0.4.2 two-player playtest (droha and Kat, 2026-09-27)
+
+- **Nothing playable goes to the level select.** When no open card has
+  anything the run can do, the next arrow, a finished puzzle and the daily
+  guard now show the track, with "Nothing to play yet - waiting on items",
+  instead of opening a blocked puzzle. The pickers moved to Core
+  (`SlotPicker`). Checked in game with every ability revoked.
+- **The title is no longer drawn under the level select.** Reproduced: after
+  a generator finished on the Daily page, the menu system's active menu was
+  still the Daily menu when Levels was pressed. The press now waits for the
+  title, presses its own Levels, and a backstop takes a leftover title down.
+- **A solution is judged by the part its ending names.** Every solution
+  location carries the level's whole ability set, so Spoons' Size (Elastic)
+  ending was withheld for Stacking. The ending's id names its controller for
+  198 of 219 ids seen (`SolutionParts`); those file on that part's abilities.
+- **Endings have fixed names** (droha: "yes we want fixed ending names"):
+  "Spoons - Solution: Stacked", "Keys - Solution: Ordered 2", "Radial Dance
+  Party - Solution", instead of "Solution 1, 2..." filled in the order found.
+  The mod files the ending the game's solution id names
+  (`CheckRouter.ForEnding`); an id the table does not know fills "Solution:
+  Other 1, 2..." in the order found, the same at every launch. Generated
+  puzzles too (droha: "don't generated puzzles still have fixed
+  solutions?"): their ids are the same on every seed, by position, so
+  "Pencils (Randomized) - Solution: Ordered 2" is the seed's second rule
+  whichever is found first. Books (Randomized) checks its second solution
+  with a second controller on symmetric seeds, so that ending answers to
+  either id (`Shuffle_1|Draggables_0`, measured with `gensweep:40:995`, which
+  now records each controller's solutions). The fourteen endings nobody had
+  seen were played by hand the same day, so every ending has a real name;
+  "Other" is only for an id the table does not know.
+- **An ending is one check, not two** (droha: "No reason to give an ending
+  2 locations"). On a level with several endings, a group that is itself an
+  ending (Spoons' Stacked) has no part check. Its ending asks only for the
+  group's abilities where forcing that group alone finished the level
+  (`finishesAlone` in levels.json, eleven levels); every other ending asks for
+  the whole level, as Sharp Pencils, DLC1 Fountain Pens, DLC2 Robots and DLC2
+  Bells need. Base locations 423 -> 401, DLC1 115 -> 114, DLC2 141 -> 124.
+- **Medicine Cabinet is checked per colour** (droha: "yes per color"): the
+  seven groups of red items are one part, "Red Items". Mirror's big items
+  in place are one, "Still Life" (jug, candle, dish, bottle, the books-and-box
+  stack); its little things - the lemon wedge, what goes in the containers,
+  the candle put out - are part of its Solution, no check of their own
+  (droha; `solutionOnlyParts`). A part now files on its group's
+  last controller, not its first: placing the cup no longer sent "Red Items"
+  (checked in game, filed as the seventh went in).
+- **Media Cabinet (Cupboards and Drawers) no longer waits for Drawer**
+  (playtest item 9). Kat finished it without Drawer and its Solution was
+  withheld; droha's hand test (2026-09-28, holding only Ordering and
+  Stacking) finished all four parts and the level the same way. Drawer is
+  now in `bypassedAbilities`: the Solution and Beaten need Ordering and
+  Stacking.
+- **Cards in packs not opened draw locked.** A repeated generator's later
+  copy showed its art in colour because an earlier copy was played; the
+  per-card rule ran before the card was in the track's list, so it now runs
+  again once the track is built. Checked on Pack 5.
+- **No retry panel pop-up when a finished puzzle moves on** (droha). With
+  nothing left to find the panel is not shown and its own arrow is used; with
+  solutions left it shows as before. Generators keep the game's straight-on
+  route; every other level takes the panel's, since the straight-on route
+  broke pause-menu Exit on Seed Pods and preceded the lost cursor after
+  Tupperware Tower. `CursorGuard` puts the cursor back if anything hides it
+  in a playable puzzle.
+
+### New
+
+- **Background Reset Token** (droha, 2026-09-25), a filler item: the pause
+  menu's Reset Background entry spends one to put every backdrop back to the
+  game's own colour until the next Background Change Trap. Never automatic.
+  Half the filler left after traps and the hint floor (below).
+- **The mod's files moved out of the Steam Cloud.** Steam syncs `*.json` in
+  the save folder, four files at most, and every extra run went "over quota".
+  Run saves, run files and the session cache now live in
+  `<save folder>/Archipelago/`; a launch moves the old ones in. Steam's log
+  now finds one file, `save1.json`.
+- **Achievements as checks** (droha, 2026-09-28), `achievements`, off by
+  default: 7 puzzle achievements in the base game, 17 with both DLCs, each a
+  check only when its puzzle is in the run. Chosen from DevTools
+  `achievements`, which reads the level every checker watches; the ones that
+  name no puzzle (chapters, hints, the credits, a DLC1 cat interlude) or
+  repeat a check the run has (Ghost Cat's finish, a Boss ending, Figurines'
+  "Groupables (Achievement)" part, Paw Prints' leaves and spill in Path of
+  Destruction, the Sharp Pencils shavings and Breadtags crumbs in Sweep Them
+  On The Floor, which also waits for both puzzles) are left out, and so is
+  Keep Away: droha met it four times on Place Setting and it never fired.
+  Each needs its puzzle's whole ability set, holds no progression, and is
+  outside the star and the Skip. One the Steam profile already holds is
+  earnable too: the mod clears the game's in-memory "achieved" flags at each
+  puzzle, never Steam's. droha's hand test (2026-09-28, an achievements
+  seed) filed 14 as real checks in a run: Fun for Humans Too, Draw Me A
+  Rainbow, Top Heavy Slice, Can Do Altitude, Rainbow To The Moon, Keeping
+  Count, Where Is My Cap?, Bad Kitty, Show Off, Sticky Wand, A Balanced
+  Meal, Grabbed the Wrong End, and - held on droha's profile - I'll Take My
+  Water Neat and Harmonized Purr; Exacting Eggs, Unstable Stacker and Now
+  You're Playing With Power fired on their puzzle in earlier runs. All 17
+  seen.
+
+### Generation and options
+
+- **Filler** (droha, 2026-09-28): Cat Traps default to 15% of the filler
+  (was 25); Background Change Traps take their own share,
+  `background_trap_chance` (15); after the `hint_coverage` floor the rest is
+  split evenly between Hint Pages and Background Reset Tokens ("have even
+  hint and background reset tokens as the only fill").
+- **Option ranges say what the generator does**, each end measured by
+  generating it: `puzzle_count` 10 to 130 (a 130-puzzle run loaded in game;
+  its overview strip shrank to fit but started 430 px off the left edge, so
+  the first 50 cards were hidden - it now stays centred, with the ends a few
+  pixels clear of the screen edges; and the bar it sits in, which carries
+  the scrollbar, shrinks with it: before, the bar stayed 3037 wide on a 1920
+  screen, so dragging it stopped short of both ends and its handle was drawn
+  off-screen (droha, 2026-09-28)),
+  `pack_size` 5 to 20 and `guaranteed_open_slots` 4 to 20: below 5 and 4 the
+  generator already raised them. `guaranteed_open_slots` defaults to 5, the whole opening at the
+  default pack size (droha: "in step with default pack size"). Tooltips and
+  `player.yaml` lose the stale "five chapters", state each range once, and
+  say the weights are relative and need not add up to 100; Mechanic
+  Coverage 6 is no longer described as identical to 5 (it reserves one more
+  stacking and container puzzle).
+- **A hint says where the puzzle is on the track**: "Pack 2, puzzle 4" or
+  "Opening, puzzle 3", the level select's own section names, instead of
+  vanilla's "Ch.2 Level 3", which a run's track never showed.
+- **The four fixed-layout DLC levels roll under their DLC's weight**, not
+  `generator_weight`: with both DLCs on they were in every default run, and
+  still in every run with both DLC weights at 0. `player.yaml` puts all five
+  weights together and quotes each source's share for the defaults, pinned to
+  the draw by a test.
+
+### Tools and docs
+
+- DevTools: `achievements` (with each achievement's description, and the
+  level and settings every checker holds), `cursor`, `scrolltrack:<n>`;
+  `watch:` prints the level's colour fields.
+- DevTools restructured (droha: "make sure it's documented well, and
+  structured well"): commands dispatch from one table, `help` lists them by
+  area and an unknown command suggests the nearest; files regrouped by area
+  with shared helpers; `docs/dev/devtools.md` rewritten to match the code
+  row for row (fourteen rows had drifted), and `check-devtools.py` now
+  compares every spelling and area with it. Nine finished-investigation
+  commands deleted with their seven always-on patches (`showpause`,
+  `launchtrace`, `reorder:`, `cardlabels`, `tint`, `inert:`, `lockcard:`,
+  `marker:`, `resettest`). New: `objects:<file>` (`state:<file>` still
+  works), `stop` ends a running sweep, `<name>:off` for every switch.
+  `gensweep:<seeds>[:<index>]` - it read an index as a seed count, and
+  `gensweep:1013` would have started 16,000 regenerations nothing could
+  stop. No more `alttl-events.log` or launch auto-dump; `dump` records
+  whether the mod was loaded and `check-game-facts.py` refuses one that was.
+- Docs reorganised: `docs/dev/` (developer guide, DevTools, testing, release
+  gate, level data, backlog), `docs/reference/`, `docs/history/`, and
+  `tools/README.md` indexing every tool. Four superseded setup tools deleted
+  (window-size, handtest-chalk, setup-handtest, setup-ability-handtest).
+- `harness_env` restores only files whose bytes changed, and covers the new
+  folder.
+- Release gate: the patch census reads the feature list from `Plugin.cs`
+  (four features had gone unasserted), the yaml asks for the pack size it
+  gets (5), and `predict_gate.py` asks the gate's own pre-flight instead of a
+  second model that disagreed with it on Desktop Computer. The arrow check
+  never starts on a generator: with nothing left it moves straight on, so
+  there is no arrow, and the new defaults put Stamps (Randomized) first; the
+  seed walk passes over a seed whose opening has no other slot. A forced
+  solve answering "no level running" without a LevelComplete is no longer
+  counted as a completion: the pass is refunded, as for a cat trap, once the
+  level is back (the DLC gate's Trophy Cabinet relaunched mid-solve).
+- `handtest-level.py --achievements` for a seed with achievement checks.
+- Every tool starts the game through `release_e2e.launch_game()`, muted from
+  DevTools' first frame (droha: "you should be muting when you're testing in
+  the background"); `probe-slots.py` and the hand-test setups played sound.
+- Release gate and fixed endings: the paper plan files the ending forcing
+  makes, which depends on what is held (Spoons without Stacking finishes on
+  Size), and leaves every other ending to a Skip. The ids forced
+  completions report are harvested from the gate logs into
+  `fixtures/forced-endings.tsv` (`tools/harvest-forced-endings.py`). The
+  spoiler reader split "Location: Item" at the first colon, which ending
+  names now have, and called seed 20260909 a generation bug.
+
 ## 0.4.2 - 2026-09-27
 
 **New seeds only.** The logic changes below change what a seed requires, so a

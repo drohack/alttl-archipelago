@@ -229,8 +229,8 @@ one):
 | Jigsaw fitting | 5 | 5 | `DraggablesJigsaw` |
 | Set-piece / bespoke | 4 | 6 | `RecordPlayer`, `HourglassController`, `ComputerErrorsController`, ... |
 
-Raw data: [fixtures/controller-survey.tsv](../fixtures/controller-survey.tsv) and
-[docs/data/level-table.json](data/level-table.json). Both are PREFAB walks and
+Raw data: [fixtures/controller-survey.tsv](../../fixtures/controller-survey.tsv) and
+`docs/data/level-table.json` (deleted 2026-09-27: superseded by levels.json). Both are PREFAB walks and
 describe what a level was authored to contain, which is not the same as what it
 does at runtime - see the classification below before drawing a conclusion from
 either.
@@ -243,7 +243,7 @@ one playtest bug at a time until 2026-09-09, when it turned out **the game
 declares the answers** and nothing here had read them.
 
 `tools/classify-controllers.py` writes one row per controller to
-[docs/data/controller-classes.tsv](data/controller-classes.tsv), classified as:
+[docs/data/controller-classes.tsv](../reference/controller-classes.tsv), classified as:
 
 | Class | Count | Meaning |
 |---|---:|---|
@@ -306,7 +306,7 @@ lock a level behind a total-solutions count and show it as locked.
 The probe (`src/ALTTLDevTools/`) is a BepInEx plugin driven by a file-command
 channel at `BepInEx/alttl-devtools-commands.txt`. It had five commands when
 this was written - `dump`, `solutions`, `state`, `boot:<index>[:<seed>]` and
-`complete`; it has about thirty now, and [devtools.md](devtools.md) is the
+`complete`; it has about thirty now, and [devtools.md](../dev/devtools.md) is the
 current list.
 
 | Claim | Result |
@@ -331,7 +331,7 @@ three were the load-bearing risks the design was hedged against.
   probe running and read `alttl-watch.log`.
   *Settled: [verification-log.md](verification-log.md), S2 PASS. This is also
   why `complete` is banned in reproducers - see
-  [release-testing.md](release-testing.md).*
+  [release-testing.md](../dev/release-testing.md).*
 - **Whether the level-select UI honours a forced lock.** `IsUnlocked` can be
   read; nothing has yet tried to *hold a level locked* against the player.
   *Settled: verification-log.md, S6 PASS. It is now how every locked card on
