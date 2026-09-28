@@ -113,7 +113,7 @@ def force(log, names, rows, wait):
 
 def launch(log, tag):
     log.before_launch()
-    subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+    e2e.launch_game()
     got = ""
     for waited in range(0, 120, 5):
         time.sleep(5)

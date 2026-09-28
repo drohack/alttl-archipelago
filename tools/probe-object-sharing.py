@@ -39,7 +39,7 @@ OUT = os.path.join(REPO, "testserver", "out-abilitytest")
 CMDS = os.path.join(REPO, "testserver", "abilitytest-cmds.txt")
 SERVER_LOG = os.path.join(REPO, "testserver", "abilitytest-server.log")
 DUMP = os.path.join(e2e.GAME, "BepInEx", "alttl-sharing.tsv")
-REPORT = os.path.join(REPO, "docs", "gate-sharing.md")
+REPORT = os.path.join(REPO, "docs", "reference", "gate-sharing.md")
 
 #: Classes that hold objects without acting on them. Mirrors
 #: ObjectLock.Enclosures in Core: the dimmer never lets them free an object
@@ -64,7 +64,8 @@ def tables():
         lv = json.load(f)
     levels = [(l["levelIndex"], l["levelId"]) for l in lv["levels"]
               if len(l["controllers"]) > 1
-              and (WANT_DLC or not l["source"].startswith("dlc"))]
+              # `dlc`, not source: four DLC levels have source "generator".
+              and (WANT_DLC or not l.get("dlc"))]
     return owner, levels
 
 
@@ -94,7 +95,7 @@ def sweep(levels):
     log = e2e.Log()
     log.before_launch()
     ensure_no_steam_relaunch()
-    subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+    e2e.launch_game()
     if "connected. " not in log.wait(["connected. "], 150, 1, "the connection"):
         sys.exit("FAIL: " + (e2e.why_no_connection(e2e.whole_log()) or "no connect"))
     time.sleep(4.0)

@@ -461,6 +461,43 @@ class TestTheArrowCheckPicksASolvableSlot(unittest.TestCase):
              "Open - S": [], "Open - Beaten": []})
         self.assertEqual(1, e2e.arrow_slot(slots, plan, where))
 
+    def test_it_never_starts_on_a_generator(self):
+        """A generator with nothing left moves straight on: there is no arrow
+        to press. The full gate of 2026-09-28 started on Stamps (Randomized),
+        and the harness's forced finish relaunched it, so both navigation
+        checks failed on a level that has no arrow at all. SnackPack Cereal,
+        where the gate had always started, is not a generator."""
+        slots, plan, where = world(
+            ["Stamps (Randomized)", "Open"],
+            {"Stamps (Randomized) - S": [], "Stamps (Randomized) - Beaten": [],
+             "Open - S": [], "Open - Beaten": []})
+        plan["seeds"] = [495132956, -1]
+        self.assertEqual(1, e2e.arrow_slot(slots, plan, where))
+
+    def test_a_seed_with_no_arrow_slot_has_no_candidates(self):
+        """judge_seed walks past such a seed when the arrow check runs."""
+        slots, plan, where = world(
+            ["Stamps (Randomized)", "TupperwareTower"],
+            {"Stamps (Randomized) - S": [], "Stamps (Randomized) - Beaten": [],
+             "TupperwareTower - Solution 1": [], "TupperwareTower - Beaten": []})
+        plan["seeds"] = [495132956, -1]
+        self.assertEqual([], e2e.arrow_candidates(slots, plan, where))
+        self.assertEqual(0, e2e.arrow_slot(slots, plan, where))
+
+    def test_the_judge_refuses_a_seed_without_an_arrow_slot(self):
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "release_e2e.py"), encoding="utf-8") as fh:
+            text = code_only(fh.read())
+        body = text[text.index("def judge_seed("):]
+        body = body[:body.index("\ndef ")]
+        self.assertIn("if arrow and not arrow_candidates(", body)
+
+    def test_the_plan_carries_each_slots_seed(self):
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "release_e2e.py"), encoding="utf-8") as fh:
+            text = fh.read()
+        self.assertIn("'seeds': [s.get('seed', -1) for s in d['slots']]", text)
+
     def test_it_falls_back_rather_than_skipping_the_check(self):
         """Nothing solvable: run it on slot 0 and let it fail honestly."""
         slots, plan, where = world(
@@ -781,7 +818,9 @@ class TestTheHarnessForcesOnlyWhatTheLogicHasReached(unittest.TestCase):
             ["Drawer", "Jigsaw", "Ordering"],
         "Paper Plane Supplies (Drawer Chores) - Chalk Blue":
             ["Drawer", "Jigsaw"],
-        "Fruit Stickers - Solution 1": ["Sticking", "Tidying"]}}
+        "Fruit Stickers - Solution: Match Stickers": ["Sticking", "Tidying"],
+        "Spoons - Solution: Size (Elastic)": ["Ordering"],
+        "Spoons - Solution: Stacked": ["Stacking"]}}
 
     def test_a_group_whose_ability_is_missing_is_refused(self):
         refused = e2e.table_gated("NeatStreak_Paper Plane Supplies",
@@ -797,6 +836,25 @@ class TestTheHarnessForcesOnlyWhatTheLogicHasReached(unittest.TestCase):
     def test_a_single_group_level_goes_by_its_solution(self):
         refused = e2e.table_gated("Fruit Stickers", self.PLAN, {"Tidying"})
         self.assertEqual({"Match Stickers", "Remove Stickers"}, refused)
+
+    def test_a_solution_only_group_goes_by_the_solution(self):
+        """Mirror's little things are part of its Solution, no check of their
+        own (droha, 2026-09-28): held back until the Solution is reachable,
+        while the Still Life needs only Stacking."""
+        plan = {"requirements": {
+            "Mirror - Solution": ["Containers", "Gadgets", "Stacking"],
+            "Mirror - Still Life": ["Stacking"]}}
+        self.assertEqual({"LemonWedgePositionController", "ContainablesController",
+                          "CandleStateController"},
+                         e2e.table_gated("Mirror", plan, {"Stacking"}))
+        self.assertEqual(set(), e2e.table_gated(
+            "Mirror", plan, {"Containers", "Gadgets", "Stacking"}))
+
+    def test_a_group_that_is_an_ending_goes_by_that_ending(self):
+        """Spoons' groups have no part checks (fixed endings, 2026-09-28):
+        each is judged by its ending, which asks only for its own ability."""
+        self.assertEqual({"Size (Elastic)"},
+                         e2e.table_gated("Spoons", self.PLAN, {"Stacking"}))
 
     def test_play_passes_it_to_solve_level(self):
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -1125,6 +1183,16 @@ class TestTheCompletionPlanReadsTheSeed(unittest.TestCase):
         self.assertEqual([], unreachable)
         self.assertEqual(["Workbench"], order)
 
+    def test_an_ending_name_with_a_colon_keeps_its_item(self):
+        """Base seed 20260909 (2026-09-28): split at the first ": ",
+        Swapping on an ending read as an item named "Pencil Order 1:
+        Swapping", and 17 locations looked unreachable."""
+        self.assertEqual(("Sharp Pencils - Solution: Pencil Order 1", "Swapping"),
+                         e2e.parse_placement(
+                             "Sharp Pencils - Solution: Pencil Order 1: Swapping"))
+        self.assertEqual(("Workbench - Solution", "Drawer"),
+                         e2e.parse_placement("Workbench - Solution: Drawer"))
+
 
 class TestTheSeedHasTheSkipsItNeeds(unittest.TestCase):
     """Skip demand against supply, from the seed alone.
@@ -1139,8 +1207,8 @@ class TestTheSeedHasTheSkipsItNeeds(unittest.TestCase):
            "Pencils (Randomized)": "Pencils (Randomized)",
            "Seed Pods": "Seed Pods"}
     PLACED = [("Pencils (Randomized) - Solution 2", "Symmetry"),
-              ("Seed Pods - Solution 1", "Skip"),
-              ("Tupperware Tower - Solution 1", "Background Change Trap"),
+              ("Seed Pods - Solution", "Skip"),
+              ("Tupperware Tower - Solution", "Background Change Trap"),
               ("Paper Plane Supplies - Chalk Red", "Skip")]
 
     def test_the_gate_seed_of_2026_09_23_was_short(self):
@@ -2140,10 +2208,17 @@ class TestASkipIsExpectedWhereOnlyASkipWorks(unittest.TestCase):
         where = {0: [self.FILING + "1", self.FILING + "2"]}
         self.assertFalse(e2e.only_a_skip_can_finish(0, where, set(where[0])))
 
-    def test_solution_number_reads_the_ordinal(self):
-        self.assertEqual(2, e2e.solution_number("X - Solution 2"))
-        self.assertIsNone(e2e.solution_number("X - Beaten"))
-        self.assertIsNone(e2e.solution_number("X - Solution zero"))
+    def test_a_solution_location_is_known_by_its_ending(self):
+        self.assertEqual("Solution 2", e2e.solution_suffix("X - Solution 2"))
+        self.assertEqual("Solution: Stacked",
+                         e2e.solution_suffix("Spoons - Solution: Stacked"))
+        self.assertEqual("Solution", e2e.solution_suffix("Seed Pods - Solution"))
+        self.assertEqual("Solution: Shuffle - Top Left", e2e.solution_suffix(
+            "Bookshelf (Seeing Stars) - Solution: Shuffle - Top Left"))
+        self.assertIsNone(e2e.solution_suffix("X - Beaten"))
+        self.assertIsNone(e2e.solution_suffix("X - Solution zero"))
+        self.assertIsNone(e2e.solution_suffix("X - Achievement: Show Off"))
+        self.assertFalse(e2e.is_part_location("X - Achievement: Show Off"))
 
     def test_every_excluded_container_is_still_a_location(self):
         """Generate.py rejects the whole yaml over one unknown name.
@@ -2424,11 +2499,28 @@ class TestTheGateLaunchesTheGameTwice(unittest.TestCase):
     def test_every_launch_guards_against_steam_restarting_it(self):
         """A Steam relaunch is the thing that makes the count wrong, and
         it is silent: the game reopens and the harness sees a third
-        'loaded' line it did not ask for."""
+        'loaded' line it did not ask for. The one Popen is launch_game's,
+        which every tool starts the game through (muted, 2026-09-28)."""
         text = code_only(self.source())
-        launcher = text[text.index("def launch_and_connect"):]
+        launcher = text[text.index("def launch_game"):]
         launcher = launcher[:launcher.index("subprocess.Popen([EXE]")]
         self.assertIn("ensure_no_steam_relaunch()", launcher)
+        gate = text[text.index("def launch_and_connect"):]
+        self.assertIn("launch_game()", gate[:gate.index("return log.wait")])
+
+    def test_every_launch_is_muted(self):
+        """droha, 2026-09-28: "you should be muting when you're testing in
+        the background". The session mute, straight after the launch."""
+        text = code_only(self.source())
+        launcher = text[text.index("def launch_game"):]
+        launcher = launcher[:launcher.index("return proc")]
+        self.assertIn('dev("mute")', launcher)
+        tools = os.path.dirname(os.path.abspath(__file__))
+        for name in os.listdir(tools):
+            if not name.endswith(".py") or name in ("release_e2e.py", "test_scheduler.py"):
+                continue
+            with open(os.path.join(tools, name), encoding="utf-8") as fh:
+                self.assertNotIn("subprocess.Popen([e2e.EXE]", fh.read(), name)
 
 
 class TestTheArrowSessionsLogIsKept(unittest.TestCase):
@@ -2726,6 +2818,174 @@ class TestTheUnwindWaitsForTheCompletionScreen(unittest.TestCase):
         self.assertIn("settle_post_level(log)", body)
         self.assertLess(body.index("settle_post_level(log)"),
                         body.index('dev("replayselect"'))
+
+    def test_the_credits_wait_before_they_navigate(self):
+        """The DLC gate of 2026-09-28 (e2e-20260928-162255.log): the last
+        puzzle's Beaten token unlocked the credits, menu:levels went out at
+        once, and the mod's own move-on from that puzzle's completion screen
+        ("next -> slot 14") landed on top of the credits click - no credits,
+        no goal, checks 22 and 23."""
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "release_e2e.py"), encoding="utf-8") as fh:
+            text = code_only(fh.read())
+        start = text.index('say(6, "playing the credits')
+        body = text[start:text.index('dev(f"clickcard:{CREDITS_LEVEL_INDEX}"', start)]
+        self.assertIn("settle_post_level(log)", body)
+        self.assertLess(body.index("settle_post_level(log)"),
+                        body.index('dev("menu:levels"'))
+
+
+
+class TestARelaunchMidSolveIsNotACompletion(unittest.TestCase):
+    """The DLC gate of 2026-09-28: DLC1 Trophy Cabinet relaunched after its
+    first forced controller, the second force answered "no level running",
+    and solve_level called the level complete. It was not."""
+
+    # The real lines from testserver/logs/e2e-20260928-020518.log.
+    FIRST = ("[Info   :ALTTL Dev Tools] solve: forcing Items Placements Draggables solved\n"
+             "[Info   :A Little To The Left Archipelago] check: Trophy Cabinet (Cupboards and Drawers) - Items Placements\n"
+             "[Info   :A Little To The Left Archipelago] received item: Hint Page\n"
+             "[Info   :A Little To The Left Archipelago] checks: now playing slot 10\n"
+             "[Info   :A Little To The Left Archipelago] track: slot 10 DLC1 Trophy Cabinet launching with seed 670428589, forceReload\n")
+    SECOND = "[Warning:ALTTL Dev Tools] solve: no level running\n"
+
+    def test_no_level_running_without_a_completion_is_gone(self):
+        self.assertEqual("gone", e2e.solve_outcome(self.SECOND, self.FIRST + self.SECOND))
+
+    def test_a_completion_in_the_visit_still_counts(self):
+        done = ("[Info   :ALTTL Dev Tools] 02:03:19  LevelComplete  id=DLC1 Trophy "
+                "Cabinet  index=1125  solutionCount=1  found=0  seed=-1\n")
+        self.assertEqual("complete", e2e.solve_outcome(self.SECOND, self.FIRST + done + self.SECOND))
+        self.assertIsNone(e2e.solve_outcome(
+            "[Info   :ALTTL Dev Tools] 02:03:19  LevelCompleteEarly  id=X\n", self.FIRST))
+
+    def test_a_cat_trap_is_still_a_trap(self):
+        chunk = "[Info   :A Little To The Left Archipelago] trap: 1 cat(s) reset the puzzle\n"
+        self.assertEqual("trapped", e2e.solve_outcome(chunk, chunk))
+
+    def test_solve_level_refunds_the_pass_and_waits(self):
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "release_e2e.py"), encoding="utf-8") as fh:
+            text = code_only(fh.read())
+        body = text.split("def solve_level(", 1)[1].split("\ndef ", 1)[0]
+        self.assertIn("solve_outcome(chunk, text)", body)
+        self.assertIn("if (trapped or gone) and refunds < MAX_REFUNDS:", body)
+        self.assertIn("loaded_level(log, seconds=20)", body)
+
+
+class TestTheGateExpectsEveryFeatureTheModPatches(unittest.TestCase):
+    """EXPECTED_FEATURES is read from Plugin.cs's patch table; a hand-kept
+    list had gone four features stale (2026-09-28)."""
+
+    def test_it_reads_the_whole_table(self):
+        features = e2e.EXPECTED_FEATURES
+        # An empty read would make patch_problem pass without checking
+        # anything, so the read itself is pinned to the table's shape.
+        self.assertGreaterEqual(len(features), 14, features)
+        for name in ("save redirect", "track", "retry panel", "cursor guard"):
+            self.assertIn(name, features)
+
+    def test_a_missing_feature_is_reported(self):
+        live = ", ".join(f for f in e2e.EXPECTED_FEATURES if f != "cursor guard")
+        text = ("[Info   :A Little To The Left Archipelago] features live: "
+                + live + "\n")
+        self.assertEqual("features never installed: cursor guard",
+                         e2e.patch_problem(text))
+
+
+class TestThePlanFilesTheEndingForcingMakes(unittest.TestCase):
+    """Fixed endings (2026-09-28): forcing makes one arrangement and the mod
+    files the ending the reported id names (CheckRouter.ForEnding). The
+    paper plan collects that ending and leaves every other to a Skip."""
+
+    SPOONS = {"Spoons - Solution: Size (Elastic)": ["Ordering"],
+              "Spoons - Solution: Stacked": ["Stacking"],
+              "Spoons - Beaten": ["Ordering", "Stacking"]}
+
+    def spoons(self):
+        plan = {"slots": [(24, "Spoons")], "boundaries": [1],
+                "requirements": dict(self.SPOONS)}
+        return plan["slots"], plan, e2e.locations_for_slots(plan)
+
+    def run_spoons(self, starting, placements=None, rounds=1):
+        slots, plan, where = self.spoons()
+        final = {}
+        e2e.paper_run(slots, plan, where, placements or {}, starting=starting,
+                      production=True, rounds=rounds, final=final,
+                      stop_when_all_beaten=False,
+                      unreachable=e2e.harness_cannot_force(plan, where))
+        return final["collected"]
+
+    def test_the_ending_forcing_files_is_listed_first(self):
+        # Stacked registers first, and the gate logs report Stacked_0.
+        _slots, plan, where = self.spoons()
+        self.assertEqual("Spoons - Solution: Stacked", e2e.forced_solution(0, where))
+        self.assertEqual({"Spoons - Solution: Size (Elastic)"},
+                         e2e.alternate_solutions(0, where))
+        cannot = e2e.harness_cannot_force(plan, where)
+        self.assertIn("Spoons - Solution: Size (Elastic)", cannot)
+        self.assertNotIn("Spoons - Solution: Stacked", cannot)
+        self.assertTrue(e2e.only_a_skip_can_finish(
+            0, where, {"Spoons - Solution: Stacked"}))
+
+    def test_forcing_with_everything_files_the_logged_ending(self):
+        self.assertEqual({"Spoons - Solution: Stacked", "Spoons - Beaten"},
+                         self.run_spoons(["Ordering", "Stacking"]))
+
+    def test_forcing_without_stacking_finishes_on_size(self):
+        """Stacked is refused, Size is forced and finishes the level; the
+        game banks the Beaten token."""
+        self.assertEqual({"Spoons - Solution: Size (Elastic)", "Spoons - Beaten"},
+                         self.run_spoons(["Ordering"]))
+
+    def test_a_revisit_never_files_the_ending_nobody_found(self):
+        collected = self.run_spoons(
+            ["Ordering"], {"Spoons - Solution: Size (Elastic)": "Stacking"}, rounds=3)
+        self.assertNotIn("Spoons - Solution: Stacked", collected)
+
+    def test_a_recorded_id_names_its_ending(self):
+        self.assertEqual("Solution: Sorting (Type & Size) 1",
+                         e2e.forced_ending_all_open("DLC2 Water Glasses"))
+
+    def test_an_id_the_table_does_not_know_files_the_first_ending(self):
+        # The gate logs recorded Distributables_-1, which no ending names.
+        self.assertEqual("Solution: Distributables 1",
+                         e2e.forced_ending_all_open("DLC2 Pizza"))
+
+    def test_a_generated_puzzle_files_its_first_ending(self):
+        # Fixed by position like any other (Pencils: Ordered_0, Ordered_1).
+        self.assertEqual("Solution: Ordered 1", e2e.forced_ending_all_open("Pencils (Randomized)"))
+        self.assertEqual("Solution: Shuffle 1", e2e.forced_ending_all_open("Books (Randomized)"))
+
+    def test_an_ending_can_answer_to_either_of_two_ids(self):
+        """Books' second solution is Draggables_0 on a symmetric seed and
+        Shuffle_1 on the rest (gensweep:40:995)."""
+        self.assertEqual(["Shuffle_1", "Draggables_0"], e2e.ending_ids("Shuffle_1|Draggables_0"))
+        self.assertEqual(["Stacked_0"], e2e.ending_ids("Stacked_0"))
+        self.assertEqual([], e2e.ending_ids(None))
+
+    def test_cupcakes_finishes_on_colors_after_the_slow_candles(self):
+        self.assertEqual("Colors", e2e.finishing_group("DLC2 Cupcakes", ["Candles", "Colors"]))
+        self.assertEqual("Solution: Colors", e2e.forced_ending_all_open("DLC2 Cupcakes"))
+
+    def test_every_logged_forced_ending_is_the_predicted_one(self):
+        """fixtures/forced-endings.tsv against the prediction with every
+        group open, which is how those gates forced them."""
+        e2e._load_names()
+        for level_id, solution_id in e2e.FORCED_ENDINGS.items():
+            endings = (e2e._NAMES["levels"].get(level_id) or {}).get("endings") or []
+            named = next((e["location"] for e in endings if solution_id in e2e.ending_ids(e["id"])), None)
+            if named is not None:
+                with self.subTest(level=level_id):
+                    self.assertEqual(named, e2e.forced_ending_all_open(level_id))
+        self.assertGreater(len(e2e.FORCED_ENDINGS), 50)
+
+    def test_the_ending_forcing_misses_needs_a_skip(self):
+        need, have = e2e.skip_shortfall(
+            {"Spoons": "Spoons"}, [],
+            [("Spoons - Solution: Size (Elastic)", "Symmetry"),
+             ("Spoons - Solution: Stacked", "Skip")], {"Symmetry"})
+        self.assertEqual((1, 1), (need, have))
 
 
 if __name__ == "__main__":

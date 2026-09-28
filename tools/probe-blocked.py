@@ -35,7 +35,7 @@ import time
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, TOOLS)
 import release_e2e as e2e                                  # noqa: E402
-from harness_env import close_game                         # noqa: E402
+from harness_env import close_game, mod_files              # noqa: E402
 
 YAML_DIR = os.path.join(e2e.REPO, "testserver", "yaml-blocked")
 OUT_DIR = os.path.join(e2e.REPO, "testserver", "out-blocked")
@@ -198,9 +198,8 @@ def serve():
         subprocess.run(["powershell", "-NoProfile", "-Command",
                         f"Stop-Process -Id {pid} -Force"], capture_output=True)
         time.sleep(2)
-    for name in list(os.listdir(e2e.SAVE_DIR)):
-        if name.startswith("save_ap_") or name == "alttl-last-session.json":
-            os.remove(os.path.join(e2e.SAVE_DIR, name))
+    for path in mod_files():
+        os.remove(path)
 
     for folder in (YAML_DIR, OUT_DIR):
         os.makedirs(folder, exist_ok=True)
@@ -246,7 +245,7 @@ def main():
     print("[2/3] launching", flush=True)
     log = e2e.Log()
     log.before_launch()
-    subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+    e2e.launch_game()
     got = ""
     end = time.time() + 240
     while time.time() < end:

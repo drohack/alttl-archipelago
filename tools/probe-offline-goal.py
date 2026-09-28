@@ -45,7 +45,7 @@ import time
 
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, TOOLS)
-from harness_env import Environment, SAVE_DIR, close_game, ensure_no_steam_relaunch
+from harness_env import Environment, close_game, ensure_no_steam_relaunch, mod_file
 
 import offline_test as off
 
@@ -188,7 +188,7 @@ def send(line):
 
 
 def run_state(seed):
-    path = os.path.join(SAVE_DIR, f"save_ap_{SLOT}_{seed}.run.json")
+    path = mod_file(f"save_ap_{SLOT}_{seed}.run.json")
     if not os.path.exists(path):
         return None
     with open(path, encoding="utf-8") as f:

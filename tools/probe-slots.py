@@ -31,7 +31,8 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import release_e2e as e2e
-from harness_env import (Environment, close_game, ensure_no_steam_relaunch)
+from harness_env import (Environment, close_game, ensure_no_steam_relaunch,
+                         mod_files)
 
 #: WHICH SEED. --dlc appeared in this file's usage line from the day it
 #: was written and was parsed NOWHERE: passing it probed whatever seed
@@ -83,10 +84,9 @@ def wipe():
         if name.endswith(".apsave"):
             os.remove(os.path.join(OUT, name))
             gone += 1
-    for name in os.listdir(e2e.SAVE_DIR):
-        if name.startswith("save_ap_") or name == "alttl-last-session.json":
-            os.remove(os.path.join(e2e.SAVE_DIR, name))
-            gone += 1
+    for path in mod_files():
+        os.remove(path)
+        gone += 1
     return gone
 
 
@@ -229,7 +229,7 @@ def main():
         log = e2e.Log()
         log.before_launch()
         ensure_no_steam_relaunch()
-        subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+        e2e.launch_game()
         if "connected. " not in log.wait(["connected. "], 150, 1, "the connection"):
             print(f"[{n}/{len(todo)} slot {slot} {name}] FAILED TO CONNECT",
                   flush=True)

@@ -10,6 +10,7 @@
     --boot         for a game already open: set 720p, boot the level
     --keep-game    leave the game running; switch seeds from the mod's pane
     --in-run       want the level IN the run's opening, to open from the track
+    --achievements the seed has the achievement checks (yaml `achievements`)
 
     tools/handtest-level.py --grant Ability [Ability ...]
                    give the running session more abilities, no new seed
@@ -50,7 +51,7 @@ import zlib
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, TOOLS)
 import release_e2e as e2e                                  # noqa: E402
-from harness_env import close_game                         # noqa: E402
+from harness_env import close_game, mod_files              # noqa: E402
 
 YAML_DIR = os.path.join(e2e.REPO, "testserver", "yaml-handlevel")
 OUT_DIR = os.path.join(e2e.REPO, "testserver", "out-handlevel")
@@ -74,7 +75,7 @@ def grant(abilities):
     return 0
 
 
-def yaml_for(abilities, locks=True):
+def yaml_for(abilities, locks=True, achievements=False):
     held = "\n".join(f"    {a}: 1" for a in abilities) or "    Skip: 0"
     return f"""name: {e2e.SLOT}
 game: A Little to the Left
@@ -85,6 +86,7 @@ A Little to the Left:
   levels_to_beat: 40
   pack_size: 10
   ability_locks: {'true' if locks else 'false'}
+  achievements: {'true' if achievements else 'false'}
   starting_abilities: 0
   cat_trap_chance: 0
   hint_coverage: 0
@@ -200,9 +202,8 @@ def main():
                         f"Stop-Process -Id {pid} -Force"], capture_output=True)
         time.sleep(2)
     if not keep:
-        for name in list(os.listdir(e2e.SAVE_DIR)):
-            if name.startswith("save_ap_") or name == "alttl-last-session.json":
-                os.remove(os.path.join(e2e.SAVE_DIR, name))
+        for path in mod_files():
+            os.remove(path)
 
     print(f"[2/5] generating: holding {abilities or ['nothing']}", flush=True)
     for folder in (YAML_DIR, OUT_DIR):
@@ -210,7 +211,8 @@ def main():
         for name in os.listdir(folder):
             os.remove(os.path.join(folder, name))
     with open(os.path.join(YAML_DIR, "h.yaml"), "w", encoding="utf-8") as fh:
-        fh.write(yaml_for(abilities, locks="--locks-off" not in sys.argv))
+        fh.write(yaml_for(abilities, locks="--locks-off" not in sys.argv,
+                          achievements="--achievements" in sys.argv))
 
     # HOLDING EXACTLY WHAT WAS ASKED, checked in the seed itself. The
     # generator grants starting abilities when a run's opening is thin, and
@@ -262,9 +264,10 @@ def main():
     # A fresh save for THIS seed, whichever mode. Each held set has its own
     # seed, so this never touches the save the running game is using.
     seed_name = os.path.basename(seed)[len("AP_"):-len(".zip")]
-    for name in list(os.listdir(e2e.SAVE_DIR)):
+    for path in mod_files():
+        name = os.path.basename(path)
         if name.startswith("save_ap_") and seed_name in name:
-            os.remove(os.path.join(e2e.SAVE_DIR, name))
+            os.remove(path)
 
     print("[3/5] serving", flush=True)
     logs = os.path.join(e2e.REPO, "testserver", "logs")
@@ -307,7 +310,7 @@ def main():
     print("[4/5] launching", flush=True)
     log = e2e.Log()
     log.before_launch()
-    subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+    e2e.launch_game()
     got = ""
     end = time.time() + 240
     while time.time() < end:

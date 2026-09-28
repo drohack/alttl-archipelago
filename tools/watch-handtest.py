@@ -7,6 +7,8 @@ Run it with run_in_background before asking droha to play. It exits, and so
 wakes the session, on the first of:
   - the game closing or crashing (the Windows crash record is printed if any),
   - an Error, Fatal or Exception line from any plugin,
+  - an exception from the GAME in Unity's Player.log, with the top of its
+    stack (those never reach LogOutput.log),
   - a log line matching --until (e.g. 'LevelComplete +id=Fruit Stickers'),
     2 s after it, so the other solves of that moment print too (a level's last
     part and its completion land in the same second),
@@ -24,6 +26,14 @@ import time
 GAME = r"G:\Games\Steam\steamapps\common\A Little To The Left"
 LOG = os.path.join(GAME, "BepInEx", "LogOutput.log")
 EXE = "A Little To The Left.exe"
+
+#: Unity's own log. The GAME's exceptions land here and in the BepInEx
+#: console, never in LogOutput.log - a NullReferenceException in
+#: LevelInterface.CheckWinCondition went unseen until droha pasted it from the
+#: console (2026-09-28: "please watch out for errors").
+PLAYER_LOG = os.path.join(os.environ.get("USERPROFILE", ""), "AppData", "LocalLow",
+                          "maxinferno", "A Little To The Left", "Player.log")
+UNITY_ERROR = re.compile(r"Exception[:\s]")
 
 KEEP = re.compile(r"^\[(Warning|Error|Fatal)|Exception|PartSolved|LevelComplete|checks:|"
                   r"retry panel:|abilities:|received item|trap|credits:|navigation:|beaten:|"
@@ -68,6 +78,24 @@ def short(line):
     return "game: " + line
 
 
+def new_lines(path, pos):
+    """(new position, complete new lines) of a growing log; a log rewritten
+    by a new launch starts again from the top."""
+    size = os.path.getsize(path) if os.path.exists(path) else 0
+    if size < pos:
+        pos = 0
+    if size <= pos:
+        return pos, []
+    with open(path, "rb") as fh:
+        fh.seek(pos)
+        chunk = fh.read(size - pos)
+    cut = chunk.rfind(b"\n")
+    if cut < 0:
+        return pos, []
+    lines = [raw.decode("utf-8", "replace").rstrip("\r") for raw in chunk[:cut].split(b"\n")]
+    return pos + cut + 1, lines
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--minutes", type=float, default=15)
@@ -78,39 +106,45 @@ def main():
     since = time.strftime("%Y-%m-%d %H:%M:%S")
     start = time.time()
     pos = os.path.getsize(LOG) if os.path.exists(LOG) else 0
+    ppos = os.path.getsize(PLAYER_LOG) if os.path.exists(PLAYER_LOG) else 0
+    unity = None  # (clock, deadline, lines) once a Unity exception is seen
     kept = 0
     checked = 0.0
     matched = None  # (clock, deadline) once --until matched
-    say(f"watching the log and the game for {args.minutes:g} min"
+    say(f"watching the log, Unity's Player.log and the game for {args.minutes:g} min"
         + (f", until /{args.until}/" if until else ""))
     if not game_running():
         print("Done: the game is not running", flush=True)
         return 1
 
     while True:
-        size = os.path.getsize(LOG) if os.path.exists(LOG) else 0
-        if size < pos:
-            pos = 0  # a new launch rewrote the log
-        if size > pos:
-            with open(LOG, "rb") as fh:
-                fh.seek(pos)
-                chunk = fh.read(size - pos)
-            cut = chunk.rfind(b"\n")
-            if cut >= 0:
-                pos += cut + 1
-                for raw in chunk[:cut].split(b"\n"):
-                    line = raw.decode("utf-8", "replace").rstrip("\r")
-                    if until and not matched and until.search(line):
-                        say(short(line)[:240])
-                        matched = (now(), time.time() + 2)
-                        continue
-                    if not line or DROP.search(line) or not KEEP.search(line):
-                        continue
-                    kept += 1
-                    say(short(line)[:240])
-                    if STOP.search(line):
-                        print(f"Done: stopped on an error line at {now()}, {kept} line(s) kept", flush=True)
-                        return 0
+        pos, lines = new_lines(LOG, pos)
+        for line in lines:
+            if until and not matched and until.search(line):
+                say(short(line)[:240])
+                matched = (now(), time.time() + 2)
+                continue
+            if not line or DROP.search(line) or not KEEP.search(line):
+                continue
+            kept += 1
+            say(short(line)[:240])
+            if STOP.search(line):
+                print(f"Done: stopped on an error line at {now()}, {kept} line(s) kept", flush=True)
+                return 0
+
+        # The game's own exceptions, with the top of their stack: the first
+        # "at" lines follow the message, so give them a second to arrive.
+        ppos, plines = new_lines(PLAYER_LOG, ppos)
+        for line in plines:
+            if unity is None and UNITY_ERROR.search(line):
+                unity = (now(), time.time() + 1, [line])
+            elif unity is not None and len(unity[2]) < 4 and line.strip().startswith("at "):
+                unity[2].append(line.strip())
+        if unity is not None and time.time() > unity[1]:
+            for line in unity[2]:
+                say("unity: " + line[:240])
+            print(f"Done: stopped on a Unity exception at {unity[0]}, {kept} line(s) kept", flush=True)
+            return 0
 
         if matched and time.time() > matched[1]:
             print(f"Done: matched /{args.until}/ at {matched[0]}, {kept} line(s) kept", flush=True)

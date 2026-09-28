@@ -65,10 +65,9 @@ A Little to the Left:
   ability_locks: true
   starting_abilities: 1
 
-  # Four puzzles open immediately so there is something to do before the first
-  # pack, then packs of four.
-  pack_size: 4
-  guaranteed_open_slots: 4
+  # Five puzzles open immediately, all solvable, then packs of five.
+  pack_size: 5
+  guaranteed_open_slots: 5
 
   cat_trap_chance: 25
   hint_coverage: 50

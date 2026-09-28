@@ -38,8 +38,9 @@ It now reads the Beaten token, like play() does. The lesson generalises:
 when a change to the harness cannot be measured here, FIX THIS MODEL
 FIRST - that is cheaper than one gate run, let alone three.
 
-See tools/predict_gate.py, which turns this run into the gate's own
-scorecard for the thirteen assertions that follow from it.
+tools/predict_gate.py does NOT use this model: it asks the gate's own
+production pre-flight (release_e2e.judge_seed), so it cannot disagree
+with the seed walk.
 """
 import os
 import sys
@@ -103,19 +104,11 @@ def container_excludes(where):
     # could never be beaten. It finished 7 of 8 while this model
     # predicted 8. The 19/25 run had reached Containers only because a
     # Skip happened to land on that card and granted Solutions 1-3.
-    alternates = {loc for loc in present
-                  if _solution_number(loc) is not None
-                  and _solution_number(loc) >= 2}
+    # With fixed endings (2026-09-28) that is every ending but the one
+    # forcing files, which locations_for_slots lists first.
+    alternates = {loc for slot in where
+                  for loc in e2e.alternate_solutions(slot, where)}
     return (excluded & present) | alternates
-
-
-def _solution_number(location):
-    """N from '<level> - Solution N', or None."""
-    marker = " - Solution "
-    if marker not in location:
-        return None
-    tail = location.rsplit(marker, 1)[1].strip()
-    return int(tail) if tail.isdigit() else None
 
 
 def open_for(packs, boundaries):

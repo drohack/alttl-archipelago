@@ -29,7 +29,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import release_e2e as e2e
-from harness_env import Environment, close_game, ensure_no_steam_relaunch
+from harness_env import Environment, close_game, ensure_no_steam_relaunch, mod_files
 
 OUT = os.path.join(e2e.REPO, "testserver",
                    os.environ.get("ALTTL_SEED_DIR_NAME", "out-dlc"))
@@ -44,14 +44,15 @@ for i, a in enumerate(sys.argv):
 
 def wipe():
     gone = 0
-    for folder, suffix in ((OUT, ".apsave"), (e2e.SAVE_DIR, None)):
-        if not os.path.isdir(folder):
-            continue
-        for name in os.listdir(folder):
-            if (suffix and name.endswith(suffix)) or \
-                    (suffix is None and name.startswith("save_ap_")):
-                os.remove(os.path.join(folder, name))
+    if os.path.isdir(OUT):
+        for name in os.listdir(OUT):
+            if name.endswith(".apsave"):
+                os.remove(os.path.join(OUT, name))
                 gone += 1
+    for path in mod_files():
+        if os.path.basename(path).startswith("save_ap_"):
+            os.remove(path)
+            gone += 1
     return gone
 
 
@@ -116,7 +117,7 @@ def main():
     log = e2e.Log()
     log.before_launch()
     ensure_no_steam_relaunch()
-    subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+    e2e.launch_game()
     if "connected. " not in log.wait(["connected. "], 150, 1, "the connection"):
         close_game()
         stop_server()

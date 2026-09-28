@@ -412,7 +412,7 @@ def main():
             # the file is what stops the window opening, closing and opening
             # again on every launch.
             ensure_no_steam_relaunch()
-            subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+            e2e.launch_game()
             text = log.wait(["connected. "], 150, 3, "the connection")
             if "connected. " not in text:
                 why = e2e.why_no_connection(e2e.whole_log())

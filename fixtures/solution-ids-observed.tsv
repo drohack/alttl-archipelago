@@ -1,0 +1,176 @@
+# Solution ids the game reported in LevelComplete lines, harvested 2026-09-27 from testserver/logs/*.log and BepInEx/LogOutput.log.
+# observed < solutionCount means some endings were never seen. Regenerate by re-harvesting; do not hand-edit.
+levelIndex	levelId	solutionCount	observed	solutionIds
+1	Cat Frame	1	1	Straighten_0
+2	Cat Toys	1	1	Tidy-Up_0
+3	Colored Pencils	1	1	Gradient_0
+4	Post-It Notes Scribble #1 (Simple Line)	1	1	Arranged_0
+5	Multiple Frames	1	1	Straighten_0
+6	Stacked Papers	1	1	Stack-Papers_0
+7	Books	2	1	Shuffle_0
+8	NES Games	1	1	StackablesY_0
+9	Stamps	1	1	Stamps-Pattern_0
+10	Post-It Notes Scribble #2 (3x3 Grid)	1	1	Arranged_0
+11	Tacks	1	1	Colour-&-Count-Sort_0
+12	Calendar	1	1	Repeating-Sequence_0
+13	Books 3	2	2	Design-(Shuffle)_0|Height-(Draggables)_1
+14	Angled Image Frame	1	1	Angled_0
+15	Post-It Notes Scribble #3 (5x3 Grid)	1	1	Arranged_0
+16	Pencils 3	3	1	Ordered_0
+17	Wrong Aspect Papers	1	1	Fit-Rect_0
+18	Books 2	2	1	Shuffle_0
+19	Sharp Pencils	2	2	Pencil-Order_0|Pencil-Order_1
+20	Record Player	1	1	Record-Player_0
+22	Soup Cans	2	1	Match-Label-(Draggables)_0
+23	Jars	3	1	Order_0
+24	Spoons	2	2	Size-(Elastic)_0|Stacked_0
+25	Bowls	2	2	Match-(Draggables)_0|Match-(Draggables)_1
+26	Spice Jars	2	2	SpiceJarShuffleables_0|SpiceJarShuffleables_1
+27	Eggs	1	1	Eggs-Pattern_0
+28	Breadtags	1	1	Interlocking_0
+29	Fruit Stickers	2	2	Match-Stickers_0|Remove-Stickers_0
+30	Pasta	1	1	Ordered_0
+31	Drink Glasses	1	0	
+32	Place Setting	1	1	Utensils_0
+33	Plate	1	1	Placement_0
+34	Cat Food Cans	1	1	Matching-Stacks_0
+35	Front of Fridge 1 (Postcards)	1	1	Match-Edges_0
+36	Fridge Inside	1	1	Draggables_0
+37	Front of Fridge 2 (Polaroids)	1	1	Fit-Rect_0
+39	Cleaning Supplies	1	1	Supplies-Order_0
+40	Batteries	1	1	Sort-Batteries_0
+41	Coins 1 (Shape)	3	3	Ordered_0|Ordered_1|Stacked_0
+42	UtensilsDrawer	1	1	Utensils-Drawer_0
+43	Light Bulbs	1	1	BulbsBox_0
+44	Junk Drawer	1	1	Organizer_0
+45	PaintCans	2	1	Match-(Draggables)_0
+46	Buttons	2	2	SortingItems-Draggables_0|SortingItems-Draggables_1
+47	Keys	3	1	Ordered_0
+48	PartsOrganizer	1	1	Organizer_0
+49	MedicineCabinet	1	1	Draggables_0
+50	Workbench	1	1	ToolsController_0
+51	Coins 2 (Dirtyness)	3	2	Dirtyables_0|Dirtyables_2
+52	Storage Boxes	2	1	SortingItems-Draggables_0
+53	Boxes (Stacked)	2	1	Stacked-Boxes_0
+54	Wilting Flowers	1	1	Upright_0
+56	Broken Vase	1	1	Draggables_0
+57	PawPrints	1	1	Clearables-01_0
+58	Trim Plant	1	1	Pluckables_0
+59	Leaves	3	1	LeavesShuffleables_0
+60	Plant Pots	1	1	Interlocking_0
+61	Gems (Simple)	3	1	Ordered_0
+62	Shells	1	1	Symmetrical-Placeables_0
+63	Trim Plant (Vines)	1	1	Pluckables_0
+64	Rock Collection	1	1	Match-Lines_0
+65	Seed Pods	1	1	SymmetricalPlaceables_0
+66	Rock Gradient	2	1	Gradient_0
+67	Gems (Jigsaw)	1	1	GemsDrawer_0
+68	Clover	1	1	SymmetricalPlaceables_0
+69	Microscope	1	1	Build-Snowflakes_0
+70	SpiderWeb	1	1	Web-Symmetry_0
+72	Frame Maze	1	1	Frame_Rotateables_0
+73	Clock	1	1	Match-Shadows_0
+74	Chess Shadows	1	1	Shuffleables-Shadows_0
+75	Telescope	1	1	Constellations_0
+76	Desktop Computer	1	1	Computer-Desktop_0
+77	Matchboxes	1	1	MatchboxesObjectController_0
+78	Candles	2	1	CandlesObjectController_0
+79	Mirror	1	1	StackablesY_0
+80	Lamp	1	1	Switches-Toggleables_0
+81	Radial Dance Party	1	1	Radial-Pencils-0_0
+82	TupperwareNesting	1	1	Nested-Tupperware_0
+83	TupperwareTower	1	1	Tower_0
+107	SomethingEggstra PaintedEggs	2	2	RowColSets_0|RowColSets_1
+108	SomethingEggstra Egg Cups	3	3	Shuffleables-Eggs_0|Shuffleables-Eggs_1|Shuffleables-Eggs_2
+109	SomethingEggstra Fridge	1	1	EggsContainable_0
+110	SomethingEggstra Broken Eggs	1	1	Egg-#1-(Center)-Draggables_0
+995	Books (Randomized)	2	3	Draggables_0|Shuffle_0|Shuffle_1
+996	Batteries (Randomized)	1	1	Draggables_0
+997	Stamps (Randomized)	1	1	Stamps-Pattern_0
+998	Post-It Notes (Randomized)	1	1	Draggable_0
+999	Pencils (Randomized)	2	2	Ordered_0|Ordered_1
+1000	Procedural Grid Puzzle	1	1	GridPuzzle_0
+1001	GoodTidings_Cookies	3	3	RowColSets_0|RowColSets_1|RowColSets_2
+1002	GoodTidings_Popcorn	1	2	TopRow_0|TopRow_1
+1003	GoodTidings_Wreath	1	1	SymmetricalPlaceables_0
+1004	GoodTidings_Presents (Stacked)	1	1	Stacked-Boxes_0
+1005	GoodTidings_Cookies (Jigsaw)	1	1	Match-Candy-Cane_0
+1006	GoodTidings_Ornament Box	1	1	BulbsBox_0
+1007	SnackPack Sandwich	1	1	Stack-Ingredients_0
+1008	SnackPack Pretzels	3	3	Ordered_0|Ordered_1|Ordered_2
+1009	SnackPack Cereal	1	1	Draggables-Controller_0
+1010	TrickOrTidy_Bats	1	1	Interlocking_0
+1011	TrickOrTidy_Bones	1	1	Match-Bones_0
+1012	TrickOrTidy_Candy	2	2	Grouped_0|Grouped_1
+1013	TrickOrTidy_ChocolateBars	4	5	Design-(Shuffle)_0|Design-(Shuffle)_1|Design-(Shuffle)_2|Height-(Draggables)_0|Height-(Draggables)_1
+1014	TrickOrTidy_JackOLanterns	4	1	Ordered_0
+1015	MerryMess_CandyCanes	1	1	Ordered_0
+1016	MerryMess_Crackers	1	1	Build-Train_0
+1017	MerryMess_SnowGlobes	3	3	Match-Pan-(Draggables)_0|Match-Pan-(Draggables)_1|Match-Pan-(Draggables)_2
+1018	MerryMess_Presents	1	1	Presents-Aligned_0
+1019	MerryMess_NutCrackers	5	1	Shuffle_0
+1020	NeatStreak_Paper Plane Supplies	1	1	Draggables_0
+1021	NeatStreak_Tool Drawer	1	1	Draggables_0
+1022	NeatStreak_Bathroom Drawer	1	1	Draggables_0
+1100	DLC1 Clock Cupboard	1	1	Cupboard_0
+1101	DLC1 Craft Supplies	1	1	Drawers_0
+1102	DLC1 Fountain Pens	4	1	Draggables-Ordered_0
+1103	DLC1 Pressed Flowers	1	1	Flower-Shapes_0
+1104	DLC1 Bathroom Cupboard	1	1	Cupboard_0
+1106	DLC1 Lunch Tray	1	1	TrayOrganizer_0
+1107	DLC1 Kitchen Hanging Tools 1	1	1	HangingObjectsController_0
+1108	DLC1 Kitchen Utensils Drawers	1	1	Top-Drawer_0
+1109	DLC1 Tea Cabinet	1	1	Cupboard_0
+1110	DLC1 Kitchen Hanging Tools 2	1	1	HangingObjectsController_0
+1111	DLC1 Pantry	1	1	Cupboard_0
+1113	DLC1 Junk Drawer 2	1	1	Draggables_0
+1114	DLC1 Filing Cabinet	3	1	FolderShuffleables_0
+1115	DLC1 Fossils	1	1	Fern-Fossil-Jigsaw_0
+1116	DLC1 Media Cabinet	1	1	Cupboard_0
+1117	DLC1 Game Pieces	1	1	Drawers_0
+1118	DLC1 Tackle Box	1	1	Supplies-Draggables_0
+1120	DLC1 Coin Box	3	1	Match-Lines_0
+1121	DLC1 Sewing Box	1	1	Drawers_0
+1122	DLC1 Jewelry Box	1	1	Drawers_0
+1124	DLC1 Daggers	1	1	Drawers_0
+1125	DLC1 Trophy Cabinet	1	1	Cupboard_0
+1126	DLC1 Nesting Boxes	1	1	BoxOrganizer_0
+1127	DLC1 Nested Drawers	1	1	Drawers_0
+1128	DLC1 Boss	1	1	KeysDraggables_0
+1200	DLC2 Canapes	3	2	Stacked-Groups_0|Stacked-Groups_2
+1201	DLC2 Forks	5	1	Shuffle_0
+1202	DLC2 Mugs	4	1	Grid_0
+1203	DLC2 Corn	4	0	
+1204	DLC2 Pressed Leaves	3	1	Leaves-Draggables_0
+1205	DLC2 Broken Vases	1	1	Draggables_0
+1206	DLC2 Nanopets	5	1	Shuffle_0
+1207	DLC2 ObsoleteTech	1	1	Organizer_0
+1208	DLC2 Balls	3	1	Shuffle_0
+1209	DLC2 Water Glasses	4	5	Jigsaw_0|Sorting-(Type-&-Size)_0|Sorting-(Type-&-Size)_1|Water-Level-(Indexable)_-1|Water-Level-(Indexable)_0
+1210	DLC2 Pizza	4	5	Distributables_-1|Distributables_0|Distributables_1|Distributables_2|Distributables_3
+1211	DLC2 Leftovers	5	1	StackableGrid_0
+1212	DLC2 Windows	1	1	Draggables_0
+1213	DLC2 Cacti	5	1	Shuffleables-Pots_0
+1214	DLC2 Origami	1	1	OrigamiPad_0
+1215	DLC2 Moths	4	3	DraggablesOrdered_0|DraggablesOrdered_1|Draggables_0
+1216	DLC2 Math Set	2	0	
+1217	DLC2 Ink Bottles	2	2	Draggables---Drips_0|Draggables---Label_0
+1218	DLC2 Material Drawers	1	1	Drawer-Draggables_0
+1219	DLC2 Curtains	1	1	Draggables_0
+1220	DLC2 Books Stacked	5	1	StackedGroups_0
+1221	DLC2 Sticky Drawer	1	1	Draggables_0
+1222	DLC2 Bells	3	2	OrderedGroups_0|OrderedGroups_1
+1223	DLC2 Figurines	3	2	Draggables_0|SortingItemsDraggables_0
+1224	DLC2 Bookshelf	3	1	Shuffle---Top-Left_0
+1225	DLC2 Cat Eyes	1	2	IndexablesController_-1|IndexablesController_0
+1226	DLC2 Junk Drawer Transforming	2	3	IndexedDraggables_-1|IndexedDraggables_0|IndexedDraggables_1
+1227	DLC2 Music Box	1	1	Organizer_0
+1228	DLC2 Combs	2	2	Draggables_0|Draggables_1
+1229	DLC2 First Aid Kit	1	1	Draggables_0
+1230	DLC2 Robots	2	2	IndexedDraggables_0|IndexedDraggables_1
+1231	DLC2 Boss	3	1	DLC2Boss_Knife
+1235	DLC2 Bread Crusts	2	2	BreadLoopDraggables_0|ConcentricCrustDraggables_0
+1236	DLC2 Cupcakes	3	2	Draggables-Colors_0|Shuffleables-Candles_0
+1237	DLC2 Markers	3	2	Markers-Ordered_0|Markers-Ordered_2
+1238	DLC2 Whistles	5	1	DraggablesOrdered_0
+1239	DLC2 Ghost Cat	1	0	

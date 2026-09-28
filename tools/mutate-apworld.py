@@ -51,6 +51,11 @@ MUTATIONS = [
      "        level_abilities = (sorted(level.enforced_abilities)",
      "        level_abilities = (sorted(level.abilities)"),
 
+    ("ending requirements reading the draw view",
+     "rules.py",
+     "        return sorted(level.enforced_abilities)",
+     "        return sorted(level.abilities)"),
+
     ("part requirements reading the draw view",
      "rules.py",
      "                part_abilities = (sorted(level.enforced_part_abilities.get(part, ()))",

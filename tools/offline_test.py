@@ -27,12 +27,12 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from harness_env import EXE, Environment, GAME, SAVE_DIR, close_game
+from harness_env import EXE, Environment, GAME, close_game, mod_file
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG = os.path.join(GAME, "BepInEx", "LogOutput.log")
 CMD = os.path.join(GAME, "BepInEx", "alttl-devtools-commands.txt")
-CACHE = os.path.join(SAVE_DIR, "alttl-last-session.json")
+CACHE = mod_file("alttl-last-session.json")
 
 AP = os.path.join(REPO, "Archipelago")
 SEED = os.path.join(REPO, "testserver", "out-hint")
@@ -197,7 +197,7 @@ def cache():
 
 
 def run_state_owed(seed):
-    path = os.path.join(SAVE_DIR, f"save_ap_{SLOT}_{seed}.run.json")
+    path = mod_file(f"save_ap_{SLOT}_{seed}.run.json")
     if not os.path.exists(path):
         return None
     with open(path, encoding="utf-8") as f:
@@ -224,7 +224,7 @@ def regenerate(phase):
             "A Little to the Left:\n"
             "  puzzle_count: 18\n"
             "  levels_to_beat: 6\n"
-            "  pack_size: 3\n"
+            "  pack_size: 5\n"
             "  ability_locks: true\n"
             "  starting_abilities: 2\n"
             "  cat_trap_chance: 10\n"
@@ -346,8 +346,7 @@ def main():
                                 bool(new_seed) and new_seed != online_seed
                                 and new_puzzles == 18))
                 # The old run's save must still exist and be untouched by this.
-                old_save = os.path.join(
-                    SAVE_DIR, f"save_ap_{SLOT}_{online_seed}.json")
+                old_save = mod_file(f"save_ap_{SLOT}_{online_seed}.json")
                 results.append(("5 NOT STALE the old run's save is intact",
                                 os.path.exists(old_save)))
                 time.sleep(3)

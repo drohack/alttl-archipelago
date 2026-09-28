@@ -52,14 +52,15 @@ CMDS = os.path.join(tempfile.gettempdir(), "alttl-dlc-probe-cmds.txt")
 GATED = {"DLC2 Bread Crusts", "DLC2 Cupcakes", "DLC2 Markers",
          "DLC2 Whistles", "DLC2 Ghost Cat"}
 
-#: DLC levels the game marks randomizable, so they are generators: they repeat
-#: with a fresh procedural layout per slot instead of appearing once.
+#: DLC levels the game marks randomizable. They are launched with a seed, but
+#: the seed does not change their layout (data.FIXED_LAYOUT), so each is drawn
+#: once.
 #:
 #: Worth probing separately because their SOURCE is "generator", not "dlc1" or
 #: "dlc2" - the only thing keeping them out of a no-DLC run is the level's
 #: `dlc` field - and because a forced seed has to actually reach the level.
-#: Nothing else plays one: the release gate's DLC scenario sets
-#: generator_weight to 0.
+#: Since 2026-09-27 they roll under their DLC's weight (Level.draw_source), so
+#: the release gate's DLC scenario, with generator_weight 0, can draw them too.
 DLC_GENERATORS = {"DLC1 Trophy Cabinet", "DLC2 Water Glasses",
                   "DLC2 Figurines", "DLC2 Bread Crusts"}
 
@@ -71,7 +72,9 @@ DLC_GENERATORS = {"DLC1 Trophy Cabinet", "DLC2 Water Glasses",
 #: earlier version of this probe rolled twelve seeds looking for one and found
 #: none. Twenty slots out of 34 hits every time, measured 20 of 20. A probe
 #: that depends on luck to reach its own assertion is a probe that silently
-#: tests less than it claims.
+#: tests less than it claims. (Those counts predate 2026-09-27: stars_weight
+#: now also draws the three randomizable Seeing Stars levels, Bread Crusts -
+#: star-gated - among them, so the pool is 37 with five gated.)
 #:
 #: Ability locks off and a wide opening, because this is about whether a level
 #: plays at all, not about gating.
@@ -88,10 +91,9 @@ A Little to the Left:
   seeing_stars: true
   cupboards_weight: 0
   stars_weight: 100
-  # Non-zero so the four randomizable DLC levels can be drawn. They are
-  # the only generators the DLCs have, and with every other source at 0 the
-  # generator share can only come from them.
-  generator_weight: 40
+  # 0: the randomizable Seeing Stars levels roll under stars_weight
+  # (Level.draw_source), so this run is Seeing Stars and nothing else.
+  generator_weight: 0
   archive_weight: 0
   base_weight: 0
   archive_packs: []
@@ -156,16 +158,10 @@ def main():
     print("      DLC generators drawn: "
           + (", ".join(n for _i, n in drawn_gen) or "none"), flush=True)
 
-    # NOT "every slot must be DLC" any more, and the reason is worth stating.
-    # The four randomizable DLC levels share the "generator" source with the
-    # base game's sixteen, so the only way to draw a DLC generator is to give
-    # that source weight - which brings base generators along with it. There
-    # is no weight that selects one and not the other.
-    #
-    # So the checks that matter are named directly instead: a star-gated level
-    # and a DLC generator both have to be in the run, and both are booted
-    # below. A base generator sitting in an unplayed slot proves nothing and
-    # harms nothing.
+    # The checks that matter are named directly: a star-gated level and a
+    # randomizable DLC level both have to be in the run, and both are booted
+    # below. (Until 2026-09-27 the randomizable ones could only come in
+    # through generator_weight, which brought base generators with them.)
     if not drawn_gen:
         print("FAIL: no DLC generator was drawn, so the generated half of the "
               "DLC content cannot be probed", flush=True)
@@ -201,7 +197,7 @@ def main():
             what, _windowed = e2e.describe_display()
             print("      " + what, flush=True)
             log.before_launch()
-            subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+            e2e.launch_game()
             out = log.wait(["connected. ", "refusing the seed"], 180, 3,
                            "the connection")
             if "refusing the seed" in out:

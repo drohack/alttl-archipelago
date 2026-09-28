@@ -19,7 +19,7 @@ TrickOrTidy_Bones
 MerryMess_CandyCanes
 Spoons
 
-# --- earlier hand-play, recorded in docs/verification-log.md ---
+# --- earlier hand-play, recorded in docs/history/verification-log.md ---
 MedicineCabinet
 Angled Image Frame
 Cleaning Supplies

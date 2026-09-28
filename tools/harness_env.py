@@ -9,9 +9,8 @@ install next.
 CW4 paid for the missing half of this on 2026-09-05: a test battery left
 Host = localhost and a dead port behind, the player launched a real session,
 and the mod auto-connected to nothing while the message box filled with
-timeouts. The mod was working perfectly; the rig had repointed it. Their
-docs/in-game-testing.md now has a section titled "Put the player's environment
-back when the harness exits".
+timeouts. The mod was working perfectly; the rig had repointed it. This
+repo's docs/dev/testing.md, "Harness safety", is the recipe.
 
 It bit here too, smaller: TargetVirtualDesktop was changed in the DevTools
 config to stop the game opening on another desktop, and the player's .run.json
@@ -130,6 +129,36 @@ def _find_save_dir():
 
 SAVE_DIR = _find_save_dir()
 
+#: The mod's own subfolder of the save folder (SaveNames.Folder in Core): each
+#: run's save_ap_<slot>_<seed>.json, its .run.json and alttl-last-session.json.
+#: Out of the top level because Steam Auto-Cloud syncs "*.json" there and the
+#: game's cloud quota is four files.
+MOD_SAVE_DIR = os.path.join(SAVE_DIR, "Archipelago") if SAVE_DIR else ""
+
+
+def mod_file(name):
+    """Where the mod keeps one of its files."""
+    return os.path.join(MOD_SAVE_DIR, name)
+
+
+def mod_files():
+    """Every file of the mod's in the save folder, for tools that clear them.
+
+    The Archipelago subfolder, plus any an older build left in the top level
+    (the mod moves those into the subfolder on its next launch, so a stale
+    one there would come back).
+    """
+    out = []
+    for folder in (MOD_SAVE_DIR, SAVE_DIR):
+        if not folder or not os.path.isdir(folder):
+            continue
+        for name in sorted(os.listdir(folder)):
+            path = os.path.join(folder, name)
+            if os.path.isfile(path) and (name.startswith("save_ap_")
+                                         or name.startswith("alttl-last-session.json")):
+                out.append(path)
+    return out
+
 #: Where snapshots live. Outside the repo would be tidier, but a snapshot that
 #: is hard to find is a snapshot nobody restores from after a hard kill.
 SNAPSHOT_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -140,13 +169,21 @@ SNAPSHOT_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 #: buggy restore to damage it.
 CONFIG_FILES = ("droha.alttl.archipelago.cfg", "droha.alttl.devtools.cfg")
 
-#: Everything the game and the mod persist. A glob rather than a list because
-#: the set grows - save1.json (the campaign, which the mod must never touch),
-#: save_ap_<slot>_<seed>.json, the matching .run.json, and whatever the slot
-#: cache turns out to be called. A harness that creates a NEW run file is
-#: covered by the same mechanism: it did not exist at snapshot time, so restore
-#: deletes it.
+#: Everything the game and the mod persist, in the save folder and in the
+#: mod's subfolder. A glob rather than a list because the set grows -
+#: save1.json (the campaign, which the mod must never touch),
+#: save_ap_<slot>_<seed>.json, the matching .run.json, the session cache. A
+#: harness that creates a NEW run file is covered by the same mechanism: it
+#: did not exist at snapshot time, so restore deletes it.
 SAVE_GLOB = "*.json*"
+
+
+def _save_folders():
+    """(folder, name prefix inside a snapshot) for each folder that is swept."""
+    out = [(SAVE_DIR, "save")]
+    if MOD_SAVE_DIR and os.path.isdir(MOD_SAVE_DIR):
+        out.append((MOD_SAVE_DIR, "save/Archipelago"))
+    return out
 
 #: How many old snapshots to keep. Enough to recover from a hard kill that went
 #: unnoticed for a few runs, few enough that the folder stays readable.
@@ -204,9 +241,10 @@ def _files_to_snapshot():
         path = os.path.join(CONFIG_DIR, name)
         if os.path.isfile(path):
             out.append((path, os.path.join("config", name)))
-    for path in sorted(glob.glob(os.path.join(SAVE_DIR, SAVE_GLOB))):
-        if os.path.isfile(path):
-            out.append((path, os.path.join("save", os.path.basename(path))))
+    for folder, prefix in _save_folders():
+        for path in sorted(glob.glob(os.path.join(folder, SAVE_GLOB))):
+            if os.path.isfile(path):
+                out.append((path, prefix + "/" + os.path.basename(path)))
     return out
 
 
@@ -341,13 +379,14 @@ def set_window(index, saves=None):
 def _save_files():
     """Every save the game might read its display choice from."""
     out = []
-    for name in sorted(os.listdir(SAVE_DIR)):
-        # .run.json is the randomizer's own run state, not a game save -
-        # it has no playerPrefs and there is no reason to open it.
-        if not name.endswith(".json") or name.endswith(".run.json"):
-            continue
-        if name == "save1.json" or name.startswith("save_ap_"):
-            out.append(os.path.join(SAVE_DIR, name))
+    for folder, _prefix in _save_folders():
+        for name in sorted(os.listdir(folder)):
+            # .run.json is the randomizer's own run state, not a game save -
+            # it has no playerPrefs and there is no reason to open it.
+            if not name.endswith(".json") or name.endswith(".run.json"):
+                continue
+            if name == "save1.json" or name.startswith("save_ap_"):
+                out.append(os.path.join(folder, name))
     return out
 
 
@@ -360,7 +399,11 @@ def take_snapshot(label):
 
     names = []
     for src, rel in _files_to_snapshot():
-        shutil.copy2(src, os.path.join(root, rel))
+        dst = os.path.join(root, rel)
+        # save/Archipelago/ for the mod's own folder, which makedirs above
+        # does not create.
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copy2(src, dst)
         names.append(rel)
 
     # The display settings live in the registry, not a file, so they go in
@@ -412,26 +455,43 @@ def restore_snapshot(root, quiet=False):
         dst = _destination(rel)
         if not os.path.isfile(src):
             continue
+        # ONLY WHAT CHANGED. Copying an identical file back still rewrites
+        # it, and save1.json rewritten outside a Steam launch is what Steam
+        # Cloud reports as "not synced" (droha, 2026-09-27).
+        if os.path.isfile(dst) and _same_bytes(src, dst):
+            continue
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         shutil.copy2(src, dst)
         put_back += 1
 
     # Anything matching the same patterns that is NOT in the manifest appeared
-    # during the run. Only the save folder is swept: a new plugin config means
-    # a plugin was installed, which is not the harness's doing and not its
-    # business to undo.
-    kept = {os.path.basename(r.replace("\\", "/")) for r in known
+    # during the run. Only the save folders are swept: a new plugin config
+    # means a plugin was installed, which is not the harness's doing and not
+    # its business to undo.
+    kept = {os.path.normcase(_destination(r)) for r in known
             if r.replace("\\", "/").startswith("save/")}
     removed = 0
-    for path in glob.glob(os.path.join(SAVE_DIR, SAVE_GLOB)):
-        if os.path.basename(path) not in kept and os.path.isfile(path):
-            os.remove(path)
-            removed += 1
+    for folder, _prefix in _save_folders():
+        for path in glob.glob(os.path.join(folder, SAVE_GLOB)):
+            if os.path.normcase(path) not in kept and os.path.isfile(path):
+                os.remove(path)
+                removed += 1
 
     if not quiet:
         print(f"environment restored: {put_back} file(s) put back, "
               f"{removed} created by the run removed", flush=True)
     return put_back, removed
+
+
+def _same_bytes(a, b):
+    """Whether two files hold the same bytes."""
+    try:
+        if os.path.getsize(a) != os.path.getsize(b):
+            return False
+        with open(a, "rb") as fa, open(b, "rb") as fb:
+            return fa.read() == fb.read()
+    except OSError:
+        return False
 
 
 def _prune():

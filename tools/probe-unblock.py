@@ -66,7 +66,7 @@ def main():
     print(f"[1/2] launching; {len(wanted)} level(s) to probe", flush=True)
     log = e2e.Log()
     log.before_launch()
-    subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+    e2e.launch_game()
     got = ""
     end = time.time() + 240
     while time.time() < end:

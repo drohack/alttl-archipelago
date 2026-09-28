@@ -66,8 +66,9 @@ the sweep agree and levels.json already carries the edges, so the answer is
 known before the run starts. If the method cannot reproduce a known answer it
 is not measuring what it claims to, and nothing else it reports counts.
 
-Answers go in docs/verification-log.md with the date. "Looks fine" is not an
-answer; "the blue chalk was touchable with the drawer shut" is.
+Answers go in apworld/alttl/data/proven-requirements.json with the date, and
+edges through tools/add-edges.py. "Looks fine" is not an answer; "the blue
+chalk was touchable with the drawer shut" is.
 """
 import os
 import subprocess
@@ -124,7 +125,7 @@ CASES = [
         "keys? Then send the `controllers` command and say what it lists.",
         "NOTHING IS FROZEN HERE, because there is nothing recorded to freeze. "
         "The level registers a controller called `Locks` that appears in "
-        "NEITHER levels.json NOR docs/data/controller-classes.tsv - its only "
+        "NEITHER levels.json NOR docs/reference/controller-classes.tsv - its only "
         "record anywhere is a CONTROLLER MISMATCH line in a play log. So this "
         "case is not a test, it is a measurement: what gates that stage, and "
         "what does the game call it."),
@@ -234,11 +235,11 @@ def forget_the_old_session():
     The CAMPAIGN save is not touched. SaveRedirect keeps a run out of it by
     construction and nothing here goes near it.
     """
+    from harness_env import mod_files
     removed = []
-    for name in sorted(os.listdir(e2e.SAVE_DIR)):
-        if name.startswith("save_ap_") or name == "alttl-last-session.json":
-            os.remove(os.path.join(e2e.SAVE_DIR, name))
-            removed.append(name)
+    for path in mod_files():
+        os.remove(path)
+        removed.append(os.path.basename(path))
     print(f"      cleared {len(removed)} old session file(s)"
           + (f": {', '.join(removed[:4])}" if removed else ""), flush=True)
 
@@ -476,7 +477,7 @@ def launch():
     log.before_launch()
     what, _windowed = e2e.describe_display()
     print(f"      {what}", flush=True)
-    subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+    e2e.launch_game()
 
     got = ""
     end = time.time() + 180

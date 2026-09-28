@@ -150,7 +150,7 @@ def start(label, seed):
         time.sleep(1)
     log = e2e.Log()
     log.before_launch()
-    subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+    e2e.launch_game()
     text = log.wait(["connected. "], 150, 1, f"the {label} connection")
     if "connected. " not in text:
         return None, None, server

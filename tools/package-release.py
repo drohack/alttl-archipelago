@@ -176,7 +176,7 @@ THE MOD (this zip)
       BepInEx/plugins/ALTTLArchipelago/
 
   Launch the game. The main menu gains an Archipelago entry; open it and
-  enter the server address, port and your slot name.
+  enter the Server (host:port from the room page) and your slot name.
 
 THE APWORLD (alttl.apworld, shipped alongside)
 

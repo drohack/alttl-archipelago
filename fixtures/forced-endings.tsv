@@ -1,0 +1,68 @@
+# The solution id each level's FORCED completion reported most often in
+# the gate logs (testserver/logs/e2e-*.log). Regenerate with
+# tools/harvest-forced-endings.py; do not hand-edit.
+levelId	solutionId	times
+Batteries (Randomized)	Draggables_0	10
+Boxes (Stacked)	Stacked-Boxes_0	7
+Breadtags	Interlocking_0	16
+Buttons	SortingItems-Draggables_0	57
+Calendar	Repeating-Sequence_0	40
+Clock	Match-Shadows_0	16
+Clover	SymmetricalPlaceables_0	10
+DLC1 Bathroom Cupboard	Cupboard_0	27
+DLC1 Boss	KeysDraggables_0	13
+DLC1 Clock Cupboard	Cupboard_0	57
+DLC1 Craft Supplies	Drawers_0	5
+DLC1 Daggers	Drawers_0	31
+DLC1 Filing Cabinet	FolderShuffleables_0	25
+DLC1 Fountain Pens	Draggables-Ordered_0	5
+DLC1 Game Pieces	Drawers_0	29
+DLC1 Jewelry Box	Drawers_0	5
+DLC1 Nesting Boxes	BoxOrganizer_0	4
+DLC1 Pantry	Cupboard_0	5
+DLC1 Pressed Flowers	Flower-Shapes_0	8
+DLC1 Sewing Box	Drawers_0	8
+DLC1 Tackle Box	Supplies-Draggables_0	6
+DLC1 Tea Cabinet	Cupboard_0	12
+DLC1 Trophy Cabinet	Cupboard_0	1
+DLC2 Bells	OrderedGroups_0	25
+DLC2 Books Stacked	StackedGroups_0	39
+DLC2 Broken Vases	Draggables_0	7
+DLC2 Cupcakes	Draggables-Colors_0	9
+DLC2 Curtains	Draggables_0	2
+DLC2 First Aid Kit	Draggables_0	4
+DLC2 Junk Drawer Transforming	IndexedDraggables_-1	10
+DLC2 Leftovers	StackableGrid_0	1
+DLC2 ObsoleteTech	Organizer_0	2
+DLC2 Origami	OrigamiPad_0	8
+DLC2 Pizza	Distributables_-1	31
+DLC2 Robots	IndexedDraggables_0	4
+DLC2 Sticky Drawer	Draggables_0	2
+DLC2 Water Glasses	Sorting-(Type-&-Size)_0	2
+DLC2 Whistles	DraggablesOrdered_0	2
+Desktop Computer	Computer-Desktop_0	2
+Fruit Stickers	Remove-Stickers_0	27
+MedicineCabinet	Draggables_0	70
+MerryMess_CandyCanes	Ordered_0	10
+Microscope	Build-Snowflakes_0	15
+Mirror	StackablesY_0	2
+NES Games	StackablesY_0	2
+NeatStreak_Paper Plane Supplies	Draggables_0	58
+Pasta	Ordered_0	37
+Pencils (Randomized)	Ordered_0	11
+Post-It Notes (Randomized)	Draggable_0	25
+Procedural Grid Puzzle	GridPuzzle_0	7
+Seed Pods	SymmetricalPlaceables_0	8
+Shells	Symmetrical-Placeables_0	11
+SnackPack Cereal	Draggables-Controller_0	12
+SomethingEggstra Fridge	EggsContainable_0	2
+Spice Jars	SpiceJarShuffleables_0	30
+Spoons	Stacked_0	1
+Stacked Papers	Stack-Papers_0	11
+Stamps (Randomized)	Stamps-Pattern_0	125
+Telescope	Constellations_0	10
+TrickOrTidy_Bats	Interlocking_0	2
+Trim Plant	Pluckables_0	19
+TupperwareNesting	Nested-Tupperware_0	14
+TupperwareTower	Tower_0	2
+Workbench	ToolsController_0	10

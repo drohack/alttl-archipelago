@@ -26,7 +26,7 @@ import time
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, TOOLS)
 import release_e2e as e2e                                  # noqa: E402
-from harness_env import close_game                         # noqa: E402
+from harness_env import close_game, mod_files              # noqa: E402
 
 YAML_DIR = os.path.join(e2e.REPO, "testserver", "yaml-star")
 OUT_DIR = os.path.join(e2e.REPO, "testserver", "out-star")
@@ -107,15 +107,14 @@ def save_report():
     levels = {l["levelId"]: l.get("source") for l in
               json.load(open(LEVELS, encoding="utf-8"))["levels"]}
 
-    saves = [f for f in os.listdir(e2e.SAVE_DIR)
-             if f.startswith("save_ap_") and f.endswith(".json")
-             and not f.endswith(".run.json")]
+    saves = [p for p in mod_files()
+             if os.path.basename(p).startswith("save_ap_") and p.endswith(".json")
+             and not p.endswith(".run.json")]
     if not saves:
         print("Done: no save_ap_*.json in the save folder - "
               "has a run been played?", flush=True)
         return 1
-    path = max((os.path.join(e2e.SAVE_DIR, f) for f in saves),
-               key=os.path.getmtime)
+    path = max(saves, key=os.path.getmtime)
     print(f"  {os.path.basename(path)}", flush=True)
 
     data = e2e.read_save(path)
@@ -201,9 +200,8 @@ def main():
         subprocess.run(["powershell", "-NoProfile", "-Command",
                         f"Stop-Process -Id {pid} -Force"], capture_output=True)
         time.sleep(2)
-    for name in list(os.listdir(e2e.SAVE_DIR)):
-        if name.startswith("save_ap_") or name == "alttl-last-session.json":
-            os.remove(os.path.join(e2e.SAVE_DIR, name))
+    for path in mod_files():
+        os.remove(path)
     if os.path.exists(TSV):
         os.remove(TSV)
 
@@ -258,7 +256,7 @@ def main():
     print("[4/7] launching", flush=True)
     log = e2e.Log()
     log.before_launch()
-    subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+    e2e.launch_game()
     got = ""
     end = time.time() + 240
     while time.time() < end:

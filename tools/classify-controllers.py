@@ -17,7 +17,7 @@ is a table anyone can read rather than a conclusion someone reached.
 
     py -3.13 tools/classify-controllers.py [--write]
 
---write updates docs/data/controller-classes.tsv.
+--write updates docs/reference/controller-classes.tsv.
 
 THE CLASSES
 -----------
@@ -43,8 +43,8 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TABLE = os.path.join(REPO, "apworld", "alttl", "data", "levels.json")
 ABILITIES = os.path.join(REPO, "apworld", "alttl", "data", "abilities.json")
 SURVEY = os.path.join(REPO, "fixtures", "controller-survey.tsv")
-GENSWEEP = os.path.join(REPO, "docs", "data", "generator-sweep.tsv")
-OUT = os.path.join(REPO, "docs", "data", "controller-classes.tsv")
+GENSWEEP = os.path.join(REPO, "docs", "reference", "generator-sweep.tsv")
+OUT = os.path.join(REPO, "docs", "reference", "controller-classes.tsv")
 
 
 def main(argv):

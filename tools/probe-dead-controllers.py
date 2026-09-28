@@ -258,7 +258,7 @@ def main():
             what_display, windowed = e2e.describe_display()
             print(f"      {what_display}", flush=True)
             log.before_launch()
-            subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+            e2e.launch_game()
             if "connected. " not in log.wait(["connected. "], 150, 2,
                                              "the connection"):
                 print("FAIL: never connected", flush=True)

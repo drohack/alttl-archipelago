@@ -210,7 +210,7 @@ def main():
             what, _windowed = e2e.describe_display()
             print(f"      {what}", flush=True)
             log.before_launch()
-            subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+            e2e.launch_game()
 
             if not wait_for(log, "ALTTL dev tools loaded", 180, 2,
                             "DevTools to load"):

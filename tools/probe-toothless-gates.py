@@ -52,7 +52,7 @@ REPO = e2e.REPO
 OUT = os.path.join(REPO, "testserver", "out-abilitytest")
 CMDS = os.path.join(REPO, "testserver", "abilitytest-cmds.txt")
 SERVER_LOG = os.path.join(REPO, "testserver", "abilitytest-server.log")
-REPORT = os.path.join(REPO, "docs", "toothless-gates.md")
+REPORT = os.path.join(REPO, "docs", "reference", "toothless-gates.md")
 
 WANT_DLC = "--dlc" in sys.argv
 
@@ -84,7 +84,9 @@ def levels():
     for lv in data["levels"]:
         if len(lv["controllers"]) < 2:
             continue                      # nothing to share WITH
-        if lv["source"].startswith("dlc") and not WANT_DLC:
+        # The `dlc` field, not source: four DLC levels have source
+        # "generator" (data.FIXED_LAYOUT) and would pass as base levels.
+        if lv.get("dlc") and not WANT_DLC:
             continue
         rows.append((lv["levelIndex"], lv["levelId"], lv["source"]))
     return rows
@@ -144,7 +146,7 @@ def main():
     log = e2e.Log()
     log.before_launch()
     ensure_no_steam_relaunch()
-    subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+    e2e.launch_game()
     text = log.wait(["connected. "], 150, 1, "the connection")
     if "connected. " not in text:
         sys.exit("FAIL: " + (e2e.why_no_connection(e2e.whole_log()) or "no connect"))

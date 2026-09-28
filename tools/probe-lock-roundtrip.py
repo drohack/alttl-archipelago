@@ -33,7 +33,7 @@ own Selectable first, so a piece that can no longer be picked up fails and
 one the game never let be picked up is reported.
 
 Seen to fail on every fix it covers: each was broken in turn and the probe
-run on the level it was found on (2026-09-27; docs/manual-lock-test.md has
+run on the level it was found on (2026-09-27; docs/dev/testing.md has
 the count and the two fallbacks no level shows any more). A sticker's peel
 handle and a rag are in no controller's list; DevTools state: adds them with
 `handleOf`, and they are expected locked as the pieces they act on are.
@@ -142,7 +142,7 @@ class Game:
             harness_env.close_game(quiet=True)
         say("[game] starting it")
         self.log.before_launch()
-        subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+        e2e.launch_game()
         end = time.time() + 150
         text = ""
         while time.time() < end:

@@ -7,7 +7,7 @@ This project keeps getting a number wrong, confidently, in prose. How many
 levels are randomizable. How many have hints. Which abilities gate a partial
 completion. And the one that cost three playtest sessions: how many levels are
 in the Daily Tidy pool - a code comment said six, the real answer is 36, and
-docs/content-report.md had ALREADY said 36 in bold. The project knew and the
+docs/reference/content-report.md had ALREADY said 36 in bold. The project knew and the
 code did not, because nothing connected the two.
 
 A comment cannot fail. A doc cannot fail. This can.
@@ -109,6 +109,13 @@ def main(argv):
         return 2
 
     dump_raw = json.load(io.open(dump_path, encoding="utf-8"))
+    # DevTools stamps the dump since 2026-09-28; an older one has no stamp.
+    if coerce(dump_raw.get("modLoaded")) is True:
+        print(f"FAIL: {dump_path} was dumped with the Archipelago mod loaded, "
+              "so its daily flags are the mod's, not the game's", flush=True)
+        print("      move the mod out of BepInEx/plugins and send `dump` again",
+              flush=True)
+        return 2
     dump = {l["levelId"]: {k: coerce(v) for k, v in l.items()}
             for l in dump_raw["levels"]}
     table = json.load(io.open(TABLE, encoding="utf-8"))["levels"]

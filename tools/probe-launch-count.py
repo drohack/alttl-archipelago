@@ -68,7 +68,7 @@ def main():
         wrote = ensure_no_steam_relaunch()
         ensure_no_steam_relaunch_note = (
             " (wrote steam_appid.txt)" if wrote else "")
-        subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+        e2e.launch_game()
 
         text = log.wait([LOADED], 150, 3, f"session {session}")
         # Keep reading for a while AFTER the first loaded line: a

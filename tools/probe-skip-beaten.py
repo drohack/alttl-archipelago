@@ -1,7 +1,7 @@
 """What a Skip does on a puzzle that is already beaten.
 
 TWO CLAIMS WENT IN AND ONE CAME OUT. This project believed, in a comment in
-release_e2e.py and in docs/manual-container-test.md, that a Skip spent on an
+release_e2e.py and in docs/history/manual-container-test.md, that a Skip spent on an
 already-beaten puzzle was consumed and granted nothing - because "a beaten
 level never fires LevelComplete again". Measured 2026-09-18 against a build
 with the pre-fix Skips.cs: IT DOES FIRE. Beating DLC1 Filing Cabinet,
@@ -20,7 +20,7 @@ contrived one: a puzzle whose Beaten token is banked while a container group -
 a drawer, a cupboard door, a lid - stays unearned because nothing forced it
 open. The release gate hit it for real, stalling a DLC run at 5 of 8 puzzles
 with the only Progressive Puzzle Pack sitting on Game Pieces' Drawers, and
-docs/manual-container-test.md recorded that a Skip "would have released the
+docs/history/manual-container-test.md recorded that a Skip "would have released the
 pack" - which was not true at the time. This probe is the thing that makes
 that sentence true and keeps it true.
 
@@ -208,7 +208,7 @@ def main():
             what_display, _windowed = e2e.describe_display()
             print(f"      {what_display}", flush=True)
             log.before_launch()
-            subprocess.Popen([e2e.EXE], cwd=e2e.GAME)
+            e2e.launch_game()
             if "connected. " not in log.wait(["connected. "], 150, 3,
                                              "the connection"):
                 print("FAIL: never connected", flush=True)

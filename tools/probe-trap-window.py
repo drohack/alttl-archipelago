@@ -30,7 +30,7 @@ should log a hold and then resolve on the far side.
     py -3.13 tools/probe-trap-window.py [path/to/seed.zip]
 
 It prints a verdict and leaves the full watch output in
-docs/data/trap-window.log for reading.
+docs/reference/trap-window.md for reading.
 """
 import os
 import re
@@ -48,7 +48,7 @@ LOG = os.path.join(GAME, "BepInEx", "LogOutput.log")
 CMD = os.path.join(GAME, "BepInEx", "alttl-devtools-commands.txt")
 # .md, not .log - .gitignore drops every *.log in the tree, and this file is
 # the evidence for two fixes rather than a run artifact.
-OUT = os.path.join(ROOT, "docs", "data", "trap-window.md")
+OUT = os.path.join(ROOT, "docs", "reference", "trap-window.md")
 
 SLOT = "droha"
 PORT = 38281
