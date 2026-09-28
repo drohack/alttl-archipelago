@@ -10,6 +10,7 @@ using HarmonyLib;
 using Il2CppInterop.Runtime.Injection;
 using ALTTLModKit;
 using UnityEngine;
+using static ALTTLDevTools.Helpers;
 
 namespace ALTTLDevTools;
 
@@ -43,7 +44,7 @@ public partial class DevToolsBehaviour
     ///                       does in vanilla - the one place the mod is
     ///                       implicated
     ///
-    /// Printed as TSV so it can go straight into docs/data/ and be diffed
+    /// Printed as TSV so it can go straight into docs/reference/ and be diffed
     /// against apworld/alttl/data/levels.json.
     /// </summary>
     private static void DumpEndings()

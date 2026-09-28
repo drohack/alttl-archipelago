@@ -10,6 +10,7 @@ using HarmonyLib;
 using Il2CppInterop.Runtime.Injection;
 using ALTTLModKit;
 using UnityEngine;
+using static ALTTLDevTools.Helpers;
 
 namespace ALTTLDevTools;
 

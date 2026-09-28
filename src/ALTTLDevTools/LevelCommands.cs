@@ -10,74 +10,17 @@ using HarmonyLib;
 using Il2CppInterop.Runtime.Injection;
 using ALTTLModKit;
 using UnityEngine;
+using static ALTTLDevTools.Helpers;
 
 namespace ALTTLDevTools;
 
 /// <summary>
-/// Booting, solving and completing a level, and the save entries that
-/// decide what the level select shows as unlocked.
+/// Launching, solving, completing and skipping a level, and reading the game
+/// state around it: live levels, the clock, the contextual return and the
+/// per-frame watch.
 /// </summary>
 public partial class DevToolsBehaviour
 {
-    /// <summary>
-    /// Does ObjectController.Reset actually move objects back?
-    ///
-    /// The cat trap is built on it, and "the cat undid N groups" was only ever
-    /// observed on puzzles with no progress to undo - which proves nothing.
-    /// This records positions, displaces everything, then resets, and prints
-    /// all three so the answer is not a matter of opinion.
-    /// </summary>
-    private static void ResetTest()
-    {
-        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
-        var level = li == null ? null : li.Level;
-        if (level == null || level.allLevelObjects == null)
-        {
-            DevToolsPlugin.Log.LogWarning("resettest: no level running");
-            return;
-        }
-
-        var objects = level.allLevelObjects;
-        var sample = Math.Min(3, objects.Count);
-
-        var before = new List<string>();
-        for (int i = 0; i < sample; i++)
-        {
-            before.Add(Str(() => objects[i].transform.localPosition.ToString()));
-        }
-
-        // Shove everything, as a stand-in for a player having moved pieces.
-        for (int i = 0; i < objects.Count; i++)
-        {
-            var obj = objects[i];
-            if (obj == null) continue;
-            obj.transform.localPosition += new Vector3(0.75f, 0.35f, 0f);
-        }
-
-        var moved = new List<string>();
-        for (int i = 0; i < sample; i++)
-        {
-            moved.Add(Str(() => objects[i].transform.localPosition.ToString()));
-        }
-
-        // Deliberately does NOT reset here any more. The point of this command
-        // is now to leave the level displaced so a real cat trap can be fired
-        // at it and the restore observed.
-        var after = new List<string>();
-        for (int i = 0; i < sample; i++)
-        {
-            after.Add(Str(() => objects[i].transform.localPosition.ToString()));
-        }
-
-        for (int i = 0; i < sample; i++)
-        {
-            DevToolsPlugin.Log.LogInfo(
-                $"resettest[{i}] before={before[i]} displaced={moved[i]} afterReset={after[i]}");
-        }
-        DevToolsPlugin.Log.LogInfo(
-            "resettest: level displaced. Fire a cat trap now and the objects "
-            + "should return to the 'before' positions above.");
-    }
 
     /// <summary>
     /// Start any level by index, ignoring the run entirely.
@@ -334,64 +277,6 @@ public partial class DevToolsBehaviour
     }
 
     /// <summary>
-    /// "unlockto:N" gives the first N levels a LevelCompletionData entry, which
-    /// IS the unlock condition, so the level select renders them in full colour.
-    /// Needed to compare tracker markers: a fresh save shows three unlocked
-    /// cards, and the markers only matter on unlocked ones.
-    /// </summary>
-    private static void UnlockTo(string arg)
-    {
-        if (!int.TryParse(arg, NumberStyles.Integer, CultureInfo.InvariantCulture,
-                out var count))
-        {
-            DevToolsPlugin.Log.LogWarning($"unlockto: not a number: {arg}");
-            return;
-        }
-
-        var manager = GameManager.Instance.levelManager;
-        int made = 0;
-        for (int i = 0; i < count; i++)
-        {
-            try
-            {
-                var li = manager.GetLevelInterface(i);
-                if (li == null || SaveSystem.data.LevelHasCompletionData(li)) continue;
-                SaveSystem.data.CreateLevelCompletionData(li, null);
-                made++;
-            }
-            catch (Exception e)
-            {
-                DevToolsPlugin.Log.LogWarning($"unlockto: index {i}: {e.Message}");
-            }
-        }
-        SaveSystem.SaveGame();
-        DevToolsPlugin.Log.LogInfo(
-            $"unlockto: created {made} completion entries up to index {count}."
-            + " Reopen the level select to see them.");
-    }
-
-    /// <summary>
-    /// Marks a level solved in the save exactly the way the game does, so the
-    /// unlock rule can be observed rather than guessed. "marksolved:INDEX" or
-    /// "marksolved:INDEX:solutionId".
-    ///
-    /// NOT "solve:", which is what it asked for and never got - SolveController
-    /// matches that token first, so this could not run at all. Two different
-    /// commands had collided on one prefix, and the ladder matches in order.
-    /// </summary>
-    private static void MarkSolved(string arg)
-    {
-        var parts = arg.Split(':');
-        var index = int.Parse(parts[0], CultureInfo.InvariantCulture);
-        var solutionId = parts.Length > 1 ? parts[1] : "probe_0";
-        var li = GameManager.Instance.levelManager.GetLevelInterface(index);
-        SaveSystem.data.SaveLevelData(li, solutionId, true);
-        SaveSystem.SaveGame();
-        DevToolsPlugin.Log.LogInfo(
-            $"solve: {li.LevelId} solutionId={solutionId} -> found={li.NumSolutionsFound} solved={li.Solved}");
-    }
-
-    /// <summary>
     /// "boot:INDEX" or "boot:INDEX:SEED" - launch an arbitrary level straight
     /// from wherever we are. If this works for an archive or daily-only level,
     /// a randomizer can place any puzzle anywhere in the run.
@@ -493,7 +378,7 @@ public partial class DevToolsBehaviour
             {
                 // activeInHierarchy. Known to be imperfect, and still the
                 // best rule found - see the note above and the writeup in
-                // docs/verification-log.md.
+                // docs/history/verification-log.md.
                 //
                 // It has one hole: leaving a finished puzzle through the MENUS
                 // deactivates it without destroying it, so this skips it and
@@ -673,5 +558,246 @@ public partial class DevToolsBehaviour
 
         var left = UnityEngine.Object.FindObjectsOfType<Level>();
         return left == null ? 0 : left.Length;
+    }
+
+    /// <summary>`complete`: the game's own CompleteLevel on the active level.</summary>
+    private static void CompleteActiveLevel()
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        DevToolsPlugin.Log.LogInfo($"complete: CompleteLevel() on {li.LevelId}");
+        li.CompleteLevel();
+    }
+
+    /// <summary>
+    /// `skip`: the game's own SkipLevel, which is where the randomizer's skip
+    /// gate lives.
+    ///
+    /// Not the pause-menu button: the button is only reachable with the menu
+    /// open, and SkipLevel is where every route - button, pause menu, and the
+    /// tooltip's hold-to-skip - ends up. Unlike ShowHideMenuItems it takes no
+    /// GameEventData, so calling it needs nothing invented.
+    /// </summary>
+    private static void PressSkip()
+    {
+        // FindObjectOfType only sees ACTIVE objects, and the pause menu is
+        // inactive while closed - which is exactly the state we want to skip
+        // from.
+        MainMenu? menu = UnityEngine.Object.FindObjectOfType<MainMenu>();
+        if (menu == null)
+        {
+            foreach (var obj in Resources.FindObjectsOfTypeAll(
+                         Il2CppInterop.Runtime.Il2CppType.Of<MainMenu>()))
+            {
+                menu = obj == null ? null : obj.TryCast<MainMenu>();
+                if (menu != null) break;
+            }
+        }
+        if (menu == null)
+        {
+            DevToolsPlugin.Log.LogWarning(
+                "skip: no MainMenu - it exists only while a level is running");
+            return;
+        }
+        // The loaded level's own flags, read here because they are only
+        // meaningful with the level loaded (a cold dump reads Skippable False
+        // for every level).
+        var active = GameManager.Instance?.levelManager?.ActiveLevelInterface;
+        DevToolsPlugin.Log.LogInfo(
+            $"skip: {Str(() => active!.LevelId)} skippable={Str(() => active!.Skippable.ToString())}"
+            + $" allowPause={Str(() => active!.AllowPause.ToString())}"
+            + $" randomizable={Str(() => active!.IsRandomizable.ToString())}");
+        DevToolsPlugin.Log.LogInfo("skip: calling MainMenu.SkipLevel");
+        menu.SkipLevel();
+        // Whatever the game logged between these two lines, it did inside
+        // SkipLevel - the order is the measurement.
+        DevToolsPlugin.Log.LogInfo("skip: SkipLevel returned");
+    }
+
+    /// <summary>
+    /// `state` reports the game state and the active level;
+    /// `state:&lt;file&gt;` is the old spelling of objects:&lt;file&gt;, kept for
+    /// tools/probe-lock-roundtrip.py.
+    /// </summary>
+    private static void StateCommand(string arg)
+    {
+        if (arg.Trim().Length == 0) ReportState();
+        else State(arg.Trim(), "state");
+    }
+
+    /// <summary>`time`: the clock, and the game's own pause.</summary>
+    private static void ReportTime()
+    {
+        DevToolsPlugin.Log.LogInfo(
+            $"time: timeScale={UnityEngine.Time.timeScale} "
+            + $"unscaled={UnityEngine.Time.unscaledTime:F1}s "
+            + $"scaled={UnityEngine.Time.time:F1}s | {PauseTrace.State()}");
+    }
+
+    /// <summary>
+    /// `timescale:N`: set Time.timeScale. For the event-queue test: does a
+    /// pause hold game events, and does a level torn down while paused leave
+    /// them stuck? `boot` resets it to 1.
+    /// </summary>
+    private static void SetTimeScale(string arg)
+    {
+        var value = float.Parse(arg.Trim(), CultureInfo.InvariantCulture);
+        UnityEngine.Time.timeScale = value;
+        DevToolsPlugin.Log.LogInfo($"timescale: set to {value}");
+    }
+
+    /// <summary>
+    /// "contextual" asks the running gameplay state where it would return to.
+    ///
+    /// The screen you land on after a puzzle is whatever ContextualState says,
+    /// and it cannot be observed by completing a level from a script - a player
+    /// clicks through the completion screen to get there. Asking the question
+    /// directly is the only way to check the answer without a mouse.
+    /// </summary>
+    private static void ReportContextualState()
+    {
+        var state = GameManager.Instance.GameState;
+        if (state == null)
+        {
+            DevToolsPlugin.Log.LogWarning("contextual: no game state");
+            return;
+        }
+
+        var gameplay = state.TryCast<Gameplay_GameState>();
+        if (gameplay == null)
+        {
+            DevToolsPlugin.Log.LogInfo(
+                $"contextual: not in a level (state is {Str(() => state.GetIl2CppType().Name)})");
+            return;
+        }
+
+        var back = gameplay.ContextualState();
+        DevToolsPlugin.Log.LogInfo(
+            "contextual: finishing here would return to "
+            + Str(() => back == null ? "<null>" : back.GetIl2CppType().Name));
+    }
+
+    /// <summary>How many more frames the watcher has to run, and its state.</summary>
+    private static int _watchFrames;
+
+    private static string _watchLast = "";
+
+    private static Color _watchCam;
+
+    private static bool _watchCamSeen;
+
+    /// <summary>
+    /// "watch:SECONDS" - report the level's load flags and the camera's
+    /// background colour EVERY FRAME, printing only when something changes.
+    ///
+    /// Two questions this exists to answer, both of which were being decided
+    /// by argument rather than measurement.
+    ///
+    /// ONE: what do LevelIsLoaded and IsTransitioning actually read outside a
+    /// puzzle? The cat trap now HOLDS itself while a level is mid-load, and a
+    /// hold that never releases is worse than the freeze it replaced - so the
+    /// level select and the post-level screen have to be watched, not assumed.
+    ///
+    /// TWO: does the game keep repainting Camera.main.backgroundColor after a
+    /// level has settled, or only during setup? Backgrounds.Tick writes it on
+    /// every differing frame because two one-shot attempts lost to a later
+    /// paint. If the paint is a one-time thing at setup, the per-frame poll is
+    /// doing nothing for the rest of the puzzle and can stop.
+    ///
+    /// Change-only output on purpose: a frame-by-frame dump of a ten-second
+    /// window is 600 identical lines, and the thing worth seeing is the edges.
+    /// </summary>
+    private static void StartWatch(string arg)
+    {
+        if (IsOff(arg))
+        {
+            _watchFrames = 0;
+            DevToolsPlugin.Log.LogInfo("watch: off");
+            return;
+        }
+
+        var seconds = 10f;
+        float.TryParse(arg, NumberStyles.Float, CultureInfo.InvariantCulture, out seconds);
+        if (seconds <= 0f) seconds = 10f;
+
+        _watchFrames = Mathf.RoundToInt(seconds * 60f);
+        _watchLast = "";
+        _watchCamSeen = false;
+        DevToolsPlugin.Log.LogInfo(
+            $"watch: reporting changes for {seconds:0.#}s ({_watchFrames} frames)");
+    }
+
+    /// <summary>One frame of the watcher. Called from Update, cheap when off.</summary>
+    private static void TickWatch()
+    {
+        if (_watchFrames <= 0) return;
+        _watchFrames--;
+
+        try
+        {
+            var gm = GameManager.Instance;
+            var lm = gm == null ? null : gm.levelManager;
+            var li = lm == null ? null : lm.ActiveLevelInterface;
+
+            var line =
+                "gameState=" + (gm == null || gm.GameState == null
+                    ? "null" : gm.GameState.GetIl2CppType().Name)
+                + " interface=" + (li == null ? "null" : li.LevelId)
+                + " loaded=" + (li == null ? "-" : li.LevelIsLoaded.ToString())
+                + " transitioning=" + (li == null ? "-" : li.IsTransitioning.ToString())
+                + " level=" + (li == null || li.Level == null ? "null" : "present");
+
+            if (line != _watchLast)
+            {
+                _watchLast = line;
+                DevToolsPlugin.Log.LogInfo($"watch: {line}");
+            }
+
+            var cam = Camera.main;
+            if (cam != null)
+            {
+                var c = cam.backgroundColor;
+                if (!_watchCamSeen || c != _watchCam)
+                {
+                    _watchCamSeen = true;
+                    _watchCam = c;
+                    // The level's colours beside the camera's: which of them the
+                    // game paints from is what a background restore has to know.
+                    string Rgb3(Color k) => $"{k.r:0.000},{k.g:0.000},{k.b:0.000}";
+                    var own = li == null ? "" :
+                        $" level BackgroundColor={Rgb3(li.BackgroundColor)} Active={Rgb3(li.ActiveBackgroundColor)}"
+                        + (li.Level == null ? "" : $" Level.backgroundColor={Rgb3(li.Level.backgroundColor)} Level.BackgroundColor={Rgb3(li.Level.BackgroundColor)}");
+                    DevToolsPlugin.Log.LogInfo($"watch: camera={Rgb3(c)}{own}");
+                }
+            }
+
+            if (_watchFrames == 0)
+            {
+                DevToolsPlugin.Log.LogInfo("watch: finished");
+            }
+        }
+        catch (Exception e)
+        {
+            _watchFrames = 0;
+            DevToolsPlugin.Log.LogWarning($"watch: stopped, {e.Message}");
+        }
+    }
+
+    private static void ReportState()
+    {
+        var gm = GameManager.Instance;
+        var lm = gm.levelManager;
+        var li = lm.ActiveLevelInterface;
+        DevToolsPlugin.Log.LogInfo(
+            "state: gameState=" + Str(() => gm.GameState == null ? "null" : gm.GameState.GetIl2CppType().Name)
+            + " activeLevel=" + Str(() => li == null ? "none" : li.LevelId)
+            + " index=" + Str(() => li == null ? "-" : li.LevelIndex.ToString())
+            + " seed=" + Str(() => li == null ? "-" : li.RandomSeed.ToString())
+            + " solutionCount=" + Str(() => li == null ? "-" : li.SolutionCount.ToString())
+            + " found=" + Str(() => li == null ? "-" : li.NumSolutionsFound.ToString())
+            + " solved=" + Str(() => li == null ? "-" : li.Solved.ToString())
+            + " unlocked=" + Str(() => li == null ? "-" : li.IsUnlocked.ToString())
+            + " loaded=" + Str(() => li == null ? "-" : li.LevelIsLoaded.ToString())
+            + " transitioning=" + Str(() => li == null ? "-" : li.IsTransitioning.ToString())
+            + " level=" + Str(() => li == null || li.Level == null ? "null" : "present"));
     }
 }

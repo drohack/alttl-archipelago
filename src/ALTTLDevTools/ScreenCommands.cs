@@ -14,7 +14,8 @@ using UnityEngine;
 namespace ALTTLDevTools;
 
 /// <summary>
-/// The resolution list and setting one.
+/// The window and the sound: screenshots, the resolution list and setting
+/// one, and muting.
 ///
 /// RESOLUTION INDEXES ARE NOT STABLE and must never be used as identifiers.
 /// </summary>
@@ -240,5 +241,46 @@ public partial class DevToolsBehaviour
         DevToolsPlugin.Log.LogInfo(
             $"setres: asked the game for {width}x{height} (its index {index}), "
             + $"windowed; {persisted}");
+    }
+
+    /// <summary>
+    /// `shot:C:/path.png` captures the window as it is; `shot:C:/path.png|3`
+    /// renders it at three times the size (at most 8).
+    ///
+    /// SUPERSIZE RATHER THAN A BIGGER WINDOW. Unity renders the frame at a
+    /// multiple of the current resolution, so a detailed capture costs
+    /// nothing but time - no resolution change, no window rebuild, and
+    /// nothing of the player's display touched. Changing the resolution to
+    /// take a picture would move the size the mod remembers, which is the one
+    /// thing this project has been asked repeatedly not to do.
+    /// </summary>
+    private static void Screenshot(string arg)
+    {
+        var size = 1;
+        var bar = arg.LastIndexOf('|');
+        if (bar > 0
+            && int.TryParse(arg.Substring(bar + 1), NumberStyles.Integer,
+                            CultureInfo.InvariantCulture, out var parsed)
+            && parsed >= 1)
+        {
+            size = Math.Min(parsed, 8);
+            arg = arg.Substring(0, bar);
+        }
+
+        ScreenCapture.CaptureScreenshot(arg, size);
+        DevToolsPlugin.Log.LogInfo($"screenshot requested: {arg} at {size}x");
+    }
+
+    /// <summary>
+    /// `mute` / `mute:off` (`unmute`): hold AudioListener.volume at zero, or
+    /// let it go - the same switch as the MuteAudio config setting.
+    /// </summary>
+    private static void SetMute(bool mute)
+    {
+        DevToolsPlugin.MuteAudio = mute;
+        UnityEngine.AudioListener.volume = mute ? 0f : 1f;
+        DevToolsPlugin.Log.LogInfo(
+            $"audio: {(mute ? "muted" : "unmuted")}"
+            + $" (AudioListener.volume={UnityEngine.AudioListener.volume:0.##})");
     }
 }

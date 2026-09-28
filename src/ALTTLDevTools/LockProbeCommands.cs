@@ -5,13 +5,15 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using UnityEngine;
+using static ALTTLDevTools.Helpers;
 
 namespace ALTTLDevTools;
 
 /// <summary>
 /// Commands tools/probe-lock-roundtrip.py drives.
 ///
-/// `state:&lt;file&gt;` writes one JSON line per object of the running level:
+/// `objects:&lt;file&gt;` (old spelling `state:&lt;file&gt;`) writes one JSON line
+/// per object of the running level:
 /// what tools/probe-lock-roundtrip.py compares between a level loaded with
 /// every ability held and the same level locked and then given everything
 /// back. Per object: the controllers holding it, its flags, collider, body,
@@ -33,13 +35,18 @@ public partial class DevToolsBehaviour
     private static MethodInfo? _isLocked;
     private static bool _isLockedLooked;
 
-    private static void State(string path)
+    /// <summary>
+    /// `objects:&lt;file&gt;` (old spelling `state:&lt;file&gt;`). `label` is the
+    /// keyword it was sent as, so each spelling answers in its own name - the
+    /// lock probe waits for "state: N object(s)".
+    /// </summary>
+    private static void State(string path, string label)
     {
         var li = GameManager.Instance.levelManager.ActiveLevelInterface;
         var level = li == null ? null : li.Level;
         if (level == null || level.objectControllers == null)
         {
-            DevToolsPlugin.Log.LogWarning("state: no level running");
+            DevToolsPlugin.Log.LogWarning($"{label}: no level running");
             return;
         }
 
@@ -127,7 +134,7 @@ public partial class DevToolsBehaviour
         int written = 0;
         using (var w = new StreamWriter(path, false, new UTF8Encoding(false)))
         {
-            w.WriteLine("{\"kind\":\"level\",\"level\":" + J(Str(() => li!.LevelId))
+            w.WriteLine("{\"kind\":\"level\",\"level\":" + Json(Str(() => li!.LevelId))
                         + ",\"objects\":" + objects.Count + ",\"frame\":" + Time.frameCount + "}");
             foreach (var pair in objects)
             {
@@ -141,11 +148,11 @@ public partial class DevToolsBehaviour
                 }
                 catch (Exception e)
                 {
-                    w.WriteLine("{\"kind\":\"error\",\"key\":" + J(keys[pair.Key]) + ",\"error\":" + J(e.Message) + "}");
+                    w.WriteLine("{\"kind\":\"error\",\"key\":" + Json(keys[pair.Key]) + ",\"error\":" + Json(e.Message) + "}");
                 }
             }
         }
-        DevToolsPlugin.Log.LogInfo($"state: {written} object(s) of {Str(() => li!.LevelId)} written to {path}");
+        DevToolsPlugin.Log.LogInfo($"{label}: {written} object(s) of {Str(() => li!.LevelId)} written to {path}");
     }
 
     private static string ObjectLine(LevelObject obj, string key, List<string> holders,
@@ -153,22 +160,22 @@ public partial class DevToolsBehaviour
                                      List<string>? handleOf = null)
     {
         var sb = new StringBuilder();
-        sb.Append("{\"kind\":\"obj\",\"key\":").Append(J(key));
-        sb.Append(",\"name\":").Append(J(Str(() => obj.gameObject.name)));
-        sb.Append(",\"cls\":").Append(J(Str(() => obj.GetIl2CppType().Name)));
+        sb.Append("{\"kind\":\"obj\",\"key\":").Append(Json(key));
+        sb.Append(",\"name\":").Append(Json(Str(() => obj.gameObject.name)));
+        sb.Append(",\"cls\":").Append(Json(Str(() => obj.GetIl2CppType().Name)));
         sb.Append(",\"holders\":[");
-        for (int i = 0; i < holders.Count; i++) sb.Append(i == 0 ? "" : ",").Append(J(holders[i]));
+        for (int i = 0; i < holders.Count; i++) sb.Append(i == 0 ? "" : ",").Append(Json(holders[i]));
         sb.Append(']');
         if (handleOf != null)
         {
             // A handle: the keys of the pieces it acts on (a peel handle's
             // sticker, a rag's ClearTargets).
             sb.Append(",\"handleOf\":[");
-            for (int i = 0; i < handleOf.Count; i++) sb.Append(i == 0 ? "" : ",").Append(J(handleOf[i]));
+            for (int i = 0; i < handleOf.Count; i++) sb.Append(i == 0 ? "" : ",").Append(Json(handleOf[i]));
             sb.Append(']');
         }
         var parent = obj.transform.parent;
-        sb.Append(",\"parent\":").Append(J(parent == null ? "" : KeyOf(parent, root)));
+        sb.Append(",\"parent\":").Append(Json(parent == null ? "" : KeyOf(parent, root)));
         sb.Append(",\"active\":").Append(B(obj.gameObject.activeInHierarchy));
         sb.Append(",\"inter\":").Append(B(obj.Interactable));
         sb.Append(",\"prevSel\":").Append(B(obj.PreventSelection));
@@ -181,8 +188,8 @@ public partial class DevToolsBehaviour
         try { col = obj.collider; } catch { }
         Rigidbody2D? body = null;
         try { body = obj.rigidbody; } catch { }
-        sb.Append(",\"col\":").Append(J(col == null ? "none" : col.enabled ? "on" : "off"));
-        sb.Append(",\"body\":").Append(J(body == null ? "none" : body.simulated ? "sim" : "stop"));
+        sb.Append(",\"col\":").Append(Json(col == null ? "none" : col.enabled ? "on" : "off"));
+        sb.Append(",\"body\":").Append(Json(body == null ? "none" : body.simulated ? "sim" : "stop"));
         sb.Append(",\"extraLive\":").Append(ExtraLiveColliders(obj, col));
 
         var locked = LockedByMod(obj);
@@ -224,7 +231,7 @@ public partial class DevToolsBehaviour
             var open = drawer.FullyOpenPosition;
             var shut = drawer.FullyClosedPosition;
             var travel = open == null || shut == null ? 0f : Vector3.Distance(open.position, shut.position);
-            sb.Append(",\"drawer\":{\"state\":").Append(J(Str(() => drawer.CurrentState.ToString())));
+            sb.Append(",\"drawer\":{\"state\":").Append(Json(Str(() => drawer.CurrentState.ToString())));
             sb.Append(",\"open\":").Append(B(drawer.Open));
             sb.Append(",\"sliding\":").Append(B(drawer.IsSlidingDrawer));
             sb.Append(",\"tray\":").Append(B(drawer.IsTray));
@@ -241,7 +248,7 @@ public partial class DevToolsBehaviour
                 {
                     if (kv.Key == null) continue;
                     var k = keys.TryGetValue(kv.Key.GetInstanceID(), out var known) ? known : KeyOf(kv.Key.transform, root);
-                    sb.Append(first ? "" : ",").Append('[').Append(J(k)).Append(',').Append(B(kv.Value)).Append(']');
+                    sb.Append(first ? "" : ",").Append('[').Append(Json(k)).Append(',').Append(B(kv.Value)).Append(']');
                     first = false;
                 }
             }
@@ -255,7 +262,7 @@ public partial class DevToolsBehaviour
             var t = -1f;
             try { if (anim != null) t = anim.GetCurrentAnimatorStateInfo(0).normalizedTime; } catch { }
             sb.Append(",\"scrub\":{\"time\":").Append(F(t));
-            sb.Append(",\"handle\":").Append(J(scrub.objectToReference == null ? "" : KeyOf(scrub.objectToReference.transform, root)));
+            sb.Append(",\"handle\":").Append(Json(scrub.objectToReference == null ? "" : KeyOf(scrub.objectToReference.transform, root)));
             sb.Append('}');
         }
 
@@ -281,7 +288,7 @@ public partial class DevToolsBehaviour
     {
         var c = r.color;
         var draws = r.enabled && r.gameObject.activeInHierarchy;
-        return "[" + J(where) + "," + B(draws) + "," + F(c.r) + "," + F(c.g) + "," + F(c.b) + "," + F(c.a)
+        return "[" + Json(where) + "," + B(draws) + "," + F(c.r) + "," + F(c.g) + "," + F(c.b) + "," + F(c.a)
                + "," + B(IsDimColour(r)) + "]";
     }
 
@@ -306,12 +313,7 @@ public partial class DevToolsBehaviour
         if (!_isLockedLooked)
         {
             _isLockedLooked = true;
-            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                if (asm.GetName().Name != "ALTTLArchipelago") continue;
-                _isLocked = asm.GetType("ALTTLArchipelago.AbilityLocks")
-                    ?.GetMethod("IsLocked", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
-            }
+            _isLocked = ModMethod("AbilityLocks", "IsLocked");
         }
         if (_isLocked == null) return null;
         try { return _isLocked.Invoke(null, new object[] { obj }) as bool?; }
@@ -337,6 +339,13 @@ public partial class DevToolsBehaviour
     /// </summary>
     private static void StartFlip(string arg)
     {
+        if (IsOff(arg))
+        {
+            _flipUntil = 0f;
+            DevToolsPlugin.Log.LogInfo("flip: off");
+            return;
+        }
+
         var parts = arg.Split(':');
         var secs = 20f;
         if (parts.Length > 1) float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out secs);
@@ -547,24 +556,4 @@ public partial class DevToolsBehaviour
         ? "null"
         : Math.Round(f, 3).ToString(CultureInfo.InvariantCulture);
 
-    private static string J(string s)
-    {
-        var sb = new StringBuilder("\"");
-        foreach (var ch in s)
-        {
-            switch (ch)
-            {
-                case '"': sb.Append("\\\""); break;
-                case '\\': sb.Append("\\\\"); break;
-                case '\n': sb.Append("\\n"); break;
-                case '\r': sb.Append("\\r"); break;
-                case '\t': sb.Append("\\t"); break;
-                default:
-                    if (ch < 0x20 || ch > 0x7e) sb.Append("\\u").Append(((int)ch).ToString("x4"));
-                    else sb.Append(ch);
-                    break;
-            }
-        }
-        return sb.Append('"').ToString();
-    }
 }

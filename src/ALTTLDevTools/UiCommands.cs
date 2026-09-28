@@ -10,12 +10,13 @@ using HarmonyLib;
 using Il2CppInterop.Runtime.Injection;
 using ALTTLModKit;
 using UnityEngine;
+using static ALTTLDevTools.Helpers;
 
 namespace ALTTLDevTools;
 
 /// <summary>
 /// Driving the game's own UI - menus, buttons, real pointer clicks, the pause
-/// screen, the hint notepad and the eraser.
+/// screen, the post-level arrow - and the hint notepad and its eraser.
 ///
 /// press: and clickbutton: are NOT the same thing and the difference has bitten:
 /// clickbutton invokes Button.onClick, which the level-select tutorial's confirm
@@ -134,37 +135,6 @@ public partial class DevToolsBehaviour
         }
 
         DevToolsPlugin.Log.LogWarning($"clickbutton: no active control named {name}");
-    }
-
-    /// <summary>
-    /// "contextual" asks the running gameplay state where it would return to.
-    ///
-    /// The screen you land on after a puzzle is whatever ContextualState says,
-    /// and it cannot be observed by completing a level from a script - a player
-    /// clicks through the completion screen to get there. Asking the question
-    /// directly is the only way to check the answer without a mouse.
-    /// </summary>
-    private static void ReportContextualState()
-    {
-        var state = GameManager.Instance.GameState;
-        if (state == null)
-        {
-            DevToolsPlugin.Log.LogWarning("contextual: no game state");
-            return;
-        }
-
-        var gameplay = state.TryCast<Gameplay_GameState>();
-        if (gameplay == null)
-        {
-            DevToolsPlugin.Log.LogInfo(
-                $"contextual: not in a level (state is {Str(() => state.GetIl2CppType().Name)})");
-            return;
-        }
-
-        var back = gameplay.ContextualState();
-        DevToolsPlugin.Log.LogInfo(
-            "contextual: finishing here would return to "
-            + Str(() => back == null ? "<null>" : back.GetIl2CppType().Name));
     }
 
     /// <summary>
@@ -297,10 +267,11 @@ public partial class DevToolsBehaviour
     ///
     /// Needed because a scripted run cannot press Escape, and every cheaper
     /// route was wrong: the menu has no Show/Open/Toggle, FindObjectOfType
-    /// cannot see it because it is inactive while closed, and calling
+    /// cannot see it because it is inactive while closed, calling
     /// ShowHideMenuItems directly throws - the game dereferences the
-    /// GameEventData a caller has no way to construct. PostOpenMenuEvent is
-    /// what the game itself posts.
+    /// GameEventData a caller has no way to construct - and PostOpenMenuEvent
+    /// is accepted and opens nothing. So this raises the game's own MenuOpen
+    /// event, the way solve: raises ObjectControllerSolved.
     ///
     /// This is what unblocks testing anything WITH the pause menu open, which
     /// until now could only be described rather than checked.
@@ -643,182 +614,6 @@ public partial class DevToolsBehaviour
     }
 
     /// <summary>
-    /// Pick pieces up and drop them, for real, one after another.
-    ///
-    /// EXISTS BECAUSE A BUG NEEDED QUARTER-SECOND TIMING TO REPRODUCE.
-    /// Dropping a piece starts a LeanTween settle animation, and a cat trap
-    /// landing while one is running used to leave a dead callback throwing
-    /// every frame. Asking a human to spring a trap inside that window is not
-    /// a test; droha, reasonably: "how do I time that? It needs to be timed
-    /// to like the quarter second."
-    ///
-    /// So this drops piece after piece with a short gap, which keeps SOMETHING
-    /// settling for as long as it runs. A trap sent any time during that lands
-    /// mid-animation without anyone having to aim.
-    ///
-    /// A REAL POINTER DRAG, not a flag flip. docs/release-testing.md records
-    /// that every short reproducer written for this project used DevTools'
-    /// `complete` instead of solving, and all of them came back clean while
-    /// the bug reproduced in the full run. The settle tween only exists if a
-    /// piece is actually dragged and dropped, so this dispatches the same
-    /// pointer sequence the game gets from a mouse.
-    ///
-    ///     jiggle          every piece in the level, once
-    ///     jiggle:5        the first five
-    /// </summary>
-    private static void JigglePieces(string arg)
-    {
-        var want = int.MaxValue;
-        if (!string.IsNullOrEmpty(arg)
-            && int.TryParse(arg, NumberStyles.Integer, CultureInfo.InvariantCulture,
-                            out var parsed))
-        {
-            want = parsed;
-        }
-
-        var pieces = UnityEngine.Object.FindObjectsOfType<DragObject>();
-        if (pieces == null || pieces.Length == 0)
-        {
-            DevToolsPlugin.Log.LogWarning("jiggle: no DragObject in the scene");
-            return;
-        }
-
-        // ObjectPlaced is what starts the settle animation, and it is reached
-        // by REFLECTION rather than a synthetic drag.
-        //
-        // The first version dispatched pointerDown/beginDrag/drag/endDrag
-        // through the EventSystem and started no tween at all - 24 drags,
-        // zero detached tweens - because DragObject has no OnDrag at all: the
-        // interop shows OnPointerDown, OnBeginDrag and OnEndDrag but no drag
-        // handler, so the sequence never amounted to a placement. Calling the
-        // method the crash names is both simpler and exactly on target.
-        // Snap(), not ObjectPlaced(GameEventData). The crash lives in a
-        // closure inside ObjectPlaced, but that overload wants a game event
-        // we have no honest way to synthesise - and Snap is what actually
-        // runs the settle: the type carries snapMoveTween, snapEase and
-        // m_snapTweenID right beside it.
-        System.Reflection.MethodInfo? placed = null;
-        foreach (var m in typeof(DragObject).GetMethods(
-                     System.Reflection.BindingFlags.Public
-                     | System.Reflection.BindingFlags.NonPublic
-                     | System.Reflection.BindingFlags.Instance))
-        {
-            if (m.Name != "Snap") continue;
-            if (m.GetParameters().Length != 0) continue;
-            placed = m;
-            break;
-        }
-
-        if (placed == null)
-        {
-            // Say what IS there. "No zero-argument ObjectPlaced" is true and
-            // useless; the overload list is what picks the next move.
-            DevToolsPlugin.Log.LogWarning(
-                "jiggle: no zero-argument ObjectPlaced on DragObject - "
-                + "candidates follow");
-            foreach (var m in typeof(DragObject).GetMethods(
-                         System.Reflection.BindingFlags.Public
-                         | System.Reflection.BindingFlags.NonPublic
-                         | System.Reflection.BindingFlags.Instance))
-            {
-                var n = m.Name;
-                if (n.IndexOf("Place", StringComparison.OrdinalIgnoreCase) < 0
-                    && n.IndexOf("Drop", StringComparison.OrdinalIgnoreCase) < 0
-                    && n.IndexOf("Snap", StringComparison.OrdinalIgnoreCase) < 0
-                    && n.IndexOf("Drag", StringComparison.OrdinalIgnoreCase) < 0)
-                {
-                    continue;
-                }
-                var ps = m.GetParameters();
-                var sig = new System.Text.StringBuilder(n).Append('(');
-                for (int j = 0; j < ps.Length; j++)
-                {
-                    if (j > 0) sig.Append(", ");
-                    sig.Append(ps[j].ParameterType.Name);
-                }
-                DevToolsPlugin.Log.LogInfo($"jiggle:   {sig.Append(')')}");
-            }
-            return;
-        }
-
-        var moved = 0;
-        var failed = 0;
-        for (int i = 0; i < pieces.Length && moved < want; i++)
-        {
-            var piece = pieces[i];
-            if (piece == null || piece.gameObject == null) continue;
-            if (!piece.gameObject.activeInHierarchy) continue;
-
-            try
-            {
-                placed.Invoke(piece, null);
-                moved++;
-            }
-            catch (Exception e)
-            {
-                if (failed++ == 0)
-                {
-                    DevToolsPlugin.Log.LogWarning(
-                        $"jiggle: ObjectPlaced threw: {e.Message}");
-                }
-            }
-        }
-
-        DevToolsPlugin.Log.LogInfo(
-            $"jiggle: placed {moved} of {pieces.Length} piece(s), {failed} "
-            + "threw; anything settling now is what a trap has to survive");
-    }
-
-    /// <summary>
-    /// Force the level-select skip prompt on screen, and say what it reads.
-    ///
-    /// Written to settle a question that a hierarchy scan could not: a label
-    /// at Menus/Level Select/Levels Track/Skip Tooltip reads "Skipppable" in
-    /// the object tree, but it has a localiser and had never been activated,
-    /// so that string may be nothing more than the placeholder baked into the
-    /// prefab. What a player actually sees is only knowable by showing it.
-    /// </summary>
-    private static void ShowSkipTooltip()
-    {
-        var found = 0;
-        foreach (var obj in Resources.FindObjectsOfTypeAll(
-                     Il2CppInterop.Runtime.Il2CppType.Of<LevelsTrack>()))
-        {
-            var track = obj == null ? null : obj.TryCast<LevelsTrack>();
-            if (track == null || track.gameObject == null) continue;
-            if (!track.gameObject.activeInHierarchy) continue;
-
-            var tip = track.skipTooltip;
-            if (tip == null)
-            {
-                DevToolsPlugin.Log.LogInfo(
-                    $"skiptip: {PathOf(track.transform)} has no skipTooltip");
-                continue;
-            }
-
-            found++;
-            DevToolsPlugin.Log.LogInfo(
-                $"skiptip: {PathOf(tip.transform)}"
-                + $" showing={Str(() => tip.Showing.ToString())}"
-                + $" expire={Str(() => tip.skipExpireTime.ToString())}"
-                + $" before={Str(() => tip.skipText.text)}");
-
-            tip.Show(true);
-            tip.StartSkipTooltip();
-
-            DevToolsPlugin.Log.LogInfo(
-                $"skiptip: shown, now reads {Str(() => tip.skipText.text)}"
-                + $" live={tip.gameObject.activeInHierarchy}");
-        }
-
-        if (found == 0)
-        {
-            DevToolsPlugin.Log.LogWarning(
-                "skiptip: no active LevelsTrack - open the level select first");
-        }
-    }
-
-    /// <summary>
     /// Fire the game's hint-taken path directly.
     ///
     /// The randomizer charges a Hint Page in a postfix on
@@ -883,5 +678,257 @@ public partial class DevToolsBehaviour
             n++;
         }
         DevToolsPlugin.Log.LogInfo($"buttons: {n} active");
+    }
+
+    /// <summary>
+    /// The first LIVE instance of a component, inactive ones included: the
+    /// pause menu is inactive while closed, so an ordinary find cannot see
+    /// it, and FindObjectsOfTypeAll also returns prefabs, whose buttons do
+    /// nothing useful when pressed - it produced a blank screen that looked
+    /// like a bug in the thing being tested.
+    /// </summary>
+    private static T? LiveInScene<T>() where T : Component
+    {
+        foreach (var candidate in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<T>()))
+        {
+            var found = candidate == null ? null : candidate.TryCast<T>();
+            if (found == null || !found.gameObject.scene.IsValid()) continue;
+            return found;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// `play`: press Play on the TITLE menu. There is no live TitleMenu
+    /// anywhere else, so it needs menu:title first.
+    /// </summary>
+    private static void PressPlay()
+    {
+        var title = UnityEngine.Object.FindObjectOfType<TitleMenu>();
+        if (title == null)
+        {
+            DevToolsPlugin.Log.LogWarning("play: no live TitleMenu");
+            return;
+        }
+        DevToolsPlugin.Log.LogInfo("play: pressing Play");
+        title.PlayGame();
+    }
+
+    /// <summary>`pausebuttons`: the pause menu's buttons and which are shown.</summary>
+    private static void ListPauseButtons()
+    {
+        var menu = LiveInScene<MainMenu>();
+        if (menu == null)
+        {
+            DevToolsPlugin.Log.LogWarning("pausebuttons: no live MainMenu");
+            return;
+        }
+        DevToolsPlugin.Log.LogInfo(
+            "pausebuttons: active=" + Str(() => menu.gameObject.activeInHierarchy.ToString()));
+        var container = menu.ButtonsContainer;
+        if (container == null) { DevToolsPlugin.Log.LogWarning("  no container"); return; }
+        for (int i = 0; i < container.childCount; i++)
+        {
+            var child = container.GetChild(i);
+            DevToolsPlugin.Log.LogInfo(
+                $"  {Str(() => child.name)} active="
+                + Str(() => child.gameObject.activeSelf.ToString()));
+        }
+    }
+
+    /// <summary>`titletree`: the title screen's object tree.</summary>
+    private static void DumpTitleTree()
+    {
+        var title = UnityEngine.Object.FindObjectOfType<TitleMenu>();
+        if (title == null)
+        {
+            DevToolsPlugin.Log.LogWarning("titletree: no title screen");
+            return;
+        }
+        DevToolsPlugin.Log.LogInfo("titletree:");
+        DumpTitle(title.transform, 0);
+    }
+
+    /// <summary>
+    /// `uitree:&lt;object name&gt;[:&lt;depth&gt;]`: one UI object's subtree, each
+    /// child with its components by type name and its RectTransform (size,
+    /// anchored position, pivot, anchors, scale, screen x), then its parents up
+    /// to the canvas. The object is found by exact name among scene objects,
+    /// an active one first. At most six children per parent are listed.
+    ///
+    /// Built for the overview strip (2026-09-28): which object holds the
+    /// Scrollbar the player drags, and how wide it is next to the dots the mod
+    /// scales to fit.
+    /// </summary>
+    private static void DumpUiTree(string arg)
+    {
+        var parts = arg.Split(':');
+        var name = parts[0].Trim();
+        var depth = 3;
+        if (parts.Length > 1
+            && !int.TryParse(parts[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out depth))
+        {
+            depth = 3;
+        }
+        if (name.Length == 0)
+        {
+            DevToolsPlugin.Log.LogWarning("uitree: name an object, e.g. uitree:Levels Overview Scrollbar");
+            return;
+        }
+
+        Transform? root = null;
+        foreach (var obj in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<Transform>()))
+        {
+            var t = obj == null ? null : obj.TryCast<Transform>();
+            if (t == null || t.gameObject == null || !t.gameObject.scene.IsValid()) continue;
+            if (Str(() => t.name) != name) continue;
+            if (root == null || (t.gameObject.activeInHierarchy && !root.gameObject.activeInHierarchy))
+            {
+                root = t;
+            }
+        }
+        if (root == null)
+        {
+            DevToolsPlugin.Log.LogWarning($"uitree: no object named '{name}'");
+            return;
+        }
+
+        DevToolsPlugin.Log.LogInfo($"uitree: {DescribeUi(root)}");
+        for (var up = root.parent; up != null; up = up.parent)
+        {
+            DevToolsPlugin.Log.LogInfo($"uitree:   parent {DescribeUi(up)}");
+        }
+        DumpUi(root, 0, depth);
+    }
+
+    private static void DumpUi(Transform t, int depth, int max)
+    {
+        if (depth >= max) return;
+        var count = t.childCount;
+        for (int i = 0; i < count; i++)
+        {
+            // The first four and the last two: a strip of 138 dots says what
+            // it is in six lines.
+            if (count > 6 && i == 4)
+            {
+                DevToolsPlugin.Log.LogInfo(
+                    "uitree: " + new string(' ', (depth + 1) * 2) + $"... {count - 6} more");
+                i = count - 3;
+                continue;
+            }
+            var child = t.GetChild(i);
+            if (child == null) continue;
+            DevToolsPlugin.Log.LogInfo(
+                "uitree: " + new string(' ', (depth + 1) * 2) + DescribeUi(child));
+            DumpUi(child, depth + 1, max);
+        }
+    }
+
+    private static string DescribeUi(Transform t)
+    {
+        var kinds = "";
+        foreach (var component in t.GetComponents<Component>())
+        {
+            if (component == null) continue;
+            var kind = Str(() => component.GetIl2CppType().Name);
+            if (kind == "Transform" || kind == "RectTransform") continue;
+            kinds += (kinds.Length == 0 ? " [" : ",") + kind;
+        }
+        if (kinds.Length > 0) kinds += "]";
+
+        var geometry = "";
+        var rect = t.TryCast<RectTransform>();
+        if (rect != null)
+        {
+            var r = rect.rect;
+            geometry = string.Format(CultureInfo.InvariantCulture,
+                " size={0:0}x{1:0} pos={2:0},{3:0} pivot={4:0.##},{5:0.##} anchors={6:0.##}-{7:0.##} screenx={8:0}",
+                r.width, r.height, rect.anchoredPosition.x, rect.anchoredPosition.y,
+                rect.pivot.x, rect.pivot.y, rect.anchorMin.x, rect.anchorMax.x, rect.position.x);
+        }
+        return string.Format(CultureInfo.InvariantCulture, "'{0}' active={1}{2}{3} scale={4:0.###},{5:0.###}",
+            Str(() => t.name), Str(() => t.gameObject.activeSelf.ToString()), kinds, geometry,
+            t.localScale.x, t.localScale.y);
+    }
+
+    /// <summary>`titlebuttons`: the title menu's entries and which are shown.</summary>
+    private static void ListTitleButtons()
+    {
+        var title = UnityEngine.Object.FindObjectOfType<TitleMenu>();
+        var container = title == null ? null : title.MainMenuContainer;
+        if (container == null)
+        {
+            DevToolsPlugin.Log.LogWarning("titlebuttons: no title screen");
+            return;
+        }
+        for (int i = 0; i < container.childCount; i++)
+        {
+            var child = container.GetChild(i);
+            DevToolsPlugin.Log.LogInfo(
+                $"  {Str(() => child.name)} active="
+                + Str(() => child.gameObject.activeSelf.ToString()));
+        }
+    }
+
+    /// <summary>`replayselect`: the post-level ReplayMenu's Level Select button.</summary>
+    private static void ReplayLevelSelect()
+    {
+        var menu = LiveInScene<ReplayMenu>();
+        if (menu == null)
+        {
+            DevToolsPlugin.Log.LogWarning("replayselect: no live ReplayMenu");
+            return;
+        }
+        DevToolsPlugin.Log.LogInfo("replayselect: post-level Level Select");
+        menu.LevelSelect();
+    }
+
+    /// <summary>`next`: the post-level Continue arrow.</summary>
+    private static void PressNext()
+    {
+        // THE RETRY PANEL, WHEN IT IS THE ONE ON SCREEN. A level whose own
+        // menu is the retry panel shows RetryMenu, and pressing the hidden
+        // ReplayMenu's arrow moved on while the panel stayed up over the next
+        // puzzle (droha, 2026-09-25). The mod's RetryPanel presses RetryMenu
+        // for the same reason; a script must take the same route.
+        var gm = GameManager.Instance;
+        var state = gm == null || gm.GameState == null ? "" : gm.GameState.GetIl2CppType().Name;
+        if (state == "RetryUI_GameState")
+        {
+            // A pointer click on its Continue Button, not RetryMenu.NextLevel:
+            // that advances but leaves the panel up over the next puzzle
+            // (measured 2026-09-25).
+            DevToolsPlugin.Log.LogInfo("next: pressing the retry panel's Continue Button");
+            PressControl("Continue Button");
+            return;
+        }
+
+        var menu = LiveInScene<ReplayMenu>();
+        if (menu == null)
+        {
+            DevToolsPlugin.Log.LogWarning("next: no live ReplayMenu");
+            return;
+        }
+        DevToolsPlugin.Log.LogInfo("next: pressing the arrow");
+        menu.NextLevel();
+    }
+
+    /// <summary>
+    /// `leave`: the pause menu's own Level Select button - the thing a player
+    /// actually presses to leave a puzzle. Asking the game where it WOULD go
+    /// proved nothing; this takes the route.
+    /// </summary>
+    private static void LeavePuzzle()
+    {
+        var menu = LiveInScene<MainMenu>();
+        if (menu == null)
+        {
+            DevToolsPlugin.Log.LogWarning("leave: no MainMenu in the scene");
+            return;
+        }
+        DevToolsPlugin.Log.LogInfo("leave: pressing Level Select");
+        menu.LevelSelect();
     }
 }

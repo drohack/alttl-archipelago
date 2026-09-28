@@ -10,17 +10,22 @@ using HarmonyLib;
 using Il2CppInterop.Runtime.Injection;
 using ALTTLModKit;
 using UnityEngine;
+using static ALTTLDevTools.Helpers;
 
 namespace ALTTLDevTools;
 
 /// <summary>
-/// The whole level table as JSON - the dump every other tool reads.
+/// `dump`: the whole level table as JSON, to BepInEx/alttl-dump.json.
 ///
 /// tools/check-game-facts.py holds apworld/alttl/data/levels.json up against
 /// what this writes. TAKE THE DUMP WITH THE RANDOMIZER MOD MOVED OUT of
 /// BepInEx/plugins entirely: its daily guard answers IsDailyTidy false while a
 /// run is active, so a contaminated dump reports zero daily levels and looks
-/// like proof there are none.
+/// like proof there are none. The dump records whether the mod was loaded
+/// (`modLoaded`), and check-game-facts refuses one taken with it.
+///
+/// On demand only. It used to run by itself at every launch, which put a dump
+/// taken WITH the mod loaded at the path check-game-facts reads by default.
 /// </summary>
 public partial class DevToolsBehaviour
 {
@@ -29,11 +34,12 @@ public partial class DevToolsBehaviour
     private static void Dump()
     {
         var gm = GameManager.Instance;
-        var j = new Json();
+        var j = new JsonWriter();
 
         j.Open();
         j.Prop("gameVersion", Str(() => Application.version));
         j.Prop("dumpedAt", DateTime.Now.ToString("s", CultureInfo.InvariantCulture));
+        j.Prop("modLoaded", ModLoaded().ToString());
 
         DumpLevels(j, gm);
         DumpDailyTidy(j, gm);
@@ -46,7 +52,7 @@ public partial class DevToolsBehaviour
         DevToolsPlugin.Log.LogInfo($"dump written to {DumpFile} ({j.ToString().Length} bytes)");
     }
 
-    private static void DumpLevels(Json j, GameManager gm)
+    private static void DumpLevels(JsonWriter j, GameManager gm)
     {
         j.Key("levels");
         j.OpenArray();
@@ -93,7 +99,7 @@ public partial class DevToolsBehaviour
         j.CloseArray();
     }
 
-    private static void DumpDailyTidy(Json j, GameManager gm)
+    private static void DumpDailyTidy(JsonWriter j, GameManager gm)
     {
         j.Key("dailyTidy");
         j.Open();
@@ -139,7 +145,7 @@ public partial class DevToolsBehaviour
         j.Close();
     }
 
-    private static void DumpArchive(Json j, GameManager gm)
+    private static void DumpArchive(JsonWriter j, GameManager gm)
     {
         j.Key("archive");
         j.Open();
@@ -216,7 +222,7 @@ public partial class DevToolsBehaviour
         j.Close();
     }
 
-    private static void DumpDlc(Json j, GameManager gm)
+    private static void DumpDlc(JsonWriter j, GameManager gm)
     {
         j.Key("dlc");
         j.OpenArray();
@@ -246,7 +252,7 @@ public partial class DevToolsBehaviour
     }
 
     /// <summary>Minimal JSON writer. Avoids a Newtonsoft dependency.</summary>
-    private sealed class Json
+    private sealed class JsonWriter
     {
         private readonly StringBuilder _sb = new();
         private bool _needComma;
@@ -265,35 +271,14 @@ public partial class DevToolsBehaviour
         public void Key(string k)
         {
             Comma();
-            _sb.Append(Quote(k)).Append(':');
+            _sb.Append(Json(k)).Append(':');
         }
 
         public void Prop(string k, string v)
         {
             Comma();
-            _sb.Append(Quote(k)).Append(':').Append(Quote(v));
+            _sb.Append(Json(k)).Append(':').Append(Json(v));
             _needComma = true;
-        }
-
-        private static string Quote(string s)
-        {
-            var sb = new StringBuilder("\"");
-            foreach (var c in s ?? "")
-            {
-                switch (c)
-                {
-                    case '"': sb.Append("\\\""); break;
-                    case '\\': sb.Append("\\\\"); break;
-                    case '\n': sb.Append("\\n"); break;
-                    case '\r': sb.Append("\\r"); break;
-                    case '\t': sb.Append("\\t"); break;
-                    default:
-                        if (c < ' ') sb.Append("\\u").Append(((int)c).ToString("x4"));
-                        else sb.Append(c);
-                        break;
-                }
-            }
-            return sb.Append('"').ToString();
         }
 
         public override string ToString() => _sb.ToString();

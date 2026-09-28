@@ -10,14 +10,15 @@ using HarmonyLib;
 using Il2CppInterop.Runtime.Injection;
 using ALTTLModKit;
 using UnityEngine;
+using static ALTTLDevTools.Helpers;
 
 namespace ALTTLDevTools;
 
 /// <summary>
 /// Finding, exporting and displaying the game's loaded sprites.
 ///
-/// How the twelve ability icons the mod ships were found - see
-/// docs/data/ability-icons.md.
+/// How the thirteen ability icons the mod ships were found (twelve base-game
+/// mechanics and Distributing) - see docs/reference/ability-icons.md.
 /// </summary>
 public partial class DevToolsBehaviour
 {
@@ -375,81 +376,4 @@ public partial class DevToolsBehaviour
             + (filter.Length > 0 ? $" matching '{filter}'" : ""));
     }
 
-    /// <summary>
-    /// What state the credits card is actually in on the level select.
-    ///
-    /// droha: "when i went back to the level select i see a level with a hand
-    /// print as the icon. it's greyed out like I can't play it. I think it's
-    /// the credits but I can't tell."
-    ///
-    /// The suspicion to test is that Track.ApplyUnlocks creates completion
-    /// data for the chapter dividers and for the run's open slots, and the
-    /// credits card is neither - it is appended to the track separately, after
-    /// the loop, so nothing ever sets unlockedOnLevelSelect on it. A card with
-    /// no completion row draws locked. This reads the three things that would
-    /// settle it rather than inferring from a screenshot.
-    /// </summary>
-    private static void ReportCreditsCard()
-    {
-        var manager = GameManager.Instance?.levelManager;
-        if (manager == null)
-        {
-            DevToolsPlugin.Log.LogWarning("creditscard: no LevelManager");
-            return;
-        }
-
-        LevelInterface? credits = null;
-        var all = manager.m_allLevelInterfaces;
-        if (all != null)
-        {
-            for (int i = 0; i < all.Count; i++)
-            {
-                var li = all[i];
-                if (li == null) continue;
-                var isCredits = false;
-                try { isCredits = li.IsCredits; } catch { continue; }
-                if (isCredits) { credits = li; break; }
-            }
-        }
-
-        if (credits == null)
-        {
-            DevToolsPlugin.Log.LogWarning("creditscard: no credits level found");
-            return;
-        }
-
-        var has = Str(() =>
-            SaveSystem.data.LevelHasCompletionData(credits).ToString());
-        var flag = "-";
-        try
-        {
-            if (SaveSystem.data.LevelHasCompletionData(credits))
-            {
-                var entry = SaveSystem.data.GetLevelCompletionData(credits);
-                flag = entry == null
-                    ? "no entry" : entry.unlockedOnLevelSelect.ToString();
-            }
-        }
-        catch (Exception e) { flag = "threw: " + e.Message; }
-
-        // The card's OWN art, by name. The mod picks no icon for this card -
-        // it puts the game's credits level on the track and the LevelIcon
-        // draws whatever that level carries - so naming the sprite settles
-        // whether the hand print is authored for the credits or something we
-        // caused. droha: "is that for the credits, or you just picked it?"
-        var locked = Str(() => credits.LockedIcon == null
-            ? "none" : credits.LockedIcon.name);
-        var unlocked = Str(() => credits.UnlockedIcon == null
-            ? "none" : credits.UnlockedIcon.name);
-
-        DevToolsPlugin.Log.LogInfo(
-            $"creditscard: lockedIcon={locked} unlockedIcon={unlocked}");
-
-        DevToolsPlugin.Log.LogInfo(
-            "creditscard: id=" + Str(() => credits.LevelId)
-            + " index=" + Str(() => credits.LevelIndex.ToString())
-            + " isUnlocked=" + Str(() => credits.IsUnlocked.ToString())
-            + " hasCompletionData=" + has
-            + " unlockedOnLevelSelect=" + flag);
-    }
 }

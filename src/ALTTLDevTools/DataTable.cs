@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using UnityEngine;
+using static ALTTLDevTools.Helpers;
 
 namespace ALTTLDevTools;
 
@@ -18,7 +19,9 @@ namespace ALTTLDevTools;
 /// GameEvent_ObjectControllerSolved. A location built from the prefab set
 /// would include one that can never be checked.
 ///
-/// Output: BepInEx/alttl-levels.json, copied into apworld/alttl/data/.
+/// Output: BepInEx/alttl-levels.json, MERGED into
+/// apworld/alttl/data/levels.json with tools/merge-levels.py - never copied
+/// over it: a fresh sweep regresses the hand-audited phased levels.
 /// </summary>
 internal sealed class DataTable
 {
@@ -123,6 +126,22 @@ internal sealed class DataTable
         _task = null;
         _running = true;
         DevToolsPlugin.Log.LogInfo($"-- level data sweep: {_queue.Count} levels --");
+    }
+
+    /// <summary>
+    /// End the sweep early (`stop`) and write the rows read so far as a
+    /// complete, parseable table. The level on screen is left loaded.
+    /// </summary>
+    internal void Stop()
+    {
+        if (!_running) return;
+        _out.AppendLine();
+        _out.AppendLine("  ]");
+        _out.AppendLine("}");
+        File.WriteAllText(OutFile, _out.ToString());
+        _running = false;
+        DevToolsPlugin.Log.LogWarning(
+            $"levelsweep: STOPPED at {_pos}/{_queue.Count}; the rows so far are in {OutFile}");
     }
 
     internal void Tick()
@@ -968,27 +987,6 @@ internal sealed class DataTable
         return sb.Append(']').ToString();
     }
 
-    private static string Json(string s)
-    {
-        var sb = new StringBuilder("\"");
-        foreach (var c in s ?? "")
-        {
-            switch (c)
-            {
-                case '"': sb.Append("\\\""); break;
-                case '\\': sb.Append("\\\\"); break;
-                case '\n': sb.Append("\\n"); break;
-                case '\r': sb.Append("\\r"); break;
-                case '\t': sb.Append("\\t"); break;
-                default:
-                    if (c < ' ') sb.Append("\\u").Append(((int)c).ToString("x4"));
-                    else sb.Append(c);
-                    break;
-            }
-        }
-        return sb.Append('"').ToString();
-    }
-
     private static string Bool(Func<bool> f)
     {
         try { return f() ? "true" : "false"; } catch { return "false"; }
@@ -1018,8 +1016,4 @@ internal sealed class DataTable
         }
     }
 
-    private static string Str(Func<string> f)
-    {
-        try { return f() ?? ""; } catch (Exception e) { return "<err:" + e.GetType().Name + ">"; }
-    }
 }

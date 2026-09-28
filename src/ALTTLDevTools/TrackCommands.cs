@@ -10,12 +10,15 @@ using HarmonyLib;
 using Il2CppInterop.Runtime.Injection;
 using ALTTLModKit;
 using UnityEngine;
+using static ALTTLDevTools.Helpers;
 
 namespace ALTTLDevTools;
 
 /// <summary>
-/// The level-select track: what it holds, what each card's badge is reading,
-/// and clicking or scrolling to one.
+/// The level-select track: clicking, hovering and scrolling to a card, what
+/// each card's badge and icon are reading, its sections, the credits card and
+/// the skip prompt. Positions here are TRACK positions (dividers and the
+/// credits card count); only clickcard: takes a level index.
 /// </summary>
 public partial class DevToolsBehaviour
 {
@@ -28,7 +31,9 @@ public partial class DevToolsBehaviour
     /// whether it is collected and whether it is reachable.
     ///
     /// Read out of the mod through a file it writes, so the dev tools do not
-    /// need to reference it.
+    /// need to reference it. THE MOD ONLY READS THAT FILE WITH [Diagnostics]
+    /// BadgeWhyProbe = true in its config; otherwise this writes a request
+    /// nobody answers.
     /// </summary>
     private static void WhyBadge(string arg)
     {
@@ -53,51 +58,9 @@ public partial class DevToolsBehaviour
             return;
         }
 
-        // The POPULATED track, not merely the first one found.
-        //
-        // FindObjectOfType returns one arbitrary active instance, and the scene
-        // holds more than one LevelsTrack. Picking the wrong (empty) one made
-        // every position report "not on the track" - including positions that
-        // had just been clicked successfully - while the mod's own log happily
-        // said it had built 35 items. Inactive ones count too: the menu is
-        // cached and rebuilt, so the live track is not always the active one.
-        // Prefer a LIVE track, and only then a populated one.
-        //
-        // Both halves were learned the hard way. FindObjectOfType returns one
-        // arbitrary ACTIVE instance and picked an empty track, so every
-        // position reported "not on the track". Widening to
-        // FindObjectsOfTypeAll and taking the fullest one fixed that and broke
-        // something quieter: the scene keeps stale tracks around, so after a
-        // few menu transitions the fullest track is a LEFTOVER. Clicking its
-        // icons resolves the level name perfectly and then does nothing at all,
-        // because the icon is not the one on screen. A silent no-op is far
-        // worse than a warning.
-        LevelsTrack? track = null;
-        int best = -1;
-        bool bestLive = false;
-        foreach (var obj in Resources.FindObjectsOfTypeAll(
-                     Il2CppInterop.Runtime.Il2CppType.Of<LevelsTrack>()))
-        {
-            var candidate = obj == null ? null : obj.TryCast<LevelsTrack>();
-            if (candidate == null) continue;
-
-            int n;
-            bool live;
-            try
-            {
-                n = candidate.trackItems == null ? 0 : candidate.trackItems.Count;
-                live = candidate.gameObject != null && candidate.gameObject.activeInHierarchy;
-            }
-            catch { continue; }
-
-            // A live track always beats a dead one, however full the dead one.
-            if (live != bestLive ? live : n > best)
-            {
-                best = n;
-                bestLive = live;
-                track = candidate;
-            }
-        }
+        // The LIVE, populated track: FindLiveTrack says why both halves
+        // matter. A silent no-op is far worse than a warning.
+        var track = FindLiveTrack(out var best, out var bestLive);
 
         // Refuse to click a dead track rather than doing it silently.
         //
@@ -153,8 +116,13 @@ public partial class DevToolsBehaviour
             return;
         }
 
-        var track = UnityEngine.Object.FindObjectOfType<LevelsTrack>();
-        var items = track == null ? null : track.trackItems;
+        var track = FindLiveTrack(out _, out var live);
+        if (track == null || !live)
+        {
+            DevToolsPlugin.Log.LogWarning("focus: the track is not up yet - open menu:levels first");
+            return;
+        }
+        var items = track.trackItems;
         if (items == null || index < 0 || index >= items.Count)
         {
             DevToolsPlugin.Log.LogWarning("focus: no such card");
@@ -173,286 +141,41 @@ public partial class DevToolsBehaviour
     }
 
     /// <summary>
-    /// Every cat-ish component in the running scene.
-    ///
-    /// The question this answers is "does THIS level have a built-in cat, and
-    /// what class is it": CatSwipe turned out to be only a config helper - it
-    /// has SetupSwipe, AddSwipeables and the mass and angular settings, but no
-    /// trigger - so whatever performs a cat event is a class the static probe
-    /// never named. Scanning a real scene names it, once, instead of guessing
-    /// class names one compile at a time.
-    ///
-    /// Deliberately a scene-wide scan rather than a walk of the level's own
-    /// object list: a cat that lives outside allLevelObjects is exactly the
-    /// case a narrower scan would miss and then report as "no cat here".
+    /// "scrolltrack:N" scrolls the level select to the Nth card and reports
+    /// how the icon is drawn (the game's unlocked flag and which art is on).
+    /// Written to look at cards in packs not yet opened (backlog item 8:
+    /// filled icons there) without a mouse to scroll with.
     /// </summary>
-    private static void ListCats()
+    private static void ScrollTrack(string arg)
     {
-        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
-        var levelId = li == null ? "(none)" : Str(() => li.LevelId);
-
-        var all = UnityEngine.Object.FindObjectsOfType<Component>();
-        int hits = 0;
-        var seen = new System.Collections.Generic.Dictionary<string, int>();
-
-        for (int i = 0; i < all.Length; i++)
+        if (!int.TryParse(arg.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture,
+                out var index))
         {
-            var c = all[i];
-            if (c == null) continue;
-
-            string type;
-            try { type = c.GetIl2CppType().Name; }
-            catch { continue; }
-
-            if (type.IndexOf("Cat", StringComparison.Ordinal) < 0
-                && type.IndexOf("Paw", StringComparison.Ordinal) < 0
-                && type.IndexOf("Swipe", StringComparison.Ordinal) < 0) continue;
-
-            hits++;
-            seen[type] = seen.TryGetValue(type, out var n) ? n + 1 : 1;
-            DevToolsPlugin.Log.LogInfo(
-                $"  {type} on '{Str(() => c.gameObject.name)}'"
-                + $" active={Str(() => c.gameObject.activeInHierarchy.ToString())}");
-        }
-
-        DevToolsPlugin.Log.LogInfo(
-            $"cats: level={levelId} components={hits} distinctTypes={seen.Count}");
-        foreach (var kv in seen)
-        {
-            DevToolsPlugin.Log.LogInfo($"cats: type {kv.Key} x{kv.Value}");
-        }
-    }
-
-    /// <summary>
-    /// The unlock picture for the base campaign: what is unlocked now, what
-    /// the game says it would unlock next, and how the chapters partition the
-    /// level list.
-    /// </summary>
-    private static void DumpUnlocks()
-    {
-        var gm = GameManager.Instance;
-        var lm = gm.levelManager;
-        var sb = new StringBuilder();
-
-        sb.AppendLine("levelIndex\tlevelId\ttype\tchapter\tsolutionCount\tfound\tsolved\tcompleted"
-                      + "\tisUnlocked\tunlockedOnLevelSelect\thasSaveEntry\tskipped\thintUsed"
-                      + "\tstore\tsolutionsInSave\tisDailyTidy");
-
-        var all = lm.AllLevelInterfaces(false);
-        for (int i = 0; i < (all == null ? 0 : all.Length); i++)
-        {
-            var li = all![i];
-            if (li == null) continue;
-            var idx = Str(() => li.LevelIndex.ToString());
-            // EVERY level, not just the base campaign.
-            //
-            // This filtered to index < 100 with the comment "base campaign
-            // only: everything else has a synthetic index >= 100". The indices
-            // are not synthetic - they are the game's own LevelInterface
-            // .LevelIndex - and the filter hid exactly the levels droha
-            // reported the empty completion star on. Procedural Grid Puzzle is
-            // 1000, the randomized Pencils/Post-It/Stamps/Batteries/Books are
-            // 995 to 999, and every DLC level is 1100 or above. The one
-            // instrument that could answer the question could not see the
-            // question.
-            if (!int.TryParse(idx, out _)) continue;
-            sb.Append(idx).Append('\t')
-              .Append(Str(() => li.LevelId)).Append('\t')
-              .Append(Str(() => li.LevelType.ToString())).Append('\t')
-              .Append(Str(() => li.ChapterDetails == null ? "" : li.ChapterDetails.chapterNumber.ToString())).Append('\t')
-              .Append(Str(() => li.SolutionCount.ToString())).Append('\t')
-              .Append(Str(() => li.NumSolutionsFound.ToString())).Append('\t')
-              .Append(Str(() => li.Solved.ToString())).Append('\t')
-              .Append(Str(() => li.Completed.ToString())).Append('\t')
-              .Append(Str(() => li.IsUnlocked.ToString())).Append('\t')
-              .Append(Str(() => li.IsUnlockedOnLevelSelect().ToString())).Append('\t')
-              .Append(Str(() => SaveSystem.data.LevelHasCompletionData(li).ToString())).Append('\t')
-              .Append(Str(() => li.Skipped.ToString())).Append('\t')
-              .Append(Str(() => li.HintUsed.ToString())).Append('\t')
-              // WHICH STORE, AND HOW MANY SOLUTIONS ARE IN IT.
-              //
-              // The save keeps campaign and archive progress in two separate
-              // lists, which Checks.SeedSolutionsFromSave found out the hard
-              // way - reading only levelCompletionData found nothing for the
-              // 26 archive levels and quietly did nothing, which looked
-              // exactly like the fix working. A star that lights on some
-              // levels and not others is the same shape of question, so the
-              // store is a column rather than an assumption.
-              .Append(StoreOf(li)).Append('\t')
-              .Append(SolutionsInSave(li)).Append('\t')
-              .Append(Str(() => li.IsDailyTidy.ToString()))
-              .AppendLine();
-        }
-
-        File.WriteAllText(Path.Combine(GameDir, "BepInEx", "alttl-unlocks.tsv"), sb.ToString());
-
-        // Chapter membership, straight from the authored ChapterDetails.
-        var chapters = new StringBuilder();
-        var chapterInterfaces = lm.GetAllChapterInterfaces();
-        for (int i = 0; i < (chapterInterfaces == null ? 0 : chapterInterfaces.Length); i++)
-        {
-            var ch = chapterInterfaces![i];
-            if (ch == null) continue;
-            var cd = ch.ChapterDetails;
-            var members = new StringBuilder();
-            try
-            {
-                var list = cd.levelIndicesInChapter;
-                for (int k = 0; k < (list == null ? 0 : list.Count); k++)
-                {
-                    if (k > 0) members.Append(',');
-                    members.Append(list![k]);
-                }
-            }
-            catch (Exception e) { members.Append("<err:").Append(e.GetType().Name).Append('>'); }
-
-            chapters.AppendLine($"chapter {Str(() => cd.chapterNumber.ToString())}"
-                + $"\t{Str(() => cd.chapterTitle)}"
-                + $"\tinterfaceIndex={Str(() => ch.LevelIndex.ToString())}"
-                + $"\tcompletion={Str(() => ch.ChapterCompletionPercentage.ToString())}%"
-                + $"\tmembers=[{members}]");
-        }
-        File.WriteAllText(Path.Combine(GameDir, "BepInEx", "alttl-chapters.txt"), chapters.ToString());
-
-        // What the game itself thinks comes next. Scoped to the base campaign
-        // (indices below 100) so DLC and event levels do not skew the totals.
-        var campaign = new Il2CppSystem.Collections.Generic.List<LevelInterface>();
-        for (int i = 0; i < (all == null ? 0 : all.Length); i++)
-        {
-            var li = all![i];
-            if (li == null) continue;
-            try { if (li.LevelIndex < 100) campaign.Add(li); } catch { }
-        }
-        var info = new SaveData.LevelsCompletionInfo(campaign);
-        DevToolsPlugin.Log.LogInfo(
-            "campaign: levels=" + Str(() => info.LevelsCount.ToString())
-            + " unlocked=" + Str(() => info.UnlockedCount.ToString())
-            + " fullyUnlocked=" + Str(() => info.IsFullyUnlocked.ToString())
-            + " unsolved=" + Str(() => info.UnsolvedCount.ToString())
-            + " allSolved=" + Str(() => info.AllLevelsSolved.ToString())
-            + " solutions=" + Str(() => info.SolutionsCount.ToString())
-            + " solutionsFound=" + Str(() => info.SolutionsFoundCount.ToString())
-            + " completion=" + Str(() => info.CompletionPercentageString)
-            + " allSolutionsFound=" + Str(() => info.AllSolutionsFound.ToString())
-            + " lastUnlocked=" + Str(() => info.LastUnlockedLevel == null ? "-" : info.LastUnlockedLevel.LevelId)
-            + " firstUnsolved=" + Str(() => info.FirstUnsolvedLevel == null ? "-" : info.FirstUnsolvedLevel.LevelId)
-            + " toUnlockOnSelect=" + Str(() => info.LevelsToUnlockOnSelect == null
-                  ? "-" : info.LevelsToUnlockOnSelect.Count.ToString())
-            + " | nextLevelIndex=" + Str(() => lm.GetNextLevelIndex().ToString())
-            + " gameCompleteCheck=" + Str(() => lm.GameCompleteCheck().ToString()));
-
-        DevToolsPlugin.Log.LogInfo("unlocks written to alttl-unlocks.tsv / alttl-chapters.txt");
-    }
-
-    /// <summary>
-    /// Which of the save's two completion lists holds this level's row, or
-    /// "-" when neither does.
-    ///
-    /// Reported rather than assumed. Track.ApplyUnlocks creates a row for
-    /// every level it reveals, so "has a row" is nearly always true and says
-    /// nothing; WHICH list it landed in, and whether that row carries any
-    /// solutions, is the part that differs between a level whose star lights
-    /// and one whose star does not.
-    /// </summary>
-    private static string StoreOf(LevelInterface li)
-    {
-        try
-        {
-            var data = SaveSystem.data;
-            if (data == null) return "<no save>";
-            var id = li.LevelId;
-            if (RowFor(data.levelCompletionData, id) != null) return "campaign";
-            if (RowFor(data.archiveCompletionData, id) != null) return "archive";
-            return "-";
-        }
-        catch (Exception e) { return "<err:" + e.GetType().Name + ">"; }
-    }
-
-    /// <summary>
-    /// How many solutions the save's row records for this level.
-    ///
-    /// "null" and "0" are printed as different things ON PURPOSE.
-    /// Track.ApplyUnlocks calls CreateLevelCompletionData(level, null), so a
-    /// revealed-but-unplayed level can carry a row whose solutions list was
-    /// never constructed. A count of 0 means the list exists and is empty,
-    /// which is a different state and possibly a different bug.
-    /// </summary>
-    private static string SolutionsInSave(LevelInterface li)
-    {
-        try
-        {
-            var data = SaveSystem.data;
-            if (data == null) return "-";
-            var id = li.LevelId;
-            var row = RowFor(data.levelCompletionData, id)
-                      ?? RowFor(data.archiveCompletionData, id);
-            if (row == null) return "-";
-            var solutions = row.solutions;
-            return solutions == null ? "null" : solutions.Count.ToString();
-        }
-        catch (Exception e) { return "<err:" + e.GetType().Name + ">"; }
-    }
-
-    /// <summary>
-    /// The save row for a level id, or null. Both lists are searched by the
-    /// callers above, in that order, for the reason Checks.SolutionIdsFor
-    /// records: reading only the campaign list misses every archive level.
-    /// </summary>
-    private static SaveData.LevelCompletionData? RowFor(
-        Il2CppSystem.Collections.Generic.List<SaveData.LevelCompletionData>? all,
-        string levelId)
-    {
-        if (all == null) return null;
-        for (int i = 0; i < all.Count; i++)
-        {
-            var entry = all[i];
-            if (entry != null && entry.levelId == levelId) return entry;
-        }
-        return null;
-    }
-
-    /// <summary>
-    /// Rewrites the level-select track to an arbitrary list of level indices
-    /// and rebuilds it. "reorder:1,1013,1017,40,1008,..." - the question being
-    /// answered is whether a randomizer can put any puzzle in any slot of the
-    /// campaign's own UI, including puzzles the campaign never contains.
-    /// </summary>
-    private static void ReorderTrack(string csv)
-    {
-        if (csv.Equals("off", StringComparison.OrdinalIgnoreCase))
-        {
-            LevelSelectOverride.Order = null;
-            DevToolsPlugin.Log.LogInfo("reorder: override cleared");
+            DevToolsPlugin.Log.LogWarning($"scrolltrack: not a number: {arg}");
             return;
         }
 
-        var order = new List<int>();
-        foreach (var part in csv.Split(','))
+        var track = FindLiveTrack(out _, out var live);
+        if (track == null || !live)
         {
-            if (int.TryParse(part.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
-                order.Add(n);
-        }
-        LevelSelectOverride.Order = order;
-        DevToolsPlugin.Log.LogInfo($"reorder: {order.Count} levels queued");
-
-        // The menu object is built once and reused, so reopening it does not
-        // re-run Setup. Drive the two rebuild steps directly - the patches
-        // hang off them either way.
-        var menu = UnityEngine.Object.FindObjectOfType<LevelSelect>();
-        if (menu == null)
-        {
-            DevToolsPlugin.Log.LogInfo("reorder: no live LevelSelect, will apply when one is built");
+            DevToolsPlugin.Log.LogWarning("scrolltrack: the track is not up yet - open menu:levels first");
             return;
         }
-        menu.SetLevels();
-        menu.SetupSections();
-        var track = UnityEngine.Object.FindObjectOfType<LevelsTrack>();
-        if (track != null)
+        var items = track.trackItems;
+        if (items == null || index < 0 || index >= items.Count)
         {
-            track.Init();
-            track.SetInitialScrollPosition();
+            DevToolsPlugin.Log.LogWarning("scrolltrack: no such card");
+            return;
         }
-        DumpSections();
+
+        track.SetScrollToItem(index);
+        var icon = items[index];
+        DevToolsPlugin.Log.LogInfo(
+            $"scrolltrack: card {index} is {Str(() => icon.level.LevelId)}"
+            + $" unlocked={Str(() => icon.isUnlocked.ToString())}"
+            + $" defaultArt={Str(() => icon.defaultLevelIcon.activeSelf.ToString())}"
+            + $" unlockedArt={Str(() => icon.unlockedLevelIcon.activeSelf.ToString())}"
+            + $" current={Str(() => icon.currentIcon.name)}");
     }
 
     /// <summary>
@@ -498,11 +221,12 @@ public partial class DevToolsBehaviour
                 + $" bg={Str(() => Hex(s.BackgroundColor))}");
         }
 
-        var track = UnityEngine.Object.FindObjectOfType<LevelsTrack>();
+        var track = FindLiveTrack(out _, out var live);
         if (track != null)
         {
             DevToolsPlugin.Log.LogInfo(
-                $"LevelsTrack: items={Str(() => track.trackItems == null ? "0" : track.trackItems.Count.ToString())}"
+                $"LevelsTrack ({(live ? "live" : "DEAD - not on screen")}):"
+                + $" items={Str(() => track.trackItems == null ? "0" : track.trackItems.Count.ToString())}"
                 + $" levelCount={Str(() => track.LevelCount.ToString())}"
                 + $" unlockAll={Str(() => track.UnlockAllLevels.ToString())}"
                 + $" scrollable={Str(() => track.Scrollable.ToString())}");
@@ -517,5 +241,266 @@ public partial class DevToolsBehaviour
                     + $" unlockable={Str(() => it.isUnlockable.ToString())}");
             }
         }
+    }
+
+    /// <summary>
+    /// "iconinfo:N" dumps one icon's child tree with the components and sizes
+    /// on each node. Guessing at a hierarchy wastes a build-and-launch cycle;
+    /// reading it costs one command. This is what showed that LevelIcon has two
+    /// whole presentations and swaps which is active.
+    /// </summary>
+    private static void IconInfo(string arg)
+    {
+        if (!int.TryParse(arg.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture,
+                out var index))
+        {
+            DevToolsPlugin.Log.LogWarning($"iconinfo: not a track position: {arg}");
+            return;
+        }
+
+        // SAY SO BEFORE TOUCHING ANYTHING. This call hung the game once, with
+        // "command: iconinfo:84" in the log and then nothing at all - not the
+        // out-of-range warning it should have printed instantly, not an
+        // exception, no further frames. With no output between the dispatch
+        // and the first Unity call there was no way to tell which of them had
+        // stopped, and the only diagnosis available was a guess.
+        //
+        // The index is also checked against nothing-in-particular first, so a
+        // plainly silly number is rejected without a scene search. 84 was a
+        // LEVEL index handed to a function that wants a TRACK position; the
+        // track had ten items.
+        DevToolsPlugin.Log.LogInfo($"iconinfo: looking up track position {index}");
+
+        if (index < 0 || index > 512)
+        {
+            DevToolsPlugin.Log.LogWarning(
+                $"iconinfo: {index} is not a track position - this takes the "
+                + "card's place on the track, not a level index");
+            return;
+        }
+
+        var track = FindLiveTrack(out _, out var live);
+        if (track == null || !live)
+        {
+            DevToolsPlugin.Log.LogWarning("iconinfo: open menu:levels first");
+            return;
+        }
+
+        var items = track.trackItems;
+        if (items == null || index < 0 || index >= items.Count)
+        {
+            DevToolsPlugin.Log.LogWarning(
+                $"iconinfo: index {index} out of range (0..{(items?.Count ?? 0) - 1})");
+            return;
+        }
+
+        var icon = items[index];
+        if (icon == null) { DevToolsPlugin.Log.LogWarning("iconinfo: null icon"); return; }
+
+        DevToolsPlugin.Log.LogInfo($"iconinfo: index {index} level={Str(() => icon.level?.LevelId)}");
+        DumpIcon(icon.transform, 0);
+    }
+
+    private static void DumpIcon(Transform t, int depth)
+    {
+        if (t == null || depth > 7) return;
+
+        var pad = new string(' ', depth * 2);
+        var rt = t.TryCast<RectTransform>();
+        var size = rt != null ? $" size={rt.rect.width:0}x{rt.rect.height:0}" : "";
+
+        var components = "";
+        foreach (var c in t.GetComponents<Component>())
+        {
+            if (c == null) continue;
+            var name = Str(() => c.GetIl2CppType().Name);
+            if (name == "RectTransform" || name == "Transform") continue;
+            components += (components.Length > 0 ? "," : "") + name;
+        }
+
+        // Sprite name and colour on any Image, so the right art can be picked
+        // by reading rather than by guessing and rebuilding.
+        var img = t.GetComponent<UnityEngine.UI.Image>();
+        if (img != null)
+        {
+            components += $" sprite={Str(() => img.sprite?.name)}"
+                + $" colour={Str(() => $"{img.color.r:0.00},{img.color.g:0.00},{img.color.b:0.00},{img.color.a:0.00}")}";
+        }
+
+        // A card's solution stars are Toggles (LevelIcon.SetCompletionStars
+        // sets them from the save row), so their state is the star's state.
+        var toggle = t.GetComponent<UnityEngine.UI.Toggle>();
+        if (toggle != null) components += $" isOn={Str(() => toggle.isOn.ToString())}";
+
+        DevToolsPlugin.Log.LogInfo(
+            $"  {pad}{t.gameObject.name}{size} active={t.gameObject.activeSelf}"
+            + $" sibling={t.GetSiblingIndex()}"
+            + (components.Length > 0 ? $" [{components}]" : ""));
+
+        for (int i = 0; i < t.childCount; i++) DumpIcon(t.GetChild(i), depth + 1);
+    }
+
+    /// <summary>
+    /// "clickcard:N" invokes LevelIcon.DoStartLevel on the icon for level
+    /// INDEX N - the exact method a real click funnels into - without
+    /// synthetic mouse input. clicktrack: takes a track position instead.
+    /// </summary>
+    private static void ClickCard(string arg)
+    {
+        if (!int.TryParse(arg, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
+        {
+            DevToolsPlugin.Log.LogWarning($"clickcard: not a level index: {arg}");
+            return;
+        }
+        // The live track; "open menu:levels first" is what release_e2e retries on.
+        var track = FindLiveTrack(out _, out var live);
+        if (track == null || !live) { DevToolsPlugin.Log.LogWarning("clickcard: open menu:levels first"); return; }
+
+        var items = track.trackItems;
+        for (int i = 0; i < (items == null ? 0 : items.Count); i++)
+        {
+            var icon = items![i];
+            if (icon == null || icon.level == null) continue;
+            if (icon.level.LevelIndex != n) continue;
+            DevToolsPlugin.Log.LogInfo($"clickcard: invoking DoStartLevel on {icon.level.LevelId}");
+            icon.DoStartLevel();
+            DevToolsPlugin.Log.LogInfo("clickcard: returned");
+            return;
+        }
+        DevToolsPlugin.Log.LogWarning($"clickcard: no icon on the track for level {n}");
+    }
+
+    /// <summary>
+    /// "starcalls": how many times the game's own card-star methods ran since
+    /// the last call, then zero the counts (StarTrace).
+    /// </summary>
+    private static void ReportStarCalls()
+        => DevToolsPlugin.Log.LogInfo($"starcalls: {StarTrace.TakeCounts()}");
+
+    /// <summary>
+    /// Force the level-select skip prompt on screen, and say what it reads.
+    ///
+    /// Written to settle a question that a hierarchy scan could not: a label
+    /// at Menus/Level Select/Levels Track/Skip Tooltip reads "Skipppable" in
+    /// the object tree, but it has a localiser and had never been activated,
+    /// so that string may be nothing more than the placeholder baked into the
+    /// prefab. What a player actually sees is only knowable by showing it.
+    /// </summary>
+    private static void ShowSkipTooltip()
+    {
+        var found = 0;
+        foreach (var obj in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<LevelsTrack>()))
+        {
+            var track = obj == null ? null : obj.TryCast<LevelsTrack>();
+            if (track == null || track.gameObject == null) continue;
+            if (!track.gameObject.activeInHierarchy) continue;
+
+            var tip = track.skipTooltip;
+            if (tip == null)
+            {
+                DevToolsPlugin.Log.LogInfo(
+                    $"skiptip: {PathOf(track.transform)} has no skipTooltip");
+                continue;
+            }
+
+            found++;
+            DevToolsPlugin.Log.LogInfo(
+                $"skiptip: {PathOf(tip.transform)}"
+                + $" showing={Str(() => tip.Showing.ToString())}"
+                + $" expire={Str(() => tip.skipExpireTime.ToString())}"
+                + $" before={Str(() => tip.skipText.text)}");
+
+            tip.Show(true);
+            tip.StartSkipTooltip();
+
+            DevToolsPlugin.Log.LogInfo(
+                $"skiptip: shown, now reads {Str(() => tip.skipText.text)}"
+                + $" live={tip.gameObject.activeInHierarchy}");
+        }
+
+        if (found == 0)
+        {
+            DevToolsPlugin.Log.LogWarning(
+                "skiptip: no active LevelsTrack - open the level select first");
+        }
+    }
+
+    /// <summary>
+    /// What state the credits card is actually in on the level select.
+    ///
+    /// droha: "when i went back to the level select i see a level with a hand
+    /// print as the icon. it's greyed out like I can't play it. I think it's
+    /// the credits but I can't tell."
+    ///
+    /// The suspicion to test is that Track.ApplyUnlocks creates completion
+    /// data for the chapter dividers and for the run's open slots, and the
+    /// credits card is neither - it is appended to the track separately, after
+    /// the loop, so nothing ever sets unlockedOnLevelSelect on it. A card with
+    /// no completion row draws locked. This reads the three things that would
+    /// settle it rather than inferring from a screenshot.
+    /// </summary>
+    private static void ReportCreditsCard()
+    {
+        var manager = GameManager.Instance?.levelManager;
+        if (manager == null)
+        {
+            DevToolsPlugin.Log.LogWarning("creditscard: no LevelManager");
+            return;
+        }
+
+        LevelInterface? credits = null;
+        var all = manager.m_allLevelInterfaces;
+        if (all != null)
+        {
+            for (int i = 0; i < all.Count; i++)
+            {
+                var li = all[i];
+                if (li == null) continue;
+                var isCredits = false;
+                try { isCredits = li.IsCredits; } catch { continue; }
+                if (isCredits) { credits = li; break; }
+            }
+        }
+
+        if (credits == null)
+        {
+            DevToolsPlugin.Log.LogWarning("creditscard: no credits level found");
+            return;
+        }
+
+        var has = Str(() =>
+            SaveSystem.data.LevelHasCompletionData(credits).ToString());
+        var flag = "-";
+        try
+        {
+            if (SaveSystem.data.LevelHasCompletionData(credits))
+            {
+                var entry = SaveSystem.data.GetLevelCompletionData(credits);
+                flag = entry == null
+                    ? "no entry" : entry.unlockedOnLevelSelect.ToString();
+            }
+        }
+        catch (Exception e) { flag = "threw: " + e.Message; }
+
+        // The card's OWN art, by name. The mod picks no icon for this card -
+        // it puts the game's credits level on the track and the LevelIcon
+        // draws whatever that level carries - so naming the sprite settles
+        // whether the hand print is authored for the credits or something we
+        // caused. droha: "is that for the credits, or you just picked it?"
+        var locked = Str(() => credits.LockedIcon == null
+            ? "none" : credits.LockedIcon.name);
+        var unlocked = Str(() => credits.UnlockedIcon == null
+            ? "none" : credits.UnlockedIcon.name);
+
+        DevToolsPlugin.Log.LogInfo(
+            $"creditscard: lockedIcon={locked} unlockedIcon={unlocked}");
+
+        DevToolsPlugin.Log.LogInfo(
+            "creditscard: id=" + Str(() => credits.LevelId)
+            + " index=" + Str(() => credits.LevelIndex.ToString())
+            + " isUnlocked=" + Str(() => credits.IsUnlocked.ToString())
+            + " hasCompletionData=" + has
+            + " unlockedOnLevelSelect=" + flag);
     }
 }

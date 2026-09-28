@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
+using static ALTTLDevTools.Helpers;
 
 namespace ALTTLDevTools;
 
@@ -64,27 +65,6 @@ internal static class MethodTrace
                 }
             }
         }
-    }
-
-    private static Type? FindType(string name)
-    {
-        // The game's own assembly first, as SceneCommands.FindType: a bare
-        // name like Match also names a .NET type.
-        foreach (var gameFirst in new[] { true, false })
-        {
-            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                var isGame = (asm.GetName().Name ?? "").StartsWith("Assembly-CSharp", StringComparison.Ordinal);
-                if (isGame != gameFirst) continue;
-                Type[] types;
-                try { types = asm.GetTypes(); } catch { continue; }
-                foreach (var t in types)
-                {
-                    if (t.Name == name || t.FullName == name) return t;
-                }
-            }
-        }
-        return null;
     }
 
     private static void Prefix(MethodBase __originalMethod, object __instance, object[] __args)
