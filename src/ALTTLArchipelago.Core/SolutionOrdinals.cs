@@ -99,6 +99,14 @@ public sealed class SolutionOrdinals
         return added;
     }
 
+    /// <summary>The id of the Nth distinct solution found on a slot, 1-based, or null.</summary>
+    public string? IdOf(int slot, int n)
+        => _found.TryGetValue(slot, out var seen) && n >= 1 && n <= seen.Count ? seen[n - 1] : null;
+
+    /// <summary>This slot's distinct solution ids in the order found.</summary>
+    public IReadOnlyList<string> IdsFor(int slot)
+        => _found.TryGetValue(slot, out var seen) ? seen.ToList() : new List<string>();
+
     /// <summary>How many distinct solutions have been found on a slot.</summary>
     public int CountFor(int slot)
         => _found.TryGetValue(slot, out var seen) ? seen.Count : 0;

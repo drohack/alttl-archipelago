@@ -33,6 +33,35 @@ public static class SaveNames
     public const string Prefix = "save_ap_";
 
     /// <summary>
+    /// The subfolder of the game's save folder that every file of ours lives
+    /// in: each run's save, its run file, and the session cache.
+    ///
+    /// OUT OF THE STEAM CLOUD, which is why it exists. The game's Auto-Cloud
+    /// rule syncs "*.json" in the save folder itself - measured from Steam's
+    /// cloud_log.txt, 2026-09-27: one rule, "Found 4 files that match
+    /// ...\A Little To The Left\*.json" - and the game's cloud quota is FOUR
+    /// files. The campaign save, the session cache and one seed's two files
+    /// already filled it, so every other seed went "over quota. Removing from
+    /// cloud" at every exit. The game's own save is all the cloud should hold.
+    /// </summary>
+    public const string Folder = "Archipelago";
+
+    /// <summary>The offline session cache (SlotCache): one file, the last run.</summary>
+    public const string SessionCache = "alttl-last-session.json";
+
+    /// <summary>
+    /// Whether a file in the save folder's top level is one of ours from
+    /// before <see cref="Folder"/> existed, and should be moved into it: a
+    /// run's save or run file (save_ap_*.json, *.run.json) or the session
+    /// cache. The game's temp files (*.json.tmp) and the campaign backup stay.
+    /// </summary>
+    public static bool IsLegacyFile(string? fileName)
+        => fileName != null
+           && (fileName == SessionCache
+               || (fileName.StartsWith(Prefix, StringComparison.Ordinal)
+                   && fileName.EndsWith(".json", StringComparison.Ordinal)));
+
+    /// <summary>
     /// Room to keep the name readable while staying clear of path limits. The
     /// save folder path is already long on Windows, and the game appends its
     /// own extension plus a ".tmp" for the atomic write.

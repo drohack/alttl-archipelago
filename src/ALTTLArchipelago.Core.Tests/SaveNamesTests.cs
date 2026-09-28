@@ -10,6 +10,19 @@ namespace ALTTLArchipelago.Core.Tests;
 public class SaveNamesTests
 {
     [Fact]
+    public void OnlyOurOwnTopLevelFilesAreMovedIntoTheFolder()
+    {
+        Assert.True(SaveNames.IsLegacyFile("save_ap_droha_123.json"));
+        Assert.True(SaveNames.IsLegacyFile("save_ap_droha_123.run.json"));
+        Assert.True(SaveNames.IsLegacyFile("alttl-last-session.json"));
+
+        Assert.False(SaveNames.IsLegacyFile("save1.json"));
+        Assert.False(SaveNames.IsLegacyFile("save_ap_droha_123.json.tmp"));
+        Assert.False(SaveNames.IsLegacyFile("save1.json.backup-20260902-193654"));
+        Assert.False(SaveNames.IsLegacyFile(null));
+    }
+
+    [Fact]
     public void ItIsNeverTheGamesOwnSave()
     {
         // The single most important property in this file.

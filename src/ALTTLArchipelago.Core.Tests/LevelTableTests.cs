@@ -10,7 +10,7 @@ namespace ALTTLArchipelago.Core.Tests;
 /// a changed controller name is a changed location name, which breaks seeds
 /// already in flight, so it should fail here loudly rather than quietly there.
 ///
-/// The expected numbers come from docs/content-report.md.
+/// The expected numbers come from docs/reference/content-report.md.
 /// </summary>
 public class LevelTableTests
 {

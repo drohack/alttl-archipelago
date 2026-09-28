@@ -23,7 +23,7 @@ namespace ALTTLArchipelago.Core.Tests;
 ///    so it never sees these however long it waits.
 /// 2. A PREFAB GHOST, which sits in the prefab and never registers at all.
 ///    MedicineCabinet/Cupboard is the documented example
-///    (apworld/alttl/data/README.md).
+///    (docs/dev/level-data.md).
 ///
 /// Restoring a ghost would mint a location nobody can ever check; leaving a
 /// phased one out loses a location and, worse, can hide an ABILITY the level

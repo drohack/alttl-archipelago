@@ -15,7 +15,7 @@ namespace ALTTLArchipelago.Core.Tests;
 /// separate times before anybody counted.
 ///
 /// What makes it worth a test rather than a better comment: the correct number
-/// was ALREADY WRITTEN DOWN. docs/content-report.md says, in bold, "The daily
+/// was ALREADY WRITTEN DOWN. docs/reference/content-report.md says, in bold, "The daily
 /// pool is not 6 levels - it is 36", with the three sources broken out. The
 /// project knew. Nothing connected knowing to the code, so the code kept the
 /// wrong number and no build ever objected. Prose cannot fail; a test can.
@@ -34,7 +34,7 @@ public class DailyPoolTests
     }
 
     /// <summary>
-    /// The three counts, from docs/content-report.md and confirmed against the
+    /// The three counts, from docs/reference/content-report.md and confirmed against the
     /// game on 2026-09-08 by three independent measurements that agreed:
     ///
     /// - the levelsweep's per-level IsDailyTidy flag: 16

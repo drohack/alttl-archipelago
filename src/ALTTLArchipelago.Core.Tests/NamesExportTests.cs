@@ -41,12 +41,43 @@ public class NamesExportTests
         /// GameObject name, not a group.
         /// </summary>
         public List<string> members { get; set; } = new();
+
+        /// <summary>
+        /// This group solved is one of the level's endings (Endings), so it
+        /// is that ending's check rather than a part check of its own.
+        /// </summary>
+        public bool ending { get; set; }
+
+        /// <summary>
+        /// Done only as part of the Solution (LevelInfo.SolutionOnlyParts): a
+        /// group, but no part check of its own.
+        /// </summary>
+        public bool solutionOnly { get; set; }
+    }
+
+    /// <summary>One fixed ending: its solution id (null while unseen), the
+    /// location's suffix, and the group it is made of when it is one.</summary>
+    private sealed class EndingEntry
+    {
+        public string? id { get; set; }
+        public string location { get; set; } = "";
+        public string? group { get; set; }
+    }
+
+    private sealed class AchievementEntry
+    {
+        public string id { get; set; } = "";
+        public string display { get; set; } = "";
     }
 
     private sealed class LevelNames
     {
         public string display { get; set; } = "";
         public Dictionary<string, PartEntry> parts { get; set; } = new();
+
+        /// <summary>Absent on a generated puzzle, which keeps numbered solutions.</summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public List<EndingEntry>? endings { get; set; }
     }
 
     private static string RepoDataDir()
@@ -70,6 +101,13 @@ public class NamesExportTests
         foreach (var level in table.Levels)
         {
             var entry = new LevelNames { display = DisplayNames.For(level.LevelId) };
+            var endingGroups = Endings.EndingGroups(level);
+            if (level.Endings != null && level.Endings.Count > 0)
+            {
+                entry.endings = Endings.For(level)
+                    .Select(e => new EndingEntry { id = e.Id, location = e.Suffix, group = e.Group })
+                    .ToList();
+            }
             foreach (var g in ControllerGroups.For(level))
             {
                 entry.parts[g.Name] = new PartEntry
@@ -79,6 +117,8 @@ public class NamesExportTests
                     // transitive closure over one-way dependencies.
                     abilities = g.Abilities.OrderBy(a => a, StringComparer.Ordinal).ToList(),
                     members = g.Members.OrderBy(m => m, StringComparer.Ordinal).ToList(),
+                    ending = endingGroups.Contains(g.Name),
+                    solutionOnly = level.SolutionOnlyParts.Contains(g.DisplayName),
                 };
             }
             byLevel[level.LevelId] = entry;
@@ -106,8 +146,18 @@ public class NamesExportTests
                 ["beatenToken"] = ItemNames.BeatenToken,
                 ["hintPage"] = ItemNames.HintPage,
                 ["backgroundTrap"] = ItemNames.BackgroundTrap,
+                ["backgroundReset"] = ItemNames.BackgroundReset,
             },
             ["levels"] = byLevel,
+            // levelId -> its achievement checks (AchievementChecks), in the
+            // order the apworld appends their location ids.
+            ["achievements"] = AchievementChecks.All
+                .GroupBy(e => e.LevelId)
+                .ToDictionary(g => g.Key, g => g.Select(e => new AchievementEntry
+                {
+                    id = e.AchievementId,
+                    display = e.Display,
+                }).ToList()),
         };
 
         return JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });

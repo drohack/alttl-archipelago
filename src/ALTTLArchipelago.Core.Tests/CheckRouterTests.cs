@@ -167,7 +167,7 @@ public class CheckRouterTests
 
         var parts = data.Requirements.Keys
             .Where(n => !n.EndsWith(" - Beaten", StringComparison.Ordinal)
-                        && !n.Contains(" - Solution ", StringComparison.Ordinal)
+                        && !n.Contains(" - Solution", StringComparison.Ordinal)
                         && n != LocationNames.Credits)
             .ToList();
 

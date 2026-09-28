@@ -144,6 +144,31 @@ public sealed class RunStateData
     [JsonPropertyName("withheld")]
     public List<string> Withheld { get; set; } = new();
 
+    /// <summary>
+    /// For a withheld SOLUTION, the part locations its ending named
+    /// (CheckRouter.PartsForSolution), so FileWithheld judges it by the
+    /// abilities that ending used rather than the level's whole set. A
+    /// location missing here is judged by its own requirement. A missing key
+    /// deserialises to an empty map, so older run files stay valid.
+    /// </summary>
+    [JsonPropertyName("withheldNeeds")]
+    public Dictionary<string, List<string>> WithheldNeeds { get; set; } = new();
+
+    /// <summary>Background Reset Tokens spent.</summary>
+    [JsonPropertyName("backgroundResetsUsed")]
+    public int BackgroundResetsUsed { get; set; }
+
+    /// <summary>
+    /// How many Background Change Traps had arrived at the last reset.
+    ///
+    /// The backdrop colour is a function of the trap COUNT, so a reset is a
+    /// mark on that count rather than a change to it: the colour shown is the
+    /// one for traps minus this, and a reconnect, which replays every trap,
+    /// lands on the same colour it left. A missing key reads as 0.
+    /// </summary>
+    [JsonPropertyName("backgroundResetAt")]
+    public int BackgroundResetAt { get; set; }
+
     public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);
 
     /// <summary>
@@ -173,7 +198,8 @@ public sealed class RunStateData
     [JsonIgnore]
     public bool HasProgress
         => Owed.Count > 0 || SkipsUsed > 0 || TrapsSprung > 0
-           || Beaten.Count > 0 || HintPages.Count > 0 || Withheld.Count > 0;
+           || Beaten.Count > 0 || HintPages.Count > 0 || Withheld.Count > 0
+           || BackgroundResetsUsed > 0;
 
     /// <summary>One line for the log, when <see cref="HasProgress"/>.</summary>
     public string Summary()
@@ -183,7 +209,8 @@ public sealed class RunStateData
            + $"{HintPages.Count} hint page(s) opened, "
            + $"{Beaten.Count} puzzle(s) beaten"
            // Last, so the harness's parse of the beaten count is unchanged.
-           + (Withheld.Count > 0 ? $", {Withheld.Count} part check(s) waiting on an ability" : "");
+           + (Withheld.Count > 0 ? $", {Withheld.Count} part check(s) waiting on an ability" : "")
+           + (BackgroundResetsUsed > 0 ? $", {BackgroundResetsUsed} background reset(s) used" : "");
 
     /// <summary>Record that the credits were played. Idempotent.</summary>
     /// <returns>True when this changed something.</returns>
@@ -225,23 +252,46 @@ public sealed class RunStateData
         return true;
     }
 
-    /// <summary>Remember a part check earned out of reach.</summary>
+    /// <summary>Remember a check earned out of reach.</summary>
+    /// <param name="needs">For a solution, the part locations its ending named; null or empty otherwise.</param>
     /// <returns>True when it was not already remembered.</returns>
-    public bool AddWithheld(string location)
+    public bool AddWithheld(string location, IReadOnlyList<string>? needs = null)
     {
         if (string.IsNullOrEmpty(location) || Withheld.Contains(location)) return false;
         Withheld.Add(location);
+        if (needs != null && needs.Count > 0) WithheldNeeds[location] = new List<string>(needs);
         return true;
     }
 
+    /// <summary>The part locations a withheld solution's ending named; empty when none were kept.</summary>
+    public IReadOnlyList<string> NeedsFor(string location)
+        => WithheldNeeds.TryGetValue(location, out var needs) ? needs : Array.Empty<string>();
+
     /// <summary>Forget one: filed, or collected some other way.</summary>
     /// <returns>True when it was remembered.</returns>
-    public bool RemoveWithheld(string location) => Withheld.Remove(location);
+    public bool RemoveWithheld(string location)
+    {
+        WithheldNeeds.Remove(location);
+        return Withheld.Remove(location);
+    }
 
     /// <returns>Always true - a spent Skip always changes the count.</returns>
     public bool SpendSkip()
     {
         SkipsUsed++;
+        return true;
+    }
+
+    /// <summary>
+    /// Spend a Background Reset Token with this many Background Change Traps
+    /// received. False, and nothing spent, when no trap has arrived since the
+    /// last reset - the backdrops are already the game's own.
+    /// </summary>
+    public bool SpendBackgroundReset(int trapsNow)
+    {
+        if (trapsNow <= BackgroundResetAt) return false;
+        BackgroundResetsUsed++;
+        BackgroundResetAt = trapsNow;
         return true;
     }
 

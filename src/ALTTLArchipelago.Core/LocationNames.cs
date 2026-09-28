@@ -68,6 +68,15 @@ public static class LocationNames
         => $"{Instance(levelId, instance)} - Beaten";
 
     /// <summary>
+    /// One of the game's achievements, as a check on the puzzle that awards it
+    /// (AchievementChecks). Only a seed generated with `achievements` on has
+    /// these; the name says which kind of check it is, since an achievement's
+    /// own name ("Show Off") could pass for a part.
+    /// </summary>
+    public static string Achievement(string levelId, int instance, string display)
+        => $"{Instance(levelId, instance)} - Achievement: {display}";
+
+    /// <summary>
     /// The locations one instance of a level contributes.
     ///
     /// One per distinct solution, always. Plus one per controller group, but
@@ -79,19 +88,35 @@ public static class LocationNames
     {
         var names = new List<string>();
 
-        for (int n = 1; n <= level.SolutionCount; n++)
+        // One per ending (Endings): "Spoons - Solution: Stacked", or numbered
+        // on a generated puzzle.
+        foreach (var ending in Endings.For(level))
         {
-            names.Add(Solution(level.LevelId, instance, n));
+            names.Add(Ending(level.LevelId, instance, ending.Suffix));
         }
 
+        // A group that is an ending of its own is not a part as well: solving
+        // it IS that ending (droha, 2026-09-28: "No reason to give an ending 2
+        // locations"). Nor is a group done only as part of the Solution
+        // (LevelInfo.SolutionOnlyParts) - it still counts as a group here, so
+        // Mirror keeps its "Still Life" check.
         var groups = ControllerGroups.For(level);
         if (groups.Count > 1)
         {
-            foreach (var g in groups) names.Add(Part(level.LevelId, instance, g.DisplayName));
+            var endingGroups = Endings.EndingGroups(level);
+            foreach (var g in groups)
+            {
+                if (endingGroups.Contains(g.Name) || level.SolutionOnlyParts.Contains(g.DisplayName)) continue;
+                names.Add(Part(level.LevelId, instance, g.DisplayName));
+            }
         }
 
         return names;
     }
+
+    /// <summary>An ending's location: the level's instance name and the ending's suffix.</summary>
+    public static string Ending(string levelId, int instance, string suffix)
+        => $"{Instance(levelId, instance)} - {suffix}";
 
     /// <summary>
     /// Every location name the game can ever have, in a stable order. This is
@@ -113,6 +138,18 @@ public static class LocationNames
             }
         }
         names.Add(Credits);
+
+        // Appended after everything else, so turning them on moved no id.
+        foreach (var level in table.Levels.OrderBy(l => l.LevelIndex))
+        {
+            var awarded = AchievementChecks.For(level.LevelId);
+            if (awarded.Count == 0) continue;
+            int instances = level.Repeatable ? MaxGeneratorInstances : 1;
+            for (int i = 1; i <= instances; i++)
+            {
+                foreach (var entry in awarded) names.Add(Achievement(level.LevelId, i, entry.Display));
+            }
+        }
         return names;
     }
 }

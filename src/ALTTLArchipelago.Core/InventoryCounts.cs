@@ -40,6 +40,9 @@ public sealed class InventoryCounts
     /// </summary>
     public int BackgroundTraps { get; }
 
+    /// <summary>Background Reset Tokens received. What is spent lives in the run file.</summary>
+    public int BackgroundResets { get; }
+
     public bool HasCredits { get; }
 
     /// <summary>
@@ -51,10 +54,11 @@ public sealed class InventoryCounts
 
     private InventoryCounts(
         int packs, int skips, int traps, int beaten, int hintPages,
-        int backgrounds,
+        int backgrounds, int resets,
         bool credits, IReadOnlyList<string> abilities)
     {
         BackgroundTraps = backgrounds;
+        BackgroundResets = resets;
         Packs = packs;
         Skips = skips;
         Traps = traps;
@@ -77,7 +81,7 @@ public sealed class InventoryCounts
         IEnumerable<string> received, Func<string, bool>? isAbility = null)
     {
         int packs = 0, skips = 0, traps = 0, beaten = 0, hintPages = 0;
-        int backgrounds = 0;
+        int backgrounds = 0, resets = 0;
         var credits = false;
         var abilities = new List<string>();
 
@@ -95,11 +99,12 @@ public sealed class InventoryCounts
             else if (name == ItemNames.BeatenToken) beaten++;
             else if (name == ItemNames.HintPage) hintPages++;
             else if (name == ItemNames.BackgroundTrap) backgrounds++;
+            else if (name == ItemNames.BackgroundReset) resets++;
             else if (isAbility != null && isAbility(name)) abilities.Add(name);
         }
 
         return new InventoryCounts(
             packs, skips, traps, beaten, hintPages,
-            backgrounds, credits, abilities);
+            backgrounds, resets, credits, abilities);
     }
 }

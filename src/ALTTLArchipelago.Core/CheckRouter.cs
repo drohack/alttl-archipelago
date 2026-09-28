@@ -115,19 +115,104 @@ public sealed class CheckRouter
     /// </summary>
     public (int Lit, int Total) SolutionStars(int slotIndex, Func<string, bool> isCollected)
     {
-        var entry = SlotAt(slotIndex);
-        if (entry == null) return (0, 0);
-
         int lit = 0, total = 0;
-        for (int n = 1; ; n++)
+        foreach (var name in SolutionsOf(slotIndex))
         {
-            var name = LocationNames.Solution(entry.LevelId, entry.Instance, n);
-            if (!Exists(name)) break;
             total++;
             if (isCollected(name)) lit++;
         }
         return (lit, total);
     }
+
+    /// <summary>
+    /// This slot's Solution locations, in order: one per ending, or numbered
+    /// on a generated puzzle. Only names the seed contains.
+    /// </summary>
+    public IReadOnlyList<string> SolutionsOf(int slotIndex)
+    {
+        var names = new List<string>();
+        var entry = SlotAt(slotIndex);
+        if (entry == null) return names;
+
+        if (_slot.Endings.TryGetValue(entry.LevelId, out var endings) && endings.Count > 0)
+        {
+            foreach (var e in endings)
+            {
+                var name = LocationNames.Ending(entry.LevelId, entry.Instance, e.Location);
+                if (Exists(name)) names.Add(name);
+            }
+            return names;
+        }
+
+        for (int n = 1; ; n++)
+        {
+            var name = LocationNames.Solution(entry.LevelId, entry.Instance, n);
+            if (!Exists(name)) break;
+            names.Add(name);
+        }
+        return names;
+    }
+
+    /// <summary>
+    /// The location a completion files: the ending its solution id names.
+    ///
+    /// A FIXED ENDING, NOT THE NTH FOUND (droha, 2026-09-28). The id picks the
+    /// location. An id the table does not know - an ending nobody had seen
+    /// when it was measured, or a forced or skipped completion ("_-1") -
+    /// files the k-th unseen ending ("Solution: Other k") where it is the
+    /// k-th unknown id found on this slot, and past those the next ending in
+    /// order, so a completion is never lost. A generated puzzle has no table:
+    /// its endings change with the layout, and the Nth distinct id found files
+    /// "Solution N" as before.
+    ///
+    /// BY THE ORDER FOUND, NEVER BY WHAT IS COLLECTED: the answer for an id
+    /// must be the same at every launch, or the pass that files what an
+    /// earlier session earned would send a different location each time.
+    /// `foundInOrder` is the slot's distinct ids in the order found
+    /// (SolutionOrdinals), including this one.
+    /// </summary>
+    public string? ForEnding(int slotIndex, string? solutionId, IReadOnlyList<string> foundInOrder)
+    {
+        var entry = SlotAt(slotIndex);
+        if (entry == null) return null;
+        var id = solutionId ?? "";
+        var position = -1;
+        for (int i = 0; i < foundInOrder.Count; i++)
+        {
+            if (foundInOrder[i] == id) { position = i; break; }
+        }
+        if (position < 0) return null;
+
+        if (!_slot.Endings.TryGetValue(entry.LevelId, out var endings) || endings.Count == 0)
+            return ForSolution(slotIndex, position + 1);
+
+        // An entry may answer to several ids ("Shuffle_1|Draggables_0",
+        // Endings.Alternatives): Books' second solution, by whichever
+        // controller the seed checks it with.
+        var known = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var e in endings)
+        {
+            foreach (var alternative in Endings.Alternatives(e.Id))
+            {
+                known.Add(alternative);
+                if (alternative == id) return Present(LocationNames.Ending(entry.LevelId, entry.Instance, e.Location));
+            }
+        }
+
+        // The k-th unknown id on this slot.
+        var k = 0;
+        for (int i = 0; i <= position; i++)
+        {
+            if (!known.Contains(foundInOrder[i])) k++;
+        }
+        var unseen = endings.Where(e => e.Id == null).ToList();
+        var pick = k <= unseen.Count ? unseen[k - 1]
+            : k - unseen.Count <= endings.Count ? endings[k - unseen.Count - 1]
+            : null;
+        return pick == null ? null : Present(LocationNames.Ending(entry.LevelId, entry.Instance, pick.Location));
+    }
+
+    private string? Present(string name) => Exists(name) ? name : null;
 
     /// <summary>
     /// The Beaten events still uncollected on slots that already have a
@@ -170,6 +255,63 @@ public sealed class CheckRouter
     }
 
     /// <summary>
+    /// Every controller of the group this one belongs to on the slot's level,
+    /// itself included; empty when it is in no group. A part is its whole
+    /// group, so the mod files it only once all of these are solved
+    /// (GroupSolved).
+    /// </summary>
+    public IReadOnlyList<string> GroupMembers(int slotIndex, string? controllerName)
+    {
+        var entry = SlotAt(slotIndex);
+        if (entry == null || string.IsNullOrEmpty(controllerName)) return Array.Empty<string>();
+        if (!_slot.ControllerGroups.TryGetValue(entry.LevelId, out var groups)) return Array.Empty<string>();
+        if (!groups.TryGetValue(controllerName!, out var group)) return Array.Empty<string>();
+        return groups.Where(kv => kv.Value == group).Select(kv => kv.Key).ToList();
+    }
+
+    /// <summary>
+    /// Is this group finished: every member the level has registered solved,
+    /// and at least one registered? A member not registered is not waited
+    /// for, so a controller that never turns up cannot strand the check.
+    /// `solved` maps each registered controller's name to IsSolved. Medicine
+    /// Cabinet's "Red Items" is seven controllers, and its check waits for the
+    /// last (droha, 2026-09-28: red waits for the toothbrush and paste).
+    /// </summary>
+    public static bool GroupSolved(IEnumerable<string> members, IReadOnlyDictionary<string, bool> solved)
+    {
+        var any = false;
+        foreach (var member in members)
+        {
+            if (!solved.TryGetValue(member, out var done)) continue;
+            if (!done) return false;
+            any = true;
+        }
+        return any;
+    }
+
+    /// <summary>
+    /// The part locations of the controllers a completion's solution id names
+    /// (SolutionParts): what that ending actually needed. Empty when the id
+    /// names no controller that is a check of its own - a single-group level,
+    /// an id like MedicineCabinet's "Draggables_0" - and the caller then
+    /// judges the solution by its own requirement, the level's whole set.
+    /// </summary>
+    public IReadOnlyList<string> PartsForSolution(int slotIndex, string? solutionId)
+    {
+        var parts = new List<string>();
+        var entry = SlotAt(slotIndex);
+        if (entry == null) return parts;
+        if (!_slot.ControllerGroups.TryGetValue(entry.LevelId, out var groups)) return parts;
+
+        foreach (var controller in SolutionParts.ControllersFor(solutionId, groups.Keys))
+        {
+            var part = ForController(slotIndex, controller);
+            if (part != null && !parts.Contains(part)) parts.Add(part);
+        }
+        return parts;
+    }
+
+    /// <summary>
     /// The location for the Nth distinct solution found on this slot, 1-based.
     ///
     /// Ordinal rather than keyed by the game's solution id: the ids are
@@ -186,6 +328,44 @@ public sealed class CheckRouter
 
         var name = LocationNames.Solution(entry.LevelId, entry.Instance, solutionNumber);
         return Exists(name) ? name : null;
+    }
+
+    /// <summary>
+    /// The location for an achievement the game just awarded, or null when it
+    /// is not one of this slot's checks: the seed was generated without
+    /// `achievements`, the achievement belongs to another puzzle, or it is one
+    /// AchievementChecks leaves out (a hint or chapter achievement).
+    /// </summary>
+    public string? ForAchievement(int slotIndex, string? achievementId)
+    {
+        var entry = SlotAt(slotIndex);
+        if (entry == null) return null;
+        var found = AchievementChecks.Find(entry.LevelId, achievementId);
+        if (found == null) return null;
+
+        var name = LocationNames.Achievement(entry.LevelId, entry.Instance, found.Display);
+        return Exists(name) ? name : null;
+    }
+
+    /// <summary>
+    /// This slot's achievement locations. NOT part of ForSlot, on purpose:
+    /// they are extra checks, outside the star and the Skip. Their requirement
+    /// is the puzzle's whole ability set before bypasses, which can be more
+    /// than the Beaten event asks, and the star goal's logic stands on no
+    /// location of a starred slot needing more than its Beaten event
+    /// (rules.py, set_all_rules).
+    /// </summary>
+    public IReadOnlyList<string> ForAchievements(int slotIndex)
+    {
+        var names = new List<string>();
+        var entry = SlotAt(slotIndex);
+        if (entry == null) return names;
+        foreach (var found in AchievementChecks.For(entry.LevelId))
+        {
+            var name = LocationNames.Achievement(entry.LevelId, entry.Instance, found.Display);
+            if (Exists(name)) names.Add(name);
+        }
+        return names;
     }
 
     /// <summary>
@@ -230,14 +410,7 @@ public sealed class CheckRouter
         var entry = SlotAt(slotIndex);
         if (entry == null) return Array.Empty<string>();
 
-        var names = new List<string>();
-
-        for (int n = 1; ; n++)
-        {
-            var solution = LocationNames.Solution(entry.LevelId, entry.Instance, n);
-            if (!Exists(solution)) break;
-            names.Add(solution);
-        }
+        var names = new List<string>(SolutionsOf(slotIndex));
 
         if (_slot.ControllerGroups.TryGetValue(entry.LevelId, out var groups))
         {

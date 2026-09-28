@@ -201,6 +201,29 @@ public sealed class LevelInfo
     /// unwinnable.
     /// </summary>
     [JsonPropertyName("extraAbilities")] public List<string> ExtraAbilities { get; set; } = new();
+
+    /// <summary>
+    /// The level's endings as LevelComplete reports them, one per solution;
+    /// null for one nobody has seen yet. Absent on a generated puzzle, whose
+    /// endings change with its layout. See Endings.
+    /// </summary>
+    [JsonPropertyName("endings")] public List<string?>? Endings { get; set; }
+
+    /// <summary>
+    /// Controllers checked together as one part, by name: Medicine Cabinet's
+    /// red items, Mirror's still life (droha, 2026-09-28: "per color").
+    /// </summary>
+    [JsonPropertyName("mergedParts")]
+    public Dictionary<string, List<string>> MergedParts { get; set; } = new();
+
+    /// <summary>
+    /// Groups, by part name, done only as part of the Solution: still a group
+    /// (so the level keeps its other part checks, and the group's abilities
+    /// stay in the Solution), but no check of its own. Mirror's "Little
+    /// Things" (droha, 2026-09-28: "fold the little things into the solution").
+    /// </summary>
+    [JsonPropertyName("solutionOnlyParts")]
+    public List<string> SolutionOnlyParts { get; set; } = new();
 }
 
 public sealed class LevelTable

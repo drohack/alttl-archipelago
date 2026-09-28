@@ -115,6 +115,18 @@ public class InventoryCountsTests
     }
 
     [Fact]
+    public void ABackgroundResetTokenIsCountedAndIsNotAnAbility()
+    {
+        var counts = InventoryCounts.From(
+            new[] { ItemNames.BackgroundReset, ItemNames.BackgroundTrap,
+                    ItemNames.BackgroundReset }, IsAbility);
+
+        Assert.Equal(2, counts.BackgroundResets);
+        Assert.Equal(1, counts.BackgroundTraps);
+        Assert.Empty(counts.Abilities);
+    }
+
+    [Fact]
     public void ABackgroundChangeTrapIsNotMistakenForAnAbility()
     {
         // The rename is exactly the kind of change that drops an item out of

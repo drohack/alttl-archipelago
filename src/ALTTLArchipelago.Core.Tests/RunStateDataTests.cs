@@ -118,15 +118,37 @@ public class RunStateDataTests
         state.OpenHintPage("3:1");
         state.SetOwed(new[] { "A" });
         state.SetBeaten(new[] { "B" });
+        state.SpendBackgroundReset(2);
 
         var json = state.ToJson();
 
+        Assert.Contains("\"backgroundResetsUsed\"", json);
+        Assert.Contains("\"backgroundResetAt\"", json);
         Assert.Contains("\"owed\"", json);
         Assert.Contains("\"skipsUsed\"", json);
         Assert.Contains("\"trapsSprung\"", json);
         Assert.Contains("\"beaten\"", json);
         Assert.Contains("\"hintPages\"", json);
         Assert.Contains("\"creditsPlayed\"", json);
+    }
+
+    [Fact]
+    public void AResetNeedsATrapSinceTheLastOneAndSurvivesTheRoundTrip()
+    {
+        // A run file from before the token existed: no keys, so 0 and 0.
+        var old = RunStateData.FromJson("{\"owed\":[],\"skipsUsed\":0}")!;
+        Assert.Equal(0, old.BackgroundResetsUsed);
+        Assert.Equal(0, old.BackgroundResetAt);
+
+        Assert.False(old.SpendBackgroundReset(0));            // no trap yet
+        Assert.True(old.SpendBackgroundReset(3));
+        Assert.False(old.SpendBackgroundReset(3));            // nothing new since
+        Assert.True(old.SpendBackgroundReset(5));
+
+        var reloaded = RunStateData.FromJson(old.ToJson())!;
+        Assert.Equal(2, reloaded.BackgroundResetsUsed);
+        Assert.Equal(5, reloaded.BackgroundResetAt);
+        Assert.EndsWith(", 2 background reset(s) used", reloaded.Summary());
     }
 
     [Fact]

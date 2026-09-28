@@ -157,6 +157,15 @@ public sealed class SlotData
     public Dictionary<string, Dictionary<string, string>> ControllerGroups { get; set; } = new();
 
     /// <summary>
+    /// Level id -> its endings in order: the solution id each answers to
+    /// (null while unseen) and the location's suffix after the level's name.
+    /// Absent for a generated puzzle, which keeps numbered solutions. From
+    /// the generator, for the same reason as controller_groups.
+    /// </summary>
+    [JsonPropertyName("endings")]
+    public Dictionary<string, List<EndingEntry>> Endings { get; set; } = new();
+
+    /// <summary>
     /// Controller GameObject names, per level, that the level registers but
     /// that are no location on purpose (notALocation in levels.json). Absent
     /// from an older payload, which is the same as none.
@@ -166,7 +175,7 @@ public sealed class SlotData
 
     /// <summary>Percentage of filler that is the cat knocking things over.</summary>
     [JsonPropertyName("cat_trap_chance")]
-    public int CatTrapChance { get; set; } = 25;   // CatTrapChance.default
+    public int CatTrapChance { get; set; } = 15;   // CatTrapChance.default
 
     /// <summary>
     /// Whether this seed contains Cupboards and Drawers puzzles.
@@ -388,6 +397,14 @@ public sealed class SlotData
 
         return problems;
     }
+}
+
+/// <summary>One ending in slot_data: the id it answers to and its location's suffix.</summary>
+public sealed class EndingEntry
+{
+    [JsonPropertyName("id")] public string? Id { get; set; }
+
+    [JsonPropertyName("location")] public string Location { get; set; } = "";
 }
 
 /// <summary>One card in the run.</summary>

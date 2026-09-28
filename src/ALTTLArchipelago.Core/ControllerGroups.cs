@@ -174,6 +174,17 @@ public static class ControllerGroups
 
         var display = PartNames.ForLevel(level);
 
+        // HAND-MERGED PARTS (LevelInfo.MergedParts): several controllers the
+        // player sees as one thing - Medicine Cabinet's red items - checked as
+        // one part, named for what they are.
+        var mergedName = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var merge in level.MergedParts)
+        {
+            var present = merge.Value.Where(parent.ContainsKey).ToList();
+            for (int i = 1; i < present.Count; i++) Union(present[0], present[i]);
+            foreach (var m in present) mergedName[m] = merge.Key;
+        }
+
         return names
             .GroupBy(Find, StringComparer.Ordinal)
             .Select(g =>
@@ -184,7 +195,8 @@ public static class ControllerGroups
                 {
                     Members = members,
                     Abilities = WithDependencies(members),
-                    DisplayName = display.TryGetValue(lead, out var d) ? d : lead,
+                    DisplayName = mergedName.TryGetValue(lead, out var merged) ? merged
+                        : display.TryGetValue(lead, out var d) ? d : lead,
                 };
             })
             .OrderBy(g => g.Name, StringComparer.Ordinal)

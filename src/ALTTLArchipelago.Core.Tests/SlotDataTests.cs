@@ -110,7 +110,7 @@ public class SlotDataTests
         Assert.Equal(5, sparse.PackSize);
         Assert.Equal(40, sparse.LevelsToBeat);
         Assert.True(sparse.AbilityLocks);
-        Assert.Equal(25, sparse.CatTrapChance);
+        Assert.Equal(15, sparse.CatTrapChance);
         Assert.Empty(sparse.StartingAbilities);
     }
 

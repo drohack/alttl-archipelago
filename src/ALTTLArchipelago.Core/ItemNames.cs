@@ -39,6 +39,13 @@ public static class ItemNames
     public const string BackgroundTrap = "Background Change Trap";
 
     /// <summary>
+    /// Spent from the pause menu to put every backdrop back to the game's own
+    /// colour. droha, 2026-09-25: a way to undo the Background Change Traps,
+    /// "but it's not automatic. you know when you're doing it."
+    /// </summary>
+    public const string BackgroundReset = "Background Reset Token";
+
+    /// <summary>
     /// Granted by an event location for beating a puzzle. It is an item the
     /// client receives, not an ability - counting it as one would put a
     /// nonsense entry in the held set on every level completed.
