@@ -30,6 +30,7 @@ internal static class Inventory
     internal static int TrapsReceived { get; private set; }
     internal static int HintPagesHeld { get; private set; }
     internal static int BackgroundTraps { get; private set; }
+    internal static int BackgroundResetsHeld { get; private set; }
 
     /// <summary>
     /// Hand tests only (DevTools traps:off): count no Background Change Traps,
@@ -131,6 +132,7 @@ internal static class Inventory
         TrapsReceived = 0;
         HintPagesHeld = 0;
         BackgroundTraps = 0;
+        BackgroundResetsHeld = 0;
         Apply();
 
         // A new seed's locks, for a level that is already open.
@@ -173,6 +175,7 @@ internal static class Inventory
         TrapsReceived = counts.Traps;
         HintPagesHeld = counts.HintPages;
         BackgroundTraps = BackgroundTrapsOffForTesting ? 0 : counts.BackgroundTraps;
+        BackgroundResetsHeld = counts.BackgroundResets;
         HasCredits = counts.HasCredits;
 
         // Only the abilities that arrived as ITEMS. AbilityState holds the

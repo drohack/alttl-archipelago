@@ -1,4 +1,6 @@
 using System;
+using ALTTLArchipelago.Core;
+using ALTTLModKit;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
@@ -124,8 +126,11 @@ internal static class Navigation
                     var child = container.GetChild(i);
                     if (child != null) Restore(child);
                 }
+                var ours = container.Find(ResetEntryName);
+                if (ours != null) ours.gameObject.SetActive(false);
                 _skipEntry = null;
                 _hintEntry = null;
+                _resetEntry = null;
                 return;
             }
 
@@ -165,10 +170,106 @@ internal static class Navigation
                 child.gameObject.SetActive(true);
                 Plugin.Logger.LogInfo($"navigation: restored {child.name} to the pause menu");
             }
+
+            _resetEntry = EnsureResetEntry(container);
+            if (_resetEntry != null) Annotate(_resetEntry, $"{Backgrounds.ResetsAvailable}");
         }
         catch (Exception e)
         {
             Plugin.Logger.LogWarning($"navigation: could not fix the pause menu: {e.Message}");
+        }
+    }
+
+    /// <summary>The pause-menu entry that spends a Background Reset Token.</summary>
+    private const string ResetEntryName = "AP Reset Background";
+
+    /// <summary>
+    /// Add the Reset Background entry under Hint, cloned from it the way
+    /// ConnectionPane.AddMenuButton clones Settings on the title screen: the
+    /// clone inherits the font, hover and layout of the entries around it.
+    ///
+    /// Its name must not start with Skip, Hint or Levels - the loop above
+    /// matches entries by that prefix. Its localiser is destroyed, which the
+    /// Hint entry's must never be (see Caption): this object is ours, and a
+    /// live localiser would put "Hint" back over our label.
+    /// </summary>
+    private static Transform? EnsureResetEntry(Transform container)
+    {
+        try
+        {
+            var entry = container.Find(ResetEntryName);
+            if (entry == null)
+            {
+                if (_hintEntry == null) return null;
+                var clone = UnityEngine.Object.Instantiate(_hintEntry.gameObject, container);
+                clone.name = ResetEntryName;
+                clone.transform.SetSiblingIndex(_hintEntry.GetSiblingIndex() + 1);
+
+                foreach (var label in clone.GetComponentsInChildren<TextMeshProUGUI>(true))
+                {
+                    if (label == null) continue;
+                    var localiser = label.GetComponent<UnityEngine.Localization.Components.LocalizeStringEvent>();
+                    if (localiser != null) UnityEngine.Object.Destroy(localiser);
+                    label.text = "Reset Background";
+                }
+
+                var button = clone.GetComponent<UnityEngine.UI.Button>();
+                if (button != null)
+                {
+                    // Replaced, not cleared: RemoveAllListeners keeps the
+                    // persistent listener that opens the hint notepad.
+                    button.onClick = new UnityEngine.UI.Button.ButtonClickedEvent();
+                    button.onClick.AddListener(new Action(OnResetBackground));
+                }
+                else
+                {
+                    Plugin.Logger.LogWarning(
+                        "navigation: the Hint entry has no Button; Reset Background will not respond");
+                }
+
+                entry = clone.transform;
+                Plugin.Logger.LogInfo("navigation: added Reset Background to the pause menu");
+            }
+
+            if (!entry.gameObject.activeSelf) entry.gameObject.SetActive(true);
+            return entry;
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"navigation: could not add Reset Background: {e.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Reset Background was pressed: spend one token and put every backdrop
+    /// back to the game's own colour, until the next Background Change Trap.
+    /// </summary>
+    private static void OnResetBackground()
+    {
+        try
+        {
+            var traps = Inventory.BackgroundTraps;
+            switch (BackgroundResets.Check(Backgrounds.ResetsAvailable, traps, RunState.BackgroundResetAt))
+            {
+                case BackgroundResetRefusal.NoneHeld:
+                    Toasts.Show("No Background Reset Token yet", Toasts.Notice);
+                    return;
+                case BackgroundResetRefusal.NothingToReset:
+                    Toasts.Show("The background is already the game's own", Toasts.Notice);
+                    return;
+            }
+
+            if (!RunState.SpendBackgroundReset(traps)) return;
+            Backgrounds.RestoreOwnColours();
+
+            var left = Backgrounds.ResetsAvailable;
+            Plugin.Logger.LogInfo($"backgrounds: reset by a token at {traps} trap(s); {left} token(s) left");
+            Toasts.Show($"Background reset - {left} token(s) left", Toasts.Notice);
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"backgrounds: reset failed: {e.Message}");
         }
     }
 
@@ -215,6 +316,7 @@ internal static class Navigation
                 // to think about.
                 var colour = wanted.Value;
                 colour.a = image.color.a;
+                Backgrounds.RememberMenuImage(image);
                 image.color = colour;
                 return;
             }
@@ -302,13 +404,16 @@ internal static class Navigation
         try
         {
             if (!Track.Active) return;
-            if (_skipEntry == null && _hintEntry == null) return;
+            if (_skipEntry == null && _hintEntry == null && _resetEntry == null) return;
 
             if (_skipEntry != null && _skipEntry.gameObject.activeInHierarchy)
                 Annotate(_skipEntry, $"{Skips.Available}");
 
             if (_hintEntry != null && _hintEntry.gameObject.activeInHierarchy)
                 Annotate(_hintEntry, HintTag());
+
+            if (_resetEntry != null && _resetEntry.gameObject.activeInHierarchy)
+                Annotate(_resetEntry, $"{Backgrounds.ResetsAvailable}");
         }
         catch
         {
@@ -316,11 +421,13 @@ internal static class Navigation
             // the menu is rebuilt often enough to recover on its own.
             _skipEntry = null;
             _hintEntry = null;
+            _resetEntry = null;
         }
     }
 
     private static Transform? _skipEntry;
     private static Transform? _hintEntry;
+    private static Transform? _resetEntry;
 
 
     /// <summary>
@@ -438,8 +545,171 @@ internal static class Navigation
     private static bool LetTheGameAdvance(string which)
     {
         if (!Track.Active) return true;
+
+        // NOTHING PLAYABLE: the level select, not the game's own next level.
+        // Asked here, at the press, because the finished slot's check is
+        // filed by now - GetNextLevelIndex is also asked while the post-level
+        // screen builds, before it is. droha, 2026-09-26: "it would be more
+        // visually better to know when you are blocked".
+        if (Track.NextPlayableSlot() < 0)
+        {
+            ShowTrackByWayOfTitle(which);
+            return false;
+        }
+
         Plugin.Logger.LogInfo($"navigation: {which}, letting the game advance");
         return true;
+    }
+
+    /// <summary>Seconds left to open the track once the title settles, or 0 when idle.</summary>
+    private static float _trackAfterTitle;
+    private static float _titleSettled;
+    private const float TrackAfterTitlePatience = 5f;
+
+    /// <summary>Seconds left to look for a title menu left up under the track, or 0.</summary>
+    private static float _titleLeftCheck;
+
+    /// <summary>
+    /// Show the run's level select because nothing is playable, by way of the
+    /// title: the title first, then its own Levels button once it has
+    /// settled - the order a player takes. From the Daily page a track opened
+    /// directly drew with no Close button and its cards never launched
+    /// (DailyGuard, measured 2026-09-25); from the post-level screen
+    /// GoToLevelSelectForLevel builds the same half-made menu (see
+    /// BeforeReplayLevelSelect). Used by the daily guard, the next arrow and
+    /// the retry panel.
+    /// </summary>
+    internal static void ShowTrackByWayOfTitle(string why)
+    {
+        try
+        {
+            Plugin.Logger.LogInfo(
+                $"navigation: nothing playable after {why} - the track, by way of the title");
+            Toasts.Show("Nothing to play yet - waiting on items", Toasts.Notice);
+            _trackAfterTitle = TrackAfterTitlePatience;
+            _titleSettled = 0f;
+            GameManager.Instance?.SetGameState<Title_GameState>(null, false);
+        }
+        catch (Exception e)
+        {
+            _trackAfterTitle = 0f;
+            Plugin.Logger.LogWarning($"navigation: could not leave for the title: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// The second half of ShowTrackByWayOfTitle: once the title is up and
+    /// still, press its Levels button.
+    ///
+    /// TitleMenu.LevelSelect, not a forced Levels_GameState. The forced state
+    /// is what the daily guard used, and in the 0.4.2 playtest it once left
+    /// the title's own menu drawn under the track (grayson log, after
+    /// Post-It Notes #3; screenshot main-menu-level-select-bug). The title's
+    /// own button tears its menu down the way a player's press does. The
+    /// forced state stays as the fallback for a title with no TitleMenu.
+    /// </summary>
+    internal static void TickTrackAfterTitle(float dt)
+    {
+        TickTitleLeftUnder(dt);
+        if (_trackAfterTitle <= 0f) return;
+        _trackAfterTitle -= dt;
+
+        try
+        {
+            var gm = GameManager.Instance;
+            var state = gm?.GameState == null ? "" : gm.GameState.GetIl2CppType().Name;
+            // THE MENU'S OWN TRANSITION TOO. GameManager.IsTransitioning says
+            // nothing about the title menu sliding in, and a track opened half
+            // a second into it launched nothing (measured 2026-09-25); the
+            // same route taken seconds later worked.
+            var mm = gm?.menuManager;
+            var menuBusy = mm == null || mm.IsTransitioning
+                           || mm.ActiveMenu == null || !mm.ActiveMenu.Interactive;
+            // AND THE ACTIVE MENU MUST BE THE TITLE'S. Measured 2026-09-27:
+            // leaving the Daily page, the state read Title_GameState while the
+            // menu system's active menu was still the DailyTidyMenu, which is
+            // interactive - so "settled" passed, Levels was pressed on a title
+            // the menu system had not switched to, and the title stayed drawn
+            // under the track (the 0.4.2 playtest's screenshot). The patience
+            // below still presses once it runs out; TickTitleLeftUnder is the
+            // backstop for that case.
+            var onTitle = mm?.ActiveMenu?.TryCast<TitleMenu>() != null;
+            if (gm == null || state != "Title_GameState" || gm.IsTransitioning || menuBusy
+                || (!onTitle && _trackAfterTitle > 1f))
+            {
+                _titleSettled = 0f;
+                if (_trackAfterTitle <= 0f)
+                {
+                    Plugin.Logger.LogWarning(
+                        "navigation: the title never settled; the track was not opened - press Levels");
+                }
+                return;
+            }
+
+            // A beat on a still title, as a player would take.
+            _titleSettled += dt;
+            if (_titleSettled < 0.5f) return;
+
+            _trackAfterTitle = 0f;
+            _titleSettled = 0f;
+
+            var active = mm!.ActiveMenu;
+            var title = active.TryCast<TitleMenu>() ?? FindEvenIfInactive<TitleMenu>();
+            if (title != null)
+            {
+                Plugin.Logger.LogInfo(
+                    $"navigation: title is up - pressing its Levels (active menu: {active.GetIl2CppType().Name})");
+                title.LevelSelect();
+                _titleLeftCheck = 6f;
+                return;
+            }
+
+            Plugin.Logger.LogInfo("navigation: title is up, no TitleMenu - opening the track directly");
+            gm.SetGameState<Levels_GameState>(null, false);
+        }
+        catch (Exception e)
+        {
+            _trackAfterTitle = 0f;
+            Plugin.Logger.LogWarning($"navigation: could not open the track: {e.Message}");
+        }
+    }
+
+    /// <summary>
+    /// After the track opens by way of the title: if the title's own menu is
+    /// still up under it, take it down.
+    ///
+    /// MEASURED, 2026-09-27: finishing the last playable puzzle (a generator,
+    /// so by the Daily page) and pressing the title's Levels left TitleMenu
+    /// active at alpha 1 under the LevelSelect (DevTools menus) - the 0.4.2
+    /// playtest's "title drawn under the level select" (screenshot
+    /// main-menu-level-select-bug), reproduced. A forced Levels_GameState did
+    /// the same in the playtest. MenuManager.DeactivateMenu is the menu
+    /// system's own way to take one down.
+    /// </summary>
+    private static void TickTitleLeftUnder(float dt)
+    {
+        if (_titleLeftCheck <= 0f) return;
+        _titleLeftCheck -= dt;
+        try
+        {
+            var gm = GameManager.Instance;
+            var mm = gm?.menuManager;
+            var state = gm?.GameState == null ? "" : gm.GameState.GetIl2CppType().Name;
+            if (gm == null || mm == null || state != "Levels_GameState" || gm.IsTransitioning
+                || mm.IsTransitioning) return;
+
+            _titleLeftCheck = 0f;
+            var title = FindEvenIfInactive<TitleMenu>();
+            if (title == null || !title.gameObject.activeInHierarchy) return;
+
+            Plugin.Logger.LogInfo("navigation: the title menu was left up under the track - taking it down");
+            mm.DeactivateMenu(title);
+        }
+        catch (Exception e)
+        {
+            _titleLeftCheck = 0f;
+            Plugin.Logger.LogWarning($"navigation: could not take the title down: {e.Message}");
+        }
     }
 
     /// <summary>
@@ -451,7 +721,7 @@ internal static class Navigation
     /// the game route itself off LevelInterface.IsArchived, plus filing the
     /// run's completion data in the campaign list. Every one still landed on
     /// the Archive. Whatever picks the destination is not the level's flags and
-    /// not its save list. The detail is in docs/verification-log.md - read it
+    /// not its save list. The detail is in docs/history/verification-log.md - read it
     /// before replacing this with something that looks cleaner.
     ///
     /// What works is calling GoToLevelSelectForLevel ourselves - the game's OWN
@@ -698,7 +968,7 @@ internal static class Navigation
     /// 0.3.1, but not this one).
     ///
     /// This is the failure class already recorded for LevelSelect in
-    /// docs/verification-log.md, "Beating a level can drop the run onto the
+    /// docs/history/verification-log.md, "Beating a level can drop the run onto the
     /// Daily Tidy page": the vanilla route decides where to go
     /// from the level's KIND, and a run's levels are reached in a way that
     /// leaves it with no answer, so it goes nowhere at all.
@@ -818,8 +1088,12 @@ internal static class Navigation
                 return;
             }
 
-            var next = Track.NextUnfinishedSlot();
-            if (next < 0) return;                  // nothing left; leave it alone
+            var next = Track.NextPlayableSlot();
+            // Nothing playable: leave the game's answer alone. This postfix
+            // also runs while the post-level screen builds, so it must not
+            // navigate; the press itself (LetTheGameAdvance) goes to the
+            // track instead.
+            if (next < 0) return;
 
             __result = Track.ArmSlot(next);
             Plugin.Logger.LogInfo($"navigation: next -> slot {next} (level {__result})");

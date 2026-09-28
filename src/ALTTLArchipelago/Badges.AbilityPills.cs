@@ -53,7 +53,7 @@ internal static partial class Badges
     /// had twice been guessed wrong in this file. The looking was done with the
     /// DevTools `sprites` and `spriteexport` commands, and it succeeded: the
     /// mod now ships thirteen icons of its own as embedded resources, which
-    /// LoadPillArt draws. See docs/data/ability-icons.md for where each picture
+    /// LoadPillArt draws. See docs/reference/ability-icons.md for where each picture
     /// came from. The letters stayed: they are the caption UNDER each icon, so
     /// a picture nobody recognises still names its mechanic.
     /// </summary>

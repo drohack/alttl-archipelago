@@ -105,7 +105,7 @@ internal static class Traps
 
         // A LEVEL STILL LOADING IS NOT ONE TO KNOCK OVER.
         //
-        // THE THEORY, WHICH IS NOT PROVEN - read docs/data/trap-freeze-repro.md
+        // THE THEORY, WHICH IS NOT PROVEN - read docs/history/trap-freeze-repro.md
         // before trusting it. 29 attempts across four builds, including one
         // reduced to exactly 0.3.1's Spring, failed to reproduce droha's
         // hang; in 7 of the last 8 the trap fired squarely inside the

@@ -12,10 +12,10 @@ namespace ALTTLArchipelago;
 /// it belongs to the configured slot are all decided in Core, where they are
 /// tested without a game. This file only knows a path and a debounce.
 ///
-/// It sits beside the run files, in the game's own save folder, because that
-/// is where everything else belonging to a run already is - and because a
-/// player moving their saves to another machine should carry their offline
-/// run with them without being told to.
+/// It sits beside the run files, in our subfolder of the game's save folder
+/// (SaveNames.Folder), because that is where everything else belonging to a
+/// run already is - and because a player moving their saves to another
+/// machine should carry their offline run with them without being told to.
 /// </summary>
 internal static class SlotCache
 {
@@ -24,7 +24,7 @@ internal static class SlotCache
     /// it can know a seed, and "the last one" is the only answer that needs no
     /// interface. The name is not per-slot for the same reason.
     /// </summary>
-    private const string FileName = "alttl-last-session.json";
+    private const string FileName = SaveNames.SessionCache;
 
     /// <summary>
     /// Seconds between writes at most.
@@ -45,7 +45,7 @@ internal static class SlotCache
 
     private static string? Path_()
     {
-        var dir = SaveRedirect.SaveDirectory();
+        var dir = SaveRedirect.ModDirectory();
         return dir == null ? null : System.IO.Path.Combine(dir, FileName);
     }
 

@@ -240,6 +240,7 @@ public sealed class Plugin : BasePlugin
                      ("success stars", typeof(SuccessStars)),
                      ("retry panel", typeof(RetryPanel)),
                      ("steam achievements", typeof(SteamAchievements)),
+                     ("cursor guard", typeof(CursorGuard)),
                  })
         {
             try
@@ -1206,9 +1207,11 @@ public sealed class Ticker : MonoBehaviour
         Step("credits card", () => Track.TickCreditsCard());
         Step("track scroll", () => Track.TickScroll(dt));
         Step("daily rescue", () => DailyGuard.TickRescue(dt));
+        Step("track after title", () => Navigation.TickTrackAfterTitle(dt));
         Step("dlc guard", () => DlcGuard.Tick(dt));
         Step("skips", () => Skips.Tick(dt));
         Step("retry panel", () => RetryPanel.Tick(dt));
+        Step("cursor guard", () => CursorGuard.Tick());
         Step("prompt memory", () => PromptMemory.Tick(dt));
         Step("connected tag", () => Badges.TickConnectedTag());
         Step("title state", () => TitleScreen.TickState());

@@ -52,6 +52,9 @@ internal static class Checks
     /// </summary>
     private static readonly Dictionary<string, int> _unrouted = new(StringComparer.Ordinal);
 
+    /// <summary>(slot, controller) already said to be waiting on its group, so a re-raise stays quiet.</summary>
+    private static readonly HashSet<string> _waitingOnGroup = new(StringComparer.Ordinal);
+
     /// <summary>
     /// The IL2CPP side holds listeners through a weak wrapper, so a delegate
     /// that is not rooted on the managed side stops firing at the first GC.
@@ -117,6 +120,8 @@ internal static class Checks
         _ledger = new CheckLedger();
         _solutions.Clear();
         _unrouted.Clear();
+        _waitingOnGroup.Clear();
+        _achievementsNotChecks.Clear();
         _currentSlot = -1;
         // A new run gets a fresh chance to complain about its own table.
         _groupsWarnedFor = "";
@@ -172,6 +177,10 @@ internal static class Checks
 
         SeedSolutionsFromSave(slotIndex);
         FileWithheld();
+
+        // Before any checker sees the level: one the Steam profile holds must
+        // still be earnable.
+        SteamAchievements.ForgetUnlocks();
 
         Plugin.Logger.LogInfo($"checks: now playing slot {slotIndex}");
     }
@@ -250,12 +259,15 @@ internal static class Checks
         if (abilities == null) return;
         var packs = Track.State?.PacksHeld ?? 0;
 
-        var found = _solutions.CountFor(slotIndex);
-        for (int n = 1; n <= found; n++)
+        var ids = _solutions.IdsFor(slotIndex);
+        foreach (var id in ids)
         {
-            var location = _router.ForSolution(slotIndex, n);
+            // The ending each id names - the same answer at every launch.
+            var location = _router.ForEnding(slotIndex, id, ids);
             if (location == null || _ledger.IsCollected(location)) continue;
-            if (!_progress.IsReachable(location, packs, abilities)) continue;
+            var needs = _router.PartsForSolution(slotIndex, id);
+            if (needs.Count > 0 ? !AllWouldEarn(needs)
+                                : !_progress.IsReachable(location, packs, abilities)) continue;
 
             Plugin.Logger.LogInfo(
                 $"checks: {location} was earned in an earlier session but never "
@@ -407,6 +419,7 @@ internal static class Checks
 
             var location = _router.ForController(_currentSlot, name);
             if (location == null || _ledger.IsCollected(location)) continue;
+            if (!GroupDone(name, registered, null)) continue;
 
             if (!_progress.IsReachable(location, packs, abilities))
             {
@@ -844,11 +857,90 @@ internal static class Checks
             return;
         }
 
+        // A PART IS ITS WHOLE GROUP. Filed on the group's last controller, not
+        // its first: Medicine Cabinet's "Red Items" is seven, and placing the
+        // cup used to file it (droha, 2026-09-28: red waits for the toothbrush).
+        if (!GroupDone(name!, null, name))
+        {
+            if (_waitingOnGroup.Add($"{_currentSlot}/{name}"))
+            {
+                Plugin.Logger.LogInfo(
+                    $"checks: '{name}' solved; {location} waits for the rest of its group");
+            }
+            return;
+        }
+
         if (!Earned(location))
         {
             // Remembered, so it can be filed once the run can reach it. The
             // game rebuilds the level unsolved on every load, so without this
             // a later visit has nothing to sweep (see RunStateData.Withheld).
+            RunState.AddWithheld(location);
+            return;
+        }
+        Report(location);
+    }
+
+    /// <summary>
+    /// Is the group this controller belongs to finished (CheckRouter.GroupSolved)?
+    /// True for a group of one, and when the level's controllers cannot be read,
+    /// so a check is never lost to a read that failed. `justSolved` counts as
+    /// solved whatever IsSolved says in the same frame.
+    /// </summary>
+    private static bool GroupDone(string name,
+        Il2CppSystem.Collections.Generic.List<ObjectController>? registered, string? justSolved)
+    {
+        var members = _router!.GroupMembers(_currentSlot, name);
+        if (members.Count <= 1) return true;
+        registered ??= GameManager.Instance?.levelManager?.ActiveLevelInterface?.Level?.objectControllers;
+        if (registered == null) return true;
+
+        var wanted = new HashSet<string>(members, StringComparer.Ordinal);
+        var solved = new Dictionary<string, bool>(StringComparer.Ordinal);
+        for (int i = 0; i < registered.Count; i++)
+        {
+            var oc = registered[i];
+            if (oc == null) continue;
+            var member = oc.gameObject?.name;
+            if (member == null || !wanted.Contains(member)) continue;
+            bool done;
+            try { done = oc.IsSolved; }
+            catch { continue; }
+            solved[member] = solved.TryGetValue(member, out var prior) ? prior && done : done;
+        }
+        if (justSolved != null) solved[justSolved] = true;
+        return CheckRouter.GroupSolved(members, solved);
+    }
+
+    /// <summary>Achievements already said to be no check here, once each per slot.</summary>
+    private static readonly HashSet<string> _achievementsNotChecks = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The game awarded an achievement (SteamAchievements saw it reach
+    /// AchievementManager.SetAchievementMet). When the seed has it as a check
+    /// on the puzzle being played, file it as a part would be: withheld until
+    /// the run holds the puzzle's abilities, then filed. Anything else - a
+    /// seed without `achievements`, a hint or chapter achievement, one from
+    /// another puzzle - is said once and dropped.
+    /// </summary>
+    internal static void OnAchievement(string achievementId)
+    {
+        EnsureSlot();
+        if (_router == null || _currentSlot < 0) return;
+
+        var location = _router.ForAchievement(_currentSlot, achievementId);
+        if (location == null)
+        {
+            if (_achievementsNotChecks.Add($"{_currentSlot}/{achievementId}"))
+            {
+                Plugin.Logger.LogInfo(
+                    $"checks: achievement {achievementId} on slot {_currentSlot} is not a check of this run");
+            }
+            return;
+        }
+
+        if (!Earned(location))
+        {
             RunState.AddWithheld(location);
             return;
         }
@@ -892,8 +984,12 @@ internal static class Checks
         if (_pendingSlot == slot)
         {
             var nth = _solutions.Peek(slot, _pendingSolution);
-            var solution = nth > 0 ? _router.ForSolution(slot, nth) : null;
-            if (solution != null && !_ledger.IsCollected(solution) && WouldEarn(solution)) lit++;
+            var solution = nth > 0
+                ? _router.ForEnding(slot, _pendingSolution,
+                    new List<string>(_solutions.IdsFor(slot)) { _pendingSolution ?? "" })
+                : null;
+            if (solution != null && !_ledger.IsCollected(solution)
+                && WouldEarnSolution(solution, _router.PartsForSolution(slot, _pendingSolution))) lit++;
         }
         return total > 1 && lit < total;
     }
@@ -923,14 +1019,19 @@ internal static class Checks
         EnsureSlot();
         if (_router == null || _currentSlot < 0) return;
 
+        // A NEW ending only: a repeat of one already found files nothing.
         var nth = _solutions.Record(_currentSlot, data?.SolutionId ?? "");
         if (nth > 0)
         {
-            var solution = _router.ForSolution(_currentSlot, nth);
+            // Fixed endings (2026-09-28): the id names the location; a
+            // generated puzzle files by the order found (CheckRouter.ForEnding).
+            var solution = _router.ForEnding(_currentSlot, data?.SolutionId ?? "",
+                                             _solutions.IdsFor(_currentSlot));
             if (solution != null)
             {
-                if (Earned(solution)) Report(solution);
-                else RunState.AddWithheld(solution);
+                var needs = _router.PartsForSolution(_currentSlot, data?.SolutionId);
+                if (EarnedSolution(solution, needs)) Report(solution);
+                else RunState.AddWithheld(solution, needs);
             }
         }
 
@@ -1031,6 +1132,39 @@ internal static class Checks
     }
 
     /// <summary>
+    /// Earned, for a SOLUTION: judged by the part locations its ending named
+    /// (CheckRouter.PartsForSolution) when there are any, so an ending is
+    /// withheld only for abilities it actually uses. Every solution location
+    /// carries the level's whole ability set, and in the 0.4.2 playtest that
+    /// withheld Spoons' Size (Elastic) ending for Stacking, Figurines' first
+    /// ending for Gadgets and Coins 1 for Stacking - none of which those
+    /// endings touch. With no named part it is Earned as before.
+    /// </summary>
+    private static bool EarnedSolution(string solution, IReadOnlyList<string> needs)
+    {
+        if (needs.Count == 0) return Earned(solution);
+        if (WouldEarnSolution(solution, needs)) return true;
+
+        Plugin.Logger.LogInfo(
+            $"checks: withheld {solution} - its ending ({string.Join(", ", needs)}) "
+            + "needs what the run does not hold yet; kept, and filed as soon as it does");
+        return false;
+    }
+
+    /// <summary>EarnedSolution's answer without its log line.</summary>
+    private static bool WouldEarnSolution(string solution, IReadOnlyList<string> needs)
+        => needs.Count == 0 ? WouldEarn(solution) : AllWouldEarn(needs);
+
+    private static bool AllWouldEarn(IReadOnlyList<string> locations)
+    {
+        foreach (var location in locations)
+        {
+            if (!WouldEarn(location)) return false;
+        }
+        return true;
+    }
+
+    /// <summary>
     /// An ability arrived: file what was withheld on the next check tick,
     /// once the session is surely up (see FileWithheld).
     /// </summary>
@@ -1068,7 +1202,8 @@ internal static class Checks
                 RunState.RemoveWithheld(location);
                 continue;
             }
-            if (!WouldEarn(location)) continue;
+            var needs = RunState.NeedsFor(location);
+            if (needs.Count > 0 ? !AllWouldEarn(needs) : !WouldEarn(location)) continue;
 
             Plugin.Logger.LogInfo(
                 $"checks: {location} was withheld; the run can reach it now - filing it");

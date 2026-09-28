@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ALTTLArchipelago.Core;
 using UnityEngine;
 
 namespace ALTTLArchipelago;
@@ -241,10 +242,22 @@ internal static class Backgrounds
         return wanted;
     }
 
+    /// <summary>
+    /// The trap count every backdrop is drawn from: the traps received since
+    /// the last Background Reset Token (Core BackgroundResets). 0 means the
+    /// game's own colours.
+    /// </summary>
+    internal static int EffectiveTraps
+        => BackgroundResets.EffectiveTraps(Inventory.BackgroundTraps, RunState.BackgroundResetAt);
+
+    /// <summary>Background Reset Tokens held and unspent.</summary>
+    internal static int ResetsAvailable
+        => BackgroundResets.Available(Inventory.BackgroundResetsHeld, RunState.BackgroundResetsUsed);
+
     /// <summary>What the puzzle backdrop should be, or null to leave it alone.</summary>
     internal static Color? ForLevel()
     {
-        var count = Inventory.BackgroundTraps;
+        var count = EffectiveTraps;
         var wanted = ColourFor(count);
         if (wanted == null) return null;
 
@@ -263,7 +276,102 @@ internal static class Backgrounds
     }
 
     /// <summary>What the pause screen should be, or null to leave it alone.</summary>
-    internal static Color? ForMenu() => ColourFor(Inventory.BackgroundTraps);
+    internal static Color? ForMenu() => ColourFor(EffectiveTraps);
+
+
+    /// <summary>
+    /// Each level's own colours and the colour last written over them, keyed
+    /// by the LevelInterface. ApplyToLevel writes into the level's
+    /// LevelInterface and Level and nothing else remembers what was there, so
+    /// without this a Background Reset Token could stop the painting but not
+    /// undo it.
+    ///
+    /// THE WRITTEN COLOUR IS KEPT TOO, so a colour the game writes over ours
+    /// later (a level resetting its own backdrop) is taken as the level's own
+    /// rather than overwritten with an older one at the reset.
+    /// </summary>
+    private sealed class LevelColours
+    {
+        internal LevelInterface Face = null!;
+        internal Color Own, LevelOwn, Written;
+    }
+
+    private static readonly Dictionary<IntPtr, LevelColours> _levelOwn = new();
+
+    /// <summary>Each pause-screen Background's own colour, taken before the first tint.</summary>
+    private static readonly Dictionary<IntPtr, (UnityEngine.UI.Image Image, Color Own)>
+        _menuOwn = new();
+
+    /// <summary>Called by Navigation.TintMenuBackground just before it recolours an image.</summary>
+    internal static void RememberMenuImage(UnityEngine.UI.Image image)
+    {
+        if (image == null) return;
+        if (!_menuOwn.ContainsKey(image.Pointer)) _menuOwn[image.Pointer] = (image, image.color);
+    }
+
+    /// <summary>
+    /// Put every backdrop back to the game's own colour: each level this
+    /// painted, the camera, each pause-screen Background and the level
+    /// select's sections. Called when a Background Reset Token is spent and
+    /// when a run ends, so an ordinary game afterwards draws its own colours.
+    /// </summary>
+    internal static void RestoreOwnColours()
+    {
+        foreach (var colours in _levelOwn.Values)
+        {
+            try
+            {
+                var face = colours.Face;
+                if (face == null) continue;
+                // Only where our colour is still there: one the game has
+                // written since is its own already.
+                if (face.BackgroundColor == colours.Written) face.BackgroundColor = colours.Own;
+                var level = face.Level;
+                if (level != null && level.backgroundColor == colours.Written)
+                    level.backgroundColor = colours.LevelOwn;
+            }
+            catch
+            {
+                // Gone with its level: nothing left to put back.
+            }
+        }
+        _levelOwn.Clear();
+
+        foreach (var (image, own) in _menuOwn.Values)
+        {
+            try
+            {
+                if (image != null) image.color = own;
+            }
+            catch
+            {
+                // Rebuilt by the menu since; it comes back in its own colour.
+            }
+        }
+        _menuOwn.Clear();
+
+        // Tick stops painting at a count of 0 but does not undo the last
+        // write, so the camera is given the level's own colour once, here -
+        // ActiveBackgroundColor, the one the game paints from. It is NOT the
+        // BackgroundColor field: measured 2026-09-27 on Microscope (DevTools
+        // watch), the field held the prefab's 0.208,0.247,0.282 while Active
+        // and the camera held the randomized scheme's 0.592,0.655,0.702.
+        try
+        {
+            var li = GameManager.Instance?.levelManager?.ActiveLevelInterface;
+            var cam = Camera.main;
+            if (li != null && cam != null) cam.backgroundColor = li.ActiveBackgroundColor;
+        }
+        catch
+        {
+            // Cosmetic; the next level load paints the camera anyway.
+        }
+
+        _chosen = null;
+        _chosenFor = null;
+        _chosenCount = -1;
+        Track.RepaintSections();
+    }
 
 
     /// <summary>
@@ -291,6 +399,27 @@ internal static class Backgrounds
 
             var li = GameManager.Instance?.levelManager?.ActiveLevelInterface;
             if (li == null) return;
+
+            var level0 = li.Level;
+            if (!_levelOwn.TryGetValue(li.Pointer, out var colours))
+            {
+                colours = new LevelColours
+                {
+                    Face = li,
+                    Own = li.BackgroundColor,
+                    LevelOwn = level0 != null ? level0.backgroundColor : li.BackgroundColor,
+                };
+                _levelOwn[li.Pointer] = colours;
+            }
+            else
+            {
+                // Changed since our last write: the game set it (a generator
+                // randomizing), so that is the level's own now.
+                if (li.BackgroundColor != colours.Written) colours.Own = li.BackgroundColor;
+                if (level0 != null && level0.backgroundColor != colours.Written)
+                    colours.LevelOwn = level0.backgroundColor;
+            }
+            colours.Written = wanted.Value;
 
             li.BackgroundColor = wanted.Value;
 

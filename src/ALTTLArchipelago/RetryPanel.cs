@@ -4,41 +4,70 @@ using HarmonyLib;
 namespace ALTTLArchipelago;
 
 /// <summary>
-/// Whether a finished run puzzle shows the three-button panel (restart, pause
-/// menu, next arrow) or goes straight on: the panel while the slot has more
-/// than one Solution location and some are still to find, otherwise straight
-/// on (Checks.OfferRetry). droha, 2026-09-25.
+/// Whether a finished run puzzle stops on the three-button panel (restart,
+/// pause menu, next arrow) or moves on: the panel while the slot has more
+/// than one Solution location and some are still to find, otherwise on to
+/// the next (Checks.OfferRetry). droha, 2026-09-25.
 ///
 /// The game decides this per level from LevelInterface.ShowRetryMenu, which
 /// LevelSuccess.LevelComplete reads (DevTools xrefs, 2026-09-25): 148 of the
 /// game's 186 levels show the panel, every generator goes straight on
-/// (docs/data/level-endings.tsv). Answered only for the level that is running
+/// (docs/reference/level-endings.tsv). Answered only for the level that is running
 /// and only while it is a run slot; anything else keeps the game's value.
-/// Where the arrow or the straight-on route leads is Navigation's.
+/// Where the arrow leads is Navigation's.
 ///
-/// A LEVEL BUILT FOR THE PANEL KEEPS IT, AND THE ARROW IS PRESSED FOR IT.
-/// Answering false for such a level sends it down the game's own straight-on
-/// route, and after that route the pause menu's Exit does nothing: measured
-/// 2026-09-25 on Seed Pods, where Exit never reached MainMenu.ExitGame, while
-/// after Post-It Notes (a generator, straight on by design) it worked. So a
-/// panel level with nothing left to find shows its panel and Tick presses its
-/// arrow as soon as it is up - a pointer click on its Continue Button, the one
-/// a player clicks.
+/// EVERY RUN PUZZLE BUT A GENERATOR TAKES THE PANEL'S ROUTE, and moving on
+/// goes through the panel's own NextLevel. Answering false sends a level down
+/// the game's own straight-on route, and after that route the pause menu's
+/// Exit does nothing on a level built for the panel: measured 2026-09-25 on
+/// Seed Pods, where Exit never reached MainMenu.ExitGame. The five
+/// non-generator levels built to go straight on - Radial Dance Party,
+/// Tupperware Nesting and Tower (the campaign's run into the credits) and the
+/// two DLC bosses - take the panel's route too: Tupperware Tower left the
+/// next puzzle with no cursor in the 0.4.2 playtest (see CursorGuard).
+///
+/// A GENERATOR KEEPS THE GAME'S STRAIGHT-ON ROUTE when it has nothing left.
+/// That route goes by the Daily page, which DailyGuard turns into the next
+/// slot (the 0.4.2 playtest: "daily guard: opening slot 1 instead"). Through
+/// the panel's NextLevel the game first relaunched the finished generator
+/// and only then reached the Daily page (measured 2026-09-27, Stamps
+/// (Randomized)) - the same end by a longer road.
+///
+/// WITH NOTHING LEFT TO FIND, THE PANEL IS NEVER SHOWN. It used to pop up and
+/// be pressed once it settled: the trace (2026-09-27, Parts Organizer) shows
+/// ShowMenu 67 frames after the completion and the press 203 frames after
+/// that. droha, watching it, asked for the pop-up to go ("it would be nice to
+/// skip that animation at the end when it tries to auto move on"). So
+/// BeforeShowMenu refuses to show it for such a slot, and Tick calls the
+/// panel's NextLevel on the next frame and hides it at once. The press on a
+/// shown panel (PressContinue) remains as the fallback for a panel that
+/// showed anyway.
 /// </summary>
 [HarmonyPatch]
 internal static class RetryPanel
 {
     private static string _lastLogged = "";
 
-    /// <summary>The slot whose panel Tick should press through, or -1.</summary>
+    /// <summary>The slot to move on from without the panel, or -1.</summary>
     private static int _continueSlot = -1;
     private static float _waited;
     private static float _panelUp;
 
+    /// <summary>A panel refused by BeforeShowMenu, to move on from in Tick.</summary>
+    private static RetryMenu? _refused;
+
+    /// <summary>
+    /// No re-arming until this time. The game reads ShowRetryMenu again after
+    /// the arrow is pressed, while the finished slot is still current, and
+    /// that re-armed it for a slot already left ("no panel came for slot N"
+    /// 22 times in the 0.4.2 playtest log).
+    /// </summary>
+    private static float _quietUntil;
+
     /// <summary>Give up if no panel comes: nothing is pressed on a later one.</summary>
     private const float GiveUpAfter = 20f;
 
-    /// <summary>Let the panel settle before pressing, as a player would.</summary>
+    /// <summary>Let a panel that did show settle before pressing, as a player would.</summary>
     private const float PressAfter = 0.4f;
 
     [HarmonyPatch(typeof(LevelInterface), nameof(LevelInterface.ShowRetryMenu),
@@ -54,20 +83,32 @@ internal static class RetryPanel
             var offer = Checks.OfferRetry(out var lit, out var total);
             if (offer == null) return;
 
-            var through = !offer.Value && __result;
-            Log($"retry panel: slot {Checks.CurrentSlot}, {lit} of {total} solution(s) "
-                + $"in after this completion -> "
-                + (offer.Value ? "panel" : through ? "next, through the panel's arrow" : "next")
-                + $" (the level's own: {(__result ? "panel" : "next")})");
-
-            if (through)
+            var own = __result;
+            if (offer.Value)
             {
-                _continueSlot = Checks.CurrentSlot;
-                _waited = 0f;
-                _panelUp = -1f;
-                return;                                  // the game shows its panel
+                __result = true;
+                Log($"retry panel: slot {Checks.CurrentSlot}, {lit} of {total} solution(s) "
+                    + $"in after this completion -> panel (the level's own: {(own ? "panel" : "next")})");
+                return;
             }
-            __result = offer.Value;
+
+            if (!own && IsGenerator(Checks.CurrentSlot))
+            {
+                Log($"retry panel: slot {Checks.CurrentSlot}, {lit} of {total} solution(s) "
+                    + "in after this completion -> next (a generator, straight on)");
+                return;
+            }
+
+            __result = true;                             // the panel's route, unseen
+
+            if (UnityEngine.Time.unscaledTime < _quietUntil) return;
+            Log($"retry panel: slot {Checks.CurrentSlot}, {lit} of {total} solution(s) "
+                + $"in after this completion -> next, without showing the panel "
+                + $"(the level's own: {(own ? "panel" : "next")})");
+            _continueSlot = Checks.CurrentSlot;
+            _waited = 0f;
+            _panelUp = -1f;
+            _refused = null;
         }
         catch (Exception e)
         {
@@ -75,9 +116,34 @@ internal static class RetryPanel
         }
     }
 
+    /// <summary>A slot launched with a baked seed: one of the game's generators.</summary>
+    private static bool IsGenerator(int slot)
+    {
+        var state = Track.State;
+        return state != null && slot >= 0 && slot < state.Slots.Count && state.Slots[slot].Seed >= 0;
+    }
+
+    /// <summary>Do not show the panel for a slot that is moving straight on.</summary>
+    [HarmonyPatch(typeof(RetryMenu), nameof(RetryMenu.ShowMenu))]
+    [HarmonyPrefix]
+    private static bool BeforeShowMenu(RetryMenu __instance)
+    {
+        try
+        {
+            if (_continueSlot < 0 || Checks.CurrentSlot != _continueSlot) return true;
+            _refused = __instance;
+            return false;
+        }
+        catch
+        {
+            return true;
+        }
+    }
+
     /// <summary>
-    /// Press the arrow on a panel level with nothing left to find, once its
-    /// panel is up (RetryUI_GameState).
+    /// Move on from a slot with nothing left to find: through the refused
+    /// panel's NextLevel on the frame after, or - if the panel showed
+    /// anyway - by pressing its arrow once it has settled.
     /// </summary>
     internal static void Tick(float dt)
     {
@@ -88,6 +154,30 @@ internal static class RetryPanel
         {
             Plugin.Logger.LogInfo($"retry panel: no panel came for slot {_continueSlot}; nothing pressed");
             _continueSlot = -1;
+            _refused = null;
+            return;
+        }
+
+        if (_refused != null)
+        {
+            var menu = _refused;
+            var slot = _continueSlot;
+            _refused = null;
+            _continueSlot = -1;
+            _quietUntil = UnityEngine.Time.unscaledTime + 5f;
+            Plugin.Logger.LogInfo(
+                $"retry panel: slot {slot} has nothing left to find - moving on without the panel");
+            try
+            {
+                // NextLevel first: Navigation's prefix on it decides where to
+                // (the next playable slot, or the track when there is none).
+                menu.NextLevel();
+                menu.HideMenu(true);
+            }
+            catch (Exception e)
+            {
+                Plugin.Logger.LogWarning($"retry panel: moving on failed: {e.Message}");
+            }
             return;
         }
 
@@ -95,28 +185,24 @@ internal static class RetryPanel
         var state = gm == null || gm.GameState == null ? "" : gm.GameState.GetIl2CppType().Name;
         if (state != "RetryUI_GameState") return;
 
-        // THE PANEL ON SCREEN IS THE RetryMenu, and it is pressed the way a
-        // player presses it: a pointer click on its Continue Button.
-        //
-        // Pressing ReplayMenu.NextLevel, a menu that is not shown, moved on
-        // and left this panel up over the next puzzle (droha, 2026-09-25:
-        // Candy's last solution, then Bones). Calling RetryMenu.NextLevel
-        // directly moved on too, and STILL left it up: measured 2026-09-25 on
-        // Paper Plane Supplies, RetryMenu active at alpha 1 over Broken Eggs.
-        // The hiding lives in the button's pointer handling, not in
-        // NextLevel; a pointer click on the same button advanced and hid it.
-        var menu = UnityEngine.Object.FindObjectOfType<RetryMenu>();
-        if (menu == null) return;
+        // A PANEL THAT SHOWED ANYWAY - BeforeShowMenu did not run, or the game
+        // showed it some other way - is pressed the way a player presses it:
+        // a pointer click on its Continue Button. Pressing ReplayMenu.NextLevel,
+        // a menu that is not shown, moved on and left this panel up over the
+        // next puzzle (droha, 2026-09-25: Candy's last solution, then Bones);
+        // calling RetryMenu.NextLevel on a SHOWN panel did the same (Paper
+        // Plane Supplies over Broken Eggs). The hiding lives in the button's
+        // pointer handling.
+        var shown = UnityEngine.Object.FindObjectOfType<RetryMenu>();
+        if (shown == null) return;
 
         // FULLY SHOWN, NOT JUST PRESENT. Pressed 0.4 s into RetryUI, while the
         // panel was still animating in, the game advanced and the panel's show
-        // then finished over the next puzzle - measured 2026-09-25, Tea
-        // Cabinet then Shells, with the Continue Button pressed the way a
-        // player does. A player clicks a panel that has stopped moving.
-        // Minimized counts: the panel shrinks to a bar when the pointer is
-        // away, and a panel that did so before the press must still be pressed.
+        // then finished over the next puzzle (Tea Cabinet then Shells,
+        // 2026-09-25). Minimized counts: the panel shrinks to a bar when the
+        // pointer is away.
         bool settled;
-        try { settled = (menu.Showing || menu.Minimized) && !menu.IsTransitioning; }
+        try { settled = (shown.Showing || shown.Minimized) && !shown.IsTransitioning; }
         catch { settled = true; }
         if (!settled)
         {
@@ -127,18 +213,19 @@ internal static class RetryPanel
         if (_panelUp < 0f) _panelUp = _waited;
         if (_waited - _panelUp < PressAfter) return;
 
-        var slot = _continueSlot;
+        var pressed = _continueSlot;
         _continueSlot = -1;
-        if (PressContinue(menu))
+        _quietUntil = UnityEngine.Time.unscaledTime + 5f;
+        if (PressContinue(shown))
         {
-            Plugin.Logger.LogInfo($"retry panel: slot {slot} has nothing left to find - pressing the arrow");
+            Plugin.Logger.LogInfo($"retry panel: slot {pressed} has nothing left to find - pressing the arrow");
             return;
         }
 
         Plugin.Logger.LogWarning(
-            $"retry panel: slot {slot} - no Continue Button to press; calling NextLevel and hiding the panel");
-        menu.NextLevel();
-        menu.HideMenu(false);
+            $"retry panel: slot {pressed} - no Continue Button to press; calling NextLevel and hiding the panel");
+        shown.NextLevel();
+        shown.HideMenu(false);
     }
 
     /// <summary>

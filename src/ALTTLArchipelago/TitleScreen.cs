@@ -290,21 +290,20 @@ internal static class TitleScreen
     }
 
     /// <summary>
-    /// Play opens the FARTHEST puzzle that still has something doable in it.
+    /// Play opens the FIRST puzzle that still has something doable in it, or
+    /// the run's level select when there is none.
     ///
     /// Vanilla Play resumes where the campaign left off, which in a run means
-    /// nothing - and it happily landed on a puzzle already beaten. Farthest
-    /// rather than first because the track only moves forwards: everything
-    /// behind is either finished or waiting on an item, and the useful place to
-    /// be dropped is the edge of your progress.
+    /// nothing - and it happily landed on a puzzle already beaten.
     ///
     /// "Something doable" means at least one location that is neither collected
-    /// nor blocked by an ability or pack you do not have. A card whose only
-    /// remaining checks are blocked is not somewhere to send anyone.
+    /// nor blocked by an ability or pack you do not have (Core SlotPicker). A
+    /// card whose only remaining checks are blocked is not somewhere to send
+    /// anyone.
     /// </summary>
     [HarmonyPatch(typeof(TitleMenu), nameof(TitleMenu.PlayGame))]
     [HarmonyPrefix]
-    private static bool BeforePlayGame()
+    private static bool BeforePlayGame(TitleMenu __instance)
     {
         try
         {
@@ -319,10 +318,13 @@ internal static class TitleScreen
             if (slot < 0)
             {
                 // Nothing doable anywhere: show them the track rather than
-                // dropping them into a puzzle they cannot progress.
-                Plugin.Logger.LogInfo("title: nothing playable, opening the track");
+                // dropping them into a puzzle they cannot progress - through
+                // the title's own Levels, as Navigation.TickTrackAfterTitle
+                // does, rather than a forced Levels_GameState.
+                Plugin.Logger.LogInfo("title: nothing playable, pressing Levels instead");
                 Toasts.Show("Nothing to play yet - waiting on items", Toasts.Notice);
-                GameManager.Instance.SetGameState<Levels_GameState>(null, false);
+                if (__instance != null) __instance.LevelSelect();
+                else GameManager.Instance.SetGameState<Levels_GameState>(null, false);
                 return false;
             }
 

@@ -38,7 +38,7 @@ internal static partial class Badges
     /// A tinted CHILD rather than a tint on the dot itself: the game repaints
     /// these from UpdateOverviewAppearance whenever anything unlocks, and
     /// recolouring its own Image would be undone at a moment we do not control
-    /// - the lesson already recorded in docs/verification-log.md about
+    /// - the lesson already recorded in docs/history/verification-log.md about
     /// recolouring the game's graphics. The overlay survives that, and the poll
     /// puts back anything a rebuild removed.
     /// </summary>
@@ -180,44 +180,70 @@ internal static partial class Badges
 
     private static Vector3 _fittedBase = Vector3.one;
 
+    /// <summary>Where the game put the strip; put back, since the bar now moves with it.</summary>
+    private static Vector2 _fittedPosition;
+
+    /// <summary>The game's width for the bar the strip sits in, and the one we set.</summary>
+    private static float _fittedBarWidth;
+
+    private static float _appliedBarWidth = -1f;
+
     /// <summary>
     /// Shrink the overview strip until it fits the screen.
     ///
     /// The game sizes this for its own widest campaign, about 85 cards. A run
     /// inserts a pack divider between blocks, so 79 puzzles builds 92 cards
     /// and the strip runs off the edge - reported from a full-length run. The
-    /// default puzzle count now lands at 84 so this does nothing there, but a
-    /// player is free to ask for 79 and should not be punished with a strip
-    /// they cannot see the end of.
+    /// default of 70 puzzles fits as it is, but a run may ask for up to 130
+    /// (146 cards) and should not be punished with a strip it cannot see the
+    /// end of.
     ///
     /// SCALE, NOT SPACING. The mod has no handle on the layout - there is no
     /// layout component here, the game positions each dot itself - so the only
-    /// lever that cannot fight it is the parent's scale.
+    /// lever that cannot fight it is the strip's scale.
+    ///
+    /// AND THE BAR NARROWED WITH IT. The strip sits in 'Levels Overview
+    /// Scrollbar', which carries the Unity Scrollbar the player drags and its
+    /// Scroll Handle, and which the game sizes to the unscaled dots. Scaling
+    /// only the strip left that bar 3037 wide on a 1920 screen at 130
+    /// puzzles, its ends 558 past each edge, so a drag reached about the
+    /// middle 62% of the track and the handle was drawn off-screen (droha,
+    /// 2026-09-28; measured with DevTools `uitree`). The bar is centred and
+    /// the strip is anchored to its left edge, so narrowing the bar by the
+    /// same factor puts the scaled dots exactly inside it, centred, with the
+    /// drag range and the handle on screen. Its width, not its scale: the
+    /// game squeezes the bar's scale when it is grabbed.
     ///
     /// IDEMPOTENT, FROM A CACHED BASELINE. The game repaints these from
     /// UpdateOverviewAppearance at moments we do not control, and this runs on
     /// a one-second poll, so anything that multiplied the current value would
-    /// shrink the strip to nothing over a minute of looking at the menu.
+    /// shrink the strip to nothing over a minute of looking at the menu. A
+    /// bar width that is not the one we set is the game laying it out again,
+    /// and becomes the new baseline.
     /// </summary>
     private static void FitStrip(Transform strip)
     {
         try
         {
+            var rect = strip.TryCast<RectTransform>();
+            var bar = strip.parent == null
+                ? null : strip.parent.TryCast<RectTransform>();
+            if (rect == null || bar == null)
+            {
+                ReportFit($"no RectTransform (self={rect != null}, "
+                          + $"parent={bar != null})");
+                return;
+            }
+
             if (!ReferenceEquals(_fittedStrip, strip))
             {
                 _fittedStrip = strip;
                 _fittedBase = strip.localScale;
+                _fittedPosition = rect.anchoredPosition;
+                _appliedBarWidth = -1f;
             }
-
-            var rect = strip.TryCast<RectTransform>();
-            var parent = strip.parent == null
-                ? null : strip.parent.TryCast<RectTransform>();
-            if (rect == null || parent == null)
-            {
-                ReportFit($"no RectTransform (self={rect != null}, "
-                          + $"parent={parent != null})");
-                return;
-            }
+            var barWidth = bar.sizeDelta.x;
+            if (Mathf.Abs(barWidth - _appliedBarWidth) > 0.5f) _fittedBarWidth = barWidth;
 
             // Measured from the dots, not from the strip's own rect: the rect
             // is whatever the game authored and need not bound its children.
@@ -252,12 +278,19 @@ internal static partial class Badges
             // be the mod inventing a layout rather than rescuing one.
             var wanted = Mathf.Clamp(room / span, MinStripScale, 1f);
             var target = _fittedBase * wanted;
+            var width = _fittedBarWidth * wanted;
 
-            if ((strip.localScale - target).sqrMagnitude < 0.000001f) return;
+            if ((strip.localScale - target).sqrMagnitude < 0.000001f
+                && (rect.anchoredPosition - _fittedPosition).sqrMagnitude < 0.01f
+                && Mathf.Abs(barWidth - width) < 0.5f) return;
 
             strip.localScale = target;
+            rect.anchoredPosition = _fittedPosition;
+            bar.sizeDelta = new Vector2(width, bar.sizeDelta.y);
+            _appliedBarWidth = width;
             Plugin.Logger.LogInfo(
-                $"badges: overview strip scaled to {wanted:0.00} - "
+                $"badges: overview strip scaled to {wanted:0.00}, its bar "
+                + $"{_fittedBarWidth:0} -> {width:0} wide - "
                 + $"{strip.childCount} dots span {span:0} in {room:0}");
         }
         catch (Exception e)
@@ -269,16 +302,18 @@ internal static partial class Badges
     }
 
     /// <summary>
-    /// Room for the last dot itself, which the leftmost-to-rightmost span of
-    /// CENTRES leaves out. Approximate on purpose - being a few pixels
-    /// conservative costs nothing and stops the final dot touching the edge.
+    /// Room for the end dots themselves, which the leftmost-to-rightmost span
+    /// of CENTRES leaves out, and a little air past them. At 24 a 130-puzzle
+    /// strip touched both screen edges (2026-09-28: 0 and 4 px at 720p); the
+    /// opening's squares are wider than a dot.
     /// </summary>
-    private const float DotAllowance = 24f;
+    private const float DotAllowance = 64f;
 
     /// <summary>
-    /// How small the strip may get. At the maximum 79 puzzles it needs about
-    /// 0.9, so this floor is only reached by something unforeseen - and a
-    /// strip too small to read is no more useful than one that overflows.
+    /// How small the strip may get. At the maximum 130 puzzles (146 cards) it
+    /// needs 0.60 (measured 2026-09-28), so this floor is only reached by
+    /// something unforeseen - and a strip too small to read is no more useful
+    /// than one that overflows.
     /// </summary>
     private const float MinStripScale = 0.55f;
 
@@ -296,11 +331,15 @@ internal static partial class Badges
     /// at least as wide as its content, so it can never be the smallest; the
     /// first fixed one above it wins. That holds without naming any of the
     /// game's objects, which matters because the names here are not ours.
+    ///
+    /// FROM THE GRANDPARENT: FitStrip narrows the bar itself, and a bar we
+    /// narrowed would then be the smallest - each poll would fit to the last
+    /// and shrink it again.
     /// </summary>
     private static float RoomFor(Transform strip)
     {
         var room = float.MaxValue;
-        var walk = strip.parent;
+        var walk = strip.parent == null ? null : strip.parent.parent;
         for (int up = 0; up < 6 && walk != null; up++, walk = walk.parent)
         {
             var wr = walk.TryCast<RectTransform>();

@@ -25,6 +25,8 @@ internal static class RunState
 
     internal static int SkipsUsed => _state.SkipsUsed;
     internal static int TrapsSprung => _state.TrapsSprung;
+    internal static int BackgroundResetsUsed => _state.BackgroundResetsUsed;
+    internal static int BackgroundResetAt => _state.BackgroundResetAt;
 
     /// <summary>Have the credits been played in this run, ever?</summary>
     internal static bool CreditsPlayed => _state.CreditsPlayed;
@@ -42,7 +44,11 @@ internal static class RunState
     /// <summary>Part checks earned out of reach, waiting to be filed.</summary>
     internal static IReadOnlyList<string> Withheld() => _state.Withheld;
 
-    internal static void AddWithheld(string location) => WriteIf(_state.AddWithheld(location));
+    internal static void AddWithheld(string location, IReadOnlyList<string>? needs = null)
+        => WriteIf(_state.AddWithheld(location, needs));
+
+    /// <summary>The part locations a withheld solution's ending named; empty when none were kept.</summary>
+    internal static IReadOnlyList<string> NeedsFor(string location) => _state.NeedsFor(location);
 
     internal static void RemoveWithheld(string location) => WriteIf(_state.RemoveWithheld(location));
 
@@ -70,6 +76,14 @@ internal static class RunState
 
     internal static void SpendTrap(int count) => WriteIf(_state.SpendTrap(count));
 
+    /// <summary>Spend a Background Reset Token. False, nothing spent, when there is nothing to reset.</summary>
+    internal static bool SpendBackgroundReset(int trapsNow)
+    {
+        var spent = _state.SpendBackgroundReset(trapsNow);
+        WriteIf(spent);
+        return spent;
+    }
+
     internal static void Begin(string saveName)
     {
         _path = null;
@@ -77,7 +91,7 @@ internal static class RunState
 
         try
         {
-            var dir = SaveRedirect.SaveDirectory();
+            var dir = SaveRedirect.ModDirectory();
             if (dir == null) return;
             _path = Path.Combine(dir, saveName + ".run.json");
 

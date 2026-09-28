@@ -13,8 +13,9 @@ namespace ALTTLArchipelago;
 /// list with no scoping. A randomized run recording progress the normal way
 /// would write it straight into the campaign. So instead of being careful
 /// about what we write, we change where the game writes: while a session is
-/// active, SaveSystem.GetSaveFilename returns save_ap_<slot>_<seed> and the
-/// campaign file is never opened at all.
+/// active, SaveSystem.GetSavePath returns Archipelago/save_ap_<slot>_<seed>
+/// inside the save folder and the campaign file is never opened at all. The
+/// subfolder keeps every file of ours out of the Steam Cloud (SaveNames.Folder).
 ///
 /// That distinction matters. Isolation by construction survives a crash, an
 /// alt-F4 and a power cut, because the campaign file was never open to be
@@ -45,6 +46,9 @@ internal static class SaveRedirect
     {
         var name = SaveNames.ForSession(slotName, seed);
 
+        // Before the redirect points into it: the game writes the run's save
+        // straight into this folder and would fail if it did not exist.
+        ModDirectory();
         BackUpCampaignSaveOnce();
 
         // Read BEFORE the redirect, while SaveSystem.data is still the
@@ -383,17 +387,73 @@ internal static class SaveRedirect
     /// treating it as one produced ".../save1.json/save1.json" and a backup
     /// that silently wrote nothing.
     /// </summary>
-    internal static string? SaveDirectory()
+    internal static string? GameDirectory()
     {
         try
         {
-            var path = SaveSystem.GetSavePath(false);
+            // The campaign path, with the redirect off: while a run is on,
+            // GetSavePath answers with the run's file inside our subfolder.
+            var path = CampaignSavePath();
             return string.IsNullOrEmpty(path) ? null : Path.GetDirectoryName(path);
         }
         catch (Exception e)
         {
             Plugin.Logger.LogWarning($"could not resolve the save folder: {e.Message}");
             return null;
+        }
+    }
+
+    private static bool _modDirectoryReady;
+
+    /// <summary>
+    /// Where every file of ours lives: the Archipelago subfolder of the save
+    /// folder (SaveNames.Folder), created on first use. The first call in a
+    /// launch also moves in any file an older build left in the top level,
+    /// before anything reads one - which clears the Steam Cloud quota for an
+    /// existing player and lets a run started on an older build resume.
+    /// </summary>
+    internal static string? ModDirectory()
+    {
+        var game = GameDirectory();
+        if (game == null) return null;
+
+        var mod = Path.Combine(game, SaveNames.Folder);
+        if (_modDirectoryReady) return mod;
+
+        try
+        {
+            Directory.CreateDirectory(mod);
+            MoveLegacyFiles(game, mod);
+            _modDirectoryReady = true;
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"could not prepare {SaveNames.Folder}/ in the save folder: {e.Message}");
+        }
+        return mod;
+    }
+
+    /// <summary>
+    /// Move our top-level files into the subfolder. Never overwrites: a file
+    /// already there wins, and the old one is left where it is and said so.
+    /// </summary>
+    private static void MoveLegacyFiles(string game, string mod)
+    {
+        foreach (var path in Directory.GetFiles(game))
+        {
+            var name = Path.GetFileName(path);
+            if (!SaveNames.IsLegacyFile(name)) continue;
+
+            var target = Path.Combine(mod, name);
+            if (File.Exists(target))
+            {
+                Plugin.Logger.LogWarning(
+                    $"save folder: {name} is in both places; {SaveNames.Folder}/ is used, the old one left alone");
+                continue;
+            }
+
+            File.Move(path, target);
+            Plugin.Logger.LogInfo($"save folder: moved {name} into {SaveNames.Folder}/, out of the Steam Cloud");
         }
     }
 
@@ -453,7 +513,8 @@ internal static class SaveRedirect
             var extension = Path.GetExtension(__result);
             if (string.IsNullOrEmpty(directory)) return;
 
-            __result = Path.Combine(directory, _active + extension);
+            // Into our subfolder (SaveNames.Folder), created by Begin.
+            __result = Path.Combine(directory, SaveNames.Folder, _active + extension);
         }
         catch (Exception e)
         {
@@ -509,14 +570,11 @@ internal static class SaveRedirect
 
         try
         {
+            // The run's save sits in our subfolder and the campaign save in
+            // the folder above it, so each is asked for on its own.
             var runPath = SaveSystem.GetSavePath(false);
-            if (string.IsNullOrEmpty(runPath)) return;
-
-            var directory = Path.GetDirectoryName(runPath);
-            var extension = Path.GetExtension(runPath);
-            if (string.IsNullOrEmpty(directory)) return;
-
-            var campaign = Path.Combine(directory, CampaignName + extension);
+            var campaign = CampaignSavePath();
+            if (string.IsNullOrEmpty(runPath) || string.IsNullOrEmpty(campaign)) return;
             if (!File.Exists(campaign) || !File.Exists(runPath)) return;
 
             var run = Newtonsoft.Json.Linq.JObject.Parse(Decode(runPath));
@@ -543,9 +601,6 @@ internal static class SaveRedirect
         }
     }
 
-    /// <summary>The campaign save's name, without extension.</summary>
-    private const string CampaignName = "save1";
-
     /// <summary>
     /// Copy the campaign save's settings INTO the run's file, before it loads.
     ///
@@ -567,17 +622,11 @@ internal static class SaveRedirect
 
         try
         {
-            var campaign = SaveSystem.GetSavePath(false);
-            if (string.IsNullOrEmpty(campaign)) return;
-
-            var directory = Path.GetDirectoryName(campaign);
-            var extension = Path.GetExtension(campaign);
-            if (string.IsNullOrEmpty(directory)) return;
-
-            // GetSavePath is already redirected by the time Begin runs, so
-            // build the campaign path rather than trusting what came back.
-            campaign = Path.Combine(directory, CampaignName + extension);
-            var runPath = Path.Combine(directory, _active + extension);
+            // GetSavePath is already redirected by the time Begin runs, so it
+            // answers with the run's path; the campaign's is asked for apart.
+            var runPath = SaveSystem.GetSavePath(false);
+            var campaign = CampaignSavePath();
+            if (string.IsNullOrEmpty(runPath) || string.IsNullOrEmpty(campaign)) return;
             if (!File.Exists(campaign) || !File.Exists(runPath)) return;
 
             var mine = Newtonsoft.Json.Linq.JObject.Parse(Decode(campaign));

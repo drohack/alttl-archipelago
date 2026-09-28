@@ -35,10 +35,25 @@ internal static class SteamAchievements
     [HarmonyPrefix]
     private static bool BeforeSetAchievementMet(AchievementData achievement)
     {
+        // A CHECK FIRST, whatever Steam is allowed. Every award goes through
+        // here, including one the player's profile already holds (Exacting
+        // Eggs, 2026-09-28), so a run with `achievements` on sees them all.
+        string id = "";
+        try { id = achievement?.m_eAchievementID.ToString() ?? ""; }
+        catch { id = ""; }
+        if (id.Length > 0)
+        {
+            try { Checks.OnAchievement(id); }
+            catch (Exception e) { Plugin.Logger.LogWarning($"achievements: could not file {id}: {e.Message}"); }
+        }
+
         if (!Blocked) return true;
+        // The id when the name is empty: one award in the 0.4.2 playtest
+        // logged as '' because its name was.
         string name;
-        try { name = achievement?.m_strName ?? achievement?.m_eAchievementID.ToString() ?? "?"; }
-        catch { name = "?"; }
+        try { name = achievement?.m_strName ?? ""; }
+        catch { name = ""; }
+        if (name.Length == 0) name = id.Length > 0 ? id : "?";
         Say($"achievements: withheld '{name}' - Steam achievements are off while the Archipelago mod is loaded");
         return false;
     }
@@ -73,6 +88,44 @@ internal static class SteamAchievements
         __result = false;
         Say($"achievements: withheld Steam stat '{pchName}'");
         return false;
+    }
+
+    /// <summary>
+    /// Every achievement earnable in the run, whatever the Steam profile holds.
+    ///
+    /// The game copies the profile's unlocks into each AchievementData's
+    /// m_bAchieved, and a checker may skip one already met. droha, 2026-09-28:
+    /// "we need the achievements to not care about what the user has". (Keep
+    /// Away, which looked like that, stayed silent with the flag cleared too,
+    /// and is left out of the checks for it.)
+    ///
+    /// Only the in-memory flag: SetAchievementMet is stopped above, so nothing
+    /// sets it back or reaches Steam. Cleared at every slot entry, restarts
+    /// included, in case the game reads the profile again mid-session.
+    /// </summary>
+    internal static void ForgetUnlocks()
+    {
+        try
+        {
+            int cleared = 0;
+            foreach (var obj in UnityEngine.Object.FindObjectsOfTypeAll(
+                         Il2CppInterop.Runtime.Il2CppType.Of<AchievementData>()))
+            {
+                var data = obj == null ? null : obj.TryCast<AchievementData>();
+                if (data == null || !data.m_bAchieved) continue;
+                data.m_bAchieved = false;
+                cleared++;
+            }
+            if (cleared > 0)
+            {
+                Plugin.Logger.LogInfo(
+                    $"achievements: {cleared} held on the Steam profile made earnable in the run");
+            }
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"achievements: could not clear the held flags: {e.Message}");
+        }
     }
 
     private static void Say(string line)

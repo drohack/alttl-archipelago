@@ -221,6 +221,9 @@ internal static class Track
         _chapters = null;
         _creditsShown = false;
         _paintedBackgrounds = -1;
+        // Put back whatever the run painted, so an ordinary game after a
+        // disconnect draws the levels and the pause screen in their own colours.
+        Backgrounds.RestoreOwnColours();
         _plan.Clear();
         _order.Clear();
         Rebuild();
@@ -246,53 +249,33 @@ internal static class Track
     }
 
     /// <summary>
-    /// The next open slot with something still to collect, in track order.
-    /// Returns -1 when the run has nothing left to point at.
+    /// The next PLAYABLE slot after the one the player is in, in track order,
+    /// wrapping once. -1 when nothing is playable: the caller shows the level
+    /// select instead (Navigation.ShowTrackByWayOfTitle).
+    ///
+    /// Forward from where the player IS: searching from zero every time sent
+    /// "next" back to the start of the run after a puzzle near the end.
+    ///
+    /// THE UNFINISHED FALLBACK IS GONE, on purpose. When nothing was
+    /// reachable this used to open any open slot with work left, on the
+    /// reasoning that an arrow landing somewhere beats an arrow doing
+    /// nothing. In play it opened puzzles the player could not advance - the
+    /// 0.4.2 playtest, after Shells #2 and Trim Plant #2 - and droha asked
+    /// for the level select there instead (2026-09-26), so the player can see
+    /// what they are waiting on.
     /// </summary>
-    internal static int NextUnfinishedSlot()
+    internal static int NextPlayableSlot()
     {
         if (_state == null) return -1;
-
-        // Forward from where the player IS, wrapping only once nothing is left
-        // ahead. Searching from zero every time sent "next" back to the start
-        // of the run after finishing a puzzle near the end, which is not what
-        // an arrow pointing forwards should do.
-        var from = Checks.CurrentSlot;
-        var count = _state.Slots.Count;
-        var start = from >= 0 ? from + 1 : 0;
-
-        // TWO PASSES, AND THE FIRST ONE IS THE POINT.
-        //
-        // This used to ask only HasWorkLeft - "is anything here uncollected" -
-        // which is not the same question as "is there anything to DO". A card
-        // whose remaining checks are all behind an ability you have not found
-        // still counts as unfinished, so the arrow cheerfully opened a puzzle
-        // the player could not advance. droha: "I was expecting it to bring me
-        // to the next level with something to do."
-        //
-        // Play already knew better: FirstPlayableSlot has always filtered on
-        // reachability. The arrow simply never got the same treatment.
-        for (int step = 0; step < count; step++)
-        {
-            var slot = (start + step) % count;
-            if (!_state.IsOpen(slot)) continue;
-            if (!HasReachableWork(slot)) continue;
-            return slot;
-        }
-
-        // Nothing reachable anywhere. Fall back to merely unfinished rather
-        // than refusing to move: an arrow that does nothing is worse than an
-        // arrow that lands somewhere honest, and the card's own badge already
-        // says the work there is blocked.
-        for (int step = 0; step < count; step++)
-        {
-            var slot = (start + step) % count;
-            if (!_state.IsOpen(slot)) continue;
-            if (!HasWorkLeft(slot)) continue;
-            return slot;
-        }
-        return -1;
+        return Picker()?.Next(Checks.CurrentSlot) ?? -1;
     }
+
+    /// <summary>
+    /// Whether any slot other than the one being finished is playable - asked
+    /// at a completion, when that slot's own check may not be filed yet.
+    /// </summary>
+    internal static bool AnyPlayableBesides(int slot)
+        => Picker()?.AnyPlayableBesides(slot) ?? true;
 
     /// <summary>
     /// Any uncollected location on this slot, reachable or not.
@@ -310,30 +293,16 @@ internal static class Track
     }
 
     /// <summary>
-    /// Any uncollected location on this slot the run can actually earn now.
-    ///
-    /// The predicate behind Play, the next arrow and the level-select opening
-    /// scroll. It lived inline in three places and the arrow used a weaker
-    /// version of it, which is exactly how the three drifted apart.
+    /// The run's slot picker (Core), or null before the run has a track and a
+    /// router. It fails open itself while the progress table or the abilities
+    /// are still missing.
     /// </summary>
-    private static bool HasReachableWork(int slot)
+    private static SlotPicker? Picker()
     {
-        var progress = Checks.Progress;
-        var abilities = Inventory.Abilities;
         var router = Checks.Router;
-
-        // Before the run is fully wired up, treat the slot as playable rather
-        // than hiding it - the same fallback the callers used individually.
-        if (router == null || progress == null || abilities == null) return true;
-
-        var packs = _state?.PacksHeld ?? 0;
-        foreach (var name in router.ForSlot(slot))
-        {
-            if (Checks.Ledger.IsCollected(name)) continue;
-            if (!progress.IsReachable(name, packs, abilities)) continue;
-            return true;
-        }
-        return false;
+        if (_state == null || router == null) return null;
+        return new SlotPicker(_state, router, Checks.Ledger.IsCollected,
+                              Checks.Progress, Inventory.Abilities);
     }
 
     /// <summary>
@@ -375,17 +344,7 @@ internal static class Track
     /// fourth. Play means "carry on", and carrying on starts at the earliest
     /// thing not yet done.
     /// </summary>
-    internal static int FirstPlayableSlot()
-    {
-        if (_state == null) return -1;
-
-        for (int slot = 0; slot < _state.Slots.Count; slot++)
-        {
-            if (!_state.IsOpen(slot)) continue;
-            if (HasReachableWork(slot)) return slot;
-        }
-        return -1;
-    }
+    internal static int FirstPlayableSlot() => Picker()?.First() ?? -1;
 
     /// <summary>
     /// The last open slot with something the player can actually do now.
@@ -395,17 +354,7 @@ internal static class Track
     /// ability or a pack is skipped, because sending someone to a puzzle they
     /// cannot progress is worse than sending them nowhere.
     /// </summary>
-    internal static int FarthestPlayableSlot()
-    {
-        if (_state == null) return -1;
-
-        for (int slot = _state.Slots.Count - 1; slot >= 0; slot--)
-        {
-            if (!_state.IsOpen(slot)) continue;
-            if (HasReachableWork(slot)) return slot;
-        }
-        return -1;
-    }
+    internal static int FarthestPlayableSlot() => Picker()?.Farthest() ?? -1;
 
     // Track.LaunchSlot USED TO LIVE HERE AND IS DELETED ON PURPOSE.
     //
@@ -516,8 +465,9 @@ internal static class Track
     internal static void RepaintSections()
     {
         if (_state == null || _plan.Count == 0) return;
-        if (Inventory.BackgroundTraps == _paintedBackgrounds) return;
-        _paintedBackgrounds = Inventory.BackgroundTraps;
+        var traps = Backgrounds.EffectiveTraps;
+        if (traps == _paintedBackgrounds) return;
+        _paintedBackgrounds = traps;
 
         try
         {
@@ -787,6 +737,7 @@ internal static class Track
             {
                 track.Init();
                 track.SetInitialScrollPosition();
+                DrawShutCardsLocked(track);
             }
 
             DescribeTrack(track);
@@ -1016,7 +967,7 @@ internal static class Track
                     // puzzle you just left had painted, which looked exactly
                     // like the level was still open behind the menu.
                     BackgroundColor = SectionColour(
-                        sections.Count + Inventory.BackgroundTraps),
+                        sections.Count + Backgrounds.EffectiveTraps),
                 });
             }
 
@@ -1122,8 +1073,9 @@ internal static class Track
     /// them, so the track looks like the game rather than like a mod, and
     /// cycling after that. Any opaque colour beats the transparent default.
     ///
-    /// THE CALLER ADDS Inventory.BackgroundTraps TO THE INDEX, which is how a
-    /// Background Change Trap reaches the level select. Rotating the palette
+    /// THE CALLER ADDS Backgrounds.EffectiveTraps TO THE INDEX, which is how a
+    /// Background Change Trap reaches the level select (and how a Background
+    /// Reset Token takes it back off). Rotating the palette
     /// rather than painting every section one colour keeps the sections
     /// telling apart from each other, which is the only job they had.
     ///
@@ -1318,6 +1270,29 @@ internal static class Track
     private static void AfterRefreshIconAppearance(LevelIcon __instance) => DrawLockedIfShut(__instance);
 
     /// <summary>
+    /// DrawLockedIfShut for every card, once the track is built.
+    ///
+    /// NEEDED BECAUSE THE PER-CARD POSTFIX CANNOT PLACE A CARD WHILE THE
+    /// TRACK IS BEING BUILT. Traced 2026-09-27 (DevTools trace:LevelIcon.*):
+    /// LevelsTrack.Init calls each card's Init, SetLevelIconAppearance,
+    /// SetUnlockableLevelIcon and SetCurrentIcon BEFORE the card is in
+    /// trackItems, so PositionOf answers -1 and the postfix returns - and the
+    /// rebuild draws Shells #2 and Books (Randomized) #2 in full colour in an
+    /// unopened Pack 5, as droha's 0.4.2 screenshots show. After Init every
+    /// card is in the list.
+    /// </summary>
+    private static void DrawShutCardsLocked(LevelsTrack track)
+    {
+        var items = track.trackItems;
+        if (items == null) return;
+        for (int i = 0; i < items.Count; i++)
+        {
+            var icon = items[i];
+            if (icon != null) DrawLockedIfShut(icon);
+        }
+    }
+
+    /// <summary>
     /// A card in a pack not opened yet draws locked, whatever its save row says.
     ///
     /// The game picks a card's art from the LEVEL's save row, and every copy of
@@ -1326,7 +1301,7 @@ internal static class Track
     /// because Microscope and Clock were open in earlier packs. A click there
     /// was already refused (IsRefused reads the run's pack state); only the
     /// drawing lied. The locked art is the icon's own defaultLevelIcon, the one
-    /// the game draws on a card with no save row. Not yet checked in game.
+    /// the game draws on a card with no save row.
     /// </summary>
     private static void DrawLockedIfShut(LevelIcon icon)
     {
@@ -1390,7 +1365,7 @@ internal static class Track
     /// transition. Returning false that late leaves the player in a transition
     /// to nothing: a flat single-colour screen with no way out. That is exactly
     /// the failure already recorded for chapter cards in
-    /// docs/verification-log.md, "Beating a level can drop the run onto the
+    /// docs/history/verification-log.md, "Beating a level can drop the run onto the
     /// Daily Tidy page", and these two cases were simply never
     /// moved with it.
     ///
