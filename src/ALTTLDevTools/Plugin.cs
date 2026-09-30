@@ -638,6 +638,7 @@ public partial class DevToolsBehaviour : MonoBehaviour
             Cmd("solutions", Areas.Sweeps, new[] { "solutions" }, StartSurvey),
             Cmd("levelsweep", Areas.Sweeps, new[] { "levelsweep", "levelsweep:<i1,i2,...>" }, a => _dataTable.Start(a)),
             Cmd("gensweep", Areas.Sweeps, new[] { "gensweep:<seeds>[:<index>]" }, StartGenSweep),
+            Cmd("rules", Areas.Sweeps, new[] { "rules" }, ReportRules),
             Cmd("stop", Areas.Sweeps, new[] { "stop" }, StopSweeps),
             Cmd("endings", Areas.Sweeps, new[] { "endings" }, DumpEndings),
             Cmd("achievements", Areas.Sweeps, new[] { "achievements" }, DumpAchievements),

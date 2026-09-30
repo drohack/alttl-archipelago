@@ -439,6 +439,11 @@ public partial class DevToolsBehaviour
     /// the loop, so nothing ever sets unlockedOnLevelSelect on it. A card with
     /// no completion row draws locked. This reads the three things that would
     /// settle it rather than inferring from a screenshot.
+    ///
+    /// THE CARD ON THE TRACK first: a run may end on a DLC's credits (slot_data
+    /// `credits`), and the first credits level in the game's list is always the
+    /// base game's, which this used to report on every seed. Then that first
+    /// one, for a menu with no credits card on it.
     /// </summary>
     private static void ReportCreditsCard()
     {
@@ -450,8 +455,20 @@ public partial class DevToolsBehaviour
         }
 
         LevelInterface? credits = null;
+        var where = "the game's first credits level";
+        var track = FindLiveTrack(out _, out _);
+        var items = track?.trackItems;
+        for (int i = 0; items != null && i < items.Count; i++)
+        {
+            var li = items[i]?.level;
+            if (li == null) continue;
+            var isCredits = false;
+            try { isCredits = li.IsCredits; } catch { continue; }
+            if (isCredits) { credits = li; where = $"track[{i}]"; }
+        }
+
         var all = manager.m_allLevelInterfaces;
-        if (all != null)
+        if (credits == null && all != null)
         {
             for (int i = 0; i < all.Count; i++)
             {
@@ -501,6 +518,7 @@ public partial class DevToolsBehaviour
             + " index=" + Str(() => credits.LevelIndex.ToString())
             + " isUnlocked=" + Str(() => credits.IsUnlocked.ToString())
             + " hasCompletionData=" + has
-            + " unlockedOnLevelSelect=" + flag);
+            + " unlockedOnLevelSelect=" + flag
+            + " (" + where + ")");
     }
 }

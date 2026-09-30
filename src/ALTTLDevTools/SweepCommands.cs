@@ -389,6 +389,31 @@ public partial class DevToolsBehaviour
     }
 
     private void RecordGeneration(int index, int seed)
+        => _sweepOut.AppendLine(GenerationRow(index, seed.ToString()));
+
+    /// <summary>
+    /// "rules": gensweep's row for the level on screen, whatever its seed -
+    /// gensweep itself only regenerates its fixed seeds (1000 + 7919k). Boot
+    /// the seed first (boot:995:945554386), then ask. Built for Books
+    /// (Randomized), where which rule is symmetric decides what Draggables_0
+    /// means.
+    /// </summary>
+    private void ReportRules()
+    {
+        var li = GameManager.Instance?.levelManager?.ActiveLevelInterface;
+        if (li == null)
+        {
+            DevToolsPlugin.Log.LogWarning("rules: no level is running");
+            return;
+        }
+        var index = Str(() => li.LevelIndex.ToString());
+        var seed = Str(() => li.RandomSeed.ToString());
+        DevToolsPlugin.Log.LogInfo("rules: levelIndex\tlevelId\tseed\tdeclaredSolutions\tlevelNumSolutions"
+            + "\tobjectCount\tcontrollerCount\tcontrollers\trandomizer\tchosenSolutions\tarrangements");
+        DevToolsPlugin.Log.LogInfo("rules: " + GenerationRow(int.TryParse(index, out var i) ? i : -1, seed));
+    }
+
+    private string GenerationRow(int index, string seed)
     {
         var lm = GameManager.Instance.levelManager;
         var li = lm.ActiveLevelInterface;
@@ -446,8 +471,8 @@ public partial class DevToolsBehaviour
         }
         catch { /* leave the markers */ }
 
-        _sweepOut.AppendLine($"{index}\t{id}\t{seed}\t{declared}\t{actual}\t{objects}"
-            + $"\t{ctrlCount}\t{controllers}\t{randomizerName}\t{chosen}\t{arrangements}");
+        return $"{index}\t{id}\t{seed}\t{declared}\t{actual}\t{objects}"
+            + $"\t{ctrlCount}\t{controllers}\t{randomizerName}\t{chosen}\t{arrangements}";
     }
 
     // ------------------------------------------------------------------ stop

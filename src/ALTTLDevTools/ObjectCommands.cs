@@ -408,7 +408,7 @@ public partial class DevToolsBehaviour
     ///
     /// WHY THIS EXISTS. The randomizer's lock turns off obj.collider and stops
     /// obj.rigidbody, and `reachable` reads the same single collider. droha and
-    /// Kat, 2026-09-25, on Sewing Box: greyed buttons still pushed things
+    /// the second player, 2026-09-25, on Sewing Box: greyed buttons still pushed things
     /// around, and items went grey and stayed movable. Either needs a collider
     /// the lock does not reach - one on a child, or a second one on the object.
     ///
