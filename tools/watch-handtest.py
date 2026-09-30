@@ -23,7 +23,9 @@ import subprocess
 import sys
 import time
 
-GAME = r"G:\Games\Steam\steamapps\common\A Little To The Left"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from harness_env import GAME  # noqa: E402  (src/GameDir.props, not a literal)
+
 LOG = os.path.join(GAME, "BepInEx", "LogOutput.log")
 EXE = "A Little To The Left.exe"
 

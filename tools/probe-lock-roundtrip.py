@@ -83,6 +83,9 @@ ALL_ABILITIES = sorted(set(CLASS_ABILITY.values()))
 ENCLOSURES = {"DrawerController", "DrawerExpandableController", "Cupboard"}
 DRAWER_SETS = {"DrawerController", "DrawerExpandableController"}
 DOOR_LEVELS = {"DLC1 Clock Cupboard", "DLC1 Tea Cabinet", "DLC1 Trophy Cabinet"}
+# ObjectLock.LockedAs: (level, controller name) -> the class it locks as. Books
+# (Randomized)'s symmetric seeds add Draggables over Shuffle's books.
+LOCKED_AS = {("Books (Randomized)", "Draggables"): "Shuffleables"}
 
 # Hand-tested answers: (level, pick, ability withheld, locked, solid, source).
 # pick is an object name, "class:<holder class>" for every object it holds, or
@@ -234,13 +237,22 @@ def holder_classes(obj):
     return [h.split("|")[1] for h in obj.get("holders", [])]
 
 
+def lock_classes(obj, level_id):
+    """The classes the lock votes with: holder_classes through LOCKED_AS."""
+    out = []
+    for holder in obj.get("holders", []):
+        name, cls = holder.split("|")[:2]
+        out.append(LOCKED_AS.get((level_id, name), cls))
+    return out
+
+
 def rule(obj, loaded, level_id, withheld, snap=None):
     """(locked, solid, why) as ObjectLock and AbilityLocks decide it.
 
     `loaded` is the same object in the control, whose flags are the game's
     own: GameHoldsStill reads those. `snap` gives a handle (a peel handle or
     a rag, `handleOf`) the pieces it acts on, whose verdicts it votes with."""
-    classes = holder_classes(obj)
+    classes = lock_classes(obj, level_id)
     targets = [snap[k] for k in obj.get("handleOf", []) if snap and k in snap]
     targets = [t for t in targets if holder_classes(t)]
     if not classes and not targets:

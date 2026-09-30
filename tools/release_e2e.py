@@ -210,7 +210,12 @@ def await_skip_target(log, index, tries=10):
 #: The game's credits "level". Found by IsCredits at runtime rather than by
 #: this number anywhere in the mod - it is only here because clickcard: takes
 #: a level index, and the one the mod reports is stable across the build.
+#: The seed's own finale once play() has its plan (slot_data "credits"): with a
+#: DLC on, the generator may end the run on that DLC's credits.
 CREDITS_LEVEL_INDEX = 84
+
+#: The three finales by level id (DevTools level dump, isCredits).
+FINALE_INDEX = {"Credits": 84, "DLC1 Credits": 1129, "DLC2 Credits": 1233}
 MAX_ROUNDS = 60
 
 #: Unwind to the title (to_title) before booting the next puzzle after a
@@ -1571,6 +1576,7 @@ print(json.dumps({'slots': [(s['levelIndex'], s['levelId'])
                   'boundaries': list(d['pack_boundaries']),
                   'ability_locks': bool(d.get('ability_locks', True)),
                   'starting_abilities': list(d.get('starting_abilities', [])),
+                  'credits': d.get('credits') or 'Credits',
                   'requirements': {k: v['abilities']
                                    for k, v in d['requirements'].items()}}))
 """
@@ -4085,6 +4091,8 @@ def play(log, plan, earlier=""):
     that same unfinished slot forever, so the harness unwinds to the title and
     opens a different one.
     """
+    global CREDITS_LEVEL_INDEX
+    CREDITS_LEVEL_INDEX = FINALE_INDEX.get(plan.get("credits"), 84)
     slots = plan["slots"]
     by_name = {name: i for i, (_, name) in enumerate(slots)}
     beaten = {}

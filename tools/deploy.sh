@@ -12,7 +12,10 @@
 # Exits non-zero on ANY error, including MSB3021/MSB3027 copy failures.
 set -euo pipefail
 
-GAME_DIR="G:/Games/Steam/steamapps/common/A Little To The Left"
+# The game folder is GameDir in src/GameDir.props, the file the build deploys
+# with - local and gitignored, so no machine's path is in the repo.
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+GAME_DIR="$( { sed -n 's:.*<GameDir>\(.*\)</GameDir>.*:\1:p' "$REPO/src/GameDir.props" 2>/dev/null || true; } | tr '\\' '/' | tr -d '\r')"
 PLUGIN_DIR="$GAME_DIR/BepInEx/plugins/ALTTLArchipelago"
 
 # --no-kill compiles without closing a running game, and NEVER deploys.

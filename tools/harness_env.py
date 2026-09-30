@@ -58,13 +58,28 @@ import time
 #: meant nine edits, and missing one gave an error in whichever harness was
 #: run next rather than at the point of the change.
 #:
-#: STILL A LITERAL, and that is a real limitation rather than an oversight.
-#: _find_save_dir below DISCOVERS its path by globbing, because hardcoding
-#: that one produced a silent failure - the harness reported it had protected
-#: the environment while matching nothing. This is the same class of constant
-#: and has not had the same treatment; it is one machine's G: drive, now in
-#: one place instead of nine.
-GAME = r"G:/Games/Steam/steamapps/common/A Little To The Left"
+#: READ FROM src/GameDir.props, the file the build deploys with - local and
+#: gitignored, so no machine's install path is in the repo (droha,
+#: 2026-09-28). ALTTL_GAME_DIR overrides it. Without either it is a
+#: placeholder that names the fix, so a tool that needs the game fails on a
+#: path saying why, and one that does not still imports.
+def _game_dir() -> str:
+    override = os.environ.get("ALTTL_GAME_DIR")
+    if override:
+        return override.replace("\\", "/")
+    props = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                         "src", "GameDir.props")
+    try:
+        with open(props, encoding="utf-8") as f:
+            found = re.search(r"<GameDir>(.*?)</GameDir>", f.read())
+    except OSError:
+        found = None
+    if not found:
+        return "<set GameDir in src/GameDir.props (copy the .example)>"
+    return found.group(1).strip().replace("\\", "/")
+
+
+GAME = _game_dir()
 CONFIG_DIR = os.path.join(GAME, "BepInEx", "config")
 
 #: The executable, launched with NO arguments - see ensure_no_steam_relaunch.

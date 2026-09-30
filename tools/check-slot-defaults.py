@@ -45,6 +45,7 @@ NO_OPTION = {
     "requirements": "generated access rules",
     "controller_groups": "the level table",
     "dlc": "which DLC a level needs, a property of the level not a setting",
+    "credits": "the finale the generator picked among the enabled DLCs'",
 }
 
 
