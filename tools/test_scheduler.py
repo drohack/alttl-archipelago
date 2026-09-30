@@ -2988,5 +2988,36 @@ class TestThePlanFilesTheEndingForcingMakes(unittest.TestCase):
         self.assertEqual((1, 1), (need, have))
 
 
+class TestTheForcedTupperwareSolvesAreKnown(unittest.TestCase):
+    """The gate's forced solves on TupperwareNesting make the game throw.
+
+    Forcing a progressive level's controllers solved out of their order makes
+    a tween callback re-add Stack 1, Stack 2 and Tray to a dictionary: seen in
+    both 2026-09-30 full gates, on be.697 (Unity's Player.log only) and on
+    be.755, whose Thunderstore pack sets WriteUnityLog and so puts them in
+    LogOutput.log, failing check 10. A player never forces a solve.
+    """
+
+    LINES = (
+        "[Info   :ALTTL Dev Tools] solve: forcing Tray solved\n"
+        "[Error  :     Unity] ArgumentException: An item with the same key has "
+        "already been added. Key: Stack 1 (StackablesZ)\n"
+        "[Error  :     Unity] ArgumentException: An item with the same key has "
+        "already been added. Key: Stack 2 (StackablesZ)\n"
+        "[Error  :     Unity] ArgumentException: An item with the same key has "
+        "already been added. Key: Tray (Draggables)\n")
+
+    def test_they_are_explained(self):
+        errors = e2e.error_census(self.LINES)
+        self.assertEqual(3, len(errors))
+        self.assertEqual([], e2e.unexplained(errors))
+
+    def test_another_duplicate_key_is_not(self):
+        # The history's DraggablesOrdered case: a real bug, still a failure.
+        line = ("[Error  :     Unity] ArgumentException: An item with the same key "
+                "has already been added. Key: Targets (UnityEngine.GameObject)\n")
+        self.assertEqual(1, len(e2e.unexplained(e2e.error_census(line))))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

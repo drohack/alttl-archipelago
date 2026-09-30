@@ -690,6 +690,14 @@ KNOWN_ERRORS = (
     # routine; forcing it to return normally carried on from a state the game
     # never meant to reach and cost seven of eight puzzles.
     "Il2CppInterop: During invoking native->managed trampoline",
+    # The harness's own forced solves on TupperwareNesting (DevTools solve:),
+    # a progressive level: forcing its controllers solved out of order makes
+    # a tween callback re-add them to a dictionary. Both 2026-09-30 full
+    # gates; be.755's Thunderstore pack (WriteUnityLog) is what brought them
+    # into this log. A player never forces a solve, and the level is beaten.
+    # Narrow on purpose: another duplicate key is still a failure.
+    "has already been added. Key: Stack ",
+    "has already been added. Key: Tray (Draggables)",
 )
 
 
