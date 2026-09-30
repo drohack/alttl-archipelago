@@ -168,8 +168,8 @@ public sealed class LevelInfo
     ///
     /// See <see cref="DrawerInfo"/>. An empty list means either "no drawers"
     /// or "swept before this was kept", and the two are not distinguishable
-    /// from here - which is why the generator treats a level holding a drawer
-    /// with no recorded contents as suspect rather than as settled.
+    /// from here - which is why what a drawer holds is settled by a hand test
+    /// (apworld/alttl/data/proven-requirements.json), not by this list.
     /// </summary>
     [JsonPropertyName("drawers")] public List<DrawerInfo> Drawers { get; set; } = new();
 

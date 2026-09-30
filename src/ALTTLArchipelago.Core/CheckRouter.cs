@@ -85,6 +85,24 @@ public sealed class CheckRouter
     }
 
     /// <summary>
+    /// The stars of some slots, summed: the run's count for one section of the
+    /// level select, whose header the game would otherwise count from the
+    /// save (the plugin's SectionStars). The same sum as the cards' hover
+    /// stars and the goal, so the three cannot disagree.
+    /// </summary>
+    public (int Lit, int Total) StarsOf(IEnumerable<int> slots, Func<string, bool> isCollected)
+    {
+        int lit = 0, total = 0;
+        foreach (var slot in slots)
+        {
+            var (l, t) = SolutionStars(slot, isCollected);
+            lit += l;
+            total += t;
+        }
+        return (lit, total);
+    }
+
+    /// <summary>
     /// Is anything on this slot still uncollected?
     ///
     /// Lifted out of Track, which had it as a private helper, so the level

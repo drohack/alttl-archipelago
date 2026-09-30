@@ -255,7 +255,7 @@ public sealed class SlotData
     /// Only fields fixed at generation are used, so the value does not change
     /// as the run is played.
     ///
-    /// GOAL AND LEVELS_TO_STAR ARE DELIBERATELY NOT FED, and an audit flagged
+    /// GOAL AND ITS TARGET ARE DELIBERATELY NOT FED, and an audit flagged
     /// their absence, so the reasoning is here rather than waiting to be
     /// rediscovered. Two seeds with an identical draw and different goals do
     /// collide on one save file. That is close to harmless - the draw is the

@@ -139,6 +139,34 @@ public class EndingsTests
     }
 
     [Fact]
+    public void EveryIdThePlayReportedIsOneTheTableAnswersTo()
+    {
+        // An id the table does not list files "the next ending in order"
+        // (CheckRouter.ForEnding), which on a level with several endings is
+        // some other ending's check. Chocolate Bars reported its Height
+        // ending as both Height-(Draggables)_0 and _1 (alttl-events.log,
+        // 2026-09-27), and _1 filed "Design (Shuffle) 1". Forced and skipped
+        // completions ("_-1") file by design and are left out.
+        var table = Table();
+        var unknown = new List<string>();
+        foreach (var line in File.ReadLines(
+                     Path.Combine(AppContext.BaseDirectory, "solution-ids-observed.tsv")))
+        {
+            if (line.StartsWith("#") || line.StartsWith("levelIndex")) continue;
+            var cells = line.Split('\t');
+            var level = table.ByIndex(int.Parse(cells[0]));
+            if (level?.Endings == null) continue;
+            var known = level.Endings.SelectMany(Endings.Alternatives).ToHashSet(StringComparer.Ordinal);
+            foreach (var id in cells[4].Split('|', StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (!id.EndsWith("_-1", StringComparison.Ordinal) && !known.Contains(id))
+                    unknown.Add($"{level.LevelId}:{id}");
+            }
+        }
+        Assert.True(unknown.Count == 0, "ids the table does not answer to: " + string.Join(", ", unknown));
+    }
+
+    [Fact]
     public void MedicineCabinetIsCheckedPerColour()
     {
         var parts = LocationNames.ForInstance(Level("MedicineCabinet"), 1).Skip(1).ToList();

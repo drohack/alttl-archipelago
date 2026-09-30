@@ -57,6 +57,31 @@ public class StarGoalTests
     }
 
     [Fact]
+    public void ASectionCountsItsSlotsStarsAsTheCardsDo()
+    {
+        // The pack header's count, which the game took from the save: a
+        // section of finished generators read "0/15 (0%)" (2026-09-29).
+        var data = Seed();
+        var router = new CheckRouter(data);
+        var slots = Enumerable.Range(0, Math.Min(5, data.Slots.Count)).ToList();
+        var done = new HashSet<string>(slots.SelectMany(router.SolutionsOf), StringComparer.Ordinal);
+        var total = slots.Sum(s => router.SolutionsOf(s).Count);
+
+        Assert.Equal((total, total), router.StarsOf(slots, done.Contains));
+        Assert.Equal((0, total), router.StarsOf(slots, _ => false));
+        Assert.Equal((0, 0), router.StarsOf(Array.Empty<int>(), _ => true));
+    }
+
+    [Theory]
+    [InlineData(1, 15, "1/15 (7%)")]
+    [InlineData(1, 17, "1/17 (6%)")]
+    [InlineData(0, 5, "0/5 (0%)")]
+    [InlineData(15, 15, "15/15 (100%)")]
+    [InlineData(0, 0, "0/0 (0%)")]
+    public void TheCountReadsAsTheGameWritesIt(int lit, int total, string text)
+        => Assert.Equal(text, CompletionText.Of(lit, total));
+
+    [Fact]
     public void TheGoalCountsTheStarsTheCardsLight()
     {
         var data = Seed();
