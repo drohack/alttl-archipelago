@@ -9,8 +9,8 @@ using UnityEngine.UI;
 namespace ALTTLArchipelago;
 
 /// <summary>
-/// The beaten-or-starred counter above the track, and the star it borrows
-/// from the game's own art.
+/// The goal counter above the track - puzzles beaten, or stars collected -
+/// and the star it borrows from the game's own art.
 /// </summary>
 internal static partial class Badges
 {
@@ -25,10 +25,10 @@ internal static partial class Badges
     /// appeared in a toast that scrolls away, so the one screen where you
     /// decide what to play next never said how close you were.
     ///
-    /// READS THE GOAL, not the beaten count. A star seed wants starred
-    /// puzzles, and a counter that always said "beaten" would be quietly
-    /// measuring the wrong thing on half the seeds - Checks.GoalProgress
-    /// owns that choice so this does not have to.
+    /// READS THE GOAL, not the beaten count. A star seed wants stars, one per
+    /// solution found, and a counter that always said "beaten" would be
+    /// quietly measuring the wrong thing on half the seeds -
+    /// Checks.GoalProgress owns that choice so this does not have to.
     ///
     /// Everything structural here is copied from TickConnectedTag above and
     /// for the same reasons: the toast overlay as parent because the track
@@ -70,9 +70,9 @@ internal static partial class Badges
 
         // THE STAR GOAL GETS THE STAR, not the word. droha: "for star goal we
         // should have 0/50 [star icon]s instead of it saying stars or beaten."
-        // It is the game's own level-select star, the same one the card wears
-        // when a puzzle has nothing left on it, so the counter and the card
-        // are plainly talking about the same thing.
+        // It is the game's own level-select star, the one a card lights for
+        // each solution found, so the counter and the cards are plainly
+        // counting the same thing (CheckRouter.RunStars).
         //
         // The beaten goal keeps its word. There is no icon in the game for
         // "finished any one way" - the Icon- sprites are per-LEVEL card art,

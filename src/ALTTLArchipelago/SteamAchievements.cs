@@ -7,7 +7,7 @@ namespace ALTTLArchipelago;
 /// <summary>
 /// No Steam achievements and no Steam stats while this mod is loaded.
 ///
-/// droha, 2026-09-26: Kat got Steam achievements playing the run's credits,
+/// droha, 2026-09-26: the second player got Steam achievements playing the run's credits,
 /// and "we should never send any steam achievements when archipelago mod is
 /// enabled". A run replays the game out of order, with skips, admin sends and
 /// cat traps, so nothing it does says what the achievement claims.

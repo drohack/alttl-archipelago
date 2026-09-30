@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using ALTTLArchipelago.Core;
 using ALTTLModKit;
+using HarmonyLib;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -26,14 +27,14 @@ internal static partial class Badges
     /// Colour the overview strip along the bottom of the level select, so the
     /// shape of the run is readable without scrolling it.
     ///
-    /// Reached through Transform ONLY, deliberately. The typed route is
+    /// Reached through Transform, deliberately. The typed route is
     /// LevelsOverviewScrollbar.levelOverviewItems, which is index-parallel to
-    /// LevelSelect.Levels and therefore to Track._plan - but the element type
-    /// of that list could not be confirmed from the interop assembly, and a
-    /// guess that fails to compile costs more than this feature is worth. Every
-    /// API used here is UnityEngine.Transform, GameObject and Image, so the
-    /// worst case is that the search finds nothing and the strip stays as it
-    /// was.
+    /// LevelSelect.Levels and therefore to Track._plan - its element type
+    /// could not be confirmed when this was written. It is List&lt;Image&gt;,
+    /// and DrawShutSquaresLocked below uses it; this poll still searches, and
+    /// every API it uses is UnityEngine.Transform, GameObject and Image, so
+    /// the worst case is that the search finds nothing and the strip stays as
+    /// it was.
     ///
     /// A tinted CHILD rather than a tint on the dot itself: the game repaints
     /// these from UpdateOverviewAppearance whenever anything unlocks, and
@@ -166,6 +167,92 @@ internal static partial class Badges
         image.raycastTarget = false;
 
         go.transform.SetAsLastSibling();
+    }
+
+    /// <summary>Redraw a shut pack's squares locked after the game draws them (DrawShutSquaresLocked).</summary>
+    [HarmonyPatch(typeof(LevelsOverviewScrollbar), nameof(LevelsOverviewScrollbar.UpdateOverviewAppearance))]
+    [HarmonyPostfix]
+    private static void AfterUpdateOverviewAppearance(LevelsOverviewScrollbar __instance)
+        => DrawShutSquaresLocked(__instance, -1);
+
+    [HarmonyPatch(typeof(LevelsOverviewScrollbar), nameof(LevelsOverviewScrollbar.OverviewItemUnlock))]
+    [HarmonyPostfix]
+    private static void AfterOverviewItemUnlock(LevelsOverviewScrollbar __instance, int itemIndex)
+        => DrawShutSquaresLocked(__instance, itemIndex);
+
+    /// <summary>
+    /// A square in a pack not opened yet draws locked, whatever its level's
+    /// save row says: the strip's half of Track.DrawLockedIfShut.
+    ///
+    /// The game draws a square from the LEVEL's save row, and every copy of a
+    /// level in the run shares one. droha, 2026-09-28, on an unopened Pack 3
+    /// whose Batteries (Randomized) and Stamps (Randomized) squares were solid
+    /// because their copies in the opening are open. On that strip the six
+    /// solid squares in shut packs were exactly the copies of a level open in
+    /// the first 15 slots; the other 47 were outlines.
+    ///
+    /// Two methods set a square's sprite (the interop's xref cache):
+    /// UpdateOverviewAppearance, for every square, called by LayoutOverview,
+    /// RefreshOverviewItems and LevelsTrack.SetThemeColors; and
+    /// OverviewItemUnlock, for one. Each picks one of six variants with
+    /// Random.Range and sets it there and then, so a postfix sees the final
+    /// sprite. The two arrays are the same six chalk squares, outline and
+    /// filled (Default-Square-01..06 and Unlocked-Square-01..06 in level0), so
+    /// swapping index for index keeps the variant.
+    ///
+    /// An open pack's squares are left alone: the overlay covers them.
+    /// </summary>
+    private static void DrawShutSquaresLocked(LevelsOverviewScrollbar bar, int only)
+    {
+        try
+        {
+            var state = Track.State;
+            if (state == null || bar == null) return;
+
+            // The Archive and DLC menus each have a strip too.
+            var track = bar.levelsTrack;
+            if (track == null || !Track.IsCampaignSelect(track.levelSelect)) return;
+
+            var squares = bar.levelOverviewItems;
+            var locked = bar.defaultSprites;
+            var unlocked = bar.unlockedSprites;
+            if (squares == null || locked == null || unlocked == null) return;
+
+            // THE COLOUR TOO. With the sprite swapped, some squares still wore
+            // the game's highlightColor: cream outlines among white ones, 35
+            // of 65 shut squares, matching no field of their levels' save
+            // rows (measured 2026-09-28 on the run's seed served fresh over
+            // its finished save, every level there finished). The locked
+            // look is the outline in regularColor, as every locked square in
+            // 0.4.3's own screenshot is.
+            var plain = bar.regularColor;
+
+            var from = only < 0 ? 0 : only;
+            var to = only < 0 ? squares.Count : Math.Min(only + 1, squares.Count);
+            for (int i = from; i < to; i++)
+            {
+                var slot = Track.SlotAt(i);
+                if (slot < 0 || state.IsOpen(slot)) continue;
+
+                var square = squares[i];
+                var sprite = square == null ? null : square.sprite;
+                if (sprite == null) continue;
+
+                for (int k = 0; k < unlocked.Length && k < locked.Length; k++)
+                {
+                    var filled = unlocked[k];
+                    if (filled == null || filled.Pointer != sprite.Pointer) continue;
+                    square!.sprite = locked[k];
+                    break;
+                }
+                if (square!.color != plain) square.color = plain;
+            }
+        }
+        catch (Exception e)
+        {
+            // Cosmetic. The click guard is what keeps the pack shut.
+            Plugin.Logger.LogWarning($"badges: could not draw a shut square locked: {e.Message}");
+        }
     }
 
     /// <summary>

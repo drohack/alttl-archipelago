@@ -553,7 +553,7 @@ internal static class Navigation
         // visually better to know when you are blocked".
         if (Track.NextPlayableSlot() < 0)
         {
-            ShowTrackByWayOfTitle(which);
+            ShowTrackFromThePostLevel(which);
             return false;
         }
 
@@ -569,23 +569,117 @@ internal static class Navigation
     /// <summary>Seconds left to look for a title menu left up under the track, or 0.</summary>
     private static float _titleLeftCheck;
 
+    /// <summary>Seconds left for the post-level Level Select to press and land, or 0 when idle.</summary>
+    private static float _postLevelWait;
+    private static bool _postLevelPressed;
+    private static string _postLevelWhy = "";
+    private const float PostLevelPatience = 4f;
+
+    /// <summary>
+    /// Show the run's level select because nothing is playable, straight from
+    /// the post-level screen: the game's own post-level Level Select,
+    /// ReplayMenu.LevelSelect. droha, 2026-09-28: "it first goes to the main
+    /// menu? it should hopefully go directly to the level select".
+    ///
+    /// It makes the same call as the title's Levels button,
+    /// SetGameState&lt;Levels_GameState&gt; (the interop's xref cache: both
+    /// methods reach it through one generic instance), and it is how the
+    /// release harness leaves every beaten puzzle (DevTools replayselect).
+    /// GoToLevelSelectForLevel is NOT the same thing from here: it builds the
+    /// half-made menu BeforeReplayLevelSelect describes.
+    ///
+    /// Pressed from TickPostLevelSelect on a later frame, once nothing is
+    /// moving: the game's own method does nothing while the menu system is
+    /// transitioning, and this is asked from inside a press. If the game has
+    /// not left the post-level screen a few seconds later, the title route
+    /// takes over.
+    /// </summary>
+    private static void ShowTrackFromThePostLevel(string why)
+    {
+        Plugin.Logger.LogInfo(
+            $"navigation: nothing playable after {why} - the level select, by the post-level Level Select");
+        Toasts.Show("Nothing to play yet - waiting on items", Toasts.Notice);
+        _postLevelWhy = why;
+        _postLevelPressed = false;
+        _postLevelWait = PostLevelPatience;
+    }
+
+    private static void TickPostLevelSelect(float dt)
+    {
+        if (_postLevelWait <= 0f) return;
+        _postLevelWait -= dt;
+
+        try
+        {
+            var gm = GameManager.Instance;
+            var mm = gm?.menuManager;
+            var state = gm?.GameState == null ? "" : gm.GameState.GetIl2CppType().Name;
+
+            if (!_postLevelPressed)
+            {
+                if (gm == null || mm == null || gm.IsTransitioning || mm.IsTransitioning)
+                {
+                    if (_postLevelWait <= 0f) PostLevelFallback($"the game never settled ({state})");
+                    return;
+                }
+
+                var replay = FindEvenIfInactive<ReplayMenu>();
+                if (replay == null)
+                {
+                    PostLevelFallback("no ReplayMenu");
+                    return;
+                }
+
+                _postLevelPressed = true;
+                _postLevelWait = PostLevelPatience;
+                Plugin.Logger.LogInfo($"navigation: pressing the post-level Level Select (state: {state})");
+                replay.LevelSelect();
+                return;
+            }
+
+            // The run's track, or a DLC's own level select, which DlcGuard
+            // leaves for the track.
+            if (state == "Levels_GameState" || state == "DLCLevels_GameState")
+            {
+                _postLevelWait = 0f;
+                Plugin.Logger.LogInfo($"navigation: the level select is up ({state})");
+                return;
+            }
+
+            if (_postLevelWait <= 0f) PostLevelFallback($"the state is still {state}");
+        }
+        catch (Exception e)
+        {
+            // The game's own routine raising partway, as it does about one
+            // press in eight for a player too (release_e2e KNOWN_ERRORS). The
+            // state check on the next frames decides whether it got there.
+            Plugin.Logger.LogWarning($"navigation: the post-level Level Select raised: {e.Message}");
+            if (!_postLevelPressed) PostLevelFallback(e.Message);
+        }
+    }
+
+    private static void PostLevelFallback(string reason)
+    {
+        _postLevelWait = 0f;
+        Plugin.Logger.LogWarning($"navigation: the post-level Level Select did not open the track: {reason}");
+        ShowTrackByWayOfTitle(_postLevelWhy, toast: false);
+    }
+
     /// <summary>
     /// Show the run's level select because nothing is playable, by way of the
     /// title: the title first, then its own Levels button once it has
     /// settled - the order a player takes. From the Daily page a track opened
     /// directly drew with no Close button and its cards never launched
-    /// (DailyGuard, measured 2026-09-25); from the post-level screen
-    /// GoToLevelSelectForLevel builds the same half-made menu (see
-    /// BeforeReplayLevelSelect). Used by the daily guard, the next arrow and
-    /// the retry panel.
+    /// (DailyGuard, measured 2026-09-25), so the daily guard takes this route;
+    /// after a puzzle it is the fallback for ShowTrackFromThePostLevel.
     /// </summary>
-    internal static void ShowTrackByWayOfTitle(string why)
+    internal static void ShowTrackByWayOfTitle(string why, bool toast = true)
     {
         try
         {
             Plugin.Logger.LogInfo(
                 $"navigation: nothing playable after {why} - the track, by way of the title");
-            Toasts.Show("Nothing to play yet - waiting on items", Toasts.Notice);
+            if (toast) Toasts.Show("Nothing to play yet - waiting on items", Toasts.Notice);
             _trackAfterTitle = TrackAfterTitlePatience;
             _titleSettled = 0f;
             GameManager.Instance?.SetGameState<Title_GameState>(null, false);
@@ -603,13 +697,14 @@ internal static class Navigation
     ///
     /// TitleMenu.LevelSelect, not a forced Levels_GameState. The forced state
     /// is what the daily guard used, and in the 0.4.2 playtest it once left
-    /// the title's own menu drawn under the track (grayson log, after
+    /// the title's own menu drawn under the track (droha's log, after
     /// Post-It Notes #3; screenshot main-menu-level-select-bug). The title's
     /// own button tears its menu down the way a player's press does. The
     /// forced state stays as the fallback for a title with no TitleMenu.
     /// </summary>
     internal static void TickTrackAfterTitle(float dt)
     {
+        TickPostLevelSelect(dt);
         TickTitleLeftUnder(dt);
         if (_trackAfterTitle <= 0f) return;
         _trackAfterTitle -= dt;

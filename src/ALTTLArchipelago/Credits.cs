@@ -62,9 +62,9 @@ internal static class Credits
     }
 
     /// <summary>
-    /// How many more puzzles the goal still wants before the credits open.
+    /// How much more the goal still wants before the credits open.
     ///
-    /// Beaten or starred, depending on the seed - Checks.GoalProgress owns
+    /// Puzzles beaten or stars, depending on the seed - Checks.GoalProgress owns
     /// that choice so this does not have to. GoalLatch below takes the
     /// number and nothing else, so the two goals need no code of their own
     /// past this line.
@@ -117,12 +117,18 @@ internal static class Credits
             var left = Remaining(slot);
             var held = Inventory.HasCredits;
 
+            // The card first, so it can start by the time the toast says so:
+            // a location the server sent can meet the count with no menu
+            // opening to write the card's row (Track.OpenFinale).
+            if (left <= 0 && held) Track.OpenFinale();
+
             if (_latch.ShouldAnnounce(left, held))
             {
                 // The goal's own count and word, not always the beaten one.
                 var (done, _, unit) = Checks.GoalProgress(slot);
-                Plugin.Logger.LogInfo(
-                    $"credits: unlocked after {done} puzzles {unit}");
+                Plugin.Logger.LogInfo(unit == "stars"
+                    ? $"credits: unlocked after {done} stars"
+                    : $"credits: unlocked after {done} puzzles {unit}");
                 Toasts.Show("The credits are unlocked - play them to finish "
                             + "the run", Toasts.Notice);
             }

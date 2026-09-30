@@ -237,6 +237,7 @@ public sealed class Plugin : BasePlugin
                      ("title screen", typeof(TitleScreen)),
                      ("ability locks", typeof(AbilityLocks)),
                      ("card stars", typeof(CardStars)),
+                     ("overview strip", typeof(Badges)),
                      ("success stars", typeof(SuccessStars)),
                      ("retry panel", typeof(RetryPanel)),
                      ("steam achievements", typeof(SteamAchievements)),
@@ -1100,7 +1101,7 @@ public sealed class Plugin : BasePlugin
 
         Logger.LogInfo($"connected. {slot.Slots.Count} puzzles, "
             + $"{slot.PackTotal} packs of {slot.PackSize}, "
-            + $"{(slot.GoalIsStars ? "star" : "beat")} {slot.GoalTarget} "
+            + (slot.GoalIsStars ? $"collect {slot.GoalTarget} stars " : $"beat {slot.GoalTarget} ")
             + "to unlock the credits");
         Logger.LogInfo($"ability locks {(slot.AbilityLocks ? "on" : "off")}, "
             + $"{slot.Abilities.Count} abilities, starting with "
@@ -1204,7 +1205,6 @@ public sealed class Ticker : MonoBehaviour
         Step("traps", () => Traps.Tick(dt));
         Step("backgrounds", () => Backgrounds.Tick());
         Step("menu counts", () => Navigation.TickMenuCounts());
-        Step("credits card", () => Track.TickCreditsCard());
         Step("track scroll", () => Track.TickScroll(dt));
         Step("daily rescue", () => DailyGuard.TickRescue(dt));
         Step("track after title", () => Navigation.TickTrackAfterTitle(dt));

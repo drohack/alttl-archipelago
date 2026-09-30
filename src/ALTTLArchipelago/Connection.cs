@@ -505,7 +505,7 @@ internal sealed class Connection
 
     /// <summary>
     /// The server's own line for an item send that involves this slot - what
-    /// the text client prints, "Grayson sent Progressive Puzzle Pack to Kat
+    /// the text client prints, "PlayerA sent Progressive Puzzle Pack to PlayerB
     /// (Daggers - Draggables)" - painted part by part in the text client's
     /// colours. droha, 2026-09-25: a finished puzzle said only "Found X" and
     /// never who got the item; it should read like the text client.
@@ -547,8 +547,8 @@ internal sealed class Connection
     ///
     /// The checked list used to be read only at login (Plugin.OnReady), so a
     /// check made for this slot by anyone else mid-session never reached the
-    /// cards: droha, 2026-09-25, after /send_location for Kat, "two of the
-    /// levels on Kat's level select show as green square, when all solutions
+    /// cards: droha, 2026-09-25, after /send_location for the second player, "two of the
+    /// levels on [the second player]'s level select show as green square, when all solutions
     /// are found". The client library raises this for a room update, for the
     /// login's own list and for our own sends, so it may repeat names the
     /// ledger already holds; adopting them again changes nothing.

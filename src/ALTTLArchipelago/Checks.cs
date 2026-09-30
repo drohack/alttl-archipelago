@@ -83,15 +83,13 @@ internal static class Checks
         => _router?.BeatenCount(_ledger.IsCollected) ?? 0;
 
     /// <summary>
-    /// How many puzzles are STARRED - every check on them collected.
-    ///
-    /// The same predicate the level select uses to draw a star on a card, so
-    /// the goal and the card cannot disagree about which puzzles are done.
-    /// Counted from the ledger for the same reason as LevelsBeaten: part of
-    /// it rides on event locations the server never sends back.
+    /// How many stars the run has lit: solutions found, the stars the level
+    /// select counts (droha, 2026-09-28: "it's number of solutions"). The
+    /// cards' hover stars summed (CheckRouter.RunStars), so the counter and
+    /// the cards cannot disagree. From the ledger, like LevelsBeaten.
     /// </summary>
-    internal static int LevelsStarred
-        => _router?.StarredCount(_ledger.IsCollected) ?? 0;
+    internal static int StarsCollected
+        => _router?.RunStars(_ledger.IsCollected).Lit ?? 0;
 
     /// <summary>
     /// Progress toward whichever goal this seed set, as done and needed.
@@ -107,10 +105,16 @@ internal static class Checks
     {
         if (slot == null) return (0, 0, "beaten");
         return slot.GoalIsStars
-            ? (LevelsStarred, slot.LevelsToStar, "starred")
+            ? (StarsCollected, slot.StarsToCollect, "stars")
             : (LevelsBeaten, slot.LevelsToBeat, "beaten");
     }
     internal static bool Active => _router != null;
+
+    /// <summary>
+    /// Was this the slot Checks was begun with? The goal count read before
+    /// then is the last run's, or nobody's (Track.CreditsPlayable).
+    /// </summary>
+    internal static bool IsFor(SlotData slot) => _router != null && ReferenceEquals(_slot, slot);
 
     internal static void Begin(SlotData slot)
     {
@@ -251,7 +255,7 @@ internal static class Checks
     /// handing out an item the logic says is not earned. It will be filed on a
     /// later visit once the ability arrives.
     /// </summary>
-    private static void FileSolutionsAlreadyEarned(int slotIndex)
+    private static void FileSolutionsAlreadyEarned(int slotIndex, string when = "in an earlier session")
     {
         if (_router == null || _progress == null) return;
 
@@ -270,7 +274,7 @@ internal static class Checks
                                 : !_progress.IsReachable(location, packs, abilities)) continue;
 
             Plugin.Logger.LogInfo(
-                $"checks: {location} was earned in an earlier session but never "
+                $"checks: {location} was earned {when} but never "
                 + "filed - sending it now");
             Report(location);
         }
@@ -295,8 +299,17 @@ internal static class Checks
     ///
     /// Called on every slot entry. Seed skips ids it already holds, so the
     /// repeat is free.
+    ///
+    /// AND AT EVERY COMPLETION (OnLevelCompleteEarly), with `completing` the
+    /// id being finished, which is left to OnLevelComplete's own filing. The
+    /// Seeing Stars Boss's endings are its phases: DLC2Boss_Lock and
+    /// DLC2Boss_Compass reach the save as those phases are solved and only
+    /// DLC2Boss_Knife comes with the completion, so one playthrough found all
+    /// three and filed one until the next visit (droha's hand test,
+    /// 2026-09-28). Read here, they are filed before the retry panel is
+    /// decided.
     /// </summary>
-    private static void SeedSolutionsFromSave(int slotIndex)
+    private static void SeedSolutionsFromSave(int slotIndex, string? completing = null)
     {
         if (_slot == null || slotIndex < 0 || slotIndex >= _slot.Slots.Count) return;
 
@@ -314,23 +327,27 @@ internal static class Checks
             var ids = SolutionIdsFor(data.levelCompletionData, levelId)
                       ?? SolutionIdsFor(data.archiveCompletionData, levelId);
             if (ids == null) return;
+            if (completing != null) ids.RemoveAll(id => id == completing);
 
+            var during = completing != null;
             var added = _solutions.Seed(slotIndex, ids);
             if (added > 0)
             {
                 // "will file Solution 4" on a 3-solution level read like an
-                // off-by-one (Kat's log, Figurines); say when none are left.
+                // off-by-one (the second player's log, Figurines); say when none are left.
                 var have = _solutions.CountFor(slotIndex);
                 var total = _router == null ? 0 : _router.SolutionStars(slotIndex, _ => false).Item2;
                 var next = total > 0 && have >= total
                     ? $"all {total} are found"
                     : $"the next new arrangement will file Solution {have + 1}";
-                Plugin.Logger.LogInfo(
-                    $"checks: slot {slotIndex} already had {added} solution(s) "
-                    + $"found in an earlier session; {next}");
+                Plugin.Logger.LogInfo(during
+                    ? $"checks: slot {slotIndex}'s save recorded {added} more solution(s) "
+                      + $"during this play; {next}"
+                    : $"checks: slot {slotIndex} already had {added} solution(s) "
+                      + $"found in an earlier session; {next}");
             }
 
-            FileSolutionsAlreadyEarned(slotIndex);
+            FileSolutionsAlreadyEarned(slotIndex, during ? "earlier in this play" : "in an earlier session");
         }
         catch (Exception e)
         {
@@ -960,7 +977,41 @@ internal static class Checks
     {
         EnsureSlot();
         _pendingSlot = _currentSlot;
-        _pendingSolution = data?.SolutionId ?? "";
+        _pendingSolution = CanonicalEnding(data?.SolutionId ?? "");
+
+        // Endings the save recorded during play without a completion of their
+        // own - the Seeing Stars Boss's phases - filed now, before the retry
+        // panel counts the slot's stars. This completion is left to
+        // OnLevelComplete, so its filing and withholding are as they were.
+        SeedSolutionsFromSave(_currentSlot, data?.SolutionId ?? "");
+    }
+
+    /// <summary>
+    /// The id a completion files under: Books (Randomized)'s Draggables_0 read
+    /// against the two rules this seed chose, from the running level's own
+    /// randomizer (Core Endings.Canonical). The level is still loaded at both
+    /// completion events. Anything else, or a randomizer that cannot be read,
+    /// comes back as it was and the table's alternatives answer.
+    /// </summary>
+    private static string CanonicalEnding(string id)
+    {
+        if (_slot == null || _currentSlot < 0 || id != "Draggables_0") return id;
+        string? first = null, second = null;
+        try
+        {
+            var books = GameManager.Instance?.levelManager?.ActiveLevelInterface?.Level?
+                .m_randomizer?.TryCast<Books_LevelRandomizer>();
+            if (books != null)
+            {
+                first = books.firstSolution.ToString();
+                second = books.secondSolution.ToString();
+            }
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"checks: could not read the seed's rules: {e.Message}");
+        }
+        return Endings.Canonical(_slot.Slots[_currentSlot].LevelId, id, first, second);
     }
 
     /// <summary>
@@ -1020,20 +1071,31 @@ internal static class Checks
         if (_router == null || _currentSlot < 0) return;
 
         // A NEW ending only: a repeat of one already found files nothing.
-        var nth = _solutions.Record(_currentSlot, data?.SolutionId ?? "");
+        var reported = data?.SolutionId ?? "";
+        var ending = CanonicalEnding(reported);
+        var nth = _solutions.Record(_currentSlot, ending);
+        string? solution = null;
         if (nth > 0)
         {
             // Fixed endings (2026-09-28): the id names the location; a
             // generated puzzle files by the order found (CheckRouter.ForEnding).
-            var solution = _router.ForEnding(_currentSlot, data?.SolutionId ?? "",
-                                             _solutions.IdsFor(_currentSlot));
+            solution = _router.ForEnding(_currentSlot, ending, _solutions.IdsFor(_currentSlot));
             if (solution != null)
             {
-                var needs = _router.PartsForSolution(_currentSlot, data?.SolutionId);
+                var needs = _router.PartsForSolution(_currentSlot, ending);
                 if (EarnedSolution(solution, needs)) Report(solution);
                 else RunState.AddWithheld(solution, needs);
             }
         }
+
+        // Which ending the game named and where it went. Without this a
+        // player's log could not say why a second solution filed nothing:
+        // Books (Randomized), 2026-09-28, both arrangements done and one of
+        // its two Solution checks in (Endings.Canonical).
+        var named = reported == ending ? $"'{ending}'" : $"'{reported}' (as '{ending}')";
+        Plugin.Logger.LogInfo(nth > 0
+            ? $"checks: slot {_currentSlot} ended on {named} -> {solution ?? "no location"}"
+            : $"checks: slot {_currentSlot} ended on {named} again - nothing new");
 
         // A skip's completion is paid like any other here; the game's
         // LevelSkipped, which follows it, releases the rest of the slot (see

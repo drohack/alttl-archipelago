@@ -147,6 +147,15 @@ internal static class Track
     internal static void Begin(SlotData slot)
     {
         _state = new TrackState(slot);
+        _run = slot;
+        // FROM THE SLOT HANDED IN, not Plugin.Seed: Plugin sets its seed only
+        // after Begin returns, and Rebuild below already asks for the finale
+        // - so reading Plugin.Seed there found no seed and cached the base
+        // game's credits on a DLC2 seed (measured 2026-09-28, "the run ends
+        // on Credits (level 84)").
+        _finale = slot.Credits ?? "";
+        _creditsSearched = false;
+        _credits = null;
         _order.Clear();
         foreach (var entry in slot.Slots) _order.Add(entry.LevelIndex);
 
@@ -216,10 +225,11 @@ internal static class Track
         Navigation.Reset();
 
         _state = null;
+        _run = null;
         _creditsSearched = false;
         _credits = null;
+        _finale = "";
         _chapters = null;
-        _creditsShown = false;
         _paintedBackgrounds = -1;
         // Put back whatever the run painted, so an ordinary game after a
         // disconnect draws the levels and the pause screen in their own colours.
@@ -229,29 +239,74 @@ internal static class Track
         Rebuild();
     }
 
+    /// <summary>The seed the track was begun with, for CreditsPlayable.</summary>
+    private static SlotData? _run;
+
     /// <summary>
-    /// Whether the Credits item was held when the track was last built.
+    /// Can the credits card start: the Credits item held and the goal met?
     ///
-    /// The Credits item can arrive at any moment, and nothing else would
-    /// trigger a rebuild - so the card kept its locked drawing until something
-    /// else happened to force one, which in play meant restarting the game.
+    /// Asked only once this run's own checks are loaded. Begin runs ahead of
+    /// Plugin, Inventory and Checks taking the new slot (Plugin.OnReady and
+    /// StartOffline), and the goal read there came from no seed at all -
+    /// Remaining(null) is 0, so the finale's row was written the moment the
+    /// item was held, puzzles still owed - or, on a takeover, from the
+    /// offline run's own count.
     /// </summary>
-    private static bool _creditsShown;
+    private static bool CreditsPlayable()
+        => _run != null && Checks.IsFor(_run)
+           && Inventory.HasCredits && Credits.Remaining(_run) <= 0;
 
-    internal static void TickCreditsCard()
+    /// <summary>
+    /// The credits are playable: give their card its save row and redraw the
+    /// track, unless the row is there already. Credits.Tick asks on every poll
+    /// that finds the goal met and the item held.
+    ///
+    /// The row is what lets the card start, and only ApplyUnlocks writes it -
+    /// on a pack, a menu opening and the run's start. A location the server
+    /// sent, or a collect, meets the count with none of those, and the card
+    /// then selected without starting until the menu was reopened (the 0.4.3
+    /// run). The Credits item arriving with the count already met was the
+    /// same: the redraw it got never wrote the row.
+    /// </summary>
+    internal static void OpenFinale()
     {
-        if (_state == null) return;
-        if (Inventory.HasCredits == _creditsShown) return;
+        if (_state == null || !CreditsPlayable() || FinaleRowWritten()) return;
 
-        _creditsShown = Inventory.HasCredits;
-        Plugin.Logger.LogInfo("track: the Credits item arrived; redrawing the credits card");
+        // Nothing written means the write failed; the next poll tries again,
+        // and there is no redraw to reset the player's scroll meanwhile.
+        if (ApplyUnlocks() == 0) return;
+        Plugin.Logger.LogInfo("track: the credits are playable - their card is open");
         Rebuild();
+    }
+
+    /// <summary>Does the finale's card have its save row, unlocked? True when there is no finale to open.</summary>
+    private static bool FinaleRowWritten()
+    {
+        try
+        {
+            var manager = GameManager.Instance?.levelManager;
+            var finale = manager == null ? null : CreditsLevel(manager);
+            if (finale == null) return true;
+
+            var data = SaveSystem.data;
+            if (data == null || !data.LevelHasCompletionData(finale)) return false;
+            var row = data.GetLevelCompletionData(finale);
+            return row != null && row.unlockedOnLevelSelect;
+        }
+        catch
+        {
+            // Asked every two seconds: a read that throws must neither spam
+            // the log nor redraw the track each time. The next menu opening
+            // runs ApplyUnlocks anyway.
+            return true;
+        }
     }
 
     /// <summary>
     /// The next PLAYABLE slot after the one the player is in, in track order,
     /// wrapping once. -1 when nothing is playable: the caller shows the level
-    /// select instead (Navigation.ShowTrackByWayOfTitle).
+    /// select instead (Navigation.ShowTrackFromThePostLevel after a puzzle,
+    /// ShowTrackByWayOfTitle from the Daily page).
     ///
     /// Forward from where the player IS: searching from zero every time sent
     /// "next" back to the start of the run after a puzzle near the end.
@@ -511,21 +566,22 @@ internal static class Track
     }
 
     /// <summary>
-    /// Give every open slot a save entry, which IS what unlocked means.
+    /// Give every open slot a save entry, which IS what unlocked means. Returns
+    /// how many entries it created or flagged.
     ///
     /// Only ever adds. Removing entries would be how a pack "un-reveals" a
     /// puzzle, and nothing should ever do that - progress only moves forward,
     /// and a player mid-puzzle when a resync arrives should not lose the card
     /// out from under them.
     /// </summary>
-    private static void ApplyUnlocks()
+    private static int ApplyUnlocks()
     {
-        if (_state == null) return;
+        if (_state == null) return 0;
 
         try
         {
             var manager = GameManager.Instance?.levelManager;
-            if (manager == null) return;
+            if (manager == null) return 0;
 
             int created = 0, flagged = 0;
 
@@ -566,8 +622,9 @@ internal static class Track
             // puzzles are still owed the card SHOULD look locked, because it
             // is - IsRefused turns the click away and says how many are left.
             // Unlocking it early would make the drawing lie in the other
-            // direction.
-            if (Inventory.HasCredits && Credits.Remaining(Plugin.Seed) <= 0)
+            // direction. CreditsPlayable says why it reads this run's own
+            // count; OpenFinale covers the count met with no menu opening.
+            if (CreditsPlayable())
             {
                 var finale = CreditsLevel(manager);
                 if (finale != null)
@@ -637,10 +694,12 @@ internal static class Track
                 Plugin.Logger.LogInfo(
                     $"track: revealed {created} puzzle(s), unlocked {flagged}");
             }
+            return created + flagged;
         }
         catch (Exception e)
         {
             Plugin.Logger.LogError($"track: could not apply unlocks: {e.Message}");
+            return 0;
         }
     }
 
@@ -846,10 +905,11 @@ internal static class Track
             // On the track from the start, drawn locked (the game's outline)
             // until it is playable. It used to appear only once the Credits
             // item arrived, and then already filled in: droha, 2026-09-26,
-            // "the credits page was not available on Kat's level select page
+            // "the credits page was not available on [the second player]'s level select page
             // till its item was found ... It should always show the outline
             // version." The drawing follows playability (the completion row
-            // below, in SetLevels' first loop); the click follows IsRefused.
+            // ApplyUnlocks writes, and OpenFinale when nothing else runs it);
+            // the click follows IsRefused.
             var credits = CreditsLevel(manager);
             if (credits != null)
             {
@@ -1104,6 +1164,9 @@ internal static class Track
     private static LevelInterface? _credits;
     private static bool _creditsSearched;
 
+    /// <summary>The finale the running seed names (SlotData.Credits), set in Begin.</summary>
+    private static string _finale = "";
+
     private static List<LevelInterface>? _chapters;
 
     /// <summary>
@@ -1177,31 +1240,53 @@ internal static class Track
     /// survives the game adding content ahead of it.
     ///
     /// THERE ARE THREE OF THEM once the DLCs are installed - the base game's
-    /// at index 84, DLC1's at 1129 and DLC2's at 1233 - and the run wants the
-    /// base game's, because that is the card the track ends on. Taking the
-    /// first match used to be enough only because 84 happens to come first in
-    /// the array; the DLC ones are skipped explicitly now, so it does not
-    /// depend on that ordering holding.
+    /// at index 84, DLC1's at 1129 and DLC2's at 1233. The run ends on the one
+    /// its seed names (slot_data "credits"): the generator picks among the base
+    /// game's and those of the DLCs the seed is built for (droha, 2026-09-28:
+    /// "if they are enabled it should randomize which credits is played at the
+    /// end"). A seed without the key, or naming one that is not installed,
+    /// ends on the base game's - found by skipping the DLC ones rather than by
+    /// 84 happening to come first in the array.
     /// </summary>
     private static LevelInterface? CreditsLevel(LevelManager manager)
     {
         if (_creditsSearched) return _credits;
         _creditsSearched = true;
 
+        var wanted = _finale;
         try
         {
+            // BY ID, not by walking LevelInterfaces: that list is the base
+            // game's, and a DLC's credits are not in it (measured 2026-09-28:
+            // a DLC2 seed found "DLC2 Credits ... not here").
+            if (wanted.Length > 0)
+            {
+                LevelInterface? named = null;
+                try { named = manager.GetLevelInterface(wanted); } catch { }
+                if (named != null && named.IsCredits) _credits = named;
+            }
+
+            LevelInterface? home = null;
             var all = manager.LevelInterfaces;
-            for (int i = 0; i < (all == null ? 0 : all.Count); i++)
+            for (int i = 0; _credits == null && i < (all == null ? 0 : all.Count); i++)
             {
                 var level = all![i];
                 if (level == null || !level.IsCredits) continue;
-                // A DLC's own credits, which is not the run's ending.
-                if (IsDlcLevel(level)) continue;
-                _credits = level;
-                break;
+                if (home == null && !IsDlcLevel(level)) home = level;
+            }
+
+            if (_credits == null)
+            {
+                if (wanted.Length > 0 && home != null && home.LevelId != wanted)
+                {
+                    Plugin.Logger.LogWarning(
+                        $"track: the seed ends on {wanted}, which is not here - the base game's credits instead");
+                }
+                _credits = home;
             }
 
             if (_credits == null) Plugin.Logger.LogWarning("track: no credits level found");
+            else Plugin.Logger.LogInfo($"track: the run ends on {_credits.LevelId} (level {_credits.LevelIndex})");
         }
         catch (Exception e)
         {

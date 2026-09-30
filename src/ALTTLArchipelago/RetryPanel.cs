@@ -1,4 +1,5 @@
 using System;
+using ALTTLArchipelago.Core;
 using HarmonyLib;
 
 namespace ALTTLArchipelago;
@@ -26,12 +27,15 @@ namespace ALTTLArchipelago;
 /// two DLC bosses - take the panel's route too: Tupperware Tower left the
 /// next puzzle with no cursor in the 0.4.2 playtest (see CursorGuard).
 ///
-/// A GENERATOR KEEPS THE GAME'S STRAIGHT-ON ROUTE when it has nothing left.
-/// That route goes by the Daily page, which DailyGuard turns into the next
-/// slot (the 0.4.2 playtest: "daily guard: opening slot 1 instead"). Through
-/// the panel's NextLevel the game first relaunched the finished generator
-/// and only then reached the Daily page (measured 2026-09-27, Stamps
-/// (Randomized)) - the same end by a longer road.
+/// A GENERATOR KEEPS THE GAME'S STRAIGHT-ON ROUTE when it has nothing left
+/// and another slot is playable. That route goes by the Daily page, which
+/// DailyGuard turns into the next slot (the 0.4.2 playtest: "daily guard:
+/// opening slot 1 instead"). Through the panel's NextLevel the game first
+/// relaunched the finished generator and only then reached the Daily page
+/// (measured 2026-09-27, Stamps (Randomized)) - the same end by a longer
+/// road. With nothing else playable it takes the panel's route after all:
+/// Navigation turns that press into the level select, where the Daily page
+/// would have gone by the title.
 ///
 /// WITH NOTHING LEFT TO FIND, THE PANEL IS NEVER SHOWN. It used to pop up and
 /// be pressed once it settled: the trace (2026-09-27, Parts Organizer) shows
@@ -84,28 +88,35 @@ internal static class RetryPanel
             if (offer == null) return;
 
             var own = __result;
-            if (offer.Value)
-            {
-                __result = true;
-                Log($"retry panel: slot {Checks.CurrentSlot}, {lit} of {total} solution(s) "
-                    + $"in after this completion -> panel (the level's own: {(own ? "panel" : "next")})");
-                return;
-            }
+            var slot = Checks.CurrentSlot;
 
-            if (!own && IsGenerator(Checks.CurrentSlot))
+            // A generator goes straight on only while another slot is
+            // playable: that route ends on the Daily page, and from there the
+            // track opens whole only by way of the title (DailyGuard.Rescue).
+            // The panel's route reaches the level select directly
+            // (Navigation.ShowTrackFromThePostLevel).
+            var generator = !own && IsGenerator(slot);
+            switch (AfterPuzzleRoute.For(offer.Value, generator, () => Track.AnyPlayableBesides(slot)))
             {
-                Log($"retry panel: slot {Checks.CurrentSlot}, {lit} of {total} solution(s) "
-                    + "in after this completion -> next (a generator, straight on)");
-                return;
+                case AfterPuzzle.Panel:
+                    __result = true;
+                    Log($"retry panel: slot {slot}, {lit} of {total} solution(s) "
+                        + $"in after this completion -> panel (the level's own: {(own ? "panel" : "next")})");
+                    return;
+                case AfterPuzzle.StraightOn:
+                    Log($"retry panel: slot {slot}, {lit} of {total} solution(s) "
+                        + "in after this completion -> next (a generator, straight on)");
+                    return;
             }
 
             __result = true;                             // the panel's route, unseen
 
             if (UnityEngine.Time.unscaledTime < _quietUntil) return;
-            Log($"retry panel: slot {Checks.CurrentSlot}, {lit} of {total} solution(s) "
+            Log($"retry panel: slot {slot}, {lit} of {total} solution(s) "
                 + $"in after this completion -> next, without showing the panel "
-                + $"(the level's own: {(own ? "panel" : "next")})");
-            _continueSlot = Checks.CurrentSlot;
+                + (generator ? "(a generator, and nothing else is playable)"
+                             : $"(the level's own: {(own ? "panel" : "next")})"));
+            _continueSlot = slot;
             _waited = 0f;
             _panelUp = -1f;
             _refused = null;

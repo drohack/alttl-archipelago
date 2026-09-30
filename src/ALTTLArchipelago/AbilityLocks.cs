@@ -416,7 +416,10 @@ internal static class AbilityLocks
                 var controller = controllers[i];
                 if (controller == null) continue;
 
-                var cls = ClassOf(controller);
+                // By class, bar the one-level overrides: Books (Randomized)'s
+                // symmetric Draggables locks as its Shuffle (ObjectLock.LockedAs).
+                // Collect still finds the controller's lists by its real class.
+                var cls = ObjectLock.LockClass(levelId, controller.gameObject?.name ?? "", ClassOf(controller));
                 var isLocked = state.IsClassLocked(cls);
 
                 if (isLocked)
