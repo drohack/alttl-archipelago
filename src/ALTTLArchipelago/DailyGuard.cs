@@ -451,7 +451,11 @@ internal static class DailyGuard
         {
             try
             {
-                var type = AccessTools.TypeByName(typeName);
+                // Looked up in the game's own assembly, not AccessTools.TypeByName:
+                // that scans every loaded assembly, and BepInEx be.755's generated
+                // UnityEngine.CoreModule holds three types that will not load, so
+                // the scan logged a HarmonyX warning on every start (2026-09-30).
+                var type = typeof(GameManager).Assembly.GetType(typeName);
                 var method = type == null ? null : AccessTools.Method(type, methodName);
                 if (method == null)
                 {
