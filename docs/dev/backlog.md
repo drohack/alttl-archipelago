@@ -4,7 +4,7 @@ What has been asked for and not yet done, each with what was asked and what is
 already known, so picking one up does not begin with rediscovery. New items go
 here rather than in a message.
 
-## From the 0.4.3 run (droha and a second player, 2026-09-28)
+## From the 0.4.3 run (droha and a second player, 2026-09-28), in 0.4.4
 
 Reported live. Seed `AP_76116543768317964936`, generated locally from two
 yamls that differ only in the name and the two DLC switches (off for droha,
@@ -19,7 +19,8 @@ login timeout. No server log (archipelago.gg shows it to the room owner
 only).
 
 All done and checked in game, the last of them (1, 10, 11, 12, and 14, a
-question droha asked) on 2026-09-29, droha's hand tests included.
+question droha asked) on 2026-09-29, droha's hand tests included. Each
+is in the CHANGELOG's 0.4.4 section, with how it was checked.
 
 1. **Filled squares on the overview strip in packs not opened** (droha: "we
    fixed their big counterpart in the level select screen, but not the
