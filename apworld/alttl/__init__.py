@@ -68,7 +68,7 @@ class ALTTLWorld(World):
     event_names_in_use: List[str]
     requirements: Dict[str, dict]
     unproven_locations: FrozenSet[str]
-    #: This seed's achievement checks (`achievements`); never progression.
+    #: This seed's achievement checks (`achievements`).
     achievement_locations: FrozenSet[str]
     #: The run as the FIRST draw left it, and how many draws it took. decide()
     #: redraws when a draw cannot carry the whole unproven guard; the golden
@@ -78,12 +78,22 @@ class ALTTLWorld(World):
     live_abilities: List[str]
     starting_abilities: List[str]
     levels_to_beat: int
-    levels_to_star: int
+    #: Solutions this run holds, and how many the Collect Stars goal asks for.
+    stars_total: int
+    stars_to_collect: int
+    #: The events beside each solution that count stars; empty unless the
+    #: goal is Collect Stars.
+    star_event_names: List[str]
     goal_is_stars: bool
     pack_total: int
+    #: The finale this run ends on, a level id from pool.FINALES.
+    credits_level: str
 
     def generate_early(self) -> None:
         pool.decide(self)
+
+    def write_spoiler_header(self, spoiler_handle) -> None:
+        spoiler_handle.write(f"Finale:                          {self.credits_level}\n")
 
     def create_regions(self) -> None:
         regions.create_regions(self)

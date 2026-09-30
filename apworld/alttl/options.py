@@ -23,7 +23,7 @@ class PuzzleCount(Range):
     """How many puzzles the run contains, 10 to 130.
 
     The run has no chapters: its puzzles are drawn from the sources under
-    "What Goes In The Run" and opened pack by pack. The smallest run, 10, is
+    "Where The Puzzles Come From" and opened pack by pack. The smallest run, 10, is
     two full packs of 5. The largest, 130, is where the level select's
     overview strip reaches the smallest it will draw; the game's own campaign
     is 79.
@@ -226,24 +226,28 @@ class Achievements(Toggle):
     leaves, spill) stay - and neither is Keep Away, which never fired in a
     run.
 
-    An achievement check needs every mechanic its puzzle uses, and holds
-    nothing your run depends on, so a hard one never blocks you. It is extra:
-    a puzzle's star and its Skip leave it out. Steam achievements themselves
-    stay off while the mod is loaded.
+    An achievement check is a check like any other: it can hold anything,
+    including what your run needs, and it needs every mechanic its puzzle
+    uses. A puzzle's star waits for its achievements, and a Skip sends them,
+    so a hard one never has to block you. Steam achievements themselves stay
+    off while the mod is loaded.
     """
     display_name = "Achievements"
 
 
 class GeneratorRepeatLimit(Range):
-    """Most times any one generated puzzle may appear. 0 uses the maximum.
+    """How many times one generated puzzle may appear in a run, 1 to 8.
 
-    Each appearance is a genuinely different layout, but the card art is the
-    same, so a low limit trades variety of picture for variety of source.
+    Only the 16 generated puzzles can repeat, each copy a new layout
+    ("Pencils (Randomized)", "Pencils (Randomized) #2", ...); every other
+    puzzle appears at most once. The card art is the same on every copy, so
+    a low limit trades variety of picture for variety of source. 0, from
+    older yamls, is read as 8.
     """
     display_name = "Generated Puzzle Repeat Limit"
     range_start = 0
     range_end = data.MAX_GENERATOR_INSTANCES
-    default = 0
+    default = data.MAX_GENERATOR_INSTANCES
 
 
 class ArchivePacks(OptionSet):
@@ -303,35 +307,35 @@ class Goal(Choice):
     Beat Levels counts a puzzle once you have finished it any one way -
     every solution the level has, or a Skip.
 
-    Star Levels counts a puzzle only when EVERY check on it is done: every
-    solution and every part. It is the same star the level select draws on a
-    card with nothing left to do, so you can see your progress toward it
-    while you play.
+    Collect Stars counts stars: one for every solution found, the stars the
+    level select counts in each pack's header. A puzzle with three solutions
+    holds three.
 
-    A Skip fills in every check on the puzzle it clears, so a skipped puzzle
-    is starred as well as beaten. That is deliberate and matches how skips
-    already count toward beating - but it does mean skip_count is as much a
-    shortcut to a star goal as to a beaten one.
+    A Skip fills in every check on the puzzle it clears, its solutions
+    included, so a skipped puzzle's stars count too. That matches how skips
+    count toward beating - but it does mean skip_count is as much a shortcut
+    to a star goal as to a beaten one.
     """
     display_name = "Goal"
     option_beat_levels = 0
-    option_star_levels = 1
+    option_collect_stars = 1
+    alias_star_levels = 1      # the 0.4.3 name
     default = 0
 
 
-class LevelsToStar(Range):
-    """How many puzzles to star before the credits unlock, 1 to 130.
+class StarsToCollect(Range):
+    """How many stars to collect before the credits unlock, 1 to 300: one
+    star per solution found.
 
-    Only used when the goal is Star Levels; ignored otherwise. Separate from
-    Puzzles To Beat because starring is a great deal more work than beating,
-    so the number that makes a good run is a different number.
-
-    Clamped to the puzzle count, the same as Puzzles To Beat.
+    Only used when the goal is Collect Stars; ignored otherwise. A default
+    run of 70 puzzles holds about 91 stars (84 to 100, measured over 200
+    seeds), so the default of 65 is what beating 50 of them is worth. The
+    most any run can hold is 279. Clamped to the stars the run holds.
     """
-    display_name = "Puzzles To Star"
+    display_name = "Stars To Collect"
     range_start = 1
-    range_end = 130
-    default = 20      # half of the beaten default; starring is the harder ask
+    range_end = 300
+    default = 65      # 50/70 of the 91.5 stars a default run holds
 
 
 class LevelsToBeat(Range):
@@ -343,7 +347,7 @@ class LevelsToBeat(Range):
     display_name = "Puzzles To Beat"
     range_start = 1
     range_end = 130
-    default = 40      # of the default 70-puzzle run; droha's call, not a ratio
+    default = 50      # of the default 70-puzzle run; droha's call, not a ratio
 
 
 class CatTrapChance(Range):
@@ -408,8 +412,8 @@ class SkipCount(Range):
     """How many Skip items are shuffled in, 0 to 50.
 
     A Skip clears a puzzle you are stuck on outright: every solution, every
-    controller group and the "beaten" credit are all sent, so a skipped puzzle
-    is finished and its card completes.
+    controller group, its achievements and the "beaten" credit are all sent,
+    so a skipped puzzle is finished and its card completes.
 
     Skipped puzzles DO count towards the credits requirement, so a large number
     of Skips is a shortcut to the goal. That is the trade for a skipped card
@@ -443,7 +447,7 @@ class ALTTLOptions(PerGameCommonOptions):
     guaranteed_open_slots: GuaranteedOpenSlots
     goal: Goal
     levels_to_beat: LevelsToBeat
-    levels_to_star: LevelsToStar
+    stars_to_collect: StarsToCollect
     cat_trap_chance: CatTrapChance
     background_trap_chance: BackgroundTrapChance
     skip_count: SkipCount
@@ -451,36 +455,38 @@ class ALTTLOptions(PerGameCommonOptions):
 
 
 option_groups = [
-    OptionGroup("Goal", [
-        Goal,
-        LevelsToBeat,
-        LevelsToStar,
+    OptionGroup("The Run", [
         PuzzleCount,
         PackSize,
+        Goal,
+        LevelsToBeat,
+        StarsToCollect,
     ]),
-    OptionGroup("What Goes In The Run", [
+    OptionGroup("DLC", [
+        CupboardsAndDrawers,
+        SeeingStars,
+    ], start_collapsed=True),
+    OptionGroup("Where The Puzzles Come From", [
         GeneratorWeight,
         ArchiveWeight,
         BaseWeight,
         CupboardsWeight,
         StarsWeight,
+        ArchivePacks,
         MechanicCoverage,
         GeneratorRepeatLimit,
-        Achievements,
-        ArchivePacks,
-        CupboardsAndDrawers,
-        SeeingStars,
     ], start_collapsed=True),
     OptionGroup("Abilities", [
         AbilityLocks,
         StartingAbilities,
         GuaranteedOpenSlots,
     ], start_collapsed=True),
-    OptionGroup("Items", [
+    OptionGroup("Items And Checks", [
         SkipCount,
         HintCoverage,
         CatTrapChance,
         BackgroundTrapChance,
+        Achievements,
     ], start_collapsed=True),
 ]
 

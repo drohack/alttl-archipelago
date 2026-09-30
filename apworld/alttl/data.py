@@ -83,7 +83,7 @@ MAX_GENERATOR_INSTANCES: int = _NAMES_RAW["maxGeneratorInstances"]
 
 #: The game marks these randomizable, and they are the only generator-source
 #: levels with no randomizer hints, but the seed does not change their layout:
-#: droha, 2026-09-25, "dup levels that are exactly the same", though Kat's log
+#: droha, 2026-09-25, "dup levels that are exactly the same", though the second player's log
 #: shows each copy launched with its own seed. Still seeded, drawn once.
 #: Measured 2026-09-26 over all 20 randomizable levels, booted with seeds
 #: 111111 and 222222: these three kept every object in place and Figurines

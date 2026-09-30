@@ -46,11 +46,12 @@ def create_regions(world) -> None:
     # accessibility: full, and stays worth checking - it just cannot be the
     # thing that strands a player. See rules.unproven_locations for why silence
     # about a requirement is not the same as confidence in it.
+    # Achievement checks are not among them: under `achievements` they are
+    # checks like any other (droha, 2026-09-29), and a Skip sends them.
     unproven = getattr(world, "unproven_locations", frozenset())
-    awarded = getattr(world, "achievement_locations", frozenset())
     for name in world.location_names_in_use:
         location = world.create_location(name, LOCATION_NAME_TO_ID[name], tidy)
-        if name in unproven or name in awarded:
+        if name in unproven:
             location.item_rule = _no_progression
         tidy.locations.append(location)
 
@@ -60,4 +61,10 @@ def create_regions(world) -> None:
     for name in world.event_names_in_use:
         loc = world.create_location(name, None, tidy)
         loc.place_locked_item(world.create_event(items.BEATEN_TOKEN))
+        tidy.locations.append(loc)
+
+    # Under Collect Stars, one more per solution, granting a Star token.
+    for name in getattr(world, "star_event_names", []):
+        loc = world.create_location(name, None, tidy)
+        loc.place_locked_item(world.create_event(items.STAR_TOKEN))
         tidy.locations.append(loc)

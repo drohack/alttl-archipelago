@@ -68,8 +68,9 @@ def requirements(plan: List[slots.Slot], pack_size: int,
     `achievements`: include the achievement checks, each needing its level's
     abilities BEFORE bypasses (level.abilities) - the widest set, since what
     an achievement touches is not known object by object. That can be more
-    than the Beaten event asks, which is why the mod keeps achievements out of
-    the star (CheckRouter.ForAchievements).
+    than the Beaten event asks; the star goal counts solutions, so a card's
+    star, which waits for its achievements (CheckRouter.ForSlot), is not in
+    the logic.
     """
     out: Dict[str, dict] = {}
     boundaries = items.pack_boundaries(len(plan), pack_size)
@@ -194,30 +195,28 @@ def set_all_rules(world) -> None:
         set_rule(location, lambda state, r=req: satisfied(
             state, r["packs"], r["abilities"]))
 
-    # The credits need their own item AND enough puzzles finished. The count
-    # is carried by event locations rather than pool items, so it costs no
-    # item slots and structurally forces the fill to spread progression
-    # across the run instead of letting it bunch at the start.
+    # The credits need their own item AND enough done. The count is carried
+    # by event locations rather than pool items, so it costs no item slots
+    # and structurally forces the fill to spread progression across the run
+    # instead of letting it bunch at the start.
     #
-    # THE STAR GOAL USES THE SAME TOKEN, and that is not a shortcut - it is
-    # the correct rule. Starring a puzzle means collecting every location on
-    # it, and the Beaten event's own requirement is already the STRICTEST of
-    # them: rules.py above gives Beaten the union of the level's abilities,
-    # every solution location the same union, and every part a subset of it
-    # (pinned by test_tables.NoPartNeedsMoreThanItsLevel). All locations on a
-    # slot share one packs value. So a state that can reach N Beaten events
-    # can reach every location on those N slots, and "N starred" is provably
-    # achievable exactly when "N beaten" is.
-    #
-    # Which means no second event item, no second event location, and no
-    # shift in location ids for a goal that is materially harder to play.
-    # The difference between the two goals is entirely how much work the
-    # PLAYER does, not what the generator must prove.
-    needed = world.levels_to_star if world.goal_is_stars else world.levels_to_beat
+    # THE STAR GOAL COUNTS STARS - solutions found, as the level select counts
+    # them (droha, 2026-09-28: "it's number of solutions"). Each solution has
+    # a Star event beside it carrying that solution's own rule, so N stars
+    # are provably reachable exactly when N solutions are. Events have no id,
+    # so no location id moves; they exist only under that goal.
+    if world.goal_is_stars:
+        for slot in world.plan:
+            for solution in locations.ending_names_for(slot.level, slot.instance):
+                req = reqs[solution]
+                set_rule(world.get_location(locations.star_event_name(solution)),
+                         lambda state, r=req: satisfied(state, r["packs"], r["abilities"]))
+    needed = world.stars_to_collect if world.goal_is_stars else world.levels_to_beat
+    token = items.STAR_TOKEN if world.goal_is_stars else items.BEATEN_TOKEN
 
-    def can_finish(state, n=needed) -> bool:
+    def can_finish(state, n=needed, t=token) -> bool:
         return (state.has(items.CREDITS_ITEM, player, 1)
-                and state.has(items.BEATEN_TOKEN, player, n))
+                and state.has(t, player, n))
 
     set_rule(world.get_location(data.CREDITS), can_finish)
 

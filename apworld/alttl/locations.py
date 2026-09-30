@@ -48,6 +48,12 @@ def beaten_name(level: data.Level, instance: int) -> str:
     return f"{instance_tag(level, instance)} - {BEATEN}"
 
 
+def star_event_name(solution: str) -> str:
+    """An event location beside one solution, address None, granting one
+    Star token; only made under the Collect Stars goal."""
+    return f"{solution} (Star)"
+
+
 def achievement_name(level: data.Level, instance: int, display: str) -> str:
     """One of the game's achievements as a check, when the yaml asks for them.
     The kind is in the name: an achievement's own ("Show Off") could pass for

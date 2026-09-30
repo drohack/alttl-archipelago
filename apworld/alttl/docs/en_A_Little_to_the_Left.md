@@ -81,13 +81,14 @@ Three kinds, and a fourth if you ask for it:
   The game's puzzle achievements - Exacting Eggs on Eggs, Draw Me A Rainbow
   on Junk Drawer, seven in the base game and seventeen with both DLCs - are
   checks when their puzzle is in the run, earned the way the game awards
-  them. They never hold anything your run depends on, and a puzzle's star
-  and its Skip leave them out. Steam achievements stay off either way.
+  them. They are checks like any other: they can hold anything your run
+  needs, a puzzle's star waits for them, and a Skip sends them. Steam
+  achievements stay off either way.
 
 A puzzle you clear with a Skip DOES count toward the goal, and a Skip
-fills in every check on that puzzle but its achievements - so a skipped
-puzzle is starred as well as beaten. The shortcut is bounded by how many
-Skips the seed contains rather than forbidden.
+fills in every check on that puzzle, its achievements included - so a
+skipped puzzle is beaten and all its stars light. The shortcut is bounded
+by how many Skips the seed contains rather than forbidden.
 
 Hint pages are not checks - they are things you spend items on, not places
 items are found.
@@ -127,11 +128,12 @@ on your behalf; you go to the card and watch the ending.
 What "enough" means depends on the `goal` option:
 
 - **Beat Levels** (the default) counts a puzzle once you have finished it any
-  one way, and wants `levels_to_beat` of them.
-- **Star Levels** counts a puzzle only when EVERY check on it is done - every
-  solution and every part - and wants `levels_to_star`. It is the same star
-  the level select draws on a card with nothing left to do, so you can watch
-  your progress toward it while you play.
+  one way, and wants `levels_to_beat` of them (50 by default).
+- **Collect Stars** counts stars - one for every solution found, the stars
+  the level select counts in each pack's header - and wants
+  `stars_to_collect` of them (65 by default). A puzzle with three solutions
+  holds three stars. A default run of 70 puzzles holds about 91, so 65 is
+  what beating 50 of them is worth.
 
-Starring is a great deal more work than beating, which is why the two have
-separate counts rather than sharing one number.
+A puzzle has more stars than it has finishes, which is why the two goals
+have separate counts rather than sharing one number.

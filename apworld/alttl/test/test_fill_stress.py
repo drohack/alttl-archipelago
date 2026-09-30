@@ -108,17 +108,15 @@ CONFIGURATIONS = {
         "hint_coverage": 100, "cat_trap_chance": 100, "skip_count": 20},
     "beat everything": {"levels_to_beat": 79},
     "beat one": {"levels_to_beat": 1},
-    # The star goal. It leans on the same Beaten events as the beaten goal -
-    # see the reasoning in rules.set_all_rules - so what these configurations
-    # actually prove is that the equivalence holds under a fill, at both ends
-    # of the range, rather than only in the argument.
-    "star levels": {"goal": "star_levels"},
-    "star everything": {"goal": "star_levels", "levels_to_star": 79},
-    "star one": {"goal": "star_levels", "levels_to_star": 1},
+    # The star goal: a Star event beside every solution, each carrying its
+    # solution's rule (rules.set_all_rules), at both ends of the range.
+    "collect stars": {"goal": "collect_stars"},
+    "every star": {"goal": "collect_stars", "stars_to_collect": 300},
+    "one star": {"goal": "collect_stars", "stars_to_collect": 1},
     # A star goal with no skips, because a Skip fills in every check on a
-    # puzzle and so stars it - which would hide a broken star goal behind
-    # twenty free stars.
-    "star levels, no skips": {"goal": "star_levels", "skip_count": 0},
+    # puzzle and so lights its stars - which would hide a broken star goal
+    # behind free stars.
+    "collect stars, no skips": {"goal": "collect_stars", "skip_count": 0},
     # ---- DLC ------------------------------------------------------------
     #
     # Both alone and together, because they are not symmetric: Cupboards and
@@ -152,16 +150,16 @@ CONFIGURATIONS = {
     # Seeing Stars exists for its alternate solutions, so the star goal is the
     # configuration it changes most - and the one where a missing solution
     # location would show up as an unwinnable seed.
-    "stars dlc, star goal": {"seeing_stars": True, "goal": "star_levels",
-                             "levels_to_star": 40, "skip_count": 0},
+    "stars dlc, star goal": {"seeing_stars": True, "goal": "collect_stars",
+                             "stars_to_collect": 80, "skip_count": 0},
     # Everything on at once, at full length.
     "both dlc, long run": {"cupboards_and_drawers": True, "seeing_stars": True,
                            "puzzle_count": 79, "levels_to_beat": 79},
     # Every range at its top (2026-09-28).
     "longest run": {"puzzle_count": 130, "levels_to_beat": 130},
     "longest run, both dlc, star goal": {"cupboards_and_drawers": True, "seeing_stars": True,
-                                         "puzzle_count": 130, "goal": "star_levels",
-                                         "levels_to_star": 130},
+                                         "puzzle_count": 130, "goal": "collect_stars",
+                                         "stars_to_collect": 300},
     "biggest packs": {"pack_size": 20, "guaranteed_open_slots": 20},
     "every starting ability": {"starting_abilities": 13, "seeing_stars": True},
     "widest coverage": {"mechanic_coverage": 10},
@@ -715,7 +713,7 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # but not Sticking, the water levels could not be touched until the
         # ice cubes (Sorting, Sticking) moved.
         ("DLC2 Water Glasses", "Water Level (Indexable)"),
-        # 2026-09-25, 0.4.1 multiworld, both without Drawer: Kat could not
+        # 2026-09-25, 0.4.1 multiworld, both without Drawer: the second player could not
         # finish Sewing Box's Curved Needles (Containers), and droha could not
         # place Jewelry Box's rings (Ordering) past the locked drawers' items.
         ("DLC1 Sewing Box", "Curved Needles"),
@@ -863,7 +861,8 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # Now (11, 77): parts that are endings of their own are that ending's check (Endings, 2026-09-28), and Medicine Cabinet's and Mirror's parts are merged.
         # (10, 76) the same day: Mirror is two parts, the big items and the little things (droha, 2026-09-28).
         # (10, 75): Mirror's little things folded into its Solution (droha, 2026-09-28).
-        self.assertEqual((10, 75), (free, need_one),
+        # (10, 73): Breadtags is just its Solution; its two Tidying groups have no check.
+        self.assertEqual((10, 73), (free, need_one),
                          "the BASE GAME part requirement split changed; "
                          "regenerate names.json and re-measure before "
                          "accepting. The DLCs must not move this number - if "
@@ -910,10 +909,10 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # Now (43, 151): the base game's two Workbench parts left (see above).
         # Now (43, 149): the base game's two Fruit Stickers parts (see above).
         # Now (42, 150): Daggers' loose daggers gained Drawer - droha and
-        # Kat, 2026-09-25, could not place them without the drawer's Box.
-        # Now (41, 151): Lunch Tray's Tray Organizer gained Drawer - Kat,
+        # the second player, 2026-09-25, could not place them without the drawer's Box.
+        # Now (41, 151): Lunch Tray's Tray Organizer gained Drawer - the second player,
         # holding no Drawer, could not finish it (the tray drawer holds it).
-        # Now (40, 152): Sewing Box's Top Drawer gained Drawer - Kat, holding
+        # Now (40, 152): Sewing Box's Top Drawer gained Drawer - the second player, holding
         # no Drawer, could not finish it. Curved Needles and Jewelry Box's
         # Rings gained Drawer too, but were gated already.
         # Now (40, 150): Daggers' two gated parts are notALocation - the level
@@ -927,7 +926,10 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # Now (31, 139): parts that are endings of their own are that ending's check (Endings, 2026-09-28), and Medicine Cabinet's and Mirror's parts are merged.
         # (30, 138) the same day: Mirror is two parts, the big items and the little things (droha, 2026-09-28).
         # (30, 137): Mirror's little things folded into its Solution (droha, 2026-09-28).
-        self.assertEqual((30, 137), split(base + dlc1))
+        # (30, 132): Breadtags' two groups (base) and the three drawer parts
+        # that never fire (Lunch Tray, Fossils, Nesting Boxes) left.
+        # (30, 131): the Boss's Drawer part never fired (hand test, 2026-09-29).
+        self.assertEqual((30, 131), split(base + dlc1))
         # Seeing Stars leans on multiple solutions rather than on containers,
         # so proportionally more of its groups are free. (38, 125) -> (37, 126):
         # one group, DLC2 Combs' Draggables, behind that DLC's one real drawer.
@@ -953,7 +955,8 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # Now (14, 98): parts that are endings of their own are that ending's check (Endings, 2026-09-28), and Medicine Cabinet's and Mirror's parts are merged.
         # (13, 97) the same day: Mirror is two parts, the big items and the little things (droha, 2026-09-28).
         # (13, 96): Mirror's little things folded into its Solution (droha, 2026-09-28).
-        self.assertEqual((13, 96), split(base + dlc2))
+        # (13, 94): Breadtags' two groups left.
+        self.assertEqual((13, 94), split(base + dlc2))
         # Every level: (47, 186) since Daggers' loose daggers, Lunch Tray's
         # Tray Organizer and Sewing Box's Top Drawer gained Drawer; (47, 184)
         # once Daggers' two parts left; (46, 185) with Material Drawers'
@@ -962,7 +965,9 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # (34, 160) once parts that are endings of their own are that ending's check (Endings, 2026-09-28), and Medicine Cabinet's and Mirror's parts are merged.
         # (33, 159) the same day: Mirror is two parts, the big items and the little things (droha, 2026-09-28).
         # (33, 158): Mirror's little things folded into its Solution (droha, 2026-09-28).
-        self.assertEqual((33, 158), split(data.LEVELS))
+        # (33, 153): Breadtags' two groups and the three DLC1 drawer parts left.
+        # (33, 152): and the Boss's Drawer part (hand test, 2026-09-29).
+        self.assertEqual((33, 152), split(data.LEVELS))
 
     def test_a_part_never_asks_for_more_than_its_level(self):
         """The sanity direction: narrowing must not invent a requirement."""

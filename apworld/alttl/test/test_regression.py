@@ -114,6 +114,12 @@ RETIRED_BELOW_THE_FLOOR = {"tiny run", "tiny run, pack size 1"}
 #: them to. Skipped out loud, the same as the set above.
 RETIRED_OUT_OF_RANGE = {"no guaranteed open slots", "pack size 1", "pack size 2"}
 
+#: Golden configurations under a new name: the star goal counts stars since
+#: 2026-09-28 (collect_stars, stars_to_collect). The goal never reaches the
+#: draw, so each still draws exactly what the golden recorded.
+RENAMED = {"star levels": "collect stars", "star everything": "every star",
+           "star one": "one star", "star levels, no skips": "collect stars, no skips"}
+
 #: guaranteed_open_slots' default when the golden was recorded.
 GOLDEN_GUARANTEED_OPEN = 4
 
@@ -158,6 +164,7 @@ class TestTheDrawNeverMoved(unittest.TestCase):
         compared = 0
         for key, want in sorted(golden["configurations"].items()):
             name, seed = key.rsplit("|", 1)
+            name = RENAMED.get(name, name)
             if int(seed) not in seeds:
                 continue
             if name in RETIRED_BELOW_THE_FLOOR or name in RETIRED_OUT_OF_RANGE:

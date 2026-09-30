@@ -73,11 +73,11 @@ BYPASSES = {
     # solved; holding only Ordering nothing could be picked up.
     "DLC2 Cat Eyes": {"Ordering"},
     # Its Drawer was an extraAbilities guess. droha's four runs (2026-09-23)
-    # fired every group without it, and Kat finished the whole level without
+    # fired every group without it, and the second player finished the whole level without
     # it (2026-09-25, 0.4.1 multiworld). Bypassed rather than deleted, so the
     # draw view - and every frozen plan - keeps it.
     "MedicineCabinet": {"Drawer"},
-    # Kat, 2026-09-25, 0.4.1 multiworld (her LogOutput): finished Pantry and
+    # The second player, 2026-09-25, 0.4.1 multiworld (their LogOutput): finished Pantry and
     # Trophy Cabinet with nothing locked, before Drawer arrived, so their
     # Solutions were withheld for an extraAbilities Drawer nothing in either
     # level needs. Figurines: both copies' Solutions and Sorting Items done
@@ -87,7 +87,7 @@ BYPASSES = {
     "DLC1 Pantry": {"Drawer"},
     "DLC1 Trophy Cabinet": {"Drawer"},
     "DLC2 Figurines": {"Sticking"},
-    # Kat (0.4.1) and droha's hand test (2026-09-28, holding only Ordering and
+    # The second player (0.4.1) and droha's hand test (2026-09-28, holding only Ordering and
     # Stacking, opened from the track) both finished it with its Solution
     # withheld for the extraAbilities Drawer.
     "DLC1 Media Cabinet": {"Drawer"},
@@ -372,7 +372,9 @@ class TestTheDlcIdsNeverMove(unittest.TestCase):
         # parts are six per colour, Mirror's eight four.
         # 404 -> 402 the same day: Mirror is two parts, the big items and the little things (droha, 2026-09-28).
         # 402 -> 401: Mirror's little things folded into its Solution (droha, 2026-09-28).
-        self.assertEqual(401, per_dlc[""])
+        # 401 -> 385: Breadtags is just its Solution, on all eight copies
+        # (droha, 2026-09-28: "just have the solution").
+        self.assertEqual(385, per_dlc[""])
         # 146 -> 149 on 2026-09-23: DLC1 Boss's Dining Room, Parking Lot and
         # Landscape registered and solved in droha's play and were restored.
         # 149 -> 148 the same day: Kitchen Utensils Drawers' "Drawers" check
@@ -387,7 +389,12 @@ class TestTheDlcIdsNeverMove(unittest.TestCase):
         # with the seed (droha: "dup levels that are exactly the same"), so
         # it is drawn once and its later copies' locations are gone.
         # 115 -> 114 on 2026-09-28: fixed endings (see above).
-        self.assertEqual(114, per_dlc["DLC1"])
+        # 114 -> 111 the same day: Lunch Tray's Trays, Fossils' Drawers and
+        # Nesting Boxes' Boxes never solve in play (droha's recordings and
+        # both players' runs), so they are notALocation.
+        # 111 -> 110 on 2026-09-29: the Boss's Drawer part never fired in
+        # droha's full play of it (hand test), so it is notALocation too.
+        self.assertEqual(110, per_dlc["DLC1"])
         # 267 -> 269 on 2026-09-23: DLC2 Boss lost its Drawer Controller (it
         # never solved, even in a full completion) and gained Locks, Compass
         # and Knives, which droha's play showed register and solve. Ids after
@@ -415,10 +422,10 @@ class TestTheDlcIdsNeverMove(unittest.TestCase):
         awarded = sum(len(locations.achievement_names_for(level, 1)) * level.max_instances
                       for level in data.LEVELS)
         self.assertEqual(17, awarded)
-        self.assertEqual(401 + 1 + 114 + 124 + awarded, len(locations.ALL_NAMES))
+        self.assertEqual(385 + 1 + 110 + 124 + awarded, len(locations.ALL_NAMES))
 
     def test_credits_is_the_last_base_id(self):
-        self.assertEqual(401, locations.ALL_NAMES.index(data.CREDITS))
+        self.assertEqual(385, locations.ALL_NAMES.index(data.CREDITS))
 
     def test_the_dlc_ability_item_id_is_pinned(self):
         """Appended after Hint Page, never inside the base twelve."""
@@ -467,6 +474,38 @@ DLC_ONLY = {
     "archive_packs": [],
     "ability_locks": True,
 }
+
+
+class TestTheFinaleFollowsTheDlcs(unittest.TestCase):
+    """droha, 2026-09-28: "if they are enabled it should randomize which
+    credits is played at the end". pool.pick_finale, seeded per world."""
+
+    @staticmethod
+    def _pick(dlc1, dlc2, seed):
+        class _World:
+            options = _Options(dlc1=dlc1, dlc2=dlc2)
+            player = 1
+
+            class multiworld:
+                pass
+        _World.multiworld.seed = seed
+        from .. import pool
+        return pool.pick_finale(_World)
+
+    def test_no_dlc_is_always_the_base_game(self):
+        self.assertEqual({"Credits"}, {self._pick(False, False, s) for s in range(60)})
+
+    def test_each_enabled_dlc_can_end_the_run(self):
+        self.assertEqual({"Credits", "DLC1 Credits"},
+                         {self._pick(True, False, s) for s in range(60)})
+        self.assertEqual({"Credits", "DLC2 Credits"},
+                         {self._pick(False, True, s) for s in range(60)})
+        self.assertEqual({"Credits", "DLC1 Credits", "DLC2 Credits"},
+                         {self._pick(True, True, s) for s in range(60)})
+
+    def test_a_seed_always_ends_the_same_way(self):
+        self.assertEqual([self._pick(True, True, s) for s in range(20)],
+                         [self._pick(True, True, s) for s in range(20)])
 
 
 class TestSlotDataCarriesTheDlc(unittest.TestCase):

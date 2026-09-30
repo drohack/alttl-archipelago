@@ -92,6 +92,11 @@ TRAP_ITEMS: List[str] = [CAT_TRAP]
 #: progression across the run rather than bunching it.
 BEATEN_TOKEN = "Level Beaten"
 
+#: One copy per solution, granted by an event beside it, only under the
+#: Collect Stars goal: the credits gate counts these the way it counts Level
+#: Beaten under the other goal.
+STAR_TOKEN = "Star"
+
 #: Names a player can use anywhere a single item name works - !hint,
 #: start_inventory, item_links, plando. Without them Archipelago supplies only
 #: "Everything", so there was no way to say "any ability", which with twelve

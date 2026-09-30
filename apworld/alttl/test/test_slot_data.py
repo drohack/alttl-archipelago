@@ -107,11 +107,15 @@ class TestSlotDataShape(unittest.TestCase):
         self.assertEqual(
             {"world_version",
              "slots", "pack_size", "pack_total", "pack_boundaries",
-             "goal", "levels_to_beat", "levels_to_star", "ability_locks",
+             "goal", "levels_to_beat", "stars_to_collect", "ability_locks",
              "abilities", "starting_abilities", "requirements",
              "cat_trap_chance", "controller_groups", "endings", "not_locations",
-             "cupboards_and_drawers", "seeing_stars"},
+             "cupboards_and_drawers", "seeing_stars", "credits"},
             set(self.payload))
+
+    def test_the_finale_is_the_base_games_without_a_dlc(self):
+        # The example is the default yaml: no DLC, so no other ending to pick.
+        self.assertEqual("Credits", self.payload["credits"])
 
     def test_every_slot_carries_what_the_mod_needs_to_launch_it(self):
         for slot in self.payload["slots"]:
@@ -219,6 +223,10 @@ class TestSlotDataShape(unittest.TestCase):
             names = set(groups.values())
             if len(names) < 2:
                 continue
+            # Only the groups that are checks: an ending's own group, and one
+            # done only as part of the Solution (Mirror's Little Things,
+            # Breadtags' both), have no location by design.
+            names &= set(data.BY_ID[level_id].part_locations)
             for instance in by_level[level_id]:
                 for group in names:
                     display = data.BY_ID[level_id].display

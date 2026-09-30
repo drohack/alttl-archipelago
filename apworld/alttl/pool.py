@@ -7,11 +7,31 @@ checks raises OptionError rather than ship a seed that can softlock. A refusal
 names what to change; a softlock is found hours into a run. See decide().
 """
 
+import random
 from typing import Any, Dict, List, Mapping
 
 from Options import OptionError
 
 from . import data, items, locations, rules, slots
+
+#: The game's finales (DevTools level dump, `isCredits`): the campaign's and
+#: one per DLC. A run ends on one of them, picked per seed among the base
+#: game's and the DLCs it is built for (droha, 2026-09-28: "if they are
+#: enabled it should randomize which credits is played at the end").
+FINALES = {"": "Credits", "DLC1": "DLC1 Credits", "DLC2": "DLC2 Credits"}
+
+
+def pick_finale(world) -> str:
+    """This seed's finale, from a generator of its own seeded by this world's
+    seed, so the pick moves nothing world.random draws - the plan, the fill,
+    the regression goldens. The same seed always ends the same way."""
+    o = world.options
+    choices = [FINALES[""]]
+    if o.cupboards_and_drawers.value:
+        choices.append(FINALES["DLC1"])
+    if o.seeing_stars.value:
+        choices.append(FINALES["DLC2"])
+    return random.Random(f"{world.multiworld.seed}:{world.player}:finale").choice(choices)
 
 #: Checks the free opening should offer before the run is handed to the fill.
 #:
@@ -128,8 +148,9 @@ def decide(world) -> None:
     # Both counts are clamped even though only one is in use, so slot_data
     # never carries a number the run cannot honour.
     world.levels_to_beat = min(o.levels_to_beat.value, puzzle_count)
-    world.levels_to_star = min(o.levels_to_star.value, puzzle_count)
-    world.goal_is_stars = o.goal.value == o.goal.option_star_levels
+    world.stars_to_collect = o.stars_to_collect.value   # clamped once drawn
+    world.goal_is_stars = o.goal.value == o.goal.option_collect_stars
+    world.credits_level = pick_finale(world)
 
     source_weights = slots.source_weights(
         o.generator_weight.value, o.archive_weight.value, o.base_weight.value,
@@ -183,7 +204,6 @@ def _draw_once(world, puzzle_count, pack_size, source_weights) -> int:
     actual = len(world.plan)
     world.pack_total = items.pack_count(actual, pack_size)
     world.levels_to_beat = min(o.levels_to_beat.value, puzzle_count, actual)
-    world.levels_to_star = min(o.levels_to_star.value, puzzle_count, actual)
 
     ability_locks = bool(o.ability_locks.value)
 
@@ -290,11 +310,21 @@ def _draw_once(world, puzzle_count, pack_size, source_weights) -> int:
 
     world.location_names_in_use = []
     world.event_names_in_use = []
+    solutions = []
     for slot in world.plan:
         world.location_names_in_use += locations.names_for(slot.level, slot.instance)
         world.event_names_in_use.append(
             locations.beaten_name(slot.level, slot.instance))
+        solutions += locations.ending_names_for(slot.level, slot.instance)
     world.location_names_in_use.append(data.CREDITS)
+
+    # A star is a solution found, as the level select counts them. Clamped to
+    # the stars this run holds, so slot_data never carries a number the run
+    # cannot honour; the events that count them exist only under that goal.
+    world.stars_total = len(solutions)
+    world.stars_to_collect = min(o.stars_to_collect.value, world.stars_total)
+    world.star_event_names = ([locations.star_event_name(s) for s in solutions]
+                              if world.goal_is_stars else [])
 
     world.pack_size = pack_size
 
@@ -304,10 +334,11 @@ def _draw_once(world, puzzle_count, pack_size, source_weights) -> int:
     world.unproven_locations, dropped = _affordable_guard(
         world, rules.unproven_locations(world.plan, ability_locks))
 
-    # Added after the guard is sized, and never a home for progression: a
-    # hard achievement must never block a run (the option's promise; all 17
-    # were seen firing in a run on 2026-09-28), and the guard's budget must
-    # not count homes that refuse progression.
+    # Added after the guard is sized, so the guard is afforded without them.
+    # They hold progression like any check (droha, 2026-09-29: "then what's
+    # the point of enabling them?"): all 17 were seen firing in a run on
+    # 2026-09-28, each needs its puzzle's every mechanic, and a Skip sends
+    # them, so a hard one never has to block a run.
     world.achievement_locations = frozenset()
     if achievements:
         awarded = [name for slot in world.plan
@@ -572,11 +603,11 @@ def slot_data(world) -> Mapping[str, Any]:
         # THE GOAL, as a string rather than the option's integer. The mod
         # dispatches on it, and a name that reads the same in the payload and
         # in the C# is one fewer thing to keep in step than 0 and 1.
-        "goal": "star_levels" if world.goal_is_stars else "beat_levels",
+        "goal": "collect_stars" if world.goal_is_stars else "beat_levels",
         "levels_to_beat": world.levels_to_beat,
         # Sent whichever goal is in use, so the mod can show the other number
         # if it ever wants to and so a payload is readable on its own.
-        "levels_to_star": world.levels_to_star,
+        "stars_to_collect": world.stars_to_collect,
         "ability_locks": bool(world.options.ability_locks.value),
         "abilities": {a: data.classes_for(a) for a in world.live_abilities},
         "starting_abilities": sorted(world.starting_abilities),
@@ -589,6 +620,9 @@ def slot_data(world) -> Mapping[str, Any]:
         # the mod failing to launch the puzzle.
         "cupboards_and_drawers": bool(world.options.cupboards_and_drawers.value),
         "seeing_stars": bool(world.options.seeing_stars.value),
+        # The finale the run ends on (FINALES), launched by the mod in place of
+        # the base game's credits. Absent from a 0.4.3 seed: the base game's.
+        "credits": world.credits_level,
         # Controller GameObject name -> group display name, for the levels this
         # run actually uses.
         #

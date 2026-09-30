@@ -280,7 +280,7 @@
             "Crumbs"
           ],
           "ending": false,
-          "solutionOnly": false
+          "solutionOnly": true
         },
         "Interlocking": {
           "display": "Interlocking",
@@ -291,7 +291,7 @@
             "Interlocking"
           ],
           "ending": false,
-          "solutionOnly": false
+          "solutionOnly": true
         }
       },
       "endings": [
@@ -726,17 +726,6 @@
           "ending": false,
           "solutionOnly": false
         },
-        "DrawerController": {
-          "display": "Drawer",
-          "abilities": [
-            "Drawer"
-          ],
-          "members": [
-            "DrawerController"
-          ],
-          "ending": false,
-          "solutionOnly": false
-        },
         "KeysDraggables": {
           "display": "Keys",
           "abilities": [
@@ -949,17 +938,6 @@
           ],
           "members": [
             "Dragonfly Fossil Jigsaw"
-          ],
-          "ending": false,
-          "solutionOnly": false
-        },
-        "Drawers": {
-          "display": "Drawers",
-          "abilities": [
-            "Drawer"
-          ],
-          "members": [
-            "Drawers"
           ],
           "ending": false,
           "solutionOnly": false
@@ -1447,17 +1425,6 @@
           ],
           "ending": false,
           "solutionOnly": false
-        },
-        "Trays": {
-          "display": "Trays",
-          "abilities": [
-            "Drawer"
-          ],
-          "members": [
-            "Trays"
-          ],
-          "ending": false,
-          "solutionOnly": false
         }
       },
       "endings": [
@@ -1553,17 +1520,6 @@
           "abilities": [],
           "members": [
             "BoxOrganizer"
-          ],
-          "ending": false,
-          "solutionOnly": false
-        },
-        "Boxes": {
-          "display": "Boxes",
-          "abilities": [
-            "Drawer"
-          ],
-          "members": [
-            "Boxes"
           ],
           "ending": false,
           "solutionOnly": false

@@ -262,6 +262,7 @@
       "source": "generator",
       "solutionCount": 1,
       "endings": ["Interlocking_0"],
+      "solutionOnlyParts": ["Crumbs", "Interlocking"],
       "isRandomizable": true,
       "isArchived": false,
       "isDailyTidy": true,
@@ -4289,7 +4290,8 @@
           "name": "Trays",
           "type": "DrawerController",
           "objects": 5,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "TrayOrganizer",
@@ -4742,7 +4744,8 @@
           "name": "Drawers",
           "type": "DrawerController",
           "objects": 2,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "Fern Fossil Jigsaw",
@@ -5464,7 +5467,8 @@
           "name": "Boxes",
           "type": "DrawerController",
           "objects": 13,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "BoxOrganizer",
@@ -5662,7 +5666,8 @@
           "name": "DrawerController",
           "type": "DrawerController",
           "objects": 1,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         },
         {
           "name": "Dining Room Draggables",

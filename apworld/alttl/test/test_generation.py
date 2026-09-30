@@ -333,7 +333,7 @@ class TestTinyRun(bases.ALTTLTestBase):
     2026-09-23, 8 before that)."""
 
     options = {"puzzle_count": 10, "pack_size": 5, "levels_to_beat": 40,
-               "levels_to_star": 40}
+               "stars_to_collect": 300}
 
     def test_the_floor_is_ten(self):
         from .. import options as apoptions
@@ -348,12 +348,14 @@ class TestTinyRun(bases.ALTTLTestBase):
         """Both counts are clamped, not just the one in use.
 
         slot_data carries both whichever goal is set, so an unclamped
-        levels_to_star would reach the mod as a target it can never hit -
+        stars_to_collect would reach the mod as a target it can never hit -
         and on the goal the player is not even playing, which is exactly
         the kind of wrong number nobody looks at.
         """
         world = self.multiworld.worlds[self.player]
-        self.assertLessEqual(world.levels_to_star, 10)
+        solutions = [n for n in world.location_names_in_use if " - Solution" in n]
+        self.assertEqual(len(solutions), world.stars_total)
+        self.assertEqual(world.stars_total, world.stars_to_collect)
 
     def test_pool_is_zero_sum(self):
         self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
@@ -375,35 +377,60 @@ class TestTheFloorIsTwoFullPacks(bases.ALTTLTestBase):
 
 
 class TestStarGoal(bases.ALTTLTestBase):
-    options = {"goal": "star_levels", "levels_to_star": 12}
+    """droha, 2026-09-28: the star goal counts stars, "it's number of
+    solutions" - not puzzles with every check done."""
+
+    options = {"goal": "collect_stars", "stars_to_collect": 12}
 
     def test_the_goal_is_actually_stars(self):
         """Guards against the star configurations being green for the wrong
-        reason. Everything else about this goal reuses the beaten machinery,
-        so a `goal` that silently failed to apply would leave every star test
-        passing while testing the beaten goal twice."""
+        reason: a `goal` that silently failed to apply would leave every star
+        test passing while testing the beaten goal twice."""
         world = self.multiworld.worlds[self.player]
         self.assertTrue(world.goal_is_stars)
-        self.assertEqual(12, world.levels_to_star)
+        self.assertEqual(12, world.stars_to_collect)
 
     def test_the_payload_says_so(self):
         from .. import pool
         payload = pool.slot_data(self.multiworld.worlds[self.player])
-        self.assertEqual("star_levels", payload["goal"])
-        self.assertEqual(12, payload["levels_to_star"])
+        self.assertEqual("collect_stars", payload["goal"])
+        self.assertEqual(12, payload["stars_to_collect"])
 
-    def test_no_new_locations_or_items_exist_for_it(self):
-        """The star goal rides the Beaten events - see rules.set_all_rules.
+    def test_one_star_event_beside_every_solution(self):
+        world = self.multiworld.worlds[self.player]
+        solutions = [n for n in world.location_names_in_use if " - Solution" in n]
+        stars = [l for l in self.multiworld.get_locations(self.player)
+                 if l.name.endswith(" (Star)")]
+        self.assertEqual(sorted(s + " (Star)" for s in solutions),
+                         sorted(l.name for l in stars))
+        self.assertTrue(all(l.address is None and l.item.name == items.STAR_TOKEN
+                            for l in stars))
 
-        If a future change mints a Starred event instead, location ids shift
-        for every seed and this is the test that should make someone say so
-        out loud rather than discover it in a playthrough.
-        """
-        names = {l.name for l in self.multiworld.get_locations(self.player)}
-        self.assertFalse([n for n in names if "Starred" in n or "Star " in n])
+    def test_the_credits_count_stars_not_beaten_puzzles(self):
+        from BaseClasses import CollectionState
+        world = self.multiworld.worlds[self.player]
+        done = self.multiworld.completion_condition[self.player]
+        state = CollectionState(self.multiworld)
+        state.collect(world.create_item(items.CREDITS_ITEM), True)
+        for _ in range(len(world.plan)):
+            state.collect(world.create_event(items.BEATEN_TOKEN), True)
+        for _ in range(11):
+            state.collect(world.create_event(items.STAR_TOKEN), True)
+        self.assertFalse(done(state), "every puzzle beaten and 11 of 12 stars")
+        state.collect(world.create_event(items.STAR_TOKEN), True)
+        self.assertTrue(done(state))
 
     def test_pool_is_zero_sum(self):
         self.assertEqual(len(_addressed(self)), len(self.multiworld.itempool))
+
+
+class TestTheOldStarGoalNameStillLoads(bases.ALTTLTestBase):
+    """0.4.3 yamls say `goal: star_levels`; it is an alias of collect_stars."""
+
+    options = {"goal": "star_levels"}
+
+    def test_it_is_the_star_goal(self):
+        self.assertTrue(self.multiworld.worlds[self.player].goal_is_stars)
 
 
 class TestNoAbilityLocks(bases.ALTTLTestBase):
@@ -588,14 +615,15 @@ class TestAchievements(bases.ALTTLTestBase):
                 self.assertEqual(beaten["packs"], req["packs"])
                 self.assertTrue(set(beaten["abilities"]) <= set(req["abilities"]))
 
-    def test_no_achievement_holds_progression(self):
+    def test_an_achievement_can_hold_progression(self):
+        """A check like any other once the option is on (droha, 2026-09-29:
+        "then what's the point of enabling them?"); a Skip sends it, so a
+        hard one never has to block a run."""
         world, awarded = self._awarded()
         progression = world.create_item(items.PROGRESSIVE_PACK)
         for name in awarded:
             location = self.multiworld.get_location(name, self.player)
-            self.assertFalse(location.item_rule(progression), name)
-            if location.item is not None:
-                self.assertFalse(location.item.advancement, (name, location.item.name))
+            self.assertTrue(location.item_rule(progression), name)
 
     def test_their_ids_come_after_every_other_location(self):
         ids = locations.LOCATION_NAME_TO_ID

@@ -219,6 +219,7 @@
       "Tower": "Tower"
     }
   },
+  "credits": "Credits",
   "cupboards_and_drawers": false,
   "endings": {
     "Batteries (Randomized)": [
@@ -449,8 +450,7 @@
     ]
   },
   "goal": "beat_levels",
-  "levels_to_beat": 40,
-  "levels_to_star": 20,
+  "levels_to_beat": 50,
   "not_locations": {
     "MedicineCabinet": [
       "Jar Lid Draggable"
@@ -585,18 +585,6 @@
       ],
       "packs": 7
     },
-    "Breadtags #2 - Crumbs": {
-      "abilities": [
-        "Tidying"
-      ],
-      "packs": 7
-    },
-    "Breadtags #2 - Interlocking": {
-      "abilities": [
-        "Tidying"
-      ],
-      "packs": 7
-    },
     "Breadtags #2 - Solution": {
       "abilities": [
         "Tidying"
@@ -609,18 +597,6 @@
       ],
       "packs": 12
     },
-    "Breadtags #3 - Crumbs": {
-      "abilities": [
-        "Tidying"
-      ],
-      "packs": 12
-    },
-    "Breadtags #3 - Interlocking": {
-      "abilities": [
-        "Tidying"
-      ],
-      "packs": 12
-    },
     "Breadtags #3 - Solution": {
       "abilities": [
         "Tidying"
@@ -628,18 +604,6 @@
       "packs": 12
     },
     "Breadtags - Beaten": {
-      "abilities": [
-        "Tidying"
-      ],
-      "packs": 4
-    },
-    "Breadtags - Crumbs": {
-      "abilities": [
-        "Tidying"
-      ],
-      "packs": 4
-    },
-    "Breadtags - Interlocking": {
       "abilities": [
         "Tidying"
       ],
@@ -2250,6 +2214,7 @@
       "source": "generator"
     }
   ],
+  "stars_to_collect": 65,
   "starting_abilities": [
     "Gadgets"
   ],
