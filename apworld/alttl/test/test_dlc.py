@@ -374,7 +374,10 @@ class TestTheDlcIdsNeverMove(unittest.TestCase):
         # 402 -> 401: Mirror's little things folded into its Solution (droha, 2026-09-28).
         # 401 -> 385: Breadtags is just its Solution, on all eight copies
         # (droha, 2026-09-28: "just have the solution").
-        self.assertEqual(385, per_dlc[""])
+        # 385 -> 383 on 2026-09-30: Bowls' Crack and Pattern each fire with
+        # one of its two endings (droha's hand test), so they are part of the
+        # Solution.
+        self.assertEqual(383, per_dlc[""])
         # 146 -> 149 on 2026-09-23: DLC1 Boss's Dining Room, Parking Lot and
         # Landscape registered and solved in droha's play and were restored.
         # 149 -> 148 the same day: Kitchen Utensils Drawers' "Drawers" check
@@ -394,7 +397,10 @@ class TestTheDlcIdsNeverMove(unittest.TestCase):
         # both players' runs), so they are notALocation.
         # 111 -> 110 on 2026-09-29: the Boss's Drawer part never fired in
         # droha's full play of it (hand test), so it is notALocation too.
-        self.assertEqual(110, per_dlc["DLC1"])
+        # 110 -> 107 on 2026-09-30: Kitchen Hanging Tools 1's Guiding Targets
+        # and 2's Draggables For Console never fired in droha's play, so they
+        # are notALocation; KHT2 is then one group, with no part check.
+        self.assertEqual(107, per_dlc["DLC1"])
         # 267 -> 269 on 2026-09-23: DLC2 Boss lost its Drawer Controller (it
         # never solved, even in a full completion) and gained Locks, Compass
         # and Knives, which droha's play showed register and solve. Ids after
@@ -422,10 +428,10 @@ class TestTheDlcIdsNeverMove(unittest.TestCase):
         awarded = sum(len(locations.achievement_names_for(level, 1)) * level.max_instances
                       for level in data.LEVELS)
         self.assertEqual(17, awarded)
-        self.assertEqual(385 + 1 + 110 + 124 + awarded, len(locations.ALL_NAMES))
+        self.assertEqual(383 + 1 + 107 + 124 + awarded, len(locations.ALL_NAMES))
 
     def test_credits_is_the_last_base_id(self):
-        self.assertEqual(385, locations.ALL_NAMES.index(data.CREDITS))
+        self.assertEqual(383, locations.ALL_NAMES.index(data.CREDITS))
 
     def test_the_dlc_ability_item_id_is_pinned(self):
         """Appended after Hint Page, never inside the base twelve."""

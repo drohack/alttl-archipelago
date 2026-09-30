@@ -127,9 +127,8 @@ GOLDEN_GUARANTEED_OPEN = 4
 #: the other way round: the plan must still DIFFER from the golden, so an entry
 #: here cannot quietly turn into a skip for something that moved back.
 #:
-#: `short run` seeds 20260902 and 20260903 moved when pool._free_checks stopped
-#: counting guarded parts, and moved BACK when Medicine Cabinet was proven by
-#: play (2026-09-23); they moved again with fixed endings (2026-09-28).
+#: `short run` seeds 20260902 and 20260903 moved with fixed endings
+#: (2026-09-28).
 MOVED_BY_DESIGN = {
     # 2026-09-28, fixed endings: a part that is an ending of its own is no
     # check, so the opening counts fewer free checks (pool._free_checks) and
@@ -185,12 +184,8 @@ class TestTheDrawNeverMoved(unittest.TestCase):
             options.setdefault("guaranteed_open_slots", GOLDEN_GUARANTEED_OPEN)
             world = _generate(options, int(seed))
             world = world.multiworld.worlds[world.player]
-            # The FIRST draw, not the final plan. pool.decide redraws a run
-            # that cannot carry its unproven guard, and a redraw is a
-            # deliberate new run - but the first draw is still exactly what
-            # 0.3.4 drew, so pinning it keeps every entry here checked.
             got = [[s.level.level_id, s.instance, s.seed]
-                   for s in world.first_plan]
+                   for s in world.plan]
             if key in MOVED_BY_DESIGN:
                 if got == want["plan"]:
                     differences.append(

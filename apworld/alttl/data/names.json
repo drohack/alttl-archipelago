@@ -199,7 +199,7 @@
           "group": "Design (Shuffle)"
         },
         {
-          "id": "Height-(Draggables)_1",
+          "id": "Height-(Draggables)_1|Height-(Draggables)_0",
           "location": "Solution: Height",
           "group": "Height (Draggables)"
         }
@@ -215,7 +215,7 @@
             "Crack"
           ],
           "ending": false,
-          "solutionOnly": false
+          "solutionOnly": true
         },
         "Pattern": {
           "display": "Pattern",
@@ -224,7 +224,7 @@
             "Pattern"
           ],
           "ending": false,
-          "solutionOnly": false
+          "solutionOnly": true
         }
       },
       "endings": [
@@ -1265,15 +1265,6 @@
     "DLC1 Kitchen Hanging Tools 1": {
       "display": "Kitchen Hanging Tools 1 (Cupboards and Drawers)",
       "parts": {
-        "GuidingTargets": {
-          "display": "Guiding Targets",
-          "abilities": [],
-          "members": [
-            "GuidingTargets"
-          ],
-          "ending": false,
-          "solutionOnly": false
-        },
         "HangingObjectsController": {
           "display": "Hanging Objects",
           "abilities": [
@@ -1306,15 +1297,6 @@
     "DLC1 Kitchen Hanging Tools 2": {
       "display": "Kitchen Hanging Tools 2 (Cupboards and Drawers)",
       "parts": {
-        "DraggablesForConsoleController": {
-          "display": "Draggables For Console",
-          "abilities": [],
-          "members": [
-            "DraggablesForConsoleController"
-          ],
-          "ending": false,
-          "solutionOnly": false
-        },
         "HangingObjectsController": {
           "display": "Hanging Objects",
           "abilities": [
@@ -3807,7 +3789,7 @@
       },
       "endings": [
         {
-          "id": "TopRow_0",
+          "id": "TopRow_0|TopRow_1",
           "location": "Solution",
           "group": null
         }
@@ -5886,7 +5868,7 @@
           "group": "Design (Shuffle)"
         },
         {
-          "id": "Height-(Draggables)_0",
+          "id": "Height-(Draggables)_0|Height-(Draggables)_1",
           "location": "Solution: Height",
           "group": "Height (Draggables)"
         }

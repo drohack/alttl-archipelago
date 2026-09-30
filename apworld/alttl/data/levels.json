@@ -164,7 +164,7 @@
       "levelId": "Books 3",
       "source": "base",
       "solutionCount": 2,
-      "endings": ["Design-(Shuffle)_0", "Height-(Draggables)_1"],
+      "endings": ["Design-(Shuffle)_0", "Height-(Draggables)_1|Height-(Draggables)_0"],
       "finishesAlone": ["Design (Shuffle)", "Height (Draggables)"],
       "isRandomizable": false,
       "isArchived": false,
@@ -200,6 +200,7 @@
       "source": "base",
       "solutionCount": 2,
       "endings": ["Match-(Draggables)_0", "Match-(Draggables)_1"],
+      "solutionOnlyParts": ["Crack", "Pattern"],
       "isRandomizable": false,
       "isArchived": false,
       "isDailyTidy": false,
@@ -3103,7 +3104,7 @@
       "levelId": "GoodTidings_Popcorn",
       "source": "archive",
       "solutionCount": 1,
-      "endings": ["TopRow_0"],
+      "endings": ["TopRow_0|TopRow_1"],
       "isRandomizable": false,
       "isArchived": true,
       "isDailyTidy": false,
@@ -3484,7 +3485,7 @@
       "levelId": "TrickOrTidy_ChocolateBars",
       "source": "archive",
       "solutionCount": 4,
-      "endings": ["Design-(Shuffle)_0", "Design-(Shuffle)_1", "Design-(Shuffle)_2", "Height-(Draggables)_0"],
+      "endings": ["Design-(Shuffle)_0", "Design-(Shuffle)_1", "Design-(Shuffle)_2", "Height-(Draggables)_0|Height-(Draggables)_1"],
       "finishesAlone": ["Design (Shuffle)", "Height (Draggables)"],
       "isRandomizable": false,
       "isArchived": true,
@@ -4419,7 +4420,8 @@
           "name": "GuidingTargets",
           "type": "Draggables",
           "objects": 10,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         }
       ],
       "hintAvailable": true,
@@ -4595,7 +4597,8 @@
           "name": "DraggablesForConsoleController",
           "type": "Draggables",
           "objects": 14,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         }
       ],
       "hintAvailable": true,

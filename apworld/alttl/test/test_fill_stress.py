@@ -69,7 +69,7 @@ CONFIGURATIONS = {
     "pack size 7": {"pack_size": 7},
     "pack size 10": {"pack_size": 10},
     # The option's floor, 10 since 2026-09-25. These were "tiny run" at 8
-    # puzzles until 2026-09-23, then 15 - see pool.DRAW_ATTEMPTS.
+    # puzzles until 2026-09-23, then 15.
     "small run": {"puzzle_count": 10},
     # One block holding the whole run: no Puzzle Pack items at all.
     "small run, pack size 10": {"puzzle_count": 10, "pack_size": 10},
@@ -78,9 +78,11 @@ CONFIGURATIONS = {
     "no mechanic coverage": {"mechanic_coverage": 0},
     "max mechanic coverage": {"mechanic_coverage": 6},
     "repeat limit 2": {"generator_repeat_limit": 2},
-    # Achievement checks refuse progression; a campaign-heavy short run is
-    # where they are the largest share of the locations.
+    # Achievement checks can hold progression (0.4.4); a campaign-heavy short
+    # run is where they are the largest share of the locations, and with no
+    # Skips nothing can release a hard one.
     "achievements": {"achievements": True},
+    "achievements, no skips": {"achievements": True, "skip_count": 0},
     "achievements, campaign short run": {"achievements": True, "puzzle_count": 20,
                                          "base_weight": 100},
     "achievements, both dlc": {"achievements": True, "cupboards_and_drawers": True,
@@ -467,13 +469,12 @@ class TestTheOpeningCanAbsorbTheFirstItems(unittest.TestCase):
                 # TWO more abilities would reach it - the search pool.decide
                 # actually runs (single grants, then _plateau_escape's pairs).
                 #
-                # This used to ask whether granting EVERY remaining ability
-                # would reach it. That held only while _free_checks counted
-                # guarded parts: from 2026-09-23 it does not, and 23 openings
-                # in the 25-seed sweep sit at 5 whose only way to 6 is a
-                # three-or-four-ability grant for one Solution (Paper Plane
-                # Supplies needs four). The loop is right to refuse that, every
-                # such seed still fills, and none is fixable by one or two.
+                # Not whether granting EVERY remaining ability would: 23
+                # openings in the 25-seed sweep (2026-09-23) sit at 5 whose
+                # only way to 6 is a three-or-four-ability grant for one
+                # Solution (Paper Plane Supplies needs four). The loop is right
+                # to refuse that, every such seed still fills, and none is
+                # fixable by one or two.
                 if free < appool.OPENING_FLOOR:
                     rest = [a for a in world.live_abilities if a not in held]
                     best = max([free] + [
@@ -862,7 +863,9 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # (10, 76) the same day: Mirror is two parts, the big items and the little things (droha, 2026-09-28).
         # (10, 75): Mirror's little things folded into its Solution (droha, 2026-09-28).
         # (10, 73): Breadtags is just its Solution; its two Tidying groups have no check.
-        self.assertEqual((10, 73), (free, need_one),
+        # (8, 73): Bowls' Crack and Pattern are each one of its two endings,
+        # so part of the Solution (droha's hand test, 2026-09-30).
+        self.assertEqual((8, 73), (free, need_one),
                          "the BASE GAME part requirement split changed; "
                          "regenerate names.json and re-measure before "
                          "accepting. The DLCs must not move this number - if "
@@ -929,7 +932,11 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # (30, 132): Breadtags' two groups (base) and the three drawer parts
         # that never fire (Lunch Tray, Fossils, Nesting Boxes) left.
         # (30, 131): the Boss's Drawer part never fired (hand test, 2026-09-29).
-        self.assertEqual((30, 131), split(base + dlc1))
+        # (26, 130): Bowls' two parts (base, above); Kitchen Hanging Tools 1's
+        # Guiding Targets and 2's Draggables For Console never fired in
+        # droha's play (2026-09-30), and KHT2 is then one group, so its
+        # Hanging Objects part goes too.
+        self.assertEqual((26, 130), split(base + dlc1))
         # Seeing Stars leans on multiple solutions rather than on containers,
         # so proportionally more of its groups are free. (38, 125) -> (37, 126):
         # one group, DLC2 Combs' Draggables, behind that DLC's one real drawer.
@@ -956,7 +963,8 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # (13, 97) the same day: Mirror is two parts, the big items and the little things (droha, 2026-09-28).
         # (13, 96): Mirror's little things folded into its Solution (droha, 2026-09-28).
         # (13, 94): Breadtags' two groups left.
-        self.assertEqual((13, 94), split(base + dlc2))
+        # (11, 94): Bowls' two parts (base, above).
+        self.assertEqual((11, 94), split(base + dlc2))
         # Every level: (47, 186) since Daggers' loose daggers, Lunch Tray's
         # Tray Organizer and Sewing Box's Top Drawer gained Drawer; (47, 184)
         # once Daggers' two parts left; (46, 185) with Material Drawers'
@@ -967,7 +975,9 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # (33, 158): Mirror's little things folded into its Solution (droha, 2026-09-28).
         # (33, 153): Breadtags' two groups and the three DLC1 drawer parts left.
         # (33, 152): and the Boss's Drawer part (hand test, 2026-09-29).
-        self.assertEqual((33, 152), split(data.LEVELS))
+        # (29, 151): Bowls' two parts and the two Kitchen Hanging Tools parts
+        # that never fire, with KHT2's Hanging Objects (2026-09-30).
+        self.assertEqual((29, 151), split(data.LEVELS))
 
     def test_a_part_never_asks_for_more_than_its_level(self):
         """The sanity direction: narrowing must not invent a requirement."""
