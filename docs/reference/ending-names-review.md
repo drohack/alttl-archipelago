@@ -26,6 +26,8 @@ Mirror's big items in place are its one part ("Still Life": jug, candle, dish,
 bottle and the books-and-box stack, needing Stacking). Its little things - the
 lemon wedge, the lemon, frond and skull in their containers, the candle put out -
 are part of the Solution, no check of their own (`solutionOnlyParts`).
+Breadtags' Crumbs and Interlocking are the same: its one check is the
+Solution (droha, 2026-09-28: "just have the solution").
 
 ## Endings nobody has seen
 
@@ -141,15 +143,17 @@ Lock and Compass endings came from the game's save, where every found id is kept
 Each id is the same on every seed, by position (Pencils: `Ordered_0` and
 `Ordered_1`), even where the seed picks which sorting rules count. Repeated
 copies share the names ("Pencils (Randomized) #2 - Solution: Ordered 1").
-Books (Randomized)'s second ending answers to either id: a symmetric seed
-checks its second solution with a second controller (`Draggables_0`), the rest
-with Shuffle (`Shuffle_1`).
+Books (Randomized): a seed with a symmetric rule checks that rule with a
+second controller, and its id `Draggables_0` is that rule wherever the seed
+puts it, first or second. The mod reads the seed's two rules when the puzzle
+finishes (`Endings.Canonical`) and files it as that rule's Shuffle entry; the
+`|Draggables_0` below answers only if the rules cannot be read.
 
 | Puzzle | Ending | Game id | Other checks on the puzzle |
 |---|---|---|---|
 | Buttons | Solution: Sorting Items 1 | `SortingItems-Draggables_0` | - |
 |  | Solution: Sorting Items 2 | `SortingItems-Draggables_1` |  |
-| Breadtags | Solution | `Interlocking_0` | Crumbs, Interlocking |
+| Breadtags | Solution | `Interlocking_0` | - |
 | Calendar | Solution | `Repeating-Sequence_0` | - |
 | Clock | Solution | `Match-Shadows_0` | - |
 | Microscope | Solution | `Build-Snowflakes_0` | - |
@@ -231,7 +235,7 @@ with Shuffle (`Shuffle_1`).
 |  | Solution: Ordered 4 | `Draggables-Ordered_3` |  |
 | Pressed Flowers (Cupboards and Drawers) | Solution | `Flower-Shapes_0` | - |
 | Bathroom Cupboard (Cupboards and Drawers) | Solution | `Cupboard_0` | Broom/Dustpan, Glove Hanging, Items |
-| Lunch Tray (Cupboards and Drawers) | Solution | `TrayOrganizer_0` | Broccoli Organizer, Celery, Cracker, Peas, Sandwich, Tray Organizer, Trays |
+| Lunch Tray (Cupboards and Drawers) | Solution | `TrayOrganizer_0` | Broccoli Organizer, Celery, Cracker, Peas, Sandwich, Tray Organizer |
 | Kitchen Hanging Tools 1 (Cupboards and Drawers) | Solution | `HangingObjectsController_0` | Guiding Targets, Hanging Objects, Knives |
 | Kitchen Utensils Drawers (Cupboards and Drawers) | Solution | `Top-Drawer_0` | Bottom Drawer, Top Drawer |
 | Tea Cabinet (Cupboards and Drawers) | Solution | `Cupboard_0` | Cupcake, Items Placements, Jam Jars Stack, Spoon, Teacup Stack, Teapot Stack |
@@ -241,7 +245,7 @@ with Shuffle (`Shuffle_1`).
 | Filing Cabinet (Cupboards and Drawers) | Solution: Folder 1 | `FolderShuffleables_0` | - |
 |  | Solution: Folder 2 | `FolderShuffleables_1` |  |
 |  | Solution: Folder 3 | `FolderShuffleables_2` |  |
-| Fossils (Cupboards and Drawers) | Solution | `Fern-Fossil-Jigsaw_0` | Dragonfly Fossil, Drawers, Fern Fossil, Fish Fossil, Leaf Fossil, Shell Fossil, Snake Fossil |
+| Fossils (Cupboards and Drawers) | Solution | `Fern-Fossil-Jigsaw_0` | Dragonfly Fossil, Fern Fossil, Fish Fossil, Leaf Fossil, Shell Fossil, Snake Fossil |
 | Media Cabinet (Cupboards and Drawers) | Solution | `Cupboard_0` | DVD, Joysticks + Gameboy, NES Stack, Rubix Stack |
 | Game Pieces (Cupboards and Drawers) | Solution | `Drawers_0` | Bottom Drawer, Center Tiles, Heart, Left Drawer, Right Drawer, Top Drawer |
 | Tackle Box (Cupboards and Drawers) | Solution | `Supplies-Draggables_0` | Bugs Draggable Ordered, Supplies, Weight |
@@ -252,9 +256,9 @@ with Shuffle (`Shuffle_1`).
 | Jewelry Box (Cupboards and Drawers) | Solution | `Drawers_0` | Brooches, Cameos, Gold Bars, Locket, Radiolaria, Rings, Watches |
 | Daggers (Cupboards and Drawers) | Solution | `Drawers_0` | - |
 | Trophy Cabinet (Cupboards and Drawers) | Solution | `Cupboard_0` | Cupboard Doors, Items Placements |
-| Nesting Boxes (Cupboards and Drawers) | Solution | `BoxOrganizer_0` | Box Organizer, Boxes, Cat Organizer |
+| Nesting Boxes (Cupboards and Drawers) | Solution | `BoxOrganizer_0` | Box Organizer, Cat Organizer |
 | Nested Drawers (Cupboards and Drawers) | Solution | `Drawers_0` | - |
-| Boss (Cupboards and Drawers) | Solution | `KeysDraggables_0` | Dining Room, Drawer, Keys, Landscape, Parking Lot |
+| Boss (Cupboards and Drawers) | Solution | `KeysDraggables_0` | Dining Room, Keys, Landscape, Parking Lot |
 
 ### Seeing Stars (37 puzzles)
 

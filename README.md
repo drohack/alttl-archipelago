@@ -41,7 +41,7 @@ rather than two.
   own skip does nothing (the generated puzzles, in a run), the mod clears it
   and takes you back to the level select. It finishes the puzzle and counts
   toward the goal, and it fills in every check on it - so a skipped puzzle is
-  starred as well as beaten.
+  beaten and all its stars light.
 - **Hint Pages.** Without one the notepad still opens; you just cannot erase
   the scribble.
 - **Cat Trap.** The cat walks through an active puzzle and knocks your
@@ -101,15 +101,21 @@ without revisiting the puzzle.
   it can, red when none of it can yet (beaten or not - hover the card for its
   stars, or read the beaten count in the corner), and a star when there is
   nothing left.
+- **The strip along the bottom** of the level select maps those badges, one
+  square per card in the same colours; a pack not opened yet is plain
+  outlines.
 - **The ability strip** above, and **a progress counter** reading in the same
-  terms as the goal - starred or beaten, whichever this seed asked for.
+  terms as the goal - stars collected or puzzles beaten, whichever this seed
+  asked for.
 - **An Archipelago pane on the main menu** for the server (host and port
   together), slot name and password, so connecting never means editing a
   config file.
 - **Toasts** for every item sent to or from you, worded and coloured the way
   Archipelago's own text client shows them.
 - **Play and the next arrow** open the next puzzle the RUN wants, rather than
-  the next one in the campaign's order.
+  the next one in the campaign's order. With nothing playable yet, they and a
+  finished puzzle go straight to the level select, with a note that the run
+  is waiting on items.
 - **No Steam achievements.** While the mod is loaded the game's achievements
   and Steam stats are held back, run or no run: a run plays the game out of
   order and earns nothing they claim. `[Steam] AllowAchievements = true` in
@@ -119,11 +125,12 @@ without revisiting the puzzle.
 
 All set in the yaml. The ones that change a run most:
 
-- `goal` - `beat_levels` or `star_levels`, each with its own count
-  (`levels_to_beat`, `levels_to_star`).
 - `puzzle_count` - 10 to 130. The smallest run is two full packs of 5; the
   game's own campaign is 79, and past about 84 the level select's overview
   strip shrinks to fit.
+- `goal` - `beat_levels` (beat `levels_to_beat` puzzles, 50 by default) or
+  `collect_stars` (collect `stars_to_collect` stars, one per solution found,
+  65 by default - what 50 of a default run's 70 puzzles are worth).
 - `pack_size` - how many puzzles a pack opens, 5 to 20. Read it as a floor
   rather than a promise: packs grow together when yours would need more than
   the fourteen a run can carry.
@@ -148,18 +155,23 @@ All set in the yaml. The ones that change a run most:
 - `archive_packs` - which seasonal packs are in. Without DLC, jigsaws exist
   only in four of them, so dropping those four removes the mechanic and its
   item with it.
-- `generator_repeat_limit` - how often one generated puzzle may repeat.
+- `generator_repeat_limit` - how often one generated puzzle may repeat, 1
+  to 8 (8 by default; 0 in an older yaml means 8). Only generated puzzles
+  repeat; every other puzzle appears at most once.
 - `achievements` - off by default. On, the game's puzzle achievements (7 in
   the base game, 17 with both DLCs; Sweep Them On The Floor, Path of
   Destruction and Keep Away are left out) are checks when their puzzle is in the
-  run. They never hold progression and are outside the star and the Skip.
+  run. They are checks like any other: they can hold progression, a card's
+  star waits for them, and a Skip sends them.
 - `cupboards_and_drawers`, `seeing_stars` - the two DLCs, both off by default.
 
 **Both DLCs are supported, and both are off by default.** Cupboards and Drawers
 adds 25 puzzles and 32 solutions; Seeing Stars adds 37 puzzles and 100
 solutions - more alternate solutions than the whole base campaign, which makes
 it the one that changes a star goal most. Five of its puzzles are locked by the
-game behind a star total, and the mod opens those.
+game behind a star total, and the mod opens those. Each DLC has its own
+credits, and with one on, the run may end on them instead of the base game's:
+one is picked per seed, and the spoiler names it.
 
 Only the player needs the DLC: the generator does not, and the mod refuses a
 seed asking for one that is not installed rather than handing over a puzzle

@@ -132,7 +132,7 @@ page granted so you can look up a solution rather than fight it.
     python MultiServer.py --port 38281 ../testserver/out-container-dlc/AP_*.zip
 
     # 3. launch the game by running the exe directly, with no arguments
-    "G:/Games/Steam/steamapps/common/A Little To The Left/A Little To The Left.exe"
+    "<game>/A Little To The Left.exe"
 
 Connect as `droha`. Swap in `../testserver/out-container-base/AP_*.zip` for the
 base-game half.

@@ -255,10 +255,15 @@ a player takes, not a shortcut that skips it.
 
 - Play, the next arrow and the finish of the last playable puzzle all go to the
   level select when nothing is playable, with the toast `Nothing to play yet -
-  waiting on items`, by way of the title and its own Levels button. Checked
-  2026-09-27 by revoking every ability (DevTools `revoke:`) and finishing the
-  last open puzzle: a clean track, no title menu under it (`menus`), and a
-  card launched after it with one live level.
+  waiting on items`. After a puzzle it is the game's own post-level Level
+  Select (`navigation: the level select is up`); Play is already on the title
+  and presses its Levels, and the Daily page goes by the title. Checked
+  2026-09-28 on seeds of 10 puzzles in one pack, every location but the
+  targets' sent from the server (`/send_location`) and the later targets held
+  back with DevTools `revoke:`: two hand-made puzzles in a row, a generator
+  and a DLC1 puzzle each landed on the track with its Close button, no title
+  under it (`menus`), and the next card launched from it with one live level
+  (`livelevels`).
 - A finished run puzzle with nothing left to find moves on without showing the
   retry panel (a generator takes the game's own straight-on route); one with
   solutions left shows it. DevTools `trace:RetryMenu.ShowMenu,RetryMenu.NextLevel`

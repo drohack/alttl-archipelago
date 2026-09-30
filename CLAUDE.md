@@ -39,6 +39,9 @@ Keep it short: add a rule here as one line, never as a story.
 - **While droha plays, watch the log yourself:** start `tools/watch-handtest.py`
   in the background first (it wakes you on a crash, an error or `--until`), and
   read it before asking what happened (droha, 2026-09-26).
+- Every hand test: give the watcher the step's `--until` (a finish is
+  `'ended on'`) and arm the 10-minute heartbeat (section 4) too; on each wake,
+  say what the log shows before droha has to (droha, 2026-09-29).
 - Testing one level needs NO seed: DevTools `menu:title`, `boot:<index>`,
   `livelevels` (must be 1). DevTools logs `PartSolved  id=.. part=..` for every
   part the game solves; watch that, not the recorder, to see which checks fire.
@@ -116,7 +119,9 @@ Keep it short: add a rule here as one line, never as a story.
 
 ## 5. The game
 
-- Exe: `G:\Games\Steam\steamapps\common\A Little To The Left\A Little To The Left.exe`.
+- Exe: `<game>/A Little To The Left.exe`, `<game>` being `GameDir` in
+  `src/GameDir.props` (local, gitignored; the tools read it too). No player
+  names or PC paths in anything committed (droha, 2026-09-28).
   Start it directly with NO arguments (never `steam://`: family-shared, "no
   license"; Unity args pop a dialog). Both failures look like a hang.
 - Window: 720p for automated tests via DevTools `setres:1280x720`. The game
@@ -130,6 +135,9 @@ Keep it short: add a rule here as one line, never as a story.
 - Say before you launch or close the game, and close it when your testing is
   done. For a hand test, open it yourself too, including the fresh launch each
   level gets (droha, 2026-09-27: "i don't want to re-open every single time").
+- A hand test's game opens only once droha says "ready"; ask first, never
+  leave it open waiting (droha, 2026-09-29: "Don't leave the game open... I
+  wasn't there to test").
 - Compile checks: `bash tools/deploy.sh --no-kill` or `dotnet build -p:SkipDeploy=true`.
   A plain `dotnet build` deploys into droha's game whenever it is closed.
 - Cat traps are seed items at fixed locations, so the spoiler says which check

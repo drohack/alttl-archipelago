@@ -58,16 +58,19 @@ and writes it back changes nothing but what it meant to change.
   their ids are the same on every seed, by position ("Ordered_0",
   "Ordered_1"), even where the seed picks which sorting rules count. An
   entry may answer to several ids, `|`-separated: Books (Randomized)'s
-  second is `"Shuffle_1|Draggables_0"`, since a symmetric seed checks its
-  second solution with a second controller over the same books (`gensweep`
-  shows each controller's solutions after generation).
+  second is `"Shuffle_1|Draggables_0"`: a symmetric seed checks its
+  symmetric rule with a second controller over the same books (`gensweep`
+  shows each controller's solutions after generation). That rule may be
+  either of the two, so the mod first turns `Draggables_0` into the
+  symmetric rule's own entry from the seed's rules (`Endings.Canonical`);
+  the alternative answers only when they cannot be read.
 - `mergedParts`: `{"part name": [controllers]}`, several groups checked as
   one part (Medicine Cabinet's "Red Items", Mirror's "Still Life" and
   "Little Things").
 - `solutionOnlyParts`: part names done only as part of the Solution - still
   a group, so the level keeps its other part checks and the group's
   abilities stay in the Solution, but no check of its own (Mirror's "Little
-  Things", droha 2026-09-28). Not `notALocation`: a level left with one group
+  Things", Breadtags' "Crumbs" and "Interlocking", droha 2026-09-28). Not `notALocation`: a level left with one group
   mints no part check at all.
 - `finishesAlone`: controllers whose group, forced alone, finished the level
   (`groups` in `fixtures/forceability.jsonl`). Only there does an ending

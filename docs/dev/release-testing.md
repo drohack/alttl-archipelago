@@ -448,7 +448,7 @@ name, and press Connect.
 
 | Claim | Where you see it |
 |---|---|
-| the mod loaded | `features live: save redirect, connection pane, track, skips, hints, navigation, daily guard, title screen, ability locks, card stars, success stars, retry panel, steam achievements, cursor guard` in `BepInEx/LogOutput.log`, and no `PATCH FAILED` |
+| the mod loaded | `features live: save redirect, connection pane, track, skips, hints, navigation, daily guard, title screen, ability locks, card stars, overview strip, success stars, retry panel, steam achievements, cursor guard` in `BepInEx/LogOutput.log`, and no `PATCH FAILED` |
 | the seed came through | `connected. 15 puzzles, 2 packs of 5, beat 15 to unlock the credits` |
 | the track is gated | `track: 15 puzzles, 5 open, 2 packs` - five of fifteen, not all fifteen |
 | checks reach the server | `checks: sent 1, 0 still owed` |

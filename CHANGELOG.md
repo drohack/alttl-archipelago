@@ -9,12 +9,158 @@ refuses to connect to a seed a different apworld generated.
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+**New seeds only.** The goal options changed and location ids moved: a
+0.4.3 seed stays on 0.4.3.
+
+- **The star goal counts stars** (droha: "levels_to_star is not right, it's
+  number of solutions"). `goal: collect_stars` wants `stars_to_collect`
+  stars, one per solution found - the stars the level select counts in each
+  pack's header - instead of puzzles with every check done. The logic
+  counts them with a Star event beside every solution, carrying that
+  solution's rule (events have no id, so no location id moves); the mod's
+  counter sums the cards' hover stars. `star_levels` still loads as an
+  alias; `levels_to_star` is gone.
+- **Defaults:** `levels_to_beat` 50 (was 40); `stars_to_collect` 65, what
+  50 of a default run's 70 puzzles are worth - a default run holds 91.5
+  stars on average (84 to 100 over 200 generated seeds). The most any run
+  can hold is 279, so the range is 1 to 300, clamped to the run's stars.
+- **`puzzle_count` comes first** in `player.yaml` and the options page,
+  above the goal ("it's more important").
+- **`player.yaml` is shorter, in a new order** (droha: the comments were
+  "just enough to not want to read them fully"): the run (size, packs,
+  goal), DLC, where the puzzles come from, abilities, then items and checks,
+  243 lines to 166. The full text stays on the options page, whose groups
+  now follow the same order. Then droha's review: that only a generated
+  puzzle repeats is said once for every source, `mechanic_coverage` and
+  `generator_repeat_limit` are plainer, and a Skip is every check on the
+  puzzle, not only "beaten".
+- **Achievements can hold progression** (droha: "why do achivements
+  never hold anything the run needs? then what's the point of enabling
+  them?"). With `achievements` on they are checks like any other: the
+  fill may put anything there, a card's star and badge count them, and a
+  Skip sends them, so a hard one never has to block a run. They were
+  kept to filler until each had been seen to fire in a run; all 17 have
+  (2026-09-28). Each still needs every mechanic its puzzle uses. Of six
+  campaign-heavy both-DLC seeds, five put progression on them (Draw Me A
+  Rainbow holding a Puzzle Pack, Exacting Eggs holding Stacking).
+- **`generator_repeat_limit` is 8 by default**, the most there is; 0,
+  the old default, still means 8, so no draw moves.
+
+### From the 0.4.3 run (droha and a second player, 2026-09-28)
+
+- **A pack not opened yet is outlines on the overview strip, copies too**
+  (droha: "we fixed their big counterpart in the level select screen, but
+  not the scroll bar"). The game draws each square from its level's save
+  row, which every copy of a level shares, so a copy of an open puzzle was
+  filled in a shut pack: all six filled squares in droha's shut packs were
+  such copies. 0.4.3 fixed the cards; the strip now gets the same after the
+  game draws it (`UpdateOverviewAppearance`, `OverviewItemUnlock`), keeping
+  each square's chalk variant, in the game's plain colour. `features live`
+  gains `overview strip`. Checked in game on the run's own seed, served
+  fresh over droha's finished save (the opening open, 65 squares shut):
+  0 filled and all white; before the colour, 35 of them were cream. And
+  with a pack arriving mid-session, on the track and inside a puzzle
+  (2026-09-29): the new pack painted, every square still shut an outline.
+  The pack's rebuild runs the game's `LayoutOverview` and
+  `UpdateOverviewAppearance` (DevTools `trace:`), so the redraw is done
+  after the game's.
+- **Books (Randomized) stays locked without Swapping on every seed.** On
+  a seed with a symmetric rule its second controller, Draggables, holds
+  the same 11 books and needs nothing, so it freed them all and a player
+  without Swapping could do the puzzle ("1 locked, 1 open"; 21 of 40
+  seeds). It now locks as Shuffle does (`ObjectLock.LockedAs`). Checked
+  in game on the run's slot 62 (seed 945554386) without Swapping: "2
+  locked, 0 open", all 22 book entries dimmed and not interactive; with
+  Swapping sent, "0 locked, 2 open" and the colours back. droha's hand test
+  there: the books greyed and would not move; with Swapping, each rule filed
+  its own Solution.
+- **Books (Randomized) files its symmetric rule where the seed put it**
+  (droha: "i think it has the same id or something for both solutions").
+  A seed with a *_SYMMETRIC rule checks that rule with a second controller,
+  and its ending `Draggables_0` was always filed as Solution 2. 16 of 40
+  swept seeds put the symmetric rule first, and there both rules landed on
+  Solution 2: droha's and the second player's copies, both rules done, one
+  check each (their seeds' rules read with the new DevTools `rules`). The
+  mod now reads the seed's two rules from the level when it finishes
+  (`Endings.Canonical`).
+- **With a DLC on, the run may end on that DLC's credits** (droha: "if
+  they are enabled it should randomize which credits is played at the
+  end"). The game has three finales, `Credits`, `DLC1 Credits` and `DLC2
+  Credits`; the generator picks one per seed among the base game's and the
+  enabled DLCs' (slot_data `credits`, "Finale:" in the spoiler), from a
+  generator of its own so no other draw moves, and the track's last card is
+  that one. A 0.4.3 seed keeps the base game's. The release gate clicks the
+  seed's finale. Checked in game (a 10-puzzle both-DLC seed picking DLC2
+  Credits, Steam on): "the run ends on DLC2 Credits (level 1233)", the card
+  plays, the goal is reported, and leaving it from the pause menu lands on
+  the run's track. Played to their end, untouched, DLC1's credits (about
+  three minutes) and DLC2's (217 s) land on the run's track too. Two bugs
+  found on the way and fixed: the
+  finale was read before the seed was set, and a DLC's credits are not in
+  the list the base game's are found in.
+- **The credits card starts as soon as the goal is met.** Met by a
+  location the server sent while the player sat on the level select, the
+  card selected and did not start until the menu was reopened: its save
+  row, which is what lets it start, was written only on a pack, a menu
+  opening or the run's start. It is written when the goal is met now, and
+  never before: at a run's start the goal used to be read before the seed
+  was set, which drew the card open with puzzles still owed. Checked in
+  game on a DLC1 Credits seed: the server's location met the count, "the
+  credits are playable - their card is open", and a click started them;
+  holding Credits with the count unmet, the card stayed locked, across a
+  relaunch too.
+- **No "play them to finish the run" toast once the credits are played.**
+  Every session start of a finished run said it, offline and online (the
+  second player's offline start of their finished 0.4.2 run). Checked in
+  game on the offline start of a finished run. The takeover's "the Credits
+  item arrived" line, logged when the item had gone rather than come, is
+  gone with the check that wrote it.
+- **Nothing playable after a puzzle goes straight to the level select**
+  (droha: "it first goes to the main menu? it should hopefully go
+  directly to the level select"). The finished puzzle leaves through the
+  game's own post-level Level Select, the same call the title's Levels
+  makes, instead of the title screen and its Levels. A generator takes
+  that route too when nothing else is playable, rather than the Daily
+  page. The title route stays for the Daily page, and as the fallback
+  when the level select does not open. Checked in game: hand-made
+  puzzles (two in a row), generators and DLC1 puzzles each landed on the
+  track with its Close button and no title under it, and the next card
+  launched from there.
+- **The Seeing Stars Boss files every ending it found at its finish.** Its
+  Lock and Compass endings reach the save as those phases are solved, and
+  only the Knife comes with the completion, so one playthrough found all
+  three and filed one until the Boss was opened again (droha's hand test,
+  2026-09-28). The finish now reads the save first, and the card shows
+  3 of 3 with no retry panel. Checked in a run with the two phase endings
+  written into the save the game's way (DevTools `marksolved:`).
+- **Each finish logs the ending the game named and where it went**
+  ("checks: slot N ended on '<id>' -> <location>", or "... again - nothing
+  new"). The second player's Books (Randomized) finished twice with one Solution check
+  in, and nothing in a player's log could say which ids came.
+- **Four parts that never fire are no longer checks** (droha: "yes
+  remove the ones that never fire"): Lunch Tray's Trays, Fossils' Drawers,
+  Nesting Boxes' Boxes and the Boss's Drawer (Cupboards and Drawers).
+  Their drawer controllers never report a solve in play (droha's
+  recordings, both players' runs, and droha's full play of the Boss on
+  2026-09-29), so what was placed there came only with the goal's
+  release: the second player's green Fossils and Lunch Tray cards. Now
+  `notALocation`, like the other 13 drawer controllers. Three other parts
+  nobody had seen solve were played the same day and do fire: Fountain
+  Pens' caps, Junk Drawer 2's Shuffleables, Material Drawers' Drawer
+  Draggables.
+- **Breadtags is just its Solution** (droha: "combine/remove the breadtags
+  order, and just have the solution"). Crumbs and Interlocking are part
+  of the Solution, no check of their own, so one finish is one check.
+  Location ids moved: base 401 -> 385, DLC1 114 -> 110.
+
 ## 0.4.3 - 2026-09-28
 
 **New seeds only.** A new item, new locations and a changed draw: a 0.4.2 seed
 stays on 0.4.2.
 
-### From the 0.4.2 two-player playtest (droha and Kat, 2026-09-27)
+### From the 0.4.2 two-player playtest (droha and a second player, 2026-09-27)
 
 - **Nothing playable goes to the level select.** When no open card has
   anything the run can do, the next arrow, a finished puzzle and the daily
@@ -60,7 +206,7 @@ stays on 0.4.2.
   last controller, not its first: placing the cup no longer sent "Red Items"
   (checked in game, filed as the seventh went in).
 - **Media Cabinet (Cupboards and Drawers) no longer waits for Drawer**
-  (playtest item 9). Kat finished it without Drawer and its Solution was
+  (playtest item 9). The second player finished it without Drawer and its Solution was
   withheld; droha's hand test (2026-09-28, holding only Ordering and
   Stacking) finished all four parts and the level the same way. Drawer is
   now in `bypassedAbilities`: the Solution and Beaten need Ordering and
@@ -195,7 +341,7 @@ stays on 0.4.2.
 
 ### Logic from the first two-player multiworld
 
-droha and Kat played a 0.4.1 multiworld on 2026-09-25 and found parts the card
+droha and a second player played a 0.4.1 multiworld on 2026-09-25 and found parts the card
 offered that could not be done. Each now waits for what it physically needs
 (`tools/add-edges.py`, evidence in `proven-requirements.json`):
 
@@ -246,18 +392,18 @@ logic. On droha's word they no longer need Drawer:
 Four DLC levels are drawn at most once: DLC1 Trophy Cabinet and DLC2 Water
 Glasses, Figurines and Bread Crusts. The game marks them randomizable, but the
 seed does not change their layout - droha found duplicates "exactly the same",
-though Kat's log shows each copy launched with its own seed. Measured on all
+though the second player's log shows each copy launched with its own seed. Measured on all
 20 randomizable levels with two seeds each: only these four keep their layout. They still launch
 seeded, as before; their later copies' locations are gone (DLC1 136 -> 115,
 DLC2 260 -> 141), so every DLC location id after them moved.
 
-Kat's log also showed Pantry and Trophy Cabinet finished with nothing locked
+The second player's log also showed Pantry and Trophy Cabinet finished with nothing locked
 before Drawer arrived, and Figurines' solutions and sorting done before
 Sticking, each Solution withheld. Their extra Drawer, and Figurines' Sticking,
 are bypassed like Medicine Cabinet's below.
 
 Medicine Cabinet goes the other way: its Solution and Beaten no longer ask for
-Drawer. Kat finished the whole level without it, after droha's four runs had
+Drawer. The second player finished the whole level without it, after droha's four runs had
 fired every group without it. The Drawer is bypassed rather than deleted, so
 the draw - and every frozen plan in `fixtures/plan-0.3.4.json` - is unchanged.
 
@@ -379,7 +525,7 @@ and compares the two, object by object.
 On a level whose own ending is the three-button panel, with nothing left to
 find, the mod presses the arrow for you. It pressed `ReplayMenu.NextLevel`, a
 menu that is not on screen, and the real panel stayed up over the next puzzle
-(droha, twice; in Kat's log the automatic arrow reached the next puzzle 6
+(droha, twice; in the second player's log the automatic arrow reached the next puzzle 6
 times in 37). Calling `RetryMenu.NextLevel` left it up too. The mod now waits
 until the panel has finished showing, then clicks its Continue button through
 the EventSystem, as a pointer does. Checked in game: Cookies Jigsaw, then
@@ -413,14 +559,14 @@ said "credits: played to the end" now says so.
 ### The credits card is on the track from the start
 
 It appeared only once the Credits item arrived, and then already filled in:
-Kat, with 68 of 40 beaten, never saw it until the item came (droha,
+The second player, with 68 of 40 beaten, never saw it until the item came (droha,
 2026-09-26: "It should always show the outline version"). It is now the last
 card from the start, drawn locked until the item is held and enough puzzles
 are beaten; a click says which of the two is missing.
 
 ### No Steam achievements while the mod is loaded
 
-Kat got Steam achievements playing the run's credits. A run plays the game out
+The second player got Steam achievements playing the run's credits. A run plays the game out
 of order, with skips and other players' items, so it earns nothing an
 achievement claims. The mod now stops the game's achievements and Steam stats
 at Steamworks (one call site each in the game, so every route), and logs what
@@ -428,8 +574,8 @@ it withheld. `[Steam] AllowAchievements` turns them back on.
 
 ### Checks sent for you mid-session reach the cards
 
-droha sent a location for Kat with `/send_location` and her card did not
-change until she reconnected: the server's checked list was read only at
+droha sent a location for the second player with `/send_location` and their card did not
+change until they reconnected: the server's checked list was read only at
 login. The mod now takes the server's updates as they arrive. Checked in
 game: a release mid-session arrived as "the server marked 35 more
 location(s) checked", and every card with a Solution turned done.
@@ -462,7 +608,7 @@ checked the seed. So a seed the mod refused (built for a DLC droha did not
 have) still delivered its Jigsaw into the offline run on screen, with a toast.
 And every reconnect handled the item replay before loading the run state
 that counts traps already sprung: "26 cat(s) found nothing to knock over",
-then "25 trap(s) already sprung" (droha; 40 in Kat's log). On the title
+then "25 trap(s) already sprung" (droha; 40 in the second player's log). On the title
 screen they hit nothing; in a level they would have reset it. The session's
 events are now held until the login is accepted, then delivered in one step:
 items, then the run, then the rest. Checked in game: a refused seed logged
@@ -473,7 +619,7 @@ three refusals and no item, toast or trap.
 A part solved before its ability arrives is withheld, and the log promised
 "it will be filed on a later visit once the item arrives". Nothing remembered
 it: the game rebuilds the level unsolved, so a later visit had nothing to
-file. Kat's Figurines "Sorting Items" was withheld on both copies and never
+file. The second player's Figurines "Sorting Items" was withheld on both copies and never
 sent after Sticking came. Withheld checks are now kept in the run file and
 sent as soon as the run can reach them, even without revisiting.
 

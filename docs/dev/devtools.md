@@ -163,7 +163,7 @@ Files it writes, all in `<game>/BepInEx/`:
 | `sections` | Log the level-select sections (title, start, colour) and every track icon's lock state, and whether the track read is the one on screen |
 | `iconinfo:<position>` | One card's child tree, with components, sizes and sibling order, and `isOn` for a Toggle - a card's solution stars are Toggles |
 | `why:<position>` | Ask the mod to explain the badge on the card at that track position - which locations it counts and which it thinks are blocked. **The mod only answers with `[Diagnostics] BadgeWhyProbe = true`** in its config; otherwise the request sits unread in `alttl-why.txt` |
-| `creditscard` | The credits card's unlock state and the names of its own locked and unlocked sprites |
+| `creditscard` | The credits card's unlock state and the names of its own locked and unlocked sprites. The card on the track - the seed's finale, a DLC's credits included - or, with no track up, the base game's |
 | `starcalls` | How many times the game's own card-star methods (`LevelIcon.SetCompletionStars`, `InitIconSolutionStars`) ran since the last `starcalls`; then zero the counts |
 | `skiptip` | Force the level-select skip prompt on screen and report what it reads |
 
@@ -232,6 +232,7 @@ These three write the campaign save. `unlocks` only reads it.
 | `solutions` | Load every level prefab in turn and record its object controllers and solution ids to `alttl-solutions.tsv` |
 | `levelsweep` / `levelsweep:<i1,i2,...>` | Boot every level (or just those indices) in turn and record its RUNTIME controllers to `alttl-levels.json`. MERGE that into `apworld/alttl/data/levels.json` with `tools/merge-levels.py` rather than copying it over - a fresh sweep regresses the hand-audited phased levels. See `docs/dev/level-data.md` |
 | `gensweep:<seeds>[:<index>]` | Regenerate every randomizable level (or just that one) under that many seeds (default 6, at most 100) and record how its layout varies, to `alttl-generators.tsv`: controllers, the rules chosen, and each controller's solution lists after generation (an ending's id is the controller's name and the entry it matched). `gensweep:6:28` sweeps Breadtags six times |
+| `rules` | gensweep's row for the level on screen, on whatever seed it has - gensweep only regenerates its own fixed seeds. `boot:995:<seed>` then `rules` says which rules a Books (Randomized) seed chose, and so which one is symmetric |
 | `stop` | End the running sweep - `solutions`, `levelsweep` or `gensweep` - and write the rows it has so far |
 | `endings` | What screen every level finishes on, for all of them at once, as TSV in the log (the retry panel's authored and computed flags, silent completion) |
 | `achievements` | Every achievement the game has loaded (id, name, whether it reads as already met on this Steam profile, description), then every achievement checker in the scene - they live under `Game Manager/SteamDataTracker`, not in the level - with the achievement it awards and, one line each, the level it watches and its other settings. Read only |
