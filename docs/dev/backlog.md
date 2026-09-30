@@ -58,12 +58,12 @@ checked is in the CHANGELOG.
   where no teardown line prints; this one had it. The same level in a
   fresh launch played clean, which is why a hand test gets a fresh launch
   per level (CLAUDE.md, section 5). Harness only: a player never boots.
-  Seen again in the 0.4.5 full gate (2026-09-30 13:06): `boot:1020` tore
-  down an unfinished TupperwareNesting, and a tween callback of the old
-  level threw `ArgumentException: An item with the same key has already
-  been added` three times, keyed by its own Stack 1, Stack 2 and Tray.
-  These reach Player.log only, so the gate's "no unexplained errors" check
-  (LogOutput.log) does not see them.
+  Not this cause, though it looked like it: the `ArgumentException: An item
+  with the same key has already been added` (keys Stack 1, Stack 2, Tray) in
+  both 2026-09-30 full gates follows the gate's forced solves on
+  TupperwareNesting (`solve:` lines just before it), not a boot. On be.755's
+  Thunderstore pack (WriteUnityLog) it reaches LogOutput.log; the gate lists
+  it as known (release_e2e.KNOWN_ERRORS). A player never forces a solve.
 
 - **Books (Randomized) finishing on its Draggables rule** (0.4.2 playtest;
   investigated 2026-09-28). Not a stray controller: on symmetric seeds the

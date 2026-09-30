@@ -185,8 +185,8 @@ Full detail, including every option and what each item does:
 ## Install
 
 1. **BepInEx 6 (IL2CPP)**: unzip
-   [BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.697](https://builds.bepinex.dev/projects/bepinex_be/697/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.697%2B5362580.zip), the build the mod
-   is tested with, into the game folder - the one containing
+   [BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.755](https://builds.bepinex.dev/projects/bepinex_be/755/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.755%2B3fab71a.zip), the build the mod
+   is tested with (be.697 also works), into the game folder - the one containing
    `A Little To The Left.exe`.
 2. **First launch**: start the game, wait for the main menu, quit. This launch
    is slow because BepInEx is generating interop assemblies.

@@ -75,6 +75,12 @@ intermittent set, in `BepInEx/config/BepInEx.cfg`:
 
 `harness_env` does not snapshot that file, so the setting sticks.
 
+Thunderstore's BepInExPack_IL2CPP also sets `WriteUnityLog = true` there,
+which copies Unity's own log, the game's exceptions included, into
+`LogOutput.log`. Under it the gate's "no unexplained errors" check sees
+game exceptions that otherwise reach only Player.log; `KNOWN_ERRORS` in
+`release_e2e.py` lists the ones the harness itself causes.
+
 ### Launching and deploying
 
 Run the executable directly, with no arguments. `steam://` refuses this

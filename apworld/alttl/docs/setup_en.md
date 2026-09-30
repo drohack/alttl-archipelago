@@ -7,8 +7,8 @@
   default** - see DLC below.
 - The A Little to the Left Archipelago mod, from the
   [releases page](https://github.com/drohack/alttl-archipelago/releases).
-- [BepInEx 6 for Unity IL2CPP, x64, build be.697](https://builds.bepinex.dev/projects/bepinex_be/697/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.697%2B5362580.zip), the build the
-  mod is tested with.
+- [BepInEx 6 for Unity IL2CPP, x64, build be.755](https://builds.bepinex.dev/projects/bepinex_be/755/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.755%2B3fab71a.zip), the build the
+  mod is tested with (be.697 also works).
   **This is a separate download - the mod release does not include it.** It
   must be BepInEx 6, not BepInEx 5: the game is Unity 2020.3.26f1 / IL2CPP and
   BepInEx 5 will not load it.

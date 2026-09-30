@@ -9,6 +9,23 @@ refuses to connect to a seed a different apworld generated.
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+- **Tested on BepInEx be.755**, the build Thunderstore's BepInExPack_IL2CPP
+  6.0.755 ships, and the docs now name it. be.697 still works: 0.4.5 as
+  released loads on be.755, and a be.755 build loads on be.697, every
+  feature live either way. Checked on be.755 with its own
+  `BepInEx.cfg`: `tools/probe-trap-window.py` 9 of 9, `tools/probe-dlc.py`,
+  and the full gate 27 of 28, the miss being check 10 below.
+  - The daily guard looks its three types up in the game's own assembly.
+    `AccessTools.TypeByName` scanned every assembly, and be.755's generated
+    UnityEngine.CoreModule holds three types that will not load, so every
+    start logged a HarmonyX warning.
+  - The gate lists as known the `same key has already been added` errors
+    its own forced solves on TupperwareNesting cause. They happen on be.697
+    too; the pack's `WriteUnityLog = true` is what brought them into
+    LogOutput.log.
+
 ## 0.4.5 - 2026-09-30
 
 From an audit of 0.3.0 to 0.4.4 against every surviving log (2026-09-29),

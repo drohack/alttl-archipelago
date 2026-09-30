@@ -23,11 +23,13 @@ that are probably fine.
 
 The mod is a BepInEx plugin, so BepInEx has to be there first.
 
-1. Get **BepInEx 6 for Unity IL2CPP, x64**, build be.697 - the one the mod
-   is tested with:
-   [BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.697](https://builds.bepinex.dev/projects/bepinex_be/697/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.697%2B5362580.zip).
+1. Get **BepInEx 6 for Unity IL2CPP, x64**, build be.755 - the one the mod
+   is tested with, and the one Thunderstore's BepInExPack_IL2CPP 6.0.755
+   ships:
+   [BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.755](https://builds.bepinex.dev/projects/bepinex_be/755/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.755%2B3fab71a.zip).
    Not BepInEx 5: the game is Unity 2020.3.26f1 / IL2CPP, and BepInEx 5 will
-   not load it. Newer bleeding-edge builds have not been tested.
+   not load it. Already on be.697, the build earlier releases named? It
+   still works; there is no need to reinstall.
 2. Extract it into the game folder: the one containing
    `A Little To The Left.exe`. On Steam that is usually
    `steamapps/common/A Little To The Left`.
