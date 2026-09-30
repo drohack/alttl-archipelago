@@ -1,10 +1,14 @@
 """Watch the game while droha hand-tests: each useful log line as it arrives,
 and a crash the moment the game dies.
 
-    PYTHONUNBUFFERED=1 py -3.13 -u tools/watch-handtest.py [--minutes 15] [--until REGEX] > watch.out 2>/dev/null
+    PYTHONUNBUFFERED=1 py -3.13 -u tools/watch-handtest.py [--minutes 15] [--until REGEX]
+        [--errors-only] [--wait-for-game SECONDS] 2>/dev/null
 
-Run it with run_in_background before asking droha to play. It exits, and so
-wakes the session, on the first of:
+Run it with run_in_background before asking droha to play. Beside a probe
+that prints its own progress, pass --errors-only (nothing is printed until a
+crash, an error or the end, so the probe's lines stay the ones on screen) and
+--wait-for-game 300 (start it before the probe launches the game). It exits,
+and so wakes the session, on the first of:
   - the game closing or crashing (the Windows crash record is printed if any),
   - an Error, Fatal or Exception line from any plugin,
   - an exception from the GAME in Unity's Player.log, with the top of its
@@ -102,8 +106,17 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--minutes", type=float, default=15)
     ap.add_argument("--until", default=None, help="stop when a log line matches this regex")
+    ap.add_argument("--errors-only", action="store_true",
+                    help="print only error lines and the end, beside a probe that reports progress")
+    ap.add_argument("--wait-for-game", type=float, default=0,
+                    help="seconds to wait for the game to start before giving up")
     args = ap.parse_args()
     until = re.compile(args.until) if args.until else None
+    keep = STOP if args.errors_only else KEEP
+
+    waited = time.time()
+    while not game_running() and time.time() - waited < args.wait_for_game:
+        time.sleep(2)
 
     since = time.strftime("%Y-%m-%d %H:%M:%S")
     start = time.time()
@@ -113,8 +126,9 @@ def main():
     kept = 0
     checked = 0.0
     matched = None  # (clock, deadline) once --until matched
-    say(f"watching the log, Unity's Player.log and the game for {args.minutes:g} min"
-        + (f", until /{args.until}/" if until else ""))
+    if not args.errors_only:
+        say(f"watching the log, Unity's Player.log and the game for {args.minutes:g} min"
+            + (f", until /{args.until}/" if until else ""))
     if not game_running():
         print("Done: the game is not running", flush=True)
         return 1
@@ -126,7 +140,7 @@ def main():
                 say(short(line)[:240])
                 matched = (now(), time.time() + 2)
                 continue
-            if not line or DROP.search(line) or not KEEP.search(line):
+            if not line or DROP.search(line) or not keep.search(line):
                 continue
             kept += 1
             say(short(line)[:240])

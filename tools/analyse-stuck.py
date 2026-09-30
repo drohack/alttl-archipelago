@@ -38,6 +38,8 @@ sys.path.insert(0, TOOLS)
 import release_e2e as e2e                                  # noqa: E402
 
 REPORT = os.path.join(e2e.REPO, "testserver", "logs", "blocked-report.json")
+PROVEN = os.path.join(e2e.REPO, "apworld", "alttl", "data",
+                      "proven-requirements.json")
 
 
 def main():
@@ -48,6 +50,8 @@ def main():
         raise SystemExit(f"{REPORT} is missing - run tools/probe-blocked.py")
     with open(REPORT, encoding="utf-8") as fh:
         report = json.load(fh)
+    with open(PROVEN, encoding="utf-8") as fh:
+        proven = set(json.load(fh).get("proven", {}))
 
     by_index = {l.level_index: l for l in data.LEVELS}
     hits, stuck_total, dropped_equal = [], 0, 0
@@ -71,7 +75,7 @@ def main():
             hits.append((level.level_id, name, group["controller"],
                          group["stuck"], group["objects"], sorted(own),
                          sorted(whole - own),
-                         bool(level.unproven_parts), level.dlc or "base"))
+                         level.level_id in proven, level.dlc or "base"))
 
     print(f"{stuck_total} stuck group(s) in the sweep", flush=True)
     print(f"   {dropped_equal} already ask for everything their level does - "
@@ -80,20 +84,19 @@ def main():
           flush=True)
     print("", flush=True)
 
-    unguarded = [h for h in hits if not h[7]]
-    print(f"{len(unguarded)} of them are NOT covered by the guard today:",
+    untested = [h for h in hits if not h[7]]
+    print(f"{len(untested)} of them are on a level with no hand test recorded:",
           flush=True)
     print("", flush=True)
-    for lid, grp, _ctrl, stuck, objs, own, missing, guarded, dlc in sorted(
+    for lid, grp, _ctrl, stuck, objs, own, missing, tested, dlc in sorted(
             hits, key=lambda h: (h[7], h[8], h[0])):
-        mark = "  " if guarded else "! "
+        mark = "  " if tested else "! "
         print(f" {mark}{lid:30} {grp:24} {stuck:3}/{objs:<4} "
               f"{str(own):24} misses {missing}", flush=True)
 
     print("", flush=True)
-    print("Done: lines marked ! have no guard, so progression can land on "
-          "them today. Each is a candidate to play, not a proven gate.",
-          flush=True)
+    print("Done: lines marked ! are on a level no hand test has settled. Each "
+          "is a candidate to play, not a proven gate.", flush=True)
     return 0
 
 

@@ -50,7 +50,7 @@ ladder in the repo's `CLAUDE.md`.
 | `handtest-level.py` | yes | One level, holding exactly the abilities named; `--grant` more mid-test, `--achievements` for achievement checks |
 | `handtest-queue.py` | yes | The queue of levels still to check, and a driver for it |
 | `handtest.py` | yes | Serve a seed (`--serve`) for a reachability hand test |
-| `watch-handtest.py` | reads log | Wake on a crash, an error, or the step's `--until` line while someone plays |
+| `watch-handtest.py` | reads log | Wake on a crash, an error, or the step's `--until` line while someone plays; beside a probe, `--errors-only --wait-for-game 300` stays silent unless something breaks |
 | `make-playtest-seed.py` | no | A broad seed for a human playtest, with what is in it |
 | `record-unlocks.py` | yes | Record what unlocks what while a person plays one level |
 | `analyse-unlocks.py` | no | Turn those recordings into edge proposals |
@@ -93,7 +93,7 @@ ladder in the repo's `CLAUDE.md`.
 | `probe-offline-goal.py` | Does a run finished offline report its goal on reconnect? |
 | `probe-skip-beaten.py` / `probe-skip-path.py` | What a Skip does on a beaten puzzle; can the harness get past an unforceable one |
 | `probe-star.py` | What the save records when a level is finished |
-| `probe-trap-window.py` / `repro-trap-freeze.py` | The cat trap's load guard; the 0.3.1 trap freeze and its guard |
+| `probe-trap-window.py` / `repro-trap-freeze.py` | When a cat trap goes off: a settled puzzle, a load, a real straight-on finish, the retry panel, a level's own cat (the four `CatGrab` levels), the credits (own seed, muted, PASS/FAIL per case); the 0.3.1 trap freeze and its guard |
 | `probe-unblock.py` / `probe-unlock.py` | Which solve stops the game blocking others; lock, grant, solve |
 | `emptysoak.py` | Hammer level loads looking for the blank-level bug |
 | `offline_test.py` / `offline-reconnect-test.py` | A run survives the server going away; Connect during an offline run |

@@ -5,8 +5,8 @@
     py -3.13 tools/handtest-queue.py --next      set the next pending one up
     py -3.13 tools/handtest-queue.py --answer INDEX VERDICT NOTE
 
-WHY A QUEUE AND NOT A CONVERSATION. There are 31 levels carrying 122 guarded
-locations and exactly one of them had ever been checked. Doing that one level
+WHY A QUEUE AND NOT A CONVERSATION. On 2026-09-22 there were 31 levels
+carrying 122 part locations in doubt, and exactly one had ever been checked. Doing that one level
 at a time through chat is how a day disappears - droha said so, in those words.
 So the order is computed once, the setup is scripted, and the only thing a
 person supplies is the verdict.
@@ -95,19 +95,10 @@ DONE["DLC1 Clock Cupboard"] = (
     "2026-09-22 droha: \"i can move the clocks, but i can't open the cubbord "
     "to put the clocks in\". Items Placements now depends on the doors.")
 
-#: Holes the 2026-09-22 audit found OUTSIDE the guard: parts asking for less
-#: than their level, progression-eligible, and stuck at boot or progressive in
-#: shape. Each row is one hand test: hold exactly `hold`, answer `question`.
-#: The level set is pinned in test_unproven.UNGUARDED_UNDERSTATED. Worst first.
-#: Guarded by the level data itself (a bespoke level class), not by a suspect
-#: entry, so the suspect list alone does not name them.
-STRUCTURALLY_GUARDED = {"TupperwareNesting"}
-
-#: The only rows still worth a play, and why. Medicine Cabinet: proving it takes
-#: 15-puzzle base redraws from about 27% to 0% (measured). The Fridge: a
-#: single-group level, so no guard can cover its Solution at all.
-STILL_WORTH_PLAYING = {"MedicineCabinet", "SomethingEggstra Fridge",
-                       "DLC2 Music Box", "Workbench"}
+#: Holes the 2026-09-22 audit found: parts asking for less than their level
+#: and stuck at boot or progressive in shape. Each row is one hand test: hold
+#: exactly `hold`, answer `question`. test_requirements goes red on a part
+#: like these on a level with no proven entry. Worst first.
 
 AUDIT = [
     # FIRST: which of its two part checks fire (Organizer depends on
@@ -192,7 +183,6 @@ def build():
     # snapshot says about it.
     with open(PROVEN, encoding="utf-8") as fh:
         table = json.load(fh)
-    suspect = table.get("suspect", {})
     proven = table.get("proven", {})
 
     blocked = {}
@@ -212,7 +202,8 @@ def build():
         entry = {
             "levelId": c["levelId"],
             "levelIndex": c["levelIndex"],
-            "guarded": c["guarded"],
+            # The snapshot's count of this level's part locations in doubt.
+            "locations": c["guarded"],
             "gap": c["gap"],
             # Groups the GAME blocks with no ability lock anywhere near them.
             "gameBlocks": [g["controller"] for g in groups
@@ -228,19 +219,18 @@ def build():
             entry["note"] = "proven-requirements.json: " + proven[c["levelId"]]
         elif old.get(c["levelId"], {}).get("verdict", "pending") in (
                 "pending", "guarded"):
-            # Every candidate row was a GUARDED level when the snapshot was
-            # taken. One that is neither proven nor still guarded is back to
-            # needing a verdict.
+            # A level that is not proven needs a verdict. "guarded" is a
+            # verdict from before 2026-09-30, when the generator still kept
+            # progression off unproven parts; it settles nothing now.
             entry["verdict"] = "pending"
         elif c["levelId"] in old and old[c["levelId"]]["verdict"] != "pending":
             entry["verdict"] = old[c["levelId"]]["verdict"]
             entry["note"] = old[c["levelId"]]["note"]
         rows.append(entry)
 
-    # 28 audit levels were guarded instead of played on 2026-09-23, then all
-    # of them were played and proven the same day. A proven one is settled.
-    # The audit rows go FIRST and keep their order: they carry no guard, so a
-    # wrong one can end a run today.
+    # All 28 audit levels were played and proven on 2026-09-23. A proven one
+    # is settled. The audit rows go FIRST and keep their order: a wrong one
+    # can end a run.
     audit = []
     for level_id, index, hold, question in AUDIT:
         key = f"{index}:{'+'.join(hold)}"
@@ -248,23 +238,20 @@ def build():
         if level_id in proven:
             prior = {"verdict": "proven",
                      "note": "proven-requirements.json: " + proven[level_id]}
-        elif ((level_id in suspect or level_id in STRUCTURALLY_GUARDED)
-                and level_id not in STILL_WORTH_PLAYING
-                and prior.get("verdict", "pending") == "pending"):
-            prior = {"verdict": "guarded",
-                     "note": "guarded instead of played (proven-requirements.json)"}
+        elif prior.get("verdict") == "guarded":
+            prior = {}
         audit.append({
             "levelId": level_id, "levelIndex": index, "key": key,
-            "hold": hold, "question": question, "guarded": 0,
-            "gap": "unguarded: part asks for less than the level",
+            "hold": hold, "question": question, "locations": 0,
+            "gap": "part asks for less than the level",
             "gameBlocks": [], "probed": True,
             "verdict": prior.get("verdict", "pending"),
             "note": prior.get("note", ""),
         })
 
     # Worst first: a level the game already blocks is the strongest lead, then
-    # by how many guarded locations ride on the answer.
-    rows.sort(key=lambda r: (-len(r["gameBlocks"]), -r["guarded"], r["levelId"]))
+    # by how many part locations ride on the answer.
+    rows.sort(key=lambda r: (-len(r["gameBlocks"]), -r["locations"], r["levelId"]))
     rows = audit + rows
     with open(QUEUE, "w", encoding="utf-8") as fh:
         json.dump(rows, fh, indent=1)
@@ -278,7 +265,7 @@ def load():
         return json.load(fh)
 
 
-MARKS = {"pending": "  ", "gated": "G ", "free": "F ", "guarded": "g ",
+MARKS = {"pending": "  ", "gated": "G ", "free": "F ",
          "proven": "p ", "partial": "P ", "unclear": "? "}
 
 
@@ -286,7 +273,7 @@ def show(rows):
     done = [r for r in rows if r["verdict"] != "pending"]
     todo = [r for r in rows if r["verdict"] == "pending"]
     print(f"{len(done)} settled, {len(todo)} to go, "
-          f"{sum(r['guarded'] for r in todo)} guarded locations riding on them",
+          f"{sum(r['locations'] for r in todo)} part locations riding on them",
           flush=True)
     unprobed = [r for r in todo if not r["probed"]]
     if unprobed:
@@ -300,7 +287,7 @@ def show(rows):
             if len(r["gameBlocks"]) > 3:
                 blocks += f" +{len(r['gameBlocks']) - 3}"
         print(f" {MARKS.get(r['verdict'], '  ')}{r['levelIndex']:5} "
-              f"{r['levelId']:32} {r['guarded']:2} loc{blocks}", flush=True)
+              f"{r['levelId']:32} {r['locations']:2} loc{blocks}", flush=True)
         if r["note"]:
             print(f"        {r['note'][:96]}", flush=True)
         elif r.get("question") and r["verdict"] == "pending":
@@ -366,9 +353,9 @@ def main():
 
         print("=" * 68, flush=True)
         print(f"  {nxt['levelId']}   index {nxt['levelIndex']}, "
-              f"{nxt['guarded']} guarded location(s)", flush=True)
+              f"{nxt['locations']} part location(s)", flush=True)
         print("=" * 68, flush=True)
-        print(f"  suspect because: {nxt['gap'][:90]}", flush=True)
+        print(f"  in doubt because: {nxt['gap'][:90]}", flush=True)
         print("", flush=True)
         if nxt["gameBlocks"]:
             print("  The GAME blocks these, with no ability lock at all:",
