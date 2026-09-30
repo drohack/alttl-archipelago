@@ -143,8 +143,8 @@ public partial class DevToolsBehaviour
     /// <summary>
     /// "scrolltrack:N" scrolls the level select to the Nth card and reports
     /// how the icon is drawn (the game's unlocked flag and which art is on).
-    /// Written to look at cards in packs not yet opened (backlog item 8:
-    /// filled icons there) without a mouse to scroll with.
+    /// Written to look at cards in packs not yet opened (CHANGELOG 0.4.3,
+    /// "Cards in packs not opened draw locked") without a mouse to scroll with.
     /// </summary>
     private static void ScrollTrack(string arg)
     {

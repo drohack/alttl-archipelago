@@ -252,6 +252,7 @@ public partial class DevToolsBehaviour : MonoBehaviour
 
         TickWatch();
         TickFlip();
+        TickCatEvent();
         WatchTimeScale();
 
         // Re-asserted rather than set once. The game raises the listener back
@@ -607,10 +608,12 @@ public partial class DevToolsBehaviour : MonoBehaviour
             Cmd("flip", Areas.Objects, new[] { "flip:<name>[:<seconds>]", "flip:off" }, StartFlip),
             Cmd("tree", Areas.Objects, new[] { "tree:<name>" }, Tree),
             Cmd("layout", Areas.Objects, new[] { "layout:<tag>" }, DumpLayout),
+            Cmd("shove", Areas.Objects, new[] { "shove", "shove:<x>,<y>" }, Shove),
             Cmd("bounds", Areas.Objects, new[] { "bounds:<tag>" }, DumpBounds),
             Cmd("sharing", Areas.Objects, new[] { "sharing:new", "sharing:append" }, DumpSharing),
             Cmd("jiggle", Areas.Objects, new[] { "jiggle[:<n>]" }, JigglePieces),
             Cmd("cats", Areas.Objects, new[] { "cats" }, ListCats),
+            Cmd("catevent", Areas.Objects, new[] { "catevent[:info|grab|trigger|try|climb]" }, CatEvent),
 
             Cmd("hints", Areas.Hints, new[] { "hints" }, ReportHints),
             Cmd("hinttaken", Areas.Hints, new[] { "hinttaken" }, RaiseHintTaken),

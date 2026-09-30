@@ -897,6 +897,45 @@ public partial class DevToolsBehaviour
         => $"({v.x.ToString("F2")}, {v.y.ToString("F2")}, {v.z.ToString("F2")})";
 
     /// <summary>
+    /// `shove[:&lt;x&gt;,&lt;y&gt;]` - move every active piece of the running level by a
+    /// world offset (default 1.5, -1): a stand-in for a player's work before a
+    /// Cat Trap, so a reset has something to undo that a `layout:` diff and a
+    /// screenshot can see (tools/probe-trap-window.py case F). Not a drag:
+    /// nothing is snapped or placed, the pieces are simply elsewhere.
+    /// </summary>
+    private static void Shove(string arg)
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        var level = li == null ? null : li.Level;
+        if (level == null || level.allLevelObjects == null)
+        {
+            DevToolsPlugin.Log.LogWarning("shove: no level running");
+            return;
+        }
+
+        float dx = 1.5f, dy = -1f;
+        var parts = (arg ?? "").Split(',');
+        if (parts.Length == 2
+            && float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var x)
+            && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var y))
+        {
+            dx = x;
+            dy = y;
+        }
+
+        var objects = level.allLevelObjects;
+        var moved = 0;
+        for (int i = 0; i < objects.Count; i++)
+        {
+            var obj = objects[i];
+            if (obj == null || !obj.gameObject.activeInHierarchy) continue;
+            obj.transform.position += new Vector3(dx, dy, 0f);
+            moved++;
+        }
+        DevToolsPlugin.Log.LogInfo($"shove: moved {moved} of {objects.Count} piece(s) by ({dx}, {dy})");
+    }
+
+    /// <summary>
     /// Make the Archipelago mod treat these abilities as NOT held - its real
     /// lock, not a DevTools freeze - so one seed holding every ability can
     /// stand in for any held set in a hand test. `revoke:none` gives them all
