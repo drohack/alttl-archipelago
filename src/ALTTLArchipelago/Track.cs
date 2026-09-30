@@ -1479,13 +1479,17 @@ internal static class Track
 
             if (announce)
             {
+                // Stars on a collect_stars seed, puzzles otherwise.
+                var owed = Plugin.Seed != null && Plugin.Seed.GoalIsStars
+                    ? $"find {left} more star(s)"
+                    : $"beat {left} more puzzle(s)";
                 var why = !held && left > 0
-                    ? $"Find the Credits item and beat {left} more puzzle(s) to reach the credits"
+                    ? $"Find the Credits item and {owed} to reach the credits"
                     : !held
                         ? "Find the Credits item to reach the credits"
-                        : $"Beat {left} more puzzle(s) to reach the credits";
+                        : $"{char.ToUpperInvariant(owed[0])}{owed.Substring(1)} to reach the credits";
                 Plugin.Logger.LogInfo(
-                    $"track: credits locked ({(held ? "item held" : "no Credits item")}, {left} puzzle(s) to go)");
+                    $"track: credits locked ({(held ? "item held" : "no Credits item")}, {owed} to go)");
                 Toasts.Show(why, Toasts.Notice);
             }
             return true;
@@ -1568,6 +1572,10 @@ internal static class Track
     private static void BeforeStartLevel(
         ref int startLevelIndex, ref bool forceReload, ref int randomSeed)
     {
+        // Whatever launches is a puzzle again, a restart of the one just
+        // finished included (Core TrapTiming).
+        Traps.LevelStarting();
+
         if (_state == null) return;
 
         var manager = GameManager.Instance?.levelManager;

@@ -237,6 +237,7 @@ public sealed class Plugin : BasePlugin
                      ("title screen", typeof(TitleScreen)),
                      ("ability locks", typeof(AbilityLocks)),
                      ("card stars", typeof(CardStars)),
+                     ("section stars", typeof(SectionStars)),
                      ("overview strip", typeof(Badges)),
                      ("success stars", typeof(SuccessStars)),
                      ("retry panel", typeof(RetryPanel)),

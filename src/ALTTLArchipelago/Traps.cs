@@ -15,6 +15,10 @@ namespace ALTTLArchipelago;
 /// - so a trap that relied on it would do nothing on most of the run. This
 /// scatters the puzzle ourselves, which works everywhere.
 ///
+/// Where the level HAS a cat that takes things (a CatGrab: Stamps, Shells,
+/// Place Setting, MerryMess_Crackers), that cat reaches in first and the
+/// reset waits for its paw to leave. See StartLevelCat.
+///
 /// It UNDOES the puzzle rather than rearranging it, by calling the game's own
 /// ResetLevel - the same code behind the pause menu's Reset button. Three
 /// cleverer versions were tried and all three broke puzzles:
@@ -60,6 +64,8 @@ internal static class Traps
     {
         _applied = RunState.TrapsSprung;
         _completedAt = 0f;
+        _finished = false;
+        _grab = null;
     }
 
     /// <summary>
@@ -77,8 +83,26 @@ internal static class Traps
     /// </summary>
     private const float CompletionGrace = 3f;
 
+    /// <summary>
+    /// The launch on screen has completed, and nothing has launched since. A
+    /// latch rather than the clock alone: a generator's straight-on exit and a
+    /// player sitting on the retry panel both outlast the grace (Core
+    /// TrapTiming).
+    /// </summary>
+    private static bool _finished;
+
     /// <summary>Told by Checks when a level finishes.</summary>
-    internal static void NoteCompletion() => _completedAt = Time.unscaledTime;
+    internal static void NoteCompletion()
+    {
+        _completedAt = Time.unscaledTime;
+        _finished = true;
+    }
+
+    /// <summary>
+    /// Told by Track on every StartLevel - the next puzzle, a restart from the
+    /// retry panel, a trap's own reset: whatever launches is a puzzle again.
+    /// </summary>
+    internal static void LevelStarting() => _finished = false;
 
     /// <summary>
     /// Spring any traps that have arrived but not yet gone off.
@@ -90,9 +114,20 @@ internal static class Traps
     internal static void Tick(float dt)
     {
         TickPaw(dt);
+        TickLevelCat();
 
         var owed = Inventory.TrapsReceived - _applied;
         if (owed <= 0) return;
+
+        // A reset already waits behind the level's own cat, and one reset
+        // covers any number of cats (Spring).
+        if (_grab != null)
+        {
+            _applied += owed;
+            RunState.SpendTrap(owed);
+            _grabCats += owed;
+            return;
+        }
 
         // A trap that arrives outside a puzzle MISSES, rather than waiting.
         //
@@ -102,6 +137,15 @@ internal static class Traps
         // work that the game had already discarded. All it would do is announce
         // a setback that did not happen.
         var active = GameManager.Instance?.levelManager?.ActiveLevelInterface;
+        var level = active?.Level;
+        var moment = TrapTiming.For(
+            inALevel: active != null,
+            settling: active != null && (!active.LevelIsLoaded || active.IsTransitioning),
+            hasObjects: level != null && level.allLevelObjects != null,
+            isCredits: active != null && active.IsCredits,
+            finished: _finished,
+            secondsSinceCompletion: _completedAt > 0f ? Time.unscaledTime - _completedAt : null,
+            grace: CompletionGrace);
 
         // A LEVEL STILL LOADING IS NOT ONE TO KNOCK OVER.
         //
@@ -120,80 +164,51 @@ internal static class Traps
         // exception, no error: the game simply stops, and clicking does
         // nothing.
         //
-        // droha's log is consistent with it, on the RELEASED 0.3.1 build:
-        // "when finishing a level I got a background change trap... it reset
-        // and when I clicked anywhere the game fully froze. Had to alt+F4."
-        // The window is right there - "track: slot 53 ... launching with
-        // seed 307681145, forceReload" and then, on the very next line,
-        // "trap: 1 cat(s) reset the puzzle" - with not one exception in all
-        // 1,549 lines. Consistent with is not the same as caused by, and the
-        // reproduction went looking for the difference and did not find it.
-        //
-        // It is NOT the earlier cat trap freeze, which drowned in
-        // NullReferenceExceptions from tweens holding destroyed pieces. 0.3.1
-        // predates every one of those guards: it has no animation cancel to
-        // blame and no completion grace to have caught this.
-        //
         // WHAT THE GUARD IS ACTUALLY WORTH, measured rather than argued
         // (tools/probe-trap-window.py): a trap arriving mid-load is HELD and
         // springs once the level settles, where before it hit `level == null`
         // and was silently spent. It cannot strand a trap on the level
-        // select, because ActiveLevelInterface is null there and this test
-        // never runs. Both verified in game.
+        // select, because ActiveLevelInterface is null there. Both verified
+        // in game.
         //
-        // The completion grace below would not cover it either, even now: it
-        // measures time since the last completion, and a level that reloads
-        // for any other reason is not a completion. Ask the level what it is
-        // doing instead of inferring it from a clock.
-        if (active != null && (!active.LevelIsLoaded || active.IsTransitioning))
-        {
-            // HELD, NOT SPENT. Unlike a trap with no puzzle to hit, this one
-            // has a target - it just cannot be applied safely this frame. The
-            // next tick will find the level settled and spring it properly.
-            return;
-        }
+        // HELD, NOT SPENT: it has a target, it just cannot be applied safely
+        // this frame. A FINISHED puzzle is asked about first (TrapTiming), so
+        // a hold can no longer carry a trap past the completion grace.
+        if (moment == TrapMoment.Hold) return;
 
-        var level = active?.Level;
-        if (level == null || level.allLevelObjects == null)
-        {
-            _applied += owed;
-            RunState.SpendTrap(owed);
-            Plugin.Logger.LogInfo($"trap: {owed} cat(s) found nothing to knock over");
-            return;
-        }
+        _applied += owed;
+        RunState.SpendTrap(owed);
 
-        // A PUZZLE YOU HAVE JUST FINISHED IS NOT ONE TO KNOCK OVER.
-        //
-        // Completing a level starts the move to the next slot. Resetting it
-        // in that window relaunches the level that was on its way out, which
-        // throws the pending navigation away - so the run sits on a reset
-        // copy of the puzzle it just solved and never advances.
-        //
-        // droha: "the cat trap went off, but it didn't go to the next level.
-        // It did some of the animation... but never moved to the next level
-        // like it normally does." The log shows exactly that - navigation
-        // queued slot 1, then the trap relaunched slot 0 on top of it.
-        //
-        // Treated as a miss for the same reason a trap outside a puzzle is:
-        // there is no work left to undo, so springing announces a setback
-        // that did not happen.
-        var since = Time.unscaledTime - _completedAt;
-        if (_completedAt > 0f && since < CompletionGrace)
+        switch (moment)
         {
-            _applied += owed;
-            RunState.SpendTrap(owed);
-            Plugin.Logger.LogInfo(
-                $"trap: {owed} cat(s) arrived {since:0.0}s after the puzzle was "
-                + "finished, too late to knock anything over");
-            return;
+            case TrapMoment.NothingToHit:
+                Plugin.Logger.LogInfo($"trap: {owed} cat(s) found nothing to knock over");
+                return;
+
+            // A PUZZLE YOU HAVE JUST FINISHED IS NOT ONE TO KNOCK OVER.
+            //
+            // Completing a level starts the move to the next slot. Resetting
+            // it in that window relaunches the level that was on its way out,
+            // which throws the pending navigation away - so the run sits on a
+            // reset copy of the puzzle it just solved and never advances.
+            // droha: "the cat trap went off, but it didn't go to the next
+            // level." Treated as a miss for the same reason a trap outside a
+            // puzzle is: there is no work left to undo.
+            case TrapMoment.AlreadyFinished:
+                Plugin.Logger.LogInfo(
+                    $"trap: {owed} cat(s) arrived {Time.unscaledTime - _completedAt:0.0}s after the puzzle was "
+                    + "finished, too late to knock anything over");
+                return;
+
+            case TrapMoment.Credits:
+                Plugin.Logger.LogInfo($"trap: {owed} cat(s) arrived during the credits, which are not a puzzle");
+                return;
         }
 
         // One reset covers any number of cats: the puzzle can only go back to
         // its opening state once, and resetting N times in a row would just
         // replay the animation into an already-reset level.
-        _applied += owed;
-        RunState.SpendTrap(owed);
-        Spring(owed, level);
+        Spring(owed, level!);
     }
 
     /// <summary>
@@ -239,9 +254,147 @@ internal static class Traps
         try
         {
             Toasts.Show("A cat has been through your puzzle", Toasts.Notice);
+            if (StartLevelCat(cats, level)) return;
+
             SweepPaw();
             PlayCatSound();
+            ResetNow(cats, level, "");
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"trap: could not spring: {e.Message}");
+        }
+    }
 
+    // ---- the level's own cat ------------------------------------------------
+
+    /// <summary>The level's CatGrab mid-grab, with the reset waiting for it.</summary>
+    private static CatGrab? _grab;
+    private static bool _grabSeen;
+    private static int _grabLevel;
+    private static float _grabSince;
+    private static int _grabCats;
+
+    /// <summary>
+    /// Send the level's own cat in, when it has one that takes things: the
+    /// game's CatGrab, on Stamps, Shells, Place Setting and MerryMess_Crackers.
+    /// True when it was sent: the reset now waits for it, and ours goes if
+    /// its paw never shows (TickLevelCat, Core TrapTiming.AfterCat).
+    ///
+    /// DoGrab(), NOT the Interlude's OnTrigger(). Both play the same grab, but
+    /// OnTrigger leaves the level's event marked in progress and never
+    /// finishes it; DoGrab touches only the grab (DevTools `catevent`,
+    /// 2026-09-30). The paw reaches in, takes a piece (Place Setting: pulls
+    /// the tablecloth) and is gone in 1.6 to 2.3 s. Place Setting's cat comes
+    /// back every 5 s or so on its own; the reset ends that with the level.
+    ///
+    /// THE RESET WAITS FOR THE PAW, because the cat is IN the level. Resetting
+    /// under it rebuilds the level mid-tween, the shape of the LeanTween
+    /// freeze CancelAnimations exists for; and the player would not see it.
+    ///
+    /// Tupperware Tower's CatClimb is left to our paw: it is the level's own
+    /// intro, climbing as the level loads, and a climb takes 8 s.
+    /// </summary>
+    private static bool StartLevelCat(int cats, Level level)
+    {
+        try
+        {
+            var grabs = level.GetComponentsInChildren<CatGrab>(true);
+            var grab = grabs == null || grabs.Length == 0 ? null : grabs[0];
+            if (grab == null || !grab.gameObject.activeInHierarchy) return false;
+
+            // Already reaching on its own (Stamps' cat comes by itself now
+            // and then): wait for that one rather than start a second.
+            var already = grab.isReaching || grab.isGrabbing;
+            if (!already) grab.DoGrab();
+
+            // Whether it came is asked over the next frames, not now
+            // (TrapTiming.CatStartWindow): a seeded Shells on its leaf
+            // layout started nothing, and ours went instead.
+            _grab = grab;
+            _grabSeen = already || grab.isReaching || grab.isGrabbing;
+            _grabLevel = level.GetInstanceID();
+            _grabSince = Time.unscaledTime;
+            _grabCats = cats;
+            Plugin.Logger.LogInfo(
+                $"trap: {cats} cat(s): the level's own cat {(_grabSeen ? "reaches in" : "is sent in")}"
+                + (already ? " (it was already on its way)" : ""));
+            return true;
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogWarning($"trap: the level's own cat would not come ({e.Message}), so ours goes instead");
+            _grab = null;
+            return false;
+        }
+    }
+
+    /// <summary>The reset behind the level's own cat, once its paw has gone (Core TrapTiming.AfterCat).</summary>
+    private static void TickLevelCat()
+    {
+        if (_grab == null) return;
+        var grab = _grab;
+        var cats = _grabCats;
+        var waited = Time.unscaledTime - _grabSince;
+        try
+        {
+            var active = GameManager.Instance?.levelManager?.ActiveLevelInterface;
+            var level = active?.Level;
+            var sameLaunch = level != null && level.GetInstanceID() == _grabLevel;
+            var busy = sameLaunch && (grab.isReaching || grab.isGrabbing);
+            if (busy && !_grabSeen)
+            {
+                _grabSeen = true;
+                Plugin.Logger.LogInfo($"trap: the level's own cat reaches in ({waited:0.00}s)");
+            }
+            var what = TrapTiming.AfterCat(
+                sameLaunch,
+                settling: active != null && (!active.LevelIsLoaded || active.IsTransitioning),
+                finished: _finished,
+                catBusy: busy,
+                catSeen: _grabSeen,
+                waited: waited);
+            if (what == CatReset.Wait) return;
+
+            _grab = null;
+            if (what == CatReset.Drop)
+            {
+                Plugin.Logger.LogInfo(
+                    $"trap: {cats} cat(s): the puzzle ended under the level's own cat, so there is nothing to reset");
+                return;
+            }
+            if (what == CatReset.NoCat)
+            {
+                Plugin.Logger.LogInfo("trap: the level's own cat did not come, so ours goes instead");
+                SweepPaw();
+                PlayCatSound();
+                ResetNow(cats, level!, "");
+                return;
+            }
+
+            CancelTweens(grab.gameObject);
+            if (grab.catArm != null) CancelTweens(grab.catArm.gameObject);
+            ResetNow(cats, level!, $" after the level's own cat ({waited:0.0}s{(busy ? ", still reaching" : "")})");
+        }
+        catch (Exception e)
+        {
+            _grab = null;
+            Plugin.Logger.LogWarning($"trap: lost the level's own cat ({e.Message}); the puzzle was not reset");
+        }
+    }
+
+    private static void CancelTweens(GameObject? go)
+    {
+        var seen = new HashSet<int>();
+        var cancelled = 0;
+        Cancel(go, seen, ref cancelled);
+    }
+
+    /// <summary>The reset itself, after whichever cat went through.</summary>
+    private static void ResetNow(int cats, Level level, string after)
+    {
+        try
+        {
             var manager = GameManager.Instance?.levelManager;
             if (manager == null)
             {
@@ -282,11 +435,11 @@ internal static class Traps
             // cannot actually touch, fully lit, for up to a second.
             AbilityLocks.HoldDim();
 
-            Plugin.Logger.LogInfo($"trap: {cats} cat(s) reset the puzzle");
+            Plugin.Logger.LogInfo($"trap: {cats} cat(s) reset the puzzle{after}");
         }
         catch (Exception e)
         {
-            Plugin.Logger.LogWarning($"trap: could not spring: {e.Message}");
+            Plugin.Logger.LogWarning($"trap: could not reset: {e.Message}");
         }
     }
 

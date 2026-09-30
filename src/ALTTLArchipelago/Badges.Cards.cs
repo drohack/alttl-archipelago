@@ -151,6 +151,9 @@ internal static partial class Badges
             SetName(icon, slot);
             _shown[slot] = status;
         }
+
+        // The section's star count follows the cards' stars.
+        SectionStars.Apply(Track.CampaignSelect());
     }
 
     /// <summary>

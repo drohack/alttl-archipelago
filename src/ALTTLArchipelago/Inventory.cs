@@ -170,6 +170,7 @@ internal static class Inventory
         var counts = InventoryCounts.From(
             _received, _abilities == null ? null : _abilities.IsAbility);
 
+        var pagesBefore = HintPagesHeld;
         PacksHeld = counts.Packs;
         SkipsHeld = counts.Skips;
         TrapsReceived = counts.Traps;
@@ -196,6 +197,10 @@ internal static class Inventory
         }
 
         Track.SetPacksHeld(counts.Packs);
+
+        // A Hint Page arriving with the notepad open: its note said "No Hint
+        // Pages" until the page was turned.
+        if (HintPagesHeld != pagesBefore) Hints.PagesChanged();
 
         // Repaint now, not at the next level load. A Background Change Trap is
         // meant to land visibly, and a player who receives one mid-puzzle

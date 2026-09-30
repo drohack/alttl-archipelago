@@ -346,6 +346,16 @@ internal static class Hints
     [HarmonyPostfix]
     private static void AfterSwitchToHint() => RefreshNote();
 
+    /// <summary>
+    /// The Hint Page count moved (Inventory). Only a note already drawn is
+    /// rewritten: one arriving while the notepad is open said "No Hint Pages"
+    /// until the page was turned.
+    /// </summary>
+    internal static void PagesChanged()
+    {
+        if (_note != null) RefreshNote();
+    }
+
 
     /// <summary>
     /// Say, on the page itself, what rubbing it out will cost.

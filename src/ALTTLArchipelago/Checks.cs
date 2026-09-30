@@ -975,6 +975,10 @@ internal static class Checks
     /// </summary>
     private static void OnLevelCompleteEarly(GameEventManager.GameEventData data)
     {
+        // A finished puzzle is not a puzzle to knock over - see Traps. Here
+        // too, since the endings filed below can bring a trap back first.
+        Traps.NoteCompletion();
+
         EnsureSlot();
         _pendingSlot = _currentSlot;
         _pendingSolution = CanonicalEnding(data?.SolutionId ?? "");

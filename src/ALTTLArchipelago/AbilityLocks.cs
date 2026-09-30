@@ -74,6 +74,22 @@ internal static class AbilityLocks
 
     internal static void Reset()
     {
+        // GIVE BACK WHAT IS LOCKED BEFORE FORGETTING IT. A reconnect, or an
+        // offline run taken over by the server, begins again with the level
+        // still open and its pieces frozen and grey. Cleared first, the next
+        // pass took our own "not interactable", collider off and grey for the
+        // game's, and put those back when the ability came: Books held by a
+        // reconnect stayed "9 of 9 dimmed, 9 not interactive" with Swapping
+        // granted (2026-09-29). So everything is unlocked through the records
+        // (a pass with nothing locked), and the new session's pass below locks
+        // again from what the game really has.
+        if (_flagged.Count > 0 || _colliders.Count > 0 || _bodies.Count > 0 || _tinted.Count > 0)
+        {
+            _releasing = true;
+            try { Apply(Released); }
+            finally { _releasing = false; }
+        }
+
         _lastSummary = "";
         // Colours and class names belong to objects that are gone; ids get
         // reused, so a stale entry would answer for the wrong object.
@@ -84,13 +100,27 @@ internal static class AbilityLocks
         _colliders.Clear();
         _bodies.Clear();
         _flagged.Clear();
-        _drawerMoveRefused.Clear();
         _savedWhileLocked.Clear();
         _gameInteractable.Clear();
         _clearers = null;
         _matches = null;
         _handlesSaid = "";
+
+        // NOT CLEARED: _drawerMoveRefused. A move the game asked of a drawer
+        // still on screen waits for this session's Drawer as it did for the
+        // last one's; it is played only on an object the pass is unlocking,
+        // and only once it casts to a Drawer.
+        ApplyNow();
     }
+
+    /// <summary>Nothing locked: the release pass Reset runs.</summary>
+    private static readonly AbilityState Released = new(new SlotData { AbilityLocks = false });
+
+    /// <summary>
+    /// Reset's release pass is running: it frees pieces but must not play a
+    /// refused drawer move, which belongs to the Drawer ability arriving.
+    /// </summary>
+    private static bool _releasing;
 
     /// <summary>
     /// Lock the moment a controller registers, not on the next poll.
@@ -1415,7 +1445,7 @@ internal static class AbilityLocks
                 }
                 Freeze(obj, isLocked, pair.Value.IsCover || heldByDrawerLock, pair.Value.HeldByDrawerSet);
                 Tint(obj, isLocked);
-                if (!isLocked) ReplayRefusedDrawer(pair.Key, obj);
+                if (!isLocked && !_releasing) ReplayRefusedDrawer(pair.Key, obj);
                 touched++;
             }
             catch

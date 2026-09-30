@@ -481,6 +481,12 @@ internal static class Backgrounds
                 return;
             }
 
+            // The credits paint their own camera as they roll: holding a
+            // trap's colour there was a write a frame (123 in the few seconds
+            // before the DLC gate's credits were reset, 2026-09-29). They are
+            // the run's ending, not a puzzle, so they keep the game's colours.
+            if (active != null && active.IsCredits) return;
+
             var wanted = ForLevel();
             if (wanted == null) return;
 
