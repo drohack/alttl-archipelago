@@ -16,7 +16,7 @@ namespace ALTTLArchipelago.Core;
 /// - Every reconnect replayed the run's old cat traps as new. The replay was
 ///   handled BEFORE Ready loaded the run state that counts the traps already
 ///   sprung: "trap: 26 cat(s) found nothing to knock over", then "run state:
-///   ... 25 trap(s) already sprung" (droha, 2026-09-25; Kat's log shows 40).
+///   ... 25 trap(s) already sprung" (droha, 2026-09-25; the second player's log shows 40).
 ///   On the title screen they hit nothing; in a level they would reset it.
 ///
 /// Items and Ready are queued as ONE action. Queued separately, a frame could

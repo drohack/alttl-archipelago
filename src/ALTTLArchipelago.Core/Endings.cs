@@ -42,10 +42,11 @@ public sealed class EndingInfo
 /// GENERATED PUZZLES TOO (droha: "don't generated puzzles still have fixed
 /// solutions?"). Their ids are the same on every seed, by position: Pencils
 /// (Randomized) reports Ordered_0 and Ordered_1 whichever two sorting rules
-/// the seed picked, Stamps (Randomized) Stamps-Pattern_0 on seven seeds. The
-/// Draggables_0 once seen on Books (Randomized) was a stray controller that
-/// solved itself at load (docs/dev/backlog.md), not an ending. A level with
-/// no table falls back to numbered solutions in the order found.
+/// the seed picked, Stamps (Randomized) Stamps-Pattern_0 on seven seeds.
+/// Books (Randomized) is the exception: on a seed with a symmetric rule its
+/// Draggables_0 is that rule, in whichever position the seed put it
+/// (Canonical). A level with no table falls back to numbered solutions in
+/// the order found.
 /// </summary>
 public static class Endings
 {
@@ -132,12 +133,40 @@ public static class Endings
 
     /// <summary>
     /// The ids one table entry answers to: "Shuffle_1|Draggables_0" is either.
-    /// Books (Randomized) checks its second solution with a second controller
-    /// on symmetric seeds (Draggables, SolutionId 1) and with Shuffle on the
-    /// rest - measured over 40 seeds with DevTools `gensweep:40:995`.
+    /// Books (Randomized)'s Draggables_0 lands on its second entry only when
+    /// the seed's rules cannot be read; see Canonical for what it really is.
     /// </summary>
     public static IReadOnlyList<string> Alternatives(string? id)
         => id == null ? Array.Empty<string>() : id.Split('|');
+
+    /// <summary>
+    /// The id a completion files under, once the seed's own rules are known.
+    ///
+    /// Books (Randomized) picks two sorting rules per seed; a *_SYMMETRIC rule
+    /// adds a second controller, Draggables, and Draggables_0 is that rule
+    /// done, WHEREVER THE SEED PUTS IT. Measured 2026-09-28 (DevTools
+    /// `boot:995:<seed>` then `rules`): both seeds on which two players
+    /// finished both rules and got one check chose the symmetric rule first
+    /// (HEIGHT_SYMMETRIC+IMAGE, WIDTH_SYMMETRIC+HEIGHT) and reported
+    /// Draggables_0 and Shuffle_1, where Shuffle_1 is the other rule. 16 of 40
+    /// swept seeds put it first, 5 second. The game gives Draggables
+    /// SolutionId 1 on both orders, so that field is no guide.
+    ///
+    /// So Draggables_0 becomes the Shuffle entry of the symmetric rule's
+    /// position; anything else, or rules that cannot be read, is left alone
+    /// and the table's alternatives answer as before.
+    /// </summary>
+    public static string Canonical(string levelId, string solutionId,
+                                   string? firstRule, string? secondRule)
+    {
+        if (levelId != "Books (Randomized)" || solutionId != "Draggables_0") return solutionId;
+        if (IsSymmetric(firstRule)) return "Shuffle_0";
+        if (IsSymmetric(secondRule)) return "Shuffle_1";
+        return solutionId;
+    }
+
+    private static bool IsSymmetric(string? rule)
+        => rule != null && rule.IndexOf("SYMMETRIC", StringComparison.Ordinal) >= 0;
 
     /// <summary>The id an entry is named by: its first alternative.</summary>
     private static string Primary(string id) => Alternatives(id)[0];

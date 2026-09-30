@@ -134,7 +134,7 @@ public sealed class RunStateData
     /// than filed early. The promise was "it will be filed on a later visit
     /// once the item arrives", but nothing remembered it: the game rebuilds a
     /// level unsolved on every load, so a later visit found nothing to sweep.
-    /// Kat's Figurines "Sorting Items" was withheld on both copies and never
+    /// The second player's Figurines "Sorting Items" was withheld on both copies and never
     /// filed after Sticking arrived (2026-09-25). Kept here it survives the
     /// level, the session and a relaunch.
     ///

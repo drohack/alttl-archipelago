@@ -6,93 +6,68 @@ using ALTTLArchipelago.Core;
 namespace ALTTLArchipelago.Core.Tests;
 
 /// <summary>
-/// Counting STARRED puzzles, and the goal that can be set to want them.
-///
-/// A star is every check on a puzzle collected, which the level select
-/// already draws on the card. The point of these tests is that the goal and
-/// the card agree: one predicate, in one place, so a card can never show a
-/// star the goal does not count or the reverse.
+/// The Collect Stars goal. A star is a solution found, as the level select
+/// counts them (droha, 2026-09-28: "it's number of solutions"), and the
+/// goal's count is the cards' hover stars summed: one count, in one place,
+/// so a card can never light a star the goal does not count or the reverse.
 /// </summary>
 public class StarGoalTests
 {
     private static SlotData Seed() => ExampleSeed.Load();
 
     [Fact]
-    public void NothingCollectedMeansNothingStarred()
-    {
-        var router = new CheckRouter(Seed());
-        Assert.Equal(0, router.StarredCount(_ => false));
-    }
-
-    [Fact]
-    public void EverythingCollectedStarsEverySlot()
+    public void NothingCollectedMeansNoStars()
     {
         var data = Seed();
         var router = new CheckRouter(data);
-        Assert.Equal(data.Slots.Count, router.StarredCount(_ => true));
+        Assert.Equal((0, data.StarsTotal), router.RunStars(_ => false));
     }
 
     [Fact]
-    public void BeatingAPuzzleDoesNotStarIt()
+    public void EverythingCollectedLightsEveryStar()
     {
-        // The distinction the whole option rests on. A slot with more than
-        // its Beaten event is not starred by the Beaten event alone.
         var data = Seed();
         var router = new CheckRouter(data);
+        Assert.True(data.StarsTotal > data.Slots.Count, "some puzzles hold more than one star");
+        Assert.Equal((data.StarsTotal, data.StarsTotal), router.RunStars(_ => true));
+    }
 
+    [Fact]
+    public void BeatingAPuzzleAndItsPartsLightNoStar()
+    {
+        var data = Seed();
+        var router = new CheckRouter(data);
         var slot = Enumerable.Range(0, data.Slots.Count)
-            .First(i => router.ForSlot(i).Count > 1);
-        var beaten = router.ForBeaten(slot);
-        Assert.NotNull(beaten);
-
-        var done = new HashSet<string>(StringComparer.Ordinal) { beaten! };
+            .First(i => router.ForSlot(i).Count > router.SolutionsOf(i).Count + 1);
+        var done = new HashSet<string>(router.ForSlot(slot).Except(router.SolutionsOf(slot)),
+                                       StringComparer.Ordinal);
         Assert.Equal(1, router.BeatenCount(done.Contains));
-        Assert.Equal(0, router.StarredCount(done.Contains));
+        Assert.Equal(0, router.RunStars(done.Contains).Lit);
     }
 
     [Fact]
-    public void CollectingEveryLocationOnOneSlotStarsExactlyThatSlot()
+    public void EachSolutionIsOneStar()
     {
         var data = Seed();
         var router = new CheckRouter(data);
-
         var slot = Enumerable.Range(0, data.Slots.Count)
-            .First(i => router.ForSlot(i).Count > 1);
-        var done = new HashSet<string>(router.ForSlot(slot), StringComparer.Ordinal);
-
-        Assert.Equal(1, router.StarredCount(done.Contains));
+            .First(i => router.SolutionsOf(i).Count > 1);
+        var done = new HashSet<string>(router.SolutionsOf(slot), StringComparer.Ordinal);
+        Assert.Equal(router.SolutionsOf(slot).Count, router.RunStars(done.Contains).Lit);
     }
 
     [Fact]
-    public void StarringAlwaysImpliesBeating()
-    {
-        // ForSlot includes the Beaten event, so the two counts are nested
-        // rather than independent. If that ever stops being true, a star
-        // goal could be met by a player the server does not think has beaten
-        // anything.
-        var data = Seed();
-        var router = new CheckRouter(data);
-
-        for (int i = 0; i < data.Slots.Count; i++)
-        {
-            var beaten = router.ForBeaten(i);
-            if (beaten == null) continue;
-            Assert.Contains(beaten, router.ForSlot(i));
-        }
-    }
-
-    [Fact]
-    public void HasWorkLeftIsTheSamePredicateTheCountUses()
+    public void TheGoalCountsTheStarsTheCardsLight()
     {
         var data = Seed();
         var router = new CheckRouter(data);
-
-        var byHand = 0;
-        for (int i = 0; i < data.Slots.Count; i++)
-        {
-            if (!router.HasWorkLeft(i, _ => true)) byHand++;
-        }
-        Assert.Equal(router.StarredCount(_ => true), byHand);
+        // Every other solution in the run, so the sum is neither 0 nor all.
+        var every = Enumerable.Range(0, data.Slots.Count).SelectMany(router.SolutionsOf).ToList();
+        var done = new HashSet<string>(every.Where((_, i) => i % 2 == 0), StringComparer.Ordinal);
+        var byCard = Enumerable.Range(0, data.Slots.Count)
+            .Sum(i => router.SolutionStars(i, done.Contains).Lit);
+        Assert.Equal(done.Count, byCard);
+        Assert.Equal(byCard, router.RunStars(done.Contains).Lit);
     }
 
     [Fact]
@@ -109,8 +84,8 @@ public class StarGoalTests
     public void AStarSeedTargetsTheStarCount()
     {
         var data = Seed();
-        data.Goal = "star_levels";
-        data.LevelsToStar = 12;
+        data.Goal = "collect_stars";
+        data.StarsToCollect = 12;
 
         Assert.True(data.GoalIsStars);
         Assert.Equal(12, data.GoalTarget);
@@ -130,9 +105,9 @@ public class StarGoalTests
     public void AStarCountBeyondTheRunIsReported()
     {
         var data = Seed();
-        data.LevelsToStar = data.Slots.Count + 1;
+        data.StarsToCollect = data.StarsTotal + 1;
 
         Assert.Contains(data.Problems(),
-                        p => p.Contains("levels_to_star", StringComparison.Ordinal));
+                        p => p.Contains("stars_to_collect", StringComparison.Ordinal));
     }
 }

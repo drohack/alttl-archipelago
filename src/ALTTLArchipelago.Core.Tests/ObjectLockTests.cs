@@ -170,4 +170,67 @@ public class ObjectLockTests
         Assert.False(ObjectLock.ResetOnUnlock(null!, 6, 0));
         Assert.Equal(3, ObjectLock.ResetOnUnlockLevels.Count);
     }
+
+    /// <summary>
+    /// Books (Randomized): a seed with a *_SYMMETRIC rule adds a second
+    /// controller, Draggables, over the same 11 books Shuffle holds. By its
+    /// class it needs nothing, so it freed every book and a player without
+    /// Swapping could finish the puzzle (the 0.4.3 run, "abilities: 1 locked,
+    /// 1 open, 11 objects, waiting on Swapping").
+    /// </summary>
+    [Fact]
+    public void BooksSymmetricDraggablesLocksAsShuffle()
+    {
+        var draggables = ObjectLock.LockClass("Books (Randomized)", "Draggables", "Draggables");
+        Assert.Equal("Shuffleables", draggables);
+
+        var state = new AbilityState(new SlotData
+        {
+            AbilityLocks = true,
+            Abilities = new Dictionary<string, List<string>>
+            {
+                ["Swapping"] = new() { "Shuffleables" },
+            },
+        });
+        Assert.True(state.IsClassLocked(draggables));
+
+        // A book is held by both, and neither frees it without Swapping.
+        Assert.False(Unlocked(("Shuffleables", state.IsClassLocked("Shuffleables")),
+                              (draggables, state.IsClassLocked(draggables))));
+
+        state.Grant("Swapping");
+        Assert.True(Unlocked(("Shuffleables", state.IsClassLocked("Shuffleables")),
+                             (draggables, state.IsClassLocked(draggables))));
+    }
+
+    [Theory]
+    [InlineData("Books (Randomized)", "Shuffle", "Shuffleables")]
+    [InlineData("Books 3", "Height (Draggables)", "Draggables")]
+    [InlineData("TrickOrTidy_ChocolateBars", "Height (Draggables)", "Draggables")]
+    [InlineData("SomethingEggstra Fridge", "StandardObjects", "Draggables")]
+    [InlineData("", "Draggables", "Draggables")]
+    public void EveryOtherControllerLocksByItsOwnClass(string level, string controller, string cls)
+    {
+        // Books 3 and Chocolate Bars have the same shape, and their table
+        // bypasses Swapping instead: there the drag rule is a real way out.
+        Assert.Equal(cls, ObjectLock.LockClass(level, controller, cls));
+    }
+
+    /// <summary>
+    /// Each override names a controller its level's table does not list and a
+    /// class the table does hold, so the two cannot drift apart unnoticed.
+    /// </summary>
+    [Fact]
+    public void EveryOverrideLocksAsAClassOfItsOwnLevel()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "levels.json");
+        var table = LevelTable.FromJson(File.ReadAllText(path));
+        Assert.NotEmpty(ObjectLock.LockedAs);
+        foreach (var ((level, controller), cls) in ObjectLock.LockedAs)
+        {
+            var row = table.Levels.Single(l => l.LevelId == level);
+            Assert.Contains(row.Controllers, c => c.Type == cls);
+            Assert.DoesNotContain(row.Controllers, c => c.Name == controller);
+        }
+    }
 }

@@ -41,7 +41,7 @@ public class SessionGateTests
     {
         var gate = Gate();
         gate.Items(new[] { "Cat Trap", "Cat Trap" }, i => _seen.Add("item " + i));
-        gate.Line("Kat sent Cat Trap to Grayson", l => _seen.Add("line " + l));
+        gate.Line("PlayerA sent Cat Trap to PlayerB", l => _seen.Add("line " + l));
 
         gate.Open(i => _seen.Add("item " + i), () => _seen.Add("ready"), l => _seen.Add("line " + l));
 
@@ -49,7 +49,7 @@ public class SessionGateTests
         // Ready (the trap tick would run in between).
         Assert.Single(_queue);
         Drain();
-        Assert.Equal(new[] { "item Cat Trap", "item Cat Trap", "ready", "line Kat sent Cat Trap to Grayson" }, _seen);
+        Assert.Equal(new[] { "item Cat Trap", "item Cat Trap", "ready", "line PlayerA sent Cat Trap to PlayerB" }, _seen);
     }
 
     [Fact]
@@ -71,11 +71,11 @@ public class SessionGateTests
         gate.Open(_ => { }, () => _seen.Add("ready"), _ => { });
         gate.Items(new[] { "Drawer" }, i => _seen.Add("item " + i));
         gate.Locations(new[] { "Daggers - Solution 1" }, n => _seen.Add("locations " + n[0]));
-        gate.Line("Grayson sent Drawer to Kat", l => _seen.Add("line " + l));
+        gate.Line("PlayerB sent Drawer to PlayerA", l => _seen.Add("line " + l));
 
         Drain();
 
-        Assert.Equal(new[] { "ready", "item Drawer", "locations Daggers - Solution 1", "line Grayson sent Drawer to Kat" }, _seen);
+        Assert.Equal(new[] { "ready", "item Drawer", "locations Daggers - Solution 1", "line PlayerB sent Drawer to PlayerA" }, _seen);
     }
 
     [Fact]

@@ -141,6 +141,20 @@ public class GoalLatchTests
     }
 
     [Fact]
+    public void ARunWhoseCreditsWerePlayedIsNotToldToPlayThem()
+    {
+        // The 0.4.3 run: the second player's offline start resumed their
+        // finished 0.4.2 run and toasted "The credits are unlocked - play them
+        // to finish the run" - as every session start of a finished run did,
+        // online too ("this run already played them", then "unlocked after
+        // 69" in their 0.4.2 log). The goal is still owed; the toast is not.
+        var restored = new GoalLatch(creditsAlreadyPlayed: true);
+
+        Assert.False(restored.ShouldAnnounce(remaining: 0, hasCreditsItem: true));
+        Assert.True(restored.ShouldReport(remaining: 0, hasCreditsItem: true));
+    }
+
+    [Fact]
     public void AFreshLatchDoesNotAssumeTheCreditsWerePlayed()
     {
         var fresh = new GoalLatch();

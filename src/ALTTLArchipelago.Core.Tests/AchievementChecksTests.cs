@@ -5,7 +5,7 @@ namespace ALTTLArchipelago.Core.Tests;
 /// <summary>
 /// Achievements as checks: the table names real puzzles, the router files an
 /// achievement only on the puzzle that awards it and only when the seed has
-/// the location, and they stay outside the star and the Skip.
+/// the location, and they count like any other check on the card.
 /// </summary>
 public class AchievementChecksTests
 {
@@ -113,15 +113,21 @@ public class AchievementChecksTests
     }
 
     [Fact]
-    public void TheyAreOutsideTheStarAndTheSkip()
+    public void TheyAreChecksLikeAnyOther()
     {
+        // In the card's star, its badge and its Skip, all of which read
+        // ForSlot: an achievement can hold progression (droha, 2026-09-29:
+        // "then what's the point of enabling them?").
         var router = new CheckRouter(Seed(achievements: true));
         Assert.Equal(new[] { "Place Setting - Achievement: Bad Kitty" },
             router.ForAchievements(1));
-        Assert.DoesNotContain(router.ForSlot(1), n => n.Contains("Achievement:"));
+        Assert.Contains("Place Setting - Achievement: Bad Kitty", router.ForSlot(1));
 
-        // Every star-counted check collected and the achievement not: starred.
-        var collected = new HashSet<string>(router.ForSlot(0), StringComparer.Ordinal);
+        // Everything else collected and the achievement not: no star yet.
+        var collected = new HashSet<string>(
+            router.ForSlot(0).Where(n => !n.Contains(" - Achievement: ")), StringComparer.Ordinal);
+        Assert.True(router.HasWorkLeft(0, collected.Contains));
+        collected.Add("Eggs - Achievement: Exacting Eggs");
         Assert.False(router.HasWorkLeft(0, collected.Contains));
     }
 

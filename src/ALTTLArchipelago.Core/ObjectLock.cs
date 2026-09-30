@@ -93,6 +93,31 @@ public sealed class ObjectLock
     public static bool ResetOnUnlock(string levelId, int lockedBefore, int lockedAfter) =>
         ResetOnUnlockLevels.Contains(levelId ?? "") && lockedBefore > 0 && lockedAfter < lockedBefore;
 
+    /// <summary>
+    /// Controllers the lock treats as another class, on one level: (level id,
+    /// controller GameObject name) to the class it locks as.
+    ///
+    /// Books (Randomized): a seed with a *_SYMMETRIC rule adds a second
+    /// controller, Draggables, over the same 11 books Shuffle holds
+    /// (21 of 40 seeds, DevTools gensweep). The lock goes by class, and
+    /// Draggables needs nothing, so it freed every book: a player without
+    /// Swapping finished the puzzle (the 0.4.3 run, "abilities: 1 locked, 1
+    /// open, 11 objects, waiting on Swapping"). Its ending is one of Shuffle's
+    /// two (Endings.Canonical) and the table gives both Swapping, so it locks
+    /// as Shuffle does. Books 3 and Chocolate Bars have the same pair of
+    /// groups and bypass Swapping in the table instead: there the drag rule
+    /// is a real way out.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<(string Level, string Controller), string> LockedAs =
+        new Dictionary<(string Level, string Controller), string>
+        {
+            [("Books (Randomized)", "Draggables")] = "Shuffleables",
+        };
+
+    /// <summary>The class a controller locks as: its own, unless <see cref="LockedAs"/> names another.</summary>
+    public static string LockClass(string levelId, string controllerName, string controllerClass) =>
+        LockedAs.TryGetValue((levelId ?? "", controllerName ?? ""), out var cls) ? cls : controllerClass;
+
     private readonly string _levelId;
 
     /// <param name="levelId">The running level, which decides whether an

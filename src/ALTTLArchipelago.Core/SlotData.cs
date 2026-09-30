@@ -83,7 +83,7 @@ public sealed class SlotData
     public List<int> PackBoundaries { get; set; } = new();
 
     /// <summary>
-    /// What unlocks the credits: "beat_levels" or "star_levels".
+    /// What unlocks the credits: "beat_levels" or "collect_stars".
     ///
     /// A STRING, matching the payload, rather than the option's 0 and 1.
     /// The mod dispatches on it and so does a human reading a slot_data
@@ -97,24 +97,44 @@ public sealed class SlotData
     [JsonPropertyName("goal")]
     public string Goal { get; set; } = "beat_levels";
 
-    /// <summary>True when the run's goal is starring rather than beating.</summary>
+    /// <summary>True when the run's goal is collecting stars rather than beating.</summary>
     [JsonIgnore]
     public bool GoalIsStars
-        => string.Equals(Goal, "star_levels", StringComparison.Ordinal);
+        => string.Equals(Goal, "collect_stars", StringComparison.Ordinal);
 
     /// <summary>Puzzles to beat before the credits card unlocks.</summary>
     [JsonPropertyName("levels_to_beat")]
-    public int LevelsToBeat { get; set; } = 40;
+    public int LevelsToBeat { get; set; } = 50;
 
     /// <summary>
-    /// Puzzles to STAR before the credits card unlocks - every check on the
-    /// puzzle, not just finishing it. Only used when Goal is star_levels.
+    /// Stars to collect before the credits card unlocks: one per solution
+    /// found, the stars the level select counts (droha, 2026-09-28: "it's
+    /// number of solutions"). Only used when Goal is collect_stars.
     /// </summary>
-    [JsonPropertyName("levels_to_star")]
-    public int LevelsToStar { get; set; } = 20;
+    [JsonPropertyName("stars_to_collect")]
+    public int StarsToCollect { get; set; } = 65;
 
     /// <summary>
-    /// How many puzzles the goal actually wants, whichever goal it is.
+    /// The stars this run holds: its Solution locations. A solution's name
+    /// always carries " - Solution" and no other kind of location's does.
+    /// </summary>
+    [JsonIgnore]
+    public int StarsTotal
+    {
+        get
+        {
+            var stars = 0;
+            foreach (var name in Requirements.Keys)
+            {
+                if (name.Contains(" - Solution", StringComparison.Ordinal)) stars++;
+            }
+            return stars;
+        }
+    }
+
+    /// <summary>
+    /// How much the goal actually wants, whichever goal it is: puzzles
+    /// beaten, or stars.
     ///
     /// Here rather than at each call site because three places used to read
     /// LevelsToBeat directly - the credits gate, the beaten toast and the
@@ -122,7 +142,7 @@ public sealed class SlotData
     /// noticed the first three disagreed with the goal.
     /// </summary>
     [JsonIgnore]
-    public int GoalTarget => GoalIsStars ? LevelsToStar : LevelsToBeat;
+    public int GoalTarget => GoalIsStars ? StarsToCollect : LevelsToBeat;
 
     /// <summary>When false, every mechanic works from the start.</summary>
     [JsonPropertyName("ability_locks")]
@@ -191,6 +211,15 @@ public sealed class SlotData
     /// <summary>Whether this seed contains Seeing Stars puzzles.</summary>
     [JsonPropertyName("seeing_stars")]
     public bool SeeingStars { get; set; } = false;
+
+    /// <summary>
+    /// The finale the run ends on, the level id the generator picked among
+    /// the base game's credits and those of the DLCs it is built for:
+    /// "Credits", "DLC1 Credits" or "DLC2 Credits". Empty from a seed older
+    /// than the pick, which ends on the base game's.
+    /// </summary>
+    [JsonPropertyName("credits")]
+    public string Credits { get; set; } = "";
 
     /// <summary>
     /// The DLC keys this seed needs, from the two flags above.
@@ -340,14 +369,14 @@ public sealed class SlotData
         {
             problems.Add($"levels_to_beat {LevelsToBeat} exceeds {Slots.Count} slots");
         }
-        if (LevelsToStar > Slots.Count)
+        if (StarsToCollect > StarsTotal)
         {
-            problems.Add($"levels_to_star {LevelsToStar} exceeds {Slots.Count} slots");
+            problems.Add($"stars_to_collect {StarsToCollect} exceeds the run's {StarsTotal} stars");
         }
         // Checked even though only one goal is in use: the generator clamps
-        // both, so a count over the slot total means the payload did not come
+        // both, so a count over the run's total means the payload did not come
         // from a generator that agrees with this build.
-        if (Goal != "beat_levels" && Goal != "star_levels")
+        if (Goal != "beat_levels" && Goal != "collect_stars")
         {
             problems.Add($"goal '{Goal}' is not one this build knows");
         }

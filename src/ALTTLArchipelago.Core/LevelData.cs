@@ -231,7 +231,7 @@ public sealed class LevelTable
     /// <summary>
     /// Generators whose layout ignores the seed, so they are drawn once.
     ///
-    /// Kat's copies of these four had different seeds and identical layouts,
+    /// The second player's copies of these four had different seeds and identical layouts,
     /// so a solve on one copy was also filed on the other from the shared
     /// save row (2026-09-25). Mirrors apworld data.FIXED_LAYOUT; names.json
     /// carries this list and an apworld test pins the two together.

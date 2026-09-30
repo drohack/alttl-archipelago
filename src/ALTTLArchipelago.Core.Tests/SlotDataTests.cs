@@ -108,10 +108,22 @@ public class SlotDataTests
         var sparse = SlotData.FromJson("""{"slots": []}""");
 
         Assert.Equal(5, sparse.PackSize);
-        Assert.Equal(40, sparse.LevelsToBeat);
+        Assert.Equal(50, sparse.LevelsToBeat);
+        Assert.Equal(65, sparse.StarsToCollect);
         Assert.True(sparse.AbilityLocks);
         Assert.Equal(15, sparse.CatTrapChance);
         Assert.Empty(sparse.StartingAbilities);
+        // A 0.4.3 seed names no finale: the mod ends it on the base game's.
+        Assert.Equal("", sparse.Credits);
+    }
+
+    [Fact]
+    public void TheFinaleIsRead()
+    {
+        // The generator's pick (pool.pick_finale); the example is a no-DLC seed.
+        Assert.Equal("Credits", Example().Credits);
+        Assert.Equal("DLC2 Credits",
+            SlotData.FromJson("""{"slots": [], "credits": "DLC2 Credits"}""").Credits);
     }
 
     [Fact]

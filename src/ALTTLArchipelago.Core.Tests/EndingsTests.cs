@@ -80,7 +80,8 @@ public class EndingsTests
         foreach (var name in new[] { "Books (Randomized) - Solution: Shuffle 1", "Books (Randomized) - Solution: Shuffle 2" })
             data.Requirements[name] = new Requirement();
         var router = new CheckRouter(data);
-        // A symmetric seed: the drag rule first, then the swap rule.
+        // The table alone, as when the seed's rules cannot be read: the
+        // symmetric rule's Draggables_0 answers to the second entry.
         Assert.Equal("Books (Randomized) - Solution: Shuffle 2",
             router.ForEnding(0, "Draggables_0", new[] { "Draggables_0" }));
         Assert.Equal("Books (Randomized) - Solution: Shuffle 1",
@@ -88,6 +89,35 @@ public class EndingsTests
         // Any other seed.
         Assert.Equal("Books (Randomized) - Solution: Shuffle 2",
             router.ForEnding(0, "Shuffle_1", new[] { "Shuffle_1" }));
+    }
+
+    [Fact]
+    public void BooksSymmetricRuleFilesWhereTheSeedPutIt()
+    {
+        // droha's slot 62 (seed 945554386, HEIGHT_SYMMETRIC+IMAGE) reported
+        // Draggables_0 then Shuffle_1 and got one check; both rules were done.
+        var data = new SlotData();
+        data.Slots.Add(new SlotEntry { LevelId = "Books (Randomized)", LevelIndex = 995, Instance = 1, Seed = 945554386 });
+        data.Endings["Books (Randomized)"] = new List<EndingEntry>
+        {
+            new() { Id = "Shuffle_0", Location = "Solution: Shuffle 1" },
+            new() { Id = "Shuffle_1|Draggables_0", Location = "Solution: Shuffle 2" },
+        };
+        foreach (var name in new[] { "Books (Randomized) - Solution: Shuffle 1", "Books (Randomized) - Solution: Shuffle 2" })
+            data.Requirements[name] = new Requirement();
+        var router = new CheckRouter(data);
+
+        var first = Endings.Canonical("Books (Randomized)", "Draggables_0", "HEIGHT_SYMMETRIC", "IMAGE");
+        Assert.Equal("Books (Randomized) - Solution: Shuffle 1", router.ForEnding(0, first, new[] { first }));
+        Assert.Equal("Books (Randomized) - Solution: Shuffle 2",
+            router.ForEnding(0, "Shuffle_1", new[] { first, "Shuffle_1" }));
+
+        // Symmetric second: the second entry, as the table already said.
+        Assert.Equal("Shuffle_1", Endings.Canonical("Books (Randomized)", "Draggables_0", "IMAGE", "HEIGHT_SYMMETRIC"));
+        // No symmetric rule, rules unknown, or another level: unchanged.
+        Assert.Equal("Draggables_0", Endings.Canonical("Books (Randomized)", "Draggables_0", "WIDTH", "HEIGHT"));
+        Assert.Equal("Draggables_0", Endings.Canonical("Books (Randomized)", "Draggables_0", null, null));
+        Assert.Equal("Draggables_0", Endings.Canonical("Tea Cabinet", "Draggables_0", "HEIGHT_SYMMETRIC", "IMAGE"));
     }
 
     [Fact]

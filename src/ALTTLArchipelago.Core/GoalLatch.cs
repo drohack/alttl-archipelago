@@ -66,11 +66,13 @@ public sealed class GoalLatch
 
     /// <summary>
     /// Should the player be told the credits are open, right now? True at most
-    /// once per run.
+    /// once per latch, and never once they have been played: "play them to
+    /// finish the run" on a finished run was every session start's toast,
+    /// offline and online (the 0.4.3 run).
     /// </summary>
     public bool ShouldAnnounce(int remaining, bool hasCreditsItem)
     {
-        if (_announced) return false;
+        if (_announced || _played) return false;
         if (!IsWon(remaining, hasCreditsItem)) return false;
 
         _announced = true;

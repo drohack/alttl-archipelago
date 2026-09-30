@@ -66,37 +66,30 @@ public sealed class CheckRouter
     }
 
     /// <summary>
-    /// How many of this run's puzzles are STARRED - every check on them done.
-    ///
-    /// A star is what the level select already draws on a card with nothing
-    /// left to do, and the predicate is the same one: no location the slot
-    /// can produce is still uncollected. ForSlot includes the Beaten event,
-    /// so starred implies beaten and the two counts are nested rather than
-    /// independent.
-    ///
-    /// NOT reachability-aware, deliberately. This answers "is there work
-    /// left on this puzzle", not "could the player do it now" - a puzzle
-    /// whose remaining check is behind an ability the player has not got is
-    /// unfinished, not starred. SlotProgress.StatusOf is the cousin that
-    /// cares about reachability, for colouring the card.
+    /// The run's stars: (Solution locations collected, Solution locations
+    /// the run has). A star is a solution found, as the level select counts
+    /// them (droha, 2026-09-28: "it's number of solutions"), and this is what
+    /// the Collect Stars goal counts. It is the cards' hover stars summed, so
+    /// a card can never light a star the goal does not count.
     /// </summary>
-    public int StarredCount(Func<string, bool> isCollected)
+    public (int Lit, int Total) RunStars(Func<string, bool> isCollected)
     {
-        var starred = 0;
+        int lit = 0, total = 0;
         for (int slot = 0; slot < _slot.Slots.Count; slot++)
         {
-            if (!HasWorkLeft(slot, isCollected)) starred++;
+            var (l, t) = SolutionStars(slot, isCollected);
+            lit += l;
+            total += t;
         }
-        return starred;
+        return (lit, total);
     }
 
     /// <summary>
     /// Is anything on this slot still uncollected?
     ///
-    /// Lifted out of Track, which had it as a private helper, so the goal and
-    /// the level select cannot drift apart about what "nothing left to do"
-    /// means - the star on the card and the star the goal counts have to be
-    /// the same star.
+    /// Lifted out of Track, which had it as a private helper, so the level
+    /// select and the Skip cannot drift apart about what "nothing left to do"
+    /// means - the yellow star on a card is this predicate.
     /// </summary>
     public bool HasWorkLeft(int slotIndex, Func<string, bool> isCollected)
     {
@@ -348,12 +341,13 @@ public sealed class CheckRouter
     }
 
     /// <summary>
-    /// This slot's achievement locations. NOT part of ForSlot, on purpose:
-    /// they are extra checks, outside the star and the Skip. Their requirement
-    /// is the puzzle's whole ability set before bypasses, which can be more
-    /// than the Beaten event asks, and the star goal's logic stands on no
-    /// location of a starred slot needing more than its Beaten event
-    /// (rules.py, set_all_rules).
+    /// This slot's achievement locations, empty unless the seed has
+    /// `achievements`. Part of ForSlot: they can hold progression, so the
+    /// card's star and badge count them and a Skip sends them (droha,
+    /// 2026-09-29). Their requirement is the puzzle's whole ability set before
+    /// bypasses, which can be more than the Beaten event asks; the star goal
+    /// counts solutions (a Star event per solution), so a card's star is not
+    /// in its logic.
     /// </summary>
     public IReadOnlyList<string> ForAchievements(int slotIndex)
     {
@@ -425,6 +419,10 @@ public sealed class CheckRouter
 
         var beaten = ForBeaten(slotIndex);
         if (beaten != null) names.Add(beaten);
+
+        // Achievements are checks like any other: the star waits for them
+        // and a Skip sends them (droha, 2026-09-29).
+        names.AddRange(ForAchievements(slotIndex));
 
         return names;
     }

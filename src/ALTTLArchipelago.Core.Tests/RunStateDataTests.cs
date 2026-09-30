@@ -322,7 +322,7 @@ public class RunStateDataTests
     }
 
     /// <summary>
-    /// Kat's Figurines "Sorting Items" was withheld and never filed: nothing
+    /// The second player's Figurines "Sorting Items" was withheld and never filed: nothing
     /// remembered it past the level (2026-09-25).
     /// </summary>
     [Fact]
