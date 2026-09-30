@@ -163,6 +163,19 @@ It needs the hand-test server with a seed holding every ability, and starts the
 game itself. Results: `testserver/logs/lock-roundtrip/results.jsonl`. Every fix
 below was seen to fail the probe when undone (17 of 17 that it can see).
 
+The whole sweep on 2026-09-30 (0.4.4 plus the audit's fixes): 115 configs
+passed, 12 to review, 9 failed, 1 skipped (TrickOrTidy_Bones' control).
+- Known, and the same as before the 0.4.2 fixes: Seed Pods and Clover's
+  intro tint, Mirror's candle, Ghost Cat's cats, Tupperware Tower's
+  colliders (hand tests say its flags hold), Robots' two containers inside
+  robots.
+- Trim Plant's leaves and DLC2 Bells' three compartment bells, first seen
+  on this sweep, were settled by droha's hand test (2026-09-30), as was
+  DLC2 Pizza, the only Distributing level. Each was grey and would not
+  move with its abilities withheld, and moved and finished with them given
+  back. So "collider still on" there is the probe's alarm, not a leak: the
+  lock's interaction flags hold the piece, as on Tupperware Tower.
+
 ### The fixes it guards (2026-09-25 to 27)
 
 | # | Fix | Found on | Probe check |
@@ -233,7 +246,12 @@ file records paid pages as `"slot:page"` keys.
 ## Cat traps
 
 A Cat Trap plays the paw, then calls the game's own `LevelManager.ResetLevel()`
-- the pause menu's Reset. The reset rebuilds the level (the `Level` instance id
+- the pause menu's Reset. On a level with its own `CatGrab` (Stamps, Shells,
+Place Setting, MerryMess_Crackers) the game's cat goes instead (`DoGrab()`,
+never the Interlude's `OnTrigger()`, which leaves the level's event stuck in
+progress), and the reset waits until its paw has gone (Core
+`TrapTiming.AfterCat`, 4 s at most; DevTools `catevent` shows a grab).
+The reset rebuilds the level (the `Level` instance id
 changes) with the same seed, so no attachment - surfaces, drawers, grids,
 nesting, stacks - can survive it, on any puzzle type. Three designs that put
 pieces back by hand broke puzzles; `history/cat-trap-tests.md` records them.
@@ -245,7 +263,12 @@ re-fire on reconnect (`trapsSprung` in the run file); dimming re-arms after the
 rebuild; a held piece and a stamp posted into an envelope both come free; the
 pause menu survives it. The spoiler says which check sends which trap, so on a
 part location it resets that level mid-solve (the harness refunds the pass) and
-anywhere else it misses (`Traps.cs`).
+anywhere else it misses. When it goes off is Core `TrapTiming`: a finished
+puzzle misses until something launches it again (the retry panel's restart
+included), however long its exit or the panel lasts, and so do the credits;
+`tools/probe-trap-window.py` checks a settled puzzle, a load, a straight-on
+finish, the panel, the four levels' own cats and the credits in game (9 of 9,
+2026-09-30).
 
 Two harness rules from this feature: position alone is not evidence (a piece
 at the right coordinates can be attached to the wrong thing), and test the path
@@ -264,6 +287,23 @@ a player takes, not a shortcut that skips it.
   and a DLC1 puzzle each landed on the track with its Close button, no title
   under it (`menus`), and the next card launched from it with one live level
   (`livelevels`).
+  Checked 2026-09-29 on the kinds that were not, every location sent first
+  and each target forced:
+  - a holiday puzzle (GoodTidings Wreath);
+  - a DLC2 hand-made puzzle (Pressed Leaves);
+  - both DLC generators that repeat at most once (DLC1 Trophy Cabinet, DLC2
+    Water Glasses).
+  Each landed on the track, the DLC ones through their own level select,
+  which `DlcGuard` turns into the run's track. With other slots playable,
+  Trophy Cabinet, Water Glasses, Wreath and Pressed Leaves went on to the
+  next slot with one live level. After the holiday puzzle the finished level
+  stays loaded, unseen, under the track until the next launch; the DLC route
+  tears it down. Sending only some slots' locations also delivers the packs
+  placed there, so a "nothing playable" setup sends every location in the
+  run.
+- The retry panel's Retry Button (DevTools `press:Retry Button`) relaunches
+  the same slot with its own seed: Pencils (Randomized) with one of two
+  solutions found, slot 0, seed 1165097864 both times (2026-09-30).
 - A finished run puzzle with nothing left to find moves on without showing the
   retry panel (a generator takes the game's own straight-on route); one with
   solutions left shows it. DevTools `trace:RetryMenu.ShowMenu,RetryMenu.NextLevel`

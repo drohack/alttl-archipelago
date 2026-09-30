@@ -75,7 +75,7 @@ Keep it short: add a rule here as one line, never as a story.
 | Every level alone (fixture) | `tools/probe-forceable.py --all`, `--recheck`, `--groups-rest` -> `fixtures/forceability.jsonl` | ~4 h, 2026-09-24 |
 | Every level's own skip (fixture `skip` field) | `tools/probe-forceable.py --skip-all [--resume]` | ~80 min, 2026-09-25 |
 | One seed's levels alone | `tools/probe-forceable.py [--dlc]` (after make-seed) | ~1 min/level |
-| A lock fix, every level it touches | `tools/probe-lock-roundtrip.py <index ...>` or `--all [--resume]` (hand-test server up) | ~1 min/level; all 132 ~2.5 h, 2026-09-27 |
+| A lock fix, every level it touches | `tools/probe-lock-roundtrip.py <index ...>` or `--all [--resume]` (hand-test server up) | ~1 min/level; all 132 ~2 h, 2026-09-30 (results.jsonl) |
 | Gate steps 1-5 alone | `tools/release_e2e.py --only-arrow` | ~3 min |
 | Did I break a run | `tools/release_e2e.py --quick` | ~7 min (15 puzzles, 2026-09-27; was 13) |
 | Release sign-off | `tools/release_e2e.py` (full) | ~10 min (15 puzzles, 2026-09-27; was 18.9) |
@@ -114,6 +114,9 @@ Keep it short: add a rule here as one line, never as a story.
    `'LevelComplete +id='`. Test a filter on a past line before using it.
 4. The job itself still prints self-contained lines
    (`[n/total ID] step: detail`) so one read of the file says where it is.
+   Beside a probe that launches the game, run `tools/watch-handtest.py
+   --errors-only --wait-for-game 300`: silent unless it crashes or errors, so
+   the probe's lines stay the ones on screen (droha, 2026-09-30).
 5. Keep doing independent work meanwhile; a task notification wakes you when
    the job exits. Say `Nothing is running.` when that is true.
 
@@ -142,8 +145,9 @@ Keep it short: add a rule here as one line, never as a story.
   A plain `dotnet build` deploys into droha's game whenever it is closed.
 - Cat traps are seed items at fixed locations, so the spoiler says which check
   resets which level: on a part location it resets that level mid-solve (the
-  harness refunds the pass); on a Solution/Beaten location, or outside a
-  level, it misses (`Traps.cs`). Never call them random.
+  harness refunds the pass); on a Solution/Beaten location, outside a level,
+  on a finished puzzle until it is launched again, or during the credits, it
+  misses (Core `TrapTiming`). Never call them random.
 - Screenshots: take one to check a level state instead of arguing about it,
   and BEFORE asking droha to look at anything (section 2); delete the file
   right after reading it.

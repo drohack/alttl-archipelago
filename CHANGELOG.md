@@ -9,6 +9,127 @@ refuses to connect to a seed a different apworld generated.
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+From an audit of 0.3.0 to 0.4.4 against every surviving log (2026-09-29),
+and droha's hand test of what it found (2026-09-30).
+
+**New seeds only.** Location ids moved: base 385 -> 383, DLC1 110 -> 107.
+0.4.4 seeds: finish them on 0.4.4, or regenerate.
+
+- **Two parts that never fire are no longer checks.** They need no ability,
+  so the fill could put early progression on them, which would then only
+  arrive with the goal's release. droha played each whole with every
+  ability held:
+  - Kitchen Hanging Tools 1 completed on Hanging Objects, and "Guiding
+    Targets" never reported a solve.
+  - Kitchen Hanging Tools 2 completed on Hanging Objects alone, and
+    "Draggables For Console", over the same 14 objects, never did. That is
+    Workbench's "Draggables For Targets" of 0.4.0 again.
+  - Both are `notALocation`. KHT2 is then one group, so its Hanging Objects
+    part is its Solution.
+- **Bowls is its two Solutions.** Its Crack and Pattern parts each fired in
+  the same second as one ending: Pattern with `Match-(Draggables)_0`, Crack
+  with `_1`. So each arrangement filed two checks, the Spoons case of 0.4.3,
+  which Bowls escaped because its ending ids name neither group. Both are
+  `solutionOnlyParts` (droha: fold them).
+
+- **A Cat Trap no longer knocks over a finished puzzle, or the credits.**
+  - The trap held itself while a level was transitioning before it asked
+    whether the puzzle was finished. So a trap landing as a generator went
+    straight on could come out after the 3 s grace and reset the finished
+    puzzle, throwing the next slot away: four times in the second player's
+    0.4.2 playtest log (Buttons, Trim Plant #2, Stamps (Randomized) #3,
+    Clock).
+  - A player sitting on the retry panel for more than 3 s was reset too.
+  - The credits were reset by the traps the goal's release delivers. That
+    happened in the second player's 0.4.3 ending, which then threw on the
+    way out, and 12 times in gate logs.
+  - Core `TrapTiming` now decides: a finished puzzle misses until something
+    launches it again (a restart included), and the credits always miss.
+  - Background Change Traps leave the credits' own colours alone, where
+    they had fought the credits for the camera every frame.
+  - Checked in game with the rebuilt `tools/probe-trap-window.py` (a real
+    finish, not DevTools `complete`). The old build reset the puzzle on its
+    retry panel and reset the credits. This one: 5 of 5 cases miss or
+    spring as they should, and 1 credits repaint where there were 52.
+- **A puzzle with its own cat sends that cat.** On Stamps, Shells, Place
+  Setting and MerryMess_Crackers, which ship a cat that takes things
+  (`CatGrab`), a Cat Trap now calls the game's cat: its paw reaches in and
+  takes a piece (Place Setting's pulls the placemat), and the reset follows
+  once it has gone, 1.6 to 2.3 s later. Everywhere else the overlay cat
+  still goes.
+  - `DoGrab()`, not the level's own event trigger, which plays the same grab
+    but leaves the event stuck "in progress".
+  - A puzzle finished, left or relaunched under the cat is not reset.
+  - A cat whose paw never shows within 0.5 s gets ours instead: a seeded
+    Shells can draw its leaf layout, where its cat takes nothing.
+  - Tupperware Tower keeps the overlay cat: its climbing cat is the level's
+    intro, and a climb takes 8 s.
+  - Hand-tested by droha (2026-09-30), a Cat Trap sent from the server
+    after moving pieces: on Stamps, Place Setting and MerryMess_Crackers
+    the paw came in and grabbed a piece, then the level reset to its start;
+    Shells (leaf layout) and Tupperware Tower showed our cat, then the
+    reset.
+  - `tools/probe-trap-window.py` case F does the same unattended: every
+    piece shoved first (DevTools `shove`), then the layout after the reset
+    compared with the opening one: 9 of 9 cases pass, and all 6, 4, 10 and
+    14 shoved pieces were back where they opened on Stamps, Place Setting,
+    MerryMess_Crackers and Shells.
+- **Chocolate Bars files its Height ending as Height.** The game reports that
+  ending as `Height-(Draggables)_0` on some plays and `_1` on others. The
+  table knew only `_0`, so a `_1` finish filed "Design (Shuffle) 1" and
+  "Solution: Height" never came on that play.
+  - The ending now answers to both ids. So does Books 3's mirror pair, and
+    so does Popcorn's `TopRow_1`, which was also seen.
+  - Location names and ids are unchanged.
+  - A Core test holds every id in `fixtures/solution-ids-observed.tsv` to
+    one the table answers to.
+- **A reconnect mid-level no longer leaves locked pieces dead.** A
+  connection coming back (or a server taking over an offline run) cleared
+  the lock's records while the open level's pieces were still frozen and
+  grey. So when the ability arrived, the lock put back its own "not
+  interactable", collider off and grey.
+  - The reset now gives everything back through those records, then locks
+    again from what the game really has. A drawer move the game asked for
+    still waits for Drawer.
+  - Checked in game with a hand-test server stopped and started under the
+    open level, then the ability granted:
+    - before: Books "9 of 9 dimmed, 9 not interactive" with Swapping held,
+      54 fields off a fresh boot;
+    - after: Books and DLC1 Nested Drawers (Drawer) both match a fresh
+      boot field for field.
+- **Each pack's star count on the level select is the run's.** The line
+  under a section's title ("- 1/15 (7%)") is the game's own, counted from the
+  save. Generators record no solution there, and a location the server sent
+  never reaches it, so a pack of finished generators read "0/15 (0%)" with
+  every card starred, beside a star goal counting the run's own. It is now
+  the cards' hover stars summed (`SectionStars`, Core
+  `CheckRouter.StarsOf`), rewritten after the game draws it and on the
+  badges' refresh.
+  - Checked in game, on a base run with the Opening's five Solutions sent
+    from the server. The old build read "0/5 (0%)" on the Opening and
+    "0/6" on Pack 1. This one reads "5/5 (100%)", then "1/6 (17%)", and
+    turned into "2/6 (33%)" when another Solution arrived while it was on
+    screen.
+- **The notepad's note follows a Hint Page arriving while it is open.** It
+  said "No Hint Pages" (or the old count) until the page was turned. Checked
+  in game: "you have 1" became "you have 2" with the notepad open.
+- **The credits-locked toast says stars on a star goal**, not "puzzle(s)".
+- **The progression guard is gone.** It kept progression off a part check
+  whose requirement nobody had established, and since every such level was
+  hand-tested on 2026-09-23 it covered no location. No seed moved: the frozen
+  draws in `test_regression` are unchanged. What is left is the data's
+  tripwire, `test_requirements`: a group asking for less than its level
+  needs a dated hand test in `proven-requirements.json`, or it goes red.
+  `proven-requirements.json` loses its `suspect` list, and `add-edges.py` no
+  longer refuses an edge on a level without an entry.
+- **Tools:** DevTools `catevent` (a level's own cat: its config, and one
+  started out of sequence) and `shove` (every piece off its spot, for a
+  reset to undo); `watch-handtest.py --errors-only --wait-for-game` beside a
+  probe; `probe-trap-window.py` numbers its cases and checks the four cat
+  levels.
+
 ## 0.4.4 - 2026-09-29
 
 **New seeds only.** The goal options changed and location ids moved: a

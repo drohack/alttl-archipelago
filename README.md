@@ -45,7 +45,9 @@ rather than two.
 - **Hint Pages.** Without one the notepad still opens; you just cannot erase
   the scribble.
 - **Cat Trap.** The cat walks through an active puzzle and knocks your
-  arrangement over. It costs time, never progress.
+  arrangement over. It costs time, never progress. On a puzzle with its own
+  cat (Stamps, Shells, Place Setting, the Crackers), that cat reaches in
+  first.
 - **Background Change Trap.** Repaints the background.
 - **Background Reset Token.** Spent from the pause menu's Reset Background
   entry: puts every backdrop back to the game's own colour until the next

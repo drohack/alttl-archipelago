@@ -8,7 +8,7 @@ game. This is how it is made and maintained.
 | `levels.json` | the DevTools sweep, merged (below) | every level: controllers, phases, drawers, hints, cats |
 | `abilities.json` | hand-authored | which controller classes each ability unlocks; the base twelve's key order is frozen (item ids hang off it), DLC abilities under `dlcAbilities` |
 | `names.json` | Core `NamesExportTests` (`ALTTL_WRITE_GOLDEN=1 dotnet test`) | location and item names exported from C#, pinned by the Python tests |
-| `proven-requirements.json` | hand-authored | which levels' part requirements are proven (by a hand test, with a date) or suspect; see its `_comment` |
+| `proven-requirements.json` | hand-authored | dated hand-test evidence per level; read by `test_requirements`, never by the generator; see its `_comment` |
 
 `levels.json` is the single source of truth about the game's content, consumed
 by **both** the Python apworld and the C# mod. It is generated, not hand
