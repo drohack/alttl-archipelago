@@ -400,6 +400,19 @@ out CRLF on Windows and LF on the Linux runner, so the Windows build embeds
 CRLF. The parsed content is identical and both load fine. It does mean
 `build_apworld.py`'s "byte-identical output" only holds per-platform.
 
+### Thunderstore
+
+`package-release.py` also writes `<out>/thunderstore/A_Little_to_the_Left_Archipelago-<version>.zip`:
+the same five DLLs at the zip root with a generated `manifest.json`
+(dependency `BepInEx-BepInExPack_IL2CPP-6.0.755`), `thunderstore/icon.png`,
+`thunderstore/README.md` and the changelog. It is not a GitHub asset. Upload
+it by hand at thunderstore.io (Upload, under your Thunderstore team), to the
+"A Little to the Left" community, with the **AI Generated** category
+(Thunderstore's Global Rules), then install and launch it once through
+r2modman. The community was requested in #game-requests on 2026-09-30. The
+game starts with r2modman's doorstop arguments (checked 2026-09-30: title
+screen, no dialog), unlike the Unity arguments in testing.md.
+
 ## The manual route
 
 Same thing, by hand. Takes about ten minutes.

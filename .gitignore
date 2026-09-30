@@ -48,6 +48,10 @@ __pycache__/
 # takes out of the running game.
 !docs/images/*.png
 
+# ... and the Thunderstore package's icon, which tools/package-release.py
+# puts in the package and refuses to build without.
+!thunderstore/icon.png
+
 # The frames themselves are NOT kept. They are 1920x1080 screenshots of a
 # whole menu, regenerable in two minutes, and committing them would put a
 # quarter of a megabyte in the history every time the crop is retouched.

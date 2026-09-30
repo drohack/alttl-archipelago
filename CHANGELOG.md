@@ -11,6 +11,16 @@ The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
 ## Unreleased
 
+- **A Thunderstore package**, for r2modman and Thunderstore Mod Manager once
+  Thunderstore opens the game's community (requested 2026-09-30).
+  `tools/package-release.py` also writes
+  `<out>/thunderstore/A_Little_to_the_Left_Archipelago-<version>.zip`: the
+  same five DLLs, a generated manifest depending on
+  BepInExPack_IL2CPP 6.0.755, and `thunderstore/icon.png` and `README.md`.
+  It refuses a package Thunderstore would refuse
+  (`tools/test_package_release.py`). The icon is the Archipelago ring with
+  the game's own cat, cut from its exe icon. The game starts with the
+  doorstop arguments r2modman passes: title screen in 15 s, no dialog.
 - **Tested on BepInEx be.755**, the build Thunderstore's BepInExPack_IL2CPP
   6.0.755 ships, and the docs now name it. be.697 still works: 0.4.5 as
   released loads on be.755, and a be.755 build loads on be.697, every

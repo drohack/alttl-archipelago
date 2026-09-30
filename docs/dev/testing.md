@@ -85,7 +85,8 @@ game exceptions that otherwise reach only Player.log; `KNOWN_ERRORS` in
 
 Run the executable directly, with no arguments. `steam://` refuses this
 family-shared copy ("no license"), and the game pops a dialog for Unity
-arguments; both look like a hang. `harness_env.ensure_no_steam_relaunch()`
+arguments; both look like a hang. Doorstop's own `--doorstop-*` arguments,
+which r2modman passes, do not (2026-09-30: title screen in 15 s). `harness_env.ensure_no_steam_relaunch()`
 writes `steam_appid.txt` (1629520) so Steam's DRM stub does not relaunch the
 process under a new PID.
 
