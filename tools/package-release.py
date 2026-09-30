@@ -34,6 +34,7 @@ from __future__ import annotations
 import argparse
 import json
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -144,6 +145,87 @@ def write_plugin_zip(out: pathlib.Path, version: str,
     return target
 
 
+#: The Thunderstore package: the same plugin files, with a manifest, the icon
+#: and README from thunderstore/ and the changelog, all at the zip root, where
+#: r2modman expects them (it installs them into BepInEx/plugins/<Team>-<Name>/).
+#: The package name cannot change after the first upload (droha, 2026-09-30).
+THUNDERSTORE = ROOT / "thunderstore"
+TS_NAME = "A_Little_to_the_Left_Archipelago"
+TS_DESCRIPTION = ("Archipelago multiworld randomizer for A Little to the Left. "
+                  "Needs the matching alttl.apworld and player yaml from the "
+                  "GitHub releases page.")
+TS_WEBSITE = "https://github.com/drohack/alttl-archipelago"
+#: The build every test ran on (CHANGELOG, "Tested on BepInEx be.755").
+TS_DEPENDENCIES = ["BepInEx-BepInExPack_IL2CPP-6.0.755"]
+TS_REQUIRED = ("manifest.json", "icon.png", "README.md")
+
+
+def thunderstore_manifest(version: str) -> dict:
+    return {"name": TS_NAME, "version_number": version, "website_url": TS_WEBSITE,
+            "description": TS_DESCRIPTION, "dependencies": list(TS_DEPENDENCIES)}
+
+
+def thunderstore_problems(manifest: dict, icon: bytes, names: list[str]) -> list[str]:
+    """What Thunderstore would refuse (wiki: creating a package), as messages.
+    Pure, so tools/test_package_release.py holds it to each rule."""
+    problems = []
+    if not re.fullmatch(r"[A-Za-z0-9_]{1,128}", manifest.get("name", "")):
+        problems.append("name must be 1-128 of a-z A-Z 0-9 _")
+    if len(manifest.get("description", "")) > 250:
+        problems.append(f"description is {len(manifest['description'])} chars, over 250")
+    if not re.fullmatch(r"\d+\.\d+\.\d+", manifest.get("version_number", "")):
+        problems.append("version_number must be Major.Minor.Patch")
+    for dep in manifest.get("dependencies", []):
+        if not re.fullmatch(r"[A-Za-z0-9_]+-[A-Za-z0-9_]+-\d+\.\d+\.\d+", dep):
+            problems.append(f"dependency {dep!r} is not Team-Name-X.Y.Z")
+    if not json.dumps(manifest).isascii():
+        problems.append("the manifest is not ASCII")
+    # PNG signature, then the IHDR chunk's width and height.
+    if icon[:8] != b"\x89PNG\r\n\x1a\n" or icon[12:16] != b"IHDR":
+        problems.append("icon.png is not a PNG")
+    elif (int.from_bytes(icon[16:20], "big"), int.from_bytes(icon[20:24], "big")) != (256, 256):
+        problems.append("icon.png must be 256x256")
+    for name in TS_REQUIRED:
+        if name not in names:
+            problems.append(f"{name} is missing from the zip root")
+    return problems
+
+
+def write_thunderstore_zip(out: pathlib.Path, version: str,
+                           files: list[pathlib.Path]) -> pathlib.Path:
+    """dist/thunderstore/<name>-<version>.zip, in a folder of its own so the
+    three-asset checks (check-release-assets.py, release_e2e.py), which read
+    dist/ALTTLArchipelago-*.zip, never see it."""
+    folder = out / "thunderstore"
+    folder.mkdir(parents=True, exist_ok=True)
+    target = folder / f"{TS_NAME}-{version}.zip"
+    for stale in folder.glob(f"{TS_NAME}-*.zip"):
+        if stale != target:
+            stale.unlink()
+
+    manifest = thunderstore_manifest(version)
+    icon = (THUNDERSTORE / "icon.png").read_bytes()
+    entries = {
+        "manifest.json": (json.dumps(manifest, indent=4) + "\n").encode("ascii"),
+        "icon.png": icon,
+        "README.md": (THUNDERSTORE / "README.md").read_bytes(),
+        "CHANGELOG.md": (ROOT / "CHANGELOG.md").read_bytes(),
+    }
+    for path in files:                      # the same allowlist as the plugin zip
+        entries[path.name] = path.read_bytes()
+
+    problems = thunderstore_problems(manifest, icon, list(entries))
+    if problems:
+        sys.exit("REFUSING TO PACKAGE the Thunderstore zip:\n  " + "\n  ".join(problems))
+
+    if target.exists():
+        target.unlink()
+    with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as z:
+        for name, data in entries.items():
+            z.writestr(name, data)
+    return target
+
+
 def write_yaml(out: pathlib.Path) -> pathlib.Path:
     target = out / "A Little to the Left.yaml"
     shutil.copyfile(ROOT / "apworld" / "alttl" / "player.yaml", target)
@@ -229,9 +311,10 @@ def main() -> int:
     else:
         build_plugin()
 
-    print("[3/5] collecting and zipping the plugin", flush=True)
+    print("[3/5] collecting and zipping the plugin, and its Thunderstore package", flush=True)
     files = collect_plugin_files()
     plugin_zip = write_plugin_zip(out, version, files)
+    ts_zip = write_thunderstore_zip(out, version, files)
 
     apworld = build_apworld(out)
 
@@ -256,6 +339,8 @@ def main() -> int:
     if rc != 0:
         sys.exit("REFUSING TO PACKAGE: the assets just built do not check out")
 
+    print(f"  Thunderstore: {ts_zip.relative_to(out.parent)} "
+          f"({ts_zip.stat().st_size:,} bytes; upload by hand, not a GitHub asset)", flush=True)
     print(f"Done: 3 assets, {total:,} bytes, version {version}", flush=True)
     return 0
 
