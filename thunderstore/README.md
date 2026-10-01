@@ -40,5 +40,4 @@ A randomized run keeps its own save: your campaign save is never written to.
 - Bugs and questions: [GitHub issues](https://github.com/drohack/alttl-archipelago/issues),
   or the game's channel in the [Archipelago Discord](https://discord.gg/8Z65BR2).
 
-This mod is written largely with an AI coding assistant. Every release is
-played through an in-game release test before it ships.
+Vibe coded with AI: this mod is written with an AI coding assistant (Claude Code).

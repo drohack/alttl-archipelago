@@ -5,9 +5,10 @@ at, and looking at it should not cost a game launch. Re-run this as often as
 the crop needs adjusting; the raw frames under docs/images/raw do not change.
 
 The box is in pixels of a 1920x1080 frame. The mod's overlay is scaled to that
-same reference, so the strip lands in the same place at any window size the
-frame was taken at - but the frame itself is whatever size the player's window
-was, so anything else is scaled to 1920x1080 first rather than cropped blind.
+same reference, so the strip lands in the same place at any 16:9 window size:
+a 16:9 frame is cropped at its own size with the box scaled to it, then
+scaled down to the box's size (always a 400x190 strip), and any other shape is scaled to 1920x1080 first rather than
+cropped blind.
 
     py -3.13 tools/crop-ability-strip.py [shot name ...]
 
@@ -81,12 +82,17 @@ def main():
 
         with Image.open(src) as im:
             frame = im
-            if im.size != REFERENCE:
-                print(f"{name}: {im.size[0]}x{im.size[1]}, scaling to "
-                      f"{REFERENCE[0]}x{REFERENCE[1]} to crop", flush=True)
-                frame = im.resize(REFERENCE, Image.LANCZOS)
+            size = (box[2] - box[0], box[3] - box[1])
+            if im.size[0] * REFERENCE[1] == im.size[1] * REFERENCE[0]:
+                scale = im.size[0] / REFERENCE[0]
+                native = tuple(round(v * scale) for v in box)
+                strip = frame.crop(native).resize(size, Image.LANCZOS)
+            else:
+                print(f"{name}: {im.size[0]}x{im.size[1]} is not 16:9, scaling "
+                      f"to {REFERENCE[0]}x{REFERENCE[1]} to crop", flush=True)
+                strip = im.resize(REFERENCE, Image.LANCZOS).crop(box)
             out = os.path.join(OUT, name + ".png")
-            frame.crop(box).save(out)
+            strip.save(out)
 
         size = os.path.getsize(out)
         print(f"{name}.png: {box[2] - box[0]}x{box[3] - box[1]}, "

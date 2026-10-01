@@ -24,16 +24,19 @@ restarting anything. The locked shot has to come first - there is no way to
 un-send an item - which is why the room's save file is moved aside on the way
 in and put back on the way out.
 
-FULL FRAMES, CROPPED SEPARATELY. This saves whole screenshots and stops. The
-strip's position on screen depends on the window size, which belongs to
-whoever plays this install and is not ours to set for a photograph, so the
-crop is measured from the picture afterwards by crop-ability-strip.py rather
-than guessed at here. It also means the framing can be redone without
-launching the game again.
+FULL FRAMES, CROPPED SEPARATELY. This saves whole screenshots and stops; the
+crop is measured from the picture afterwards by crop-ability-strip.py, so the
+framing can be redone without launching the game again.
+
+--scale=N renders each frame at N times the window size (DevTools
+`shot:<path>|N`). Not for the README: a supersized shot of the level select
+draws its opening zoom art even after the screen has loaded (2026-09-30), so
+the README's are 1x frames of a 1920x1080 window. A 4K window is not the way
+either: on a smaller monitor the mod's display guard puts it back.
 
 Run it with the game closed:
 
-    py -3.13 tools/capture-ability-strip.py [path/to/seed.zip]
+    py -3.13 tools/capture-ability-strip.py [path/to/seed.zip] [--scale=N]
 
 The seed defaults to the newest zip under Archipelago/output. Any seed works
 as long as it has ability_locks on; the strip is drawn from the slot's
@@ -49,8 +52,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from harness_env import (EXE, Environment, GAME, close_game,
-                         ensure_no_steam_relaunch)
+from harness_env import Environment, GAME, close_game
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG = os.path.join(GAME, "BepInEx", "LogOutput.log")
@@ -171,7 +173,10 @@ def to_level_select(log, step):
         text = log.wait(["state: gameState="], 15, step, "the game state")
         if "gameState=Levels_GameState" in text:
             say(step, f"on the level select after {attempt} attempt(s)")
-            time.sleep(2.5)          # let the strip finish its first paint
+            # The level select opens zoomed into a card's art and pulls back
+            # to the track, and nothing logs the end: still zoomed at 8 s,
+            # loaded at 18 s (2026-09-30).
+            time.sleep(20.0)
             return
         where = text.split("gameState=", 1)[1].split(",")[0].strip()
         say(step, f"attempt {attempt}: still in {where}, asking again")
@@ -179,15 +184,16 @@ def to_level_select(log, step):
     raise SystemExit("never reached the level select")
 
 
-def shoot(name, step):
-    """Take one full-window frame and move it into docs/images/raw."""
+def shoot(name, step, scale=1):
+    """Take one full-window frame, at `scale` times the window, and move it
+    into docs/images/raw."""
     # Unity writes the file itself, asynchronously, so the destination is
     # inside the game folder and the wait is for the file to stop growing.
     tmp = os.path.join(GAME, f"ap-{name}.png")
     if os.path.exists(tmp):
         os.remove(tmp)
 
-    dev(f"shot:{tmp}|1")
+    dev(f"shot:{tmp}|{scale}")
     size = -1
     for _ in range(60):
         time.sleep(0.5)
@@ -213,7 +219,10 @@ def main():
     # server dies before it binds. newest_zip() already returns absolute, so
     # this only ever bit a hand-passed argument - which is the normal way to
     # use this script.
-    zip_path = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else newest_zip()
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    scale = int(next((a.split("=", 1)[1] for a in sys.argv[1:]
+                      if a.startswith("--scale=")), "1"))
+    zip_path = os.path.abspath(args[0]) if args else newest_zip()
     save = zip_path[:-4] + ".apsave"
     parked = save + ".parked"
 
@@ -259,9 +268,11 @@ def main():
                 raise SystemExit(f"MultiServer never opened port {PORT}")
             say(2, f"server up on {PORT}, launching the game")
 
-            ensure_no_steam_relaunch()
+            # release_e2e.launch_game: muted from DevTools' first frame, and
+            # it runs ensure_no_steam_relaunch itself.
+            import release_e2e
             log = Log()
-            subprocess.Popen([EXE], cwd=GAME)
+            release_e2e.launch_game()
             text = log.wait(["connected. ", "Archipelago refused"], 180, 3,
                             "the mod to connect")
             # The rebuild that follows the connection is what undid the first
@@ -281,7 +292,7 @@ def main():
 
             to_level_select(log, 4)
 
-            shoot("ability-strip-locked", 5)
+            shoot("ability-strip-locked", 5, scale)
 
             for ability in ABILITIES:
                 server.stdin.write(f"/send {SLOT} {ability}\n")
@@ -293,7 +304,7 @@ def main():
             time.sleep(4.0)          # the strip repaints on a one-second poll
             say(7, "abilities arrived")
 
-            shoot("ability-strip-held", 8)
+            shoot("ability-strip-held", 8, scale)
     finally:
         try:
             server.stdin.write("/exit\n")

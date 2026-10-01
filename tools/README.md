@@ -99,4 +99,4 @@ ladder in the repo's `CLAUDE.md`.
 | `emptysoak.py` | Hammer level loads looking for the blank-level bug |
 | `offline_test.py` / `offline-reconnect-test.py` | A run survives the server going away; Connect during an offline run |
 | `playthrough.py` | Drive a whole run to the credits |
-| `capture-ability-strip.py` / `crop-ability-strip.py` | The README's ability-strip pictures |
+| `capture-ability-strip.py` / `crop-ability-strip.py` | The README's ability-strip pictures (1x frames; a `--scale=2` shot draws the level select's opening art) |

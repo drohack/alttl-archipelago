@@ -1,11 +1,16 @@
 # A Little To The Left - Archipelago
 
+<img src="thunderstore/icon.png" alt="The Archipelago ring with the game's cat" width="128" align="right">
+
 An [Archipelago](https://archipelago.gg) multiworld randomizer for
 [A Little To The Left](https://store.steampowered.com/app/1629520/), the
 tidying puzzle game.
 
 **Status: playable.** A seed generates, the game connects to it, and the run
 plays through to the credits.
+
+**Vibe coded with AI.** The mod, the apworld, the tools and these docs were
+written with an AI coding assistant (Claude Code).
 
 ## What gets randomized
 
@@ -72,13 +77,15 @@ Twelve of the base game's own mechanics are items. The level select carries
 all twelve as a strip, so what is still out there is visible rather than
 something to keep a list of.
 
-Dim is a mechanic you have not found yet:
+Dim is a mechanic you have not found yet; lit is one you hold:
 
-![Twelve ability icons on the level select, all dimmed except Gadgets](docs/images/ability-strip-locked.png)
-
-Lit is one you hold:
-
-![The same twelve icons, all in full colour](docs/images/ability-strip-held.png)
+<table width="100%">
+<tr><th width="50%">Some found</th><th width="50%">Held</th></tr>
+<tr>
+<td><img src="docs/images/ability-strip-locked.png" alt="Twelve ability icons on the level select, all dimmed except Symmetry" width="100%"></td>
+<td><img src="docs/images/ability-strip-held.png" alt="The same twelve icons, all in full colour" width="100%"></td>
+</tr>
+</table>
 
 The icons are the game's own art rather than anything drawn for the mod - a
 badge element, a puzzle piece or a level's object, one per mechanic, chosen to
