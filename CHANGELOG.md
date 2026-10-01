@@ -9,8 +9,21 @@ refuses to connect to a seed a different apworld generated.
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
-## Unreleased
+## 0.4.6 - 2026-09-30
 
+- **The gate's lines say setup or gate**: `[setup 2/4 assets]` while it
+  installs and seeds, `[gate 1/3 arrow]` and `[gate visit 4/26 | 2/15
+  beaten]` while it tests (droha: "it should say it's doing setup then and
+  actually doing the gate"). Its error census names the frame behind
+  Rewired's handler errors, and lists as known the game's own
+  `SkipTooltip.ControllerChanged`, which throws when an input device changes
+  between one menu and the next (50 in the 0.4.6 full gate, from input
+  reaching its window; DevTools `state` now reports `menu=`, and every route
+  to the title leaves one active once it lands). Check 10 also reads Unity's
+  Player.log, where a bare `NullReferenceException` keeps its stack, and
+  lists as known the one DevTools `boot:` causes over a level a Skip
+  finished (`TransitionLevelOut` under `LevelManager.StartLevel`; twice in
+  the DLC gate), only when every one in Player.log is that.
 - **Shared-piece checks count with either mechanic.** Spoons, Coins 1
   (Shape) and Nanopets each have two groups holding the same pieces, and the
   lock frees a piece when any group using it is unlocked, so either mechanic
