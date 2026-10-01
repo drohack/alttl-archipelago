@@ -798,6 +798,10 @@ public partial class DevToolsBehaviour
             + " unlocked=" + Str(() => li == null ? "-" : li.IsUnlocked.ToString())
             + " loaded=" + Str(() => li == null ? "-" : li.LevelIsLoaded.ToString())
             + " transitioning=" + Str(() => li == null ? "-" : li.IsTransitioning.ToString())
-            + " level=" + Str(() => li == null || li.Level == null ? "null" : "present"));
+            + " level=" + Str(() => li == null || li.Level == null ? "null" : "present")
+            // Out of play with no active menu, the game's SkipTooltip
+            // throws on every input-device change (gate, 2026-09-30).
+            + " menu=" + Str(() => gm.menuManager.ActiveMenu == null
+                ? "none" : gm.menuManager.ActiveMenu.gameObject.name));
     }
 }

@@ -256,9 +256,14 @@ _progress = None
 #: The phase play() runs in, the long one; its lines carry the counts.
 PLAY_PHASE = 6
 
-#: What each of the TOTAL steps is, so `[step 6/7]` never reads as progress.
+#: What each of the TOTAL steps is, so `[gate 2/3]` never reads as progress.
 PHASE_NAMES = {1: "clean", 2: "assets", 3: "world", 4: "seed", 5: "arrow",
                6: "play", 7: "save"}
+
+#: Steps 1 to SETUP_PHASES prepare the install and the seed; the rest are
+#: the test itself. droha: "it should say it's doing setup then and actually
+#: doing the gate".
+SETUP_PHASES = 4
 
 
 def set_progress(source):
@@ -270,16 +275,21 @@ def set_progress(source):
 def say(phase, msg):
     """One progress line, every counter with its total.
 
-    During play: `[visit 4/17 | 2/15 beaten]`, the visit counted against
-    the seed's paper plan. Otherwise the step, named. droha: "it's really
-    hard to tell how far along the test is", then "shouldn't we know exactly
-    how many of each ... we are doing? This is a set seed".
+    Setup: `[setup 2/4 assets]`. The test: `[gate 1/3 arrow]`, and during
+    play `[gate visit 4/17 | 2/15 beaten]`, the visit counted against the
+    seed's paper plan. droha: "it's really hard to tell how far along the
+    test is", then "shouldn't we know exactly how many of each ... we are
+    doing? This is a set seed".
     """
+    name = PHASE_NAMES.get(phase, "")
     if phase == PLAY_PHASE and _progress is not None:
         beaten, total, visit, planned = _progress()
-        head = f"[visit {visit or '-'}/{planned} | {beaten}/{total} beaten]"
+        head = f"[gate visit {visit or '-'}/{planned} | {beaten}/{total} beaten]"
+    elif phase <= SETUP_PHASES:
+        head = f"[setup {phase}/{SETUP_PHASES} {name}]".replace(" ]", "]")
     else:
-        head = f"[step {phase}/{TOTAL} {PHASE_NAMES.get(phase, '')}]".replace(" ]", "]")
+        head = (f"[gate {phase - SETUP_PHASES}/{TOTAL - SETUP_PHASES} {name}]"
+                .replace(" ]", "]"))
     print(f"{head} {msg}", flush=True)
 
 
@@ -698,6 +708,22 @@ KNOWN_ERRORS = (
     # Narrow on purpose: another duplicate key is still a failure.
     "has already been added. Key: Stack ",
     "has already been added. Key: Tray (Draggables)",
+    # The game's SkipTooltip.ControllerChanged reads
+    # menuManager.ActiveMenu.transform out of play, and throws in the moment
+    # between one menu and the next when an input device changes. 50 in the
+    # 0.4.6 full gate (2026-09-30), from input reaching the game window during
+    # its menu changes; every route to the title leaves a menu active once it
+    # lands (DevTools state menu=). Matched on the frame error_census names,
+    # so another handler throwing still fails.
+    "(in SkipTooltip.ControllerChanged)",
+    # DevTools boot: tears the old level down, then calls StartLevel, and the
+    # game transitions out the interface it just lost (Player.log:
+    # LevelInterface.<TransitionLevelOut> under LevelManager.StartLevel).
+    # Twice in the 0.4.6 DLC gate (2026-09-30), each a boot over a level a
+    # Skip had finished; a player never boots. The bare line carries no
+    # stack, so explain_from_player_log names it, and only when every
+    # NullReferenceException stack in Player.log is this one.
+    "(TransitionLevelOut after a DevTools boot)",
 )
 
 
@@ -725,6 +751,17 @@ def error_census(text, limit=15):
 
         # Stack traces arrive as their own lines; the first line is the claim.
         signature = f"{source}: {message}"[:150]
+
+        # Rewired words every handler's exception the same, so name the
+        # frame that threw: the first `at` line after it that is not the
+        # event plumbing.
+        if "An exception occurred inside an event handler" in message:
+            frame = next((l.strip()[3:].split(" (")[0] for l in lines[i + 1:i + 16]
+                          if l.strip().startswith("at ")
+                          and not l.strip().startswith(("at UnityEngine.", "at Rewired.",
+                                                        "at GameEventManager."))), None)
+            if frame:
+                signature = f"{signature} (in {frame})"
         counts[signature] = counts.get(signature, 0) + 1
 
         # WHAT LED UP TO IT, once per signature.
@@ -741,6 +778,59 @@ def error_census(text, limit=15):
 
     ordered = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:limit]
     return [(sig, n, context.get(sig, [])) for sig, n in ordered]
+
+
+BARE_NRE = "Unity: NullReferenceException: Object reference not set to an instance of an object."
+
+
+def player_exception_stacks(text):
+    """(header, frames) for each exception Unity wrote to Player.log. Pure."""
+    stacks, lines = [], text.splitlines()
+    for i, line in enumerate(lines):
+        if line.startswith(" ") or "Exception: " not in line:
+            continue
+        frames = []
+        for follow in lines[i + 1:]:
+            if not follow.startswith("  at "):
+                break
+            frames.append(follow.strip()[3:])
+        if frames:
+            stacks.append((line.strip(), frames))
+    return stacks
+
+
+def is_boot_teardown_stack(frames):
+    """The game transitioning out a level DevTools boot: just destroyed."""
+    return (frames[0].startswith("LevelInterface+<TransitionLevelOut>")
+            and any(f.startswith("LevelManager+<StartLevel>") for f in frames))
+
+
+def explain_from_player_log(errors, player_text):
+    """Name the bare NullReferenceException line by its Player.log stack.
+
+    LogOutput carries Unity's exception line without its stack, so every
+    NullReferenceException looks alike there. When every one in Player.log
+    is the boot-teardown stack, the line is renamed to say so; any other
+    stack leaves it as it was, unexplained. Pure.
+    """
+    nres = [frames for header, frames in player_exception_stacks(player_text)
+            if header.startswith("NullReferenceException")]
+    if not nres or not all(is_boot_teardown_stack(f) for f in nres):
+        return errors
+    return [((sig + " (TransitionLevelOut after a DevTools boot)") if sig == BARE_NRE else sig,
+             n, ctx) for sig, n, ctx in errors]
+
+
+def player_logs_text():
+    """Unity's Player.log and Player-prev.log: the gate's two launches."""
+    out = []
+    for name in ("Player-prev.log", "Player.log"):
+        try:
+            with open(os.path.join(SAVE_DIR, name), encoding="utf-8", errors="replace") as fh:
+                out.append(fh.read())
+        except OSError:
+            pass
+    return "\n".join(out)
 
 
 def unexplained(errors):
@@ -5031,7 +5121,7 @@ def main():
         # already finished, so DevTools now says that in a sentence at info
         # level, and everything that is still an ERROR is still counted here.
         threw = whole.count("solve failed")
-        errors = error_census(whole)
+        errors = explain_from_player_log(error_census(whole), player_logs_text())
         print(f"      launches: {launches}; arrow presses: {arrows}; "
               f"solve exceptions: {threw}", flush=True)
         # Two: one throwaway for the arrow, one for the run. See check_arrow.

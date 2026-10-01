@@ -529,28 +529,34 @@ class TestAProgressLineSaysHowFarAlong(unittest.TestCase):
     def tearDown(self):
         e2e.set_progress(None)
 
-    def test_a_setup_step_names_itself(self):
-        self.assertEqual("[step 2/7 assets] installing",
+    def test_a_setup_step_says_setup_and_names_itself(self):
+        """droha, 2026-09-30: say when it is setting up and when it is
+        actually testing."""
+        self.assertEqual("[setup 2/4 assets] installing",
                          self.said(2, "installing"))
+
+    def test_the_arrow_session_is_the_gate(self):
+        self.assertEqual("[gate 1/3 arrow] launching",
+                         self.said(5, "launching"))
 
     def test_during_play_the_line_carries_visit_and_puzzle_totals(self):
         beaten = {0: "A", 3: "B"}
         visit = [4]
         e2e.set_progress(lambda: (len(beaten), 15, visit[0], 17))
         self.assertEqual(
-            "[visit 4/17 | 2/15 beaten] waiting for the check (9s left)",
+            "[gate visit 4/17 | 2/15 beaten] waiting for the check (9s left)",
             self.said(6, "waiting for the check (9s left)"))
         beaten[5] = "C"                      # the counts follow the run
         visit[0] = 5
-        self.assertTrue(self.said(6, "x").startswith("[visit 5/17 | 3/15 beaten]"))
+        self.assertTrue(self.said(6, "x").startswith("[gate visit 5/17 | 3/15 beaten]"))
 
     def test_before_the_first_visit_it_says_so(self):
         e2e.set_progress(lambda: (0, 15, 0, 17))
-        self.assertTrue(self.said(6, "x").startswith("[visit -/17 | 0/15 beaten]"))
+        self.assertTrue(self.said(6, "x").startswith("[gate visit -/17 | 0/15 beaten]"))
 
     def test_other_phases_ignore_the_play_count(self):
         e2e.set_progress(lambda: (4, 15, 4, 17))
-        self.assertEqual("[step 7/7 save] checking", self.said(7, "checking"))
+        self.assertEqual("[gate 3/3 save] checking", self.said(7, "checking"))
 
     def test_the_round_line_names_the_level_first(self):
         self.assertEqual("TupperwareTower beaten (slot 3, 5 of 15 open)",
@@ -3028,6 +3034,81 @@ class TestTheForcedTupperwareSolvesAreKnown(unittest.TestCase):
         line = ("[Error  :     Unity] ArgumentException: An item with the same key "
                 "has already been added. Key: Targets (UnityEngine.GameObject)\n")
         self.assertEqual(1, len(e2e.unexplained(e2e.error_census(line))))
+
+
+
+class TestTheSkipTooltipHandlerErrorIsKnown(unittest.TestCase):
+    """The game's SkipTooltip.ControllerChanged throws when an input device
+    changes out of play with no active menu - the moment between one menu
+    and the next. Input reaching the game window during the gate's menu
+    changes did it 50 times in the 0.4.6 full gate (2026-09-30); every route
+    to the title leaves a menu active once it lands (DevTools state menu=).
+    Rewired's message is the same for every handler, so the census names the
+    frame that threw and only that frame is known."""
+
+    BLOCK = (
+        "[Info   :ALTTL Dev Tools] menu: title\n"
+        "[Error  :     Unity] [ERROR] An exception occurred inside an event handler or callback.\n"
+        "Source: Last active controller changed event callback\n"
+        "\n"
+        "This happens if your event handler/callback code throws an exception.\n"
+        "\n"
+        "Exception:\n"
+        "System.NullReferenceException: Object reference not set to an instance of an object.\n"
+        "  at SkipTooltip.ControllerChanged (GameEventManager+GameEventData details) [0x00000] in <0>:0 \n"
+        "  at UnityEngine.Events.UnityAction`1[T0].Invoke (T0 arg0) [0x00000] in <0>:0 \n")
+
+    def test_the_census_names_the_frame_that_threw(self):
+        errors = e2e.error_census(self.BLOCK)
+        self.assertEqual(1, len(errors))
+        self.assertIn("SkipTooltip.ControllerChanged", errors[0][0])
+
+    def test_it_is_explained(self):
+        self.assertEqual([], e2e.unexplained(e2e.error_census(self.BLOCK)))
+
+    def test_another_handler_throwing_is_not(self):
+        other = self.BLOCK.replace("SkipTooltip.ControllerChanged", "Badges.OnSomething")
+        self.assertEqual(1, len(e2e.unexplained(e2e.error_census(other))))
+
+
+
+class TestTheBootTeardownNullReferenceIsKnown(unittest.TestCase):
+    """DevTools boot: tears the old level down and then calls StartLevel, and
+    the game transitions out the interface it just lost: a bare
+    NullReferenceException in LogOutput, its stack only in Player.log. Twice
+    in the 0.4.6 DLC gate (2026-09-30), each a boot over a level finished by
+    a Skip. A player never boots. Known only when EVERY NullReferenceException
+    stack in Player.log is that one."""
+
+    BARE = ("[Info   :ALTTL Dev Tools] boot: destroying orphan level DLC2 Cupcakes(Clone)#-1\n"
+            "[Error  :     Unity] NullReferenceException: Object reference not set to an instance of an object.\n")
+
+    BOOT_STACK = (
+        "NullReferenceException: Object reference not set to an instance of an object.\n"
+        "  at LevelInterface+<TransitionLevelOut>d__195.MoveNext () [0x00000] in <0>:0 \n"
+        "  at UnityEngine.SetupCoroutine.InvokeMoveNext (System.Collections.IEnumerator enumerator, System.IntPtr returnValueAddress) [0x00000] in <0>:0 \n"
+        "  at LevelManager.TransitionLevelOut (LevelInterface levelInterface, System.Single overrideSpeed) [0x00000] in <0>:0 \n"
+        "  at LevelManager+<SetActiveLevel>d__48.MoveNext () [0x00000] in <0>:0 \n"
+        "  at LevelManager+<StartLevel>d__47.MoveNext () [0x00000] in <0>:0 \n"
+        "\n")
+
+    OTHER_STACK = (
+        "NullReferenceException: Object reference not set to an instance of an object.\n"
+        "  at Badges.OnSomething () [0x00000] in <0>:0 \n"
+        "\n")
+
+    def errors(self, player):
+        return e2e.explain_from_player_log(e2e.error_census(self.BARE * 2), player)
+
+    def test_two_boot_stacks_explain_two_bare_lines(self):
+        self.assertEqual([], e2e.unexplained(self.errors(self.BOOT_STACK * 2)))
+
+    def test_any_other_stack_keeps_them_unexplained(self):
+        self.assertEqual(1, len(e2e.unexplained(
+            self.errors(self.BOOT_STACK + self.OTHER_STACK))))
+
+    def test_no_player_log_keeps_them_unexplained(self):
+        self.assertEqual(1, len(e2e.unexplained(self.errors(""))))
 
 
 if __name__ == "__main__":

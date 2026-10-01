@@ -115,8 +115,9 @@ in-game setup on its own, in about three minutes.
 
 ## Reading it while it runs
 
-Every counter carries its total. Setup steps are `[step 2/7 assets]`; during
-play every line is `[visit 4/24 | 4/15 beaten]`, the visit counted against the
+Every counter carries its total. Setup steps are `[setup 2/4 assets]`, the
+test's own `[gate 1/3 arrow]`; during play every line is
+`[gate visit 4/24 | 4/15 beaten]`, the visit counted against the
 paper plan; the verdicts are `[check 12/28] PASS ...`.
 
 It stops itself, loudly, instead of improvising: a visit that is not the

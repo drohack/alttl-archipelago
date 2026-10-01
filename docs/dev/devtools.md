@@ -126,7 +126,7 @@ Files it writes, all in `<game>/BepInEx/`:
 | `solve:<index or name>` | Force one controller of the RUNNING level to solved, by its place in `controllers` or by name, and raise the game's own `ObjectControllerSolved`. Proves the event-to-check path, not that the puzzle can be solved |
 | `livelevels` | Count the `Level` objects alive in the scene. Exactly one is correct; two means a reset landed inside a navigation |
 | `dedupe` | Keep the level `ActiveLevelInterface` owns and destroy every other `Level` clone in the scene, inactive ones included. `boot:` does this by itself now |
-| `state` / `state:<file>` | `state`: one line - the game state, the active level and its index, seed, solution counts, and the load flags. `state:<file>` is the old spelling of `objects:<file>`, kept for the lock probe |
+| `state` / `state:<file>` | `state`: one line - the game state, the active level and its index, seed, solution counts, the load flags, and the active menu (`menu=`). `state:<file>` is the old spelling of `objects:<file>`, kept for the lock probe |
 | `contextual` | Ask the running gameplay state where finishing would return to |
 | `watch[:<seconds>]` / `watch:off` | For that many seconds (default 10), every frame, report the game state and the active level's load flags, and the camera's background colour beside the level's `BackgroundColor`, `ActiveBackgroundColor` (the one the game paints from) and its `Level`'s - printing only changes. `watch:off` stops it early |
 | `time` | Report `Time.timeScale`, the scaled and unscaled clocks, and the game's own pause (`Paused`) |
