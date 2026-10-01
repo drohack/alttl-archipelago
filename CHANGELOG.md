@@ -11,6 +11,28 @@ The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
 ## Unreleased
 
+- **Shared-piece checks count with either mechanic.** Spoons, Coins 1
+  (Shape) and Nanopets each have two groups holding the same pieces, and the
+  lock frees a piece when any group using it is unlocked, so either mechanic
+  lets a player finish either group; the logic and the mod's held-back check
+  asked for the group's own, so Kat's 0.4.5 run had Spoons' Size ending held
+  back while holding Stacking (2026-09-30). A requirement can now carry
+  `orAbilities`, other sets that meet it too, from a hand-authored `freedBy`
+  in levels.json (`rules.or_abilities`); the generator, the mod's held-back
+  check and card badges (Core `SlotProgress.IsReachable`) and the gate's
+  harness (`release_e2e.need_met`) all read it. droha's hand test finished
+  every one of the six groups with its own mechanic revoked, and in a seed
+  with the fix the mod filed Spoons' Size holding only Stacking.
+  - DevTools `indexables`: what an Indexables group is solved by (Nanopets:
+    every pet to its last state).
+- **The README says the project is vibe coded with AI**, and shows the two
+  strip pictures side by side, retaken in the alphabetical order once the
+  level select has finished its opening zoom (`capture-ability-strip.py`
+  waits 20 s).
+- **The level select's mechanic strip reads alphabetically**, Distributing
+  last (Core `Abilities.StripOrder`). It was the item-id order. A seed still
+  shows only its own mechanics, so the strip stays compact. Item ids are
+  unchanged.
 - **A Thunderstore package**, for r2modman and Thunderstore Mod Manager once
   Thunderstore opens the game's community (requested 2026-09-30).
   `tools/package-release.py` also writes

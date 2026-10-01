@@ -172,6 +172,7 @@ Files it writes, all in `<game>/BepInEx/`:
 | Command | Effect |
 |---|---|
 | `controllers` | The active level's object controllers, with type and solved flag. This is what the release harness reads to decide what is left to solve |
+| `indexables` | Every Indexables controller of the running level: each solution's target index per object (or its order under `matchOrder`), and each object's current index, how many it has and `LockIndex`. What to tell a player to set (Nanopets: each pet to its last state) |
 | `revoke:<Ability>[,<Ability>]` / `revoke:none` | Make the Archipelago mod treat those abilities as NOT held, whatever the server sent - its real lock, applied at once - so one seed holding every ability covers any hand test. `revoke:none` gives them back. Replaces the set each time; lasts until the session reconnects |
 | `traps:off` / `traps:on` | Make the Archipelago mod count no Background Change Traps for the rest of this game session (the hand-test seed's filler is all background traps, and they hide pieces), or count them again. A level already on screen keeps its colour until it is loaded again |
 | `locks` | Per controller, how many of its objects the ability locks have dimmed and frozen, how many two controllers share, and how many have no sprite to dim. Walks each controller's FULL object set, not just `ManagedObjects` - Dirtyables, Containables, Stickables and StackablesY keep their own lists |

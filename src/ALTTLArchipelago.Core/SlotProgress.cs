@@ -124,6 +124,6 @@ public sealed class SlotProgress
         // badge must not claim otherwise.
         if (!abilities.LocksEnabled) return true;
 
-        return abilities.HasAll(requirement.Abilities);
+        return requirement.Options.Any(abilities.HasAll);
     }
 }

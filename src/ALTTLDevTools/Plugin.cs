@@ -596,6 +596,7 @@ public partial class DevToolsBehaviour : MonoBehaviour
             Cmd("skiptip", Areas.Track, new[] { "skiptip" }, ShowSkipTooltip),
 
             Cmd("controllers", Areas.Objects, new[] { "controllers" }, ListControllers),
+            Cmd("indexables", Areas.Objects, new[] { "indexables" }, ListIndexables),
             Cmd("revoke", Areas.Objects, new[] { "revoke:<Ability>[,<Ability>]", "revoke:none" }, Revoke),
             Cmd("traps", Areas.Objects, new[] { "traps:off", "traps:on" }, Traps),
             Cmd("locks", Areas.Objects, new[] { "locks" }, ReportLocks),

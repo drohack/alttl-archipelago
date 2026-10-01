@@ -259,6 +259,38 @@ class TestTables(unittest.TestCase):
         self.assertEqual(["Stacking"], out["Spoons - Solution: Stacked"]["abilities"])
         self.assertEqual(["Ordering", "Stacking"], out["Spoons - Beaten"]["abilities"])
 
+    def test_spoons_endings_are_met_by_either_mechanic(self):
+        """Every spoon is in both groups, and the lock frees a piece when any
+        group using it is unlocked (levels.json freedBy). Kat's 0.4.5 run held
+        Stacking only, made the Size arrangement, and had it withheld; droha's
+        hand test (2026-09-30) stacked them holding Ordering only."""
+        spoons = data.BY_ID["Spoons"]
+        out = rules.requirements([slots.Slot(level=spoons, instance=1, seed=-1)], 2, True)
+        size = out["Spoons - Solution: Size (Elastic)"]
+        stacked = out["Spoons - Solution: Stacked"]
+        self.assertEqual([["Stacking"]], size["orAbilities"])
+        self.assertEqual([["Ordering"]], stacked["orAbilities"])
+        for req in (size, stacked):
+            self.assertTrue(rules.met(req, {"Stacking"}))
+            self.assertTrue(rules.met(req, {"Ordering"}))
+            self.assertFalse(rules.met(req, set()))
+        self.assertNotIn("orAbilities", out["Spoons - Beaten"])
+        self.assertEqual([], rules.requirements(
+            [slots.Slot(level=spoons, instance=1, seed=-1)], 2, False)
+            ["Spoons - Solution: Size (Elastic)"].get("orAbilities", []))
+
+    def test_freed_by_names_groups_of_its_own_level(self):
+        """A misspelt group in freedBy would silently free nothing."""
+        for raw in data._LEVELS_RAW["levels"]:
+            controllers = {c["name"] for c in raw["controllers"]}
+            for group, others in (raw.get("freedBy") or {}).items():
+                with self.subTest(level=raw["levelId"], group=group):
+                    self.assertIn(group, controllers)
+                    self.assertTrue(others)
+                    for other in others:
+                        self.assertIn(other, controllers)
+                        self.assertNotEqual(group, other)
+
     def test_single_group_levels_get_no_part_locations(self):
         """On a single-group level the group check and the first solution check
         are the same event; minting both would double count."""

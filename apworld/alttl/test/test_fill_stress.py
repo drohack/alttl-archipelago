@@ -22,7 +22,7 @@ from Fill import distribute_items_restrictive
 from test.bases import WorldTestBase
 from test.general import setup_multiworld
 
-from .. import data, items, slots
+from .. import data, items, rules, slots
 from .. import options as apoptions
 
 #: Enough to catch a per-seed failure without slowing the everyday run. The two
@@ -405,7 +405,9 @@ class TestEverySeedIsWinnable(unittest.TestCase):
                     state.remove(world.create_item(ability))
 
                     for location_name, req in reqs.items():
-                        if ability not in req["abilities"]:
+                        # Removed, it must block every way to meet it -
+                        # Spoons' Size is met by Ordering or Stacking.
+                        if not all(ability in o for o in rules.options(req)):
                             continue
                         try:
                             location = world.get_location(location_name)

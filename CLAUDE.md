@@ -42,6 +42,8 @@ Keep it short: add a rule here as one line, never as a story.
 - Every hand test: give the watcher the step's `--until` (a finish is
   `'ended on'`) and arm the 10-minute heartbeat (section 4) too; on each wake,
   say what the log shows before droha has to (droha, 2026-09-29).
+- Arm the watcher BEFORE each `boot:`: droha plays the moment the level shows
+  (Coins finished 9 s before a late watcher, droha, 2026-09-30).
 - Testing one level needs NO seed: DevTools `menu:title`, `boot:<index>`,
   `livelevels` (must be 1). DevTools logs `PartSolved  id=.. part=..` for every
   part the game solves; watch that, not the recorder, to see which checks fire.

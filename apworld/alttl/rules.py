@@ -58,9 +58,47 @@ def ending_abilities(level: data.Level, suffix: str, ability_locks: bool) -> Lis
     return sorted(level.enforced_part_abilities.get(group, level.enforced_abilities))
 
 
+def or_abilities(level: data.Level, group, ability_locks: bool) -> List[List[str]]:
+    """Other ability sets that free a group's pieces, for "orAbilities".
+
+    Where another group holds every piece of this one (Level.freed_by), its
+    abilities free them too, because the lock frees a piece when any group
+    using it is unlocked: Spoons' Size (Elastic) needs Ordering, or Stacking.
+    Empty for a group that needs nothing already, and almost everywhere else.
+    """
+    if not ability_locks or group is None:
+        return []
+    own = level.enforced_part_abilities.get(group, frozenset())
+    out: List[List[str]] = []
+    for other in level.freed_by.get(group, ()):
+        need = sorted(level.enforced_part_abilities.get(other, frozenset()))
+        if own and not own <= set(need) and need not in out:
+            out.append(need)
+    return out
+
+
+def options(req: dict) -> List[List[str]]:
+    """Every ability set that meets a requirement: its own, then orAbilities."""
+    return [req["abilities"]] + list(req.get("orAbilities", ()))
+
+
+def met(req: dict, held) -> bool:
+    """Whether a set of held ability names meets a requirement's abilities."""
+    return any(set(option) <= set(held) for option in options(req))
+
+
+def _entry(packs: int, abilities: List[str], alternatives: List[List[str]]) -> dict:
+    out = {"packs": packs, "abilities": abilities}
+    if alternatives:
+        out["orAbilities"] = alternatives
+    return out
+
+
 def requirements(plan: List[slots.Slot], pack_size: int,
                  ability_locks: bool, achievements: bool = False) -> Dict[str, dict]:
-    """Location name -> {"packs": n, "abilities": [...]}.
+    """Location name -> {"packs": n, "abilities": [...]}, plus "orAbilities"
+    (a list of other sets, any one of which meets it too) on a shared-piece
+    group (or_abilities).
 
     Omits nothing: a location with no ability requirement still records its
     pack count, because that is a real gate.
@@ -83,9 +121,9 @@ def requirements(plan: List[slots.Slot], pack_size: int,
         level_abilities = (sorted(level.enforced_abilities)
                            if ability_locks else [])
         for _id, suffix, _group in level.endings:
-            out[locations.ending_name(level, slot.instance, suffix)] = {
-                "packs": packs, "abilities": ending_abilities(level, suffix, ability_locks),
-            }
+            out[locations.ending_name(level, slot.instance, suffix)] = _entry(
+                packs, ending_abilities(level, suffix, ability_locks),
+                or_abilities(level, narrowed_group(level, suffix), ability_locks))
 
         if level.has_parts:
             for part in level.part_locations:
@@ -104,10 +142,8 @@ def requirements(plan: List[slots.Slot], pack_size: int,
                 # phases pushed requirements up.
                 part_abilities = (sorted(level.enforced_part_abilities.get(part, ()))
                                   if ability_locks else [])
-                out[locations.part_name(level, slot.instance, part)] = {
-                    "packs": packs,
-                    "abilities": part_abilities,
-                }
+                out[locations.part_name(level, slot.instance, part)] = _entry(
+                    packs, part_abilities, or_abilities(level, part, ability_locks))
 
         out[locations.beaten_name(level, slot.instance)] = {
             "packs": packs, "abilities": level_abilities,
@@ -125,18 +161,18 @@ def set_all_rules(world) -> None:
     reqs = world.requirements
     pack = items.PROGRESSIVE_PACK
 
-    def satisfied(state, packs: int, abilities: List[str]) -> bool:
-        if packs and not state.has(pack, player, packs):
+    def satisfied(state, req: dict) -> bool:
+        if req["packs"] and not state.has(pack, player, req["packs"]):
             return False
-        return all(state.has(a, player, 1) for a in abilities)
+        return any(all(state.has(a, player, 1) for a in option)
+                   for option in options(req))
 
     for name, req in reqs.items():
         try:
             location = world.get_location(name)
         except KeyError:
             continue        # a name this seed did not use
-        set_rule(location, lambda state, r=req: satisfied(
-            state, r["packs"], r["abilities"]))
+        set_rule(location, lambda state, r=req: satisfied(state, r))
 
     # The credits need their own item AND enough done. The count is carried
     # by event locations rather than pool items, so it costs no item slots
@@ -153,7 +189,7 @@ def set_all_rules(world) -> None:
             for solution in locations.ending_names_for(slot.level, slot.instance):
                 req = reqs[solution]
                 set_rule(world.get_location(locations.star_event_name(solution)),
-                         lambda state, r=req: satisfied(state, r["packs"], r["abilities"]))
+                         lambda state, r=req: satisfied(state, r))
     needed = world.stars_to_collect if world.goal_is_stars else world.levels_to_beat
     token = items.STAR_TOKEN if world.goal_is_stars else items.BEATEN_TOKEN
 

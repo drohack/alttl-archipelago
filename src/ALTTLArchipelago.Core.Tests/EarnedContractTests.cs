@@ -151,4 +151,36 @@ public class EarnedContractTests
         Assert.True(progress.IsReachable(beaten, EarnedPacks, abilities));
         Assert.True(progress.IsReachable(beaten, 3, abilities));
     }
+
+    /// <summary>
+    /// A SHARED-PIECE ending: Spoons' Size (Elastic) is its Ordering group,
+    /// but every spoon is in the Stacking group too, and the lock frees a
+    /// piece when any group using it is unlocked. Kat's 0.4.5 run held
+    /// Stacking only, made the Size arrangement, and had it withheld.
+    /// </summary>
+    private static (SlotProgress, AbilityState) Spoons(params string[] held)
+    {
+        var data = SlotData.FromJson("""
+            {"ability_locks": true,
+             "abilities": {"Ordering": ["DraggablesOrdered"], "Stacking": ["StackablesZ"]},
+             "slots": [{"levelId": "Spoons", "levelIndex": 24, "instance": 1}],
+             "requirements": {"Spoons - Solution: Size (Elastic)":
+                 {"packs": 0, "abilities": ["Ordering"], "orAbilities": [["Stacking"]]}}}
+            """);
+        var abilities = new AbilityState(data);
+        abilities.SetHeld(held);
+        return (new SlotProgress(data, new CheckRouter(data)), abilities);
+    }
+
+    [Theory]
+    [InlineData(true, "Ordering")]
+    [InlineData(true, "Stacking")]
+    [InlineData(true, "Ordering", "Stacking")]
+    [InlineData(false)]
+    public void ASharedPieceEndingIsEarnedWithAnyOfItsOptions(bool earned, params string[] held)
+    {
+        var (progress, abilities) = Spoons(held);
+        Assert.Equal(earned,
+            progress.IsReachable("Spoons - Solution: Size (Elastic)", EarnedPacks, abilities));
+    }
 }

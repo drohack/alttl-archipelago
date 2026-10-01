@@ -413,7 +413,7 @@ public sealed class SlotData
             {
                 problems.Add($"{name} needs {requirement.Packs} packs, seed has {PackTotal}");
             }
-            foreach (var ability in requirement.Abilities)
+            foreach (var ability in requirement.Options.SelectMany(o => o))
             {
                 // An ability gating a location but absent from the catalogue
                 // would be unobtainable - the location could never be checked.
@@ -487,4 +487,17 @@ public sealed class Requirement
 
     [JsonPropertyName("abilities")]
     public List<string> Abilities { get; set; } = new();
+
+    /// <summary>
+    /// Other ability sets that meet it instead, on a level whose pieces are
+    /// shared (levels.json freedBy): Spoons' Size (Elastic) ending needs
+    /// Ordering, or Stacking, because the lock frees a spoon when any group
+    /// using it is unlocked. Empty almost everywhere.
+    /// </summary>
+    [JsonPropertyName("orAbilities")]
+    public List<List<string>> OrAbilities { get; set; } = new();
+
+    /// <summary>Every ability set that meets it: Abilities, then each of OrAbilities.</summary>
+    [JsonIgnore]
+    public IEnumerable<List<string>> Options => OrAbilities.Prepend(Abilities);
 }

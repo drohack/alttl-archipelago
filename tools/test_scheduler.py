@@ -856,6 +856,17 @@ class TestTheHarnessForcesOnlyWhatTheLogicHasReached(unittest.TestCase):
         self.assertEqual({"Size (Elastic)"},
                          e2e.table_gated("Spoons", self.PLAN, {"Stacking"}))
 
+    def test_a_shared_piece_ending_goes_by_any_of_its_options(self):
+        """Spoons' Size is met by Stacking too in a seed that says so
+        (orAbilities, levels.json freedBy): every spoon is in both groups."""
+        plan = dict(self.PLAN, or_abilities={
+            "Spoons - Solution: Size (Elastic)": [["Stacking"]]})
+        self.assertEqual(set(), e2e.table_gated("Spoons", plan, {"Stacking"}))
+        self.assertTrue(e2e.need_met(plan, "Spoons - Solution: Size (Elastic)",
+                                     {"Stacking"}))
+        self.assertEqual({"Size (Elastic)", "Stacked"},
+                         e2e.table_gated("Spoons", plan, set()))
+
     def test_play_passes_it_to_solve_level(self):
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                "release_e2e.py"), encoding="utf-8") as fh:

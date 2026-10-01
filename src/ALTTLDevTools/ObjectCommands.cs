@@ -58,6 +58,75 @@ public partial class DevToolsBehaviour
     }
 
     /// <summary>
+    /// Every Indexables controller of the running level: each solution's
+    /// target index per object (or its index order, under matchOrder), and
+    /// each object's current index and LockIndex - what the group is solved
+    /// by, for telling a player what to set (Nanopets' pets).
+    /// </summary>
+    private static void ListIndexables()
+    {
+        var li = GameManager.Instance.levelManager.ActiveLevelInterface;
+        var level = li == null ? null : li.Level;
+        if (level == null || level.objectControllers == null)
+        {
+            DevToolsPlugin.Log.LogWarning("indexables: no level running");
+            return;
+        }
+
+        int found = 0;
+        var list = level.objectControllers;
+        for (int i = 0; i < list.Count; i++)
+        {
+            var ix = list[i] == null ? null : list[i].TryCast<Indexables>();
+            if (ix == null) continue;
+            found++;
+            DevToolsPlugin.Log.LogInfo(
+                $"indexables: [{i}] {Str(() => ix.gameObject.name)}"
+                + $" solved={Str(() => ix.IsSolved.ToString())}"
+                + $" solutions={Str(() => ix.solutions.Count.ToString())}");
+
+            var solutions = ix.solutions;
+            for (int s = 0; solutions != null && s < solutions.Count; s++)
+            {
+                var sol = solutions[s];
+                if (sol == null) continue;
+                var wants = new List<string>();
+                var targets = sol.Solutions;
+                for (int w = 0; targets != null && w < targets.Count; w++)
+                {
+                    var want = targets[w];
+                    wants.Add($"{Str(() => IndexOwner(want.IndexedAttribute))}"
+                        + $"={Str(() => want.Index.ToString())}");
+                }
+                var order = new List<string>();
+                var indexes = sol.m_indexesOrder;
+                for (int o = 0; indexes != null && o < indexes.Length; o++)
+                    order.Add(indexes[o].ToString());
+                DevToolsPlugin.Log.LogInfo(
+                    $"  solution [{s}] {Str(() => sol.gameObject.name)}"
+                    + $" matchOrder={Str(() => sol.matchOrder.ToString())}"
+                    + $" acceptReverse={Str(() => sol.acceptReverse.ToString())}"
+                    + $" order=[{string.Join(",", order)}]: {string.Join(", ", wants)}");
+            }
+
+            var all = ix.AllIndexes;
+            for (int a = 0; all != null && a < all.Count; a++)
+            {
+                var attr = all[a];
+                DevToolsPlugin.Log.LogInfo(
+                    $"  object {Str(() => IndexOwner(attr))}"
+                    + $" index={Str(() => attr.CurrentIndex.ToString())}"
+                    + $" of {Str(() => attr.NumIndexes.ToString())}"
+                    + $" lockIndex={Str(() => attr.LockIndex.ToString())}");
+            }
+        }
+        if (found == 0) DevToolsPlugin.Log.LogInfo("indexables: none in this level");
+    }
+
+    private static string IndexOwner(IndexedAttribute attr)
+        => attr.attachedObject != null ? attr.attachedObject.gameObject.name : attr.gameObject.name;
+
+    /// <summary>
     /// What the ability locks have actually done to this level's objects.
     ///
     /// WHY THIS IS NOT `controllers`. That command reports each controller's

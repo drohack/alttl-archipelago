@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ALTTLArchipelago.Core;
 using ALTTLModKit;
 using TMPro;
@@ -93,7 +94,8 @@ internal static partial class Badges
                 + $"{(reachable ? "reachable" : "BLOCKED  ")} {name}"
                 + (need == null ? "" : $"  [needs {need.Packs} packs"
                     + (need.Abilities.Count > 0
-                        ? ", " + string.Join(" + ", need.Abilities) : "")
+                        ? ", " + string.Join(", or ", need.Options.Select(o => string.Join(" + ", o)))
+                        : "")
                     + "]"));
         }
     }

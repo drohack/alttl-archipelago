@@ -1123,7 +1123,18 @@ def forcing_groups(level_id, locations):
     return out
 
 
-def finish_on_one_group(level_id, locations, requirements, held, forced):
+def need_met(plan, location, held):
+    """Whether `held` meets a location's abilities in the seed: its own set,
+    or one of its orAbilities (a shared-piece group, rules.met). A location
+    the seed does not have needs nothing. Pure."""
+    held = set(held)
+    if set((plan.get("requirements") or {}).get(location) or ()) <= held:
+        return True
+    return any(set(option) <= held
+               for option in (plan.get("or_abilities") or {}).get(location, ()))
+
+
+def finish_on_one_group(level_id, locations, plan, held, forced):
     """How forcing finishes a level the game ends on one group
     (KNOWN_COMPLETES_ON): (the group, the part locations solved on the way,
     the ending it files). (None, [], None) when no open group finishes it.
@@ -1142,7 +1153,7 @@ def finish_on_one_group(level_id, locations, requirements, held, forced):
             if part_loc not in forced:
                 continue
             walked.append(part_loc)
-        elif not ends or not set(requirements.get(ends[0]) or ()) <= held:
+        elif not ends or not need_met(plan, ends[0], held):
             continue
         open_groups.append(group)
         if group in triggers and strands_the_rest(level_id, group):
@@ -1586,7 +1597,10 @@ print(json.dumps({'slots': [(s['levelIndex'], s['levelId'])
                   'starting_abilities': list(d.get('starting_abilities', [])),
                   'credits': d.get('credits') or 'Credits',
                   'requirements': {k: v['abilities']
-                                   for k, v in d['requirements'].items()}}))
+                                   for k, v in d['requirements'].items()},
+                  'or_abilities': {k: v['orAbilities']
+                                   for k, v in d['requirements'].items()
+                                   if v.get('orAbilities')}}))
 """
     r = subprocess.run([sys.executable, "-c", code,
                         os.path.join(folder, seed_zip)],
@@ -1846,11 +1860,10 @@ def slot_has_work(slot, plan, where, held, collected):
     Asked against the SEED's own requirements, which is what the mod gates
     on, so the harness and the mod cannot disagree about what is earnable.
     """
-    requirements = plan.get("requirements") or {}
     for location in where.get(slot, ()):
         if location in collected:
             continue
-        if set(requirements.get(location) or []) <= held:
+        if need_met(plan, location, held):
             return True
     return False
 
@@ -1911,7 +1924,6 @@ def arrow_candidates(slots, plan, where):
     # And only an OPEN slot, holding what the session really holds: the
     # seed's starting abilities arrive on connect there too. Assuming none
     # sent seed 20260907's check to slot 5, which no pack had opened.
-    requirements = plan.get("requirements") or {}
     held = set(plan.get("starting_abilities") or ())
     opening = (plan.get("boundaries") or [len(slots)])[0]
     seeds = plan.get("seeds") or []
@@ -1929,7 +1941,7 @@ def arrow_candidates(slots, plan, where):
             continue
         token = next((l for l in where.get(i, ()) if l.endswith(" - Beaten")),
                      None)
-        if token is not None and not set(requirements.get(token) or ()) <= held:
+        if token is not None and not need_met(plan, token, held):
             continue
         if slot_has_work(i, plan, where, held, set()):
             found.append(i)
@@ -2243,13 +2255,12 @@ def completion_plan(out_dir, seed_zip, plan):
     for location, item in placements:
         level_id, _model = _location_requirement(
             location, names, by_display, _CLASS_ABILITY)
-        need[location] = (level_id, set(requirements.get(location) or []),
-                          item)
+        need[location] = (level_id, None, item)
 
     collected, order = set(), []
     while True:
         progress = False
-        for location, (level_id, abilities, item) in need.items():
+        for location, (level_id, _abilities, item) in need.items():
             if location in collected or level_id is None:
                 continue
             # How many slots the packs collected so far have opened.
@@ -2257,7 +2268,7 @@ def completion_plan(out_dir, seed_zip, plan):
                                else boundaries[min(packs, len(boundaries) - 1)])
             if slots.get(level_id, 10 ** 6) >= reachable_slots:
                 continue
-            if not abilities <= held:
+            if not need_met(plan, location, held):
                 continue
 
             collected.add(location)
@@ -2381,7 +2392,7 @@ def paper_run(slots, plan, where, placements, starting=(), unreachable=(),
     for slot in opening:
         for loc in where[slot]:
             if (loc not in collected and loc not in unreachable
-                    and set(plan["requirements"][loc]) <= held):
+                    and need_met(plan, loc, held)):
                 collected.add(loc)
                 take_item(placements.get(loc), held, stock)
         restored.add(slot)
@@ -2425,7 +2436,7 @@ def paper_run(slots, plan, where, placements, starting=(), unreachable=(),
             if slot in beaten and not buy:
                 got = {loc for loc in where[slot] if loc not in collected
                        and loc not in unreachable and loc not in stranded
-                       and set(plan["requirements"][loc]) <= held}
+                       and need_met(plan, loc, held)}
                 for loc in sorted(got):
                     collected.add(loc)
                     take_item(placements.get(loc), held, stock)
@@ -2440,7 +2451,7 @@ def paper_run(slots, plan, where, placements, starting=(), unreachable=(),
             if not (buy and slot in beaten):
                 forced = {loc for loc in where[slot] if loc not in collected
                           and loc not in unreachable and loc not in stranded
-                          and set(plan["requirements"][loc]) <= held}
+                          and need_met(plan, loc, held)}
             # A LEVEL THE GAME FINISHES ON ONE GROUP (KNOWN_COMPLETES_ON), the
             # way solve_level meets it: groups in controller order, stopping
             # at the first that ends the level. That banks the Beaten token;
@@ -2456,7 +2467,7 @@ def paper_run(slots, plan, where, placements, starting=(), unreachable=(),
             triggers = KNOWN_COMPLETES_ON.get(level_id, frozenset())
             if triggers and token is not None and token not in collected:
                 finish, walked, ending = finish_on_one_group(
-                    level_id, where[slot], plan["requirements"], held, forced)
+                    level_id, where[slot], plan, held, forced)
                 if finish is not None:
                     endings = {l for l in where[slot] if is_solution_location(l)}
                     forced = ({l for l in forced if not is_part_location(l)
@@ -2464,7 +2475,7 @@ def paper_run(slots, plan, where, placements, starting=(), unreachable=(),
                     unreachable |= endings - {ending}
                     if ending is not None:
                         unreachable.discard(ending)
-                        if set(plan["requirements"][ending]) <= held:
+                        if need_met(plan, ending, held):
                             forced.add(ending)
                     stranded.update(
                         l for l in where[slot] if is_part_location(l)
@@ -2473,7 +2484,7 @@ def paper_run(slots, plan, where, placements, starting=(), unreachable=(),
                 collected.add(loc)
                 take_item(placements.get(loc), held, stock)
             locked_part = any(loc not in collected and is_part_location(loc)
-                              and not set(plan["requirements"][loc]) <= held
+                              and not need_met(plan, loc, held)
                               for loc in where[slot])
             done = (token in forced) if token else all(
                 l in collected for l in where[slot])
@@ -2531,7 +2542,7 @@ def paper_run(slots, plan, where, placements, starting=(), unreachable=(),
         for loc in where[slot]:
             if loc in collected:
                 continue
-            if not set(plan["requirements"][loc]) <= held:
+            if not need_met(plan, loc, held):
                 continue
             # A Skip grants the whole puzzle; forcing is limited to what the
             # harness can perform.
@@ -2969,11 +2980,10 @@ def waiting_on_an_ability(slot, plan, where, held, collected):
     with work left is behind an ability - that is why the work is left -
     so filtering leaves no candidate and the run cannot finish.
     """
-    requirements = plan.get("requirements", {})
     for location in where.get(slot, []):
         if location in collected:
             continue
-        if not set(requirements.get(location, ())) <= set(held):
+        if not need_met(plan, location, held):
             return True
     return False
 
@@ -3098,8 +3108,7 @@ def table_gated(level_id, plan, held):
             loc = f"{display} - {part['display']}"
         else:
             loc = f"{display} - {first}"
-        need = requirements.get(loc)
-        if need is not None and not set(need) <= set(held):
+        if loc in requirements and not need_met(plan, loc, held):
             refused.update(part.get("members") or [])
     return refused
 

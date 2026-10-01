@@ -151,7 +151,7 @@ class Level:
                  "display", "parts", "part_locations", "endings",
                  "finishes_alone", "part_abilities", "abilities",
                  "enforced_abilities", "enforced_part_abilities",
-                 "controller_group", "not_locations", "hint_images",
+                 "controller_group", "freed_by", "not_locations", "hint_images",
                  "level_class")
 
     def __init__(self, raw: dict):
@@ -239,6 +239,16 @@ class Level:
             member: p["display"]
             for p in parts_raw.values()
             for member in p["members"]
+        }
+
+        # Groups whose every piece another group holds too (levels.json
+        # "freedBy", from play): the lock frees a piece when ANY group using
+        # it is unlocked, so Spoons' Size (Elastic) spoons move for Stacking
+        # as well as Ordering (rules.or_abilities). By group display.
+        self.freed_by: Dict[str, List[str]] = {
+            self.controller_group.get(group, group):
+                [self.controller_group.get(o, o) for o in others]
+            for group, others in (raw.get("freedBy") or {}).items()
         }
 
         # Controllers the game registers that are deliberately no location

@@ -77,6 +77,13 @@ and writes it back changes nothing but what it meant to change.
   named for a group ask for just that group's abilities
   (`rules.narrowed_group`); anywhere else it asks for the whole level.
   Re-measure with `tools/probe-forceable.py` before adding one.
+- `freedBy`: a controller whose every piece another controller holds too,
+  mapped to those others (`{"Size (Elastic)": ["Stacked"]}` on Spoons). The
+  lock frees a piece when any group using it is unlocked, so that group's
+  checks are met by the others' abilities as well: `rules.or_abilities`
+  writes them as the requirement's `orAbilities`, which the logic, the mod's
+  held-back check and the gate's harness all read. Hand test before adding
+  one (the shared-piece pairs are in `docs/history/gate-sharing.md`).
 - `phases`, `cats`, `levelClass`, `hint*`: see below and `DataTable.cs` in
   DevTools.
 
