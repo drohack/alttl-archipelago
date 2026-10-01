@@ -168,6 +168,15 @@ public static class Abilities
                       .SelectMany(kv => kv.Value)).ToList();
 
     /// <summary>
+    /// The level select strip's order: the base twelve alphabetically, then
+    /// each DLC's (droha, 2026-09-30), so a mechanic is found by name. Display
+    /// only; item ids follow All and AllWithDlc.
+    /// </summary>
+    public static readonly IReadOnlyList<string> StripOrder =
+        All.OrderBy(a => a, StringComparer.Ordinal)
+           .Concat(AllWithDlc.Skip(All.Count)).ToList();
+
+    /// <summary>
     /// The ability a controller class needs, or null when it needs none -
     /// either because it is the baseline verb or because it is not a puzzle.
     /// An unknown class also returns null: a game update that adds a class we

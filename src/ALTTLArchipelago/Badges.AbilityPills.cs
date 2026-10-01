@@ -370,17 +370,18 @@ internal static partial class Badges
     /// <summary>
     /// Build the strip once, from the seed's own ability catalogue.
     ///
-    /// Ordered by Core.Abilities.AllWithDlc rather than by the dictionary, so
-    /// the pills sit in the same places on every seed and a player learns
-    /// where to look. Returns false if the pieces are not ready yet, and the
-    /// poll tries again.
+    /// Ordered by Core.Abilities.StripOrder, alphabetically with the DLC
+    /// mechanic last, rather than by the dictionary. Only this seed's
+    /// mechanics get a pill, so a seed without some has a shorter strip and
+    /// the rest close up: compact, droha's call (2026-09-30), over fixed
+    /// slots. Returns false if the pieces are not ready yet, and the poll
+    /// tries again.
     ///
-    /// AllWithDlc, not All: a DLC mechanic is an ability item like any other
-    /// and needs a pill. Iterating the base twelve would have drawn a strip
-    /// with no Distributing pill while the item existed and gated DLC2 Pizza,
-    /// so the one thing the strip is for - seeing what you hold - would have
-    /// been silently wrong for that mechanic. The DLC pills sort after the
-    /// base twelve, so a base-game seed's strip is unchanged.
+    /// Every DLC mechanic is in StripOrder too: a DLC mechanic is an ability
+    /// item like any other and needs a pill. Iterating the base twelve would
+    /// have drawn a strip with no Distributing pill while the item existed and
+    /// gated DLC2 Pizza, so the one thing the strip is for - seeing what you
+    /// hold - would have been silently wrong for that mechanic.
     /// </summary>
     private static bool BuildPills()
     {
@@ -390,7 +391,7 @@ internal static partial class Badges
 
         _pillOrder.Clear();
         _pillTiles.Clear();
-        foreach (var ability in Abilities.AllWithDlc)
+        foreach (var ability in Abilities.StripOrder)
         {
             if (seed.Abilities.Count > 0 && !seed.Abilities.ContainsKey(ability))
             {

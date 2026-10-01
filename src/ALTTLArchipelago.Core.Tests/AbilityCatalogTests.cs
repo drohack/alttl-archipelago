@@ -99,6 +99,23 @@ public class AbilityCatalogTests
         Assert.Empty(Abilities.All.Intersect(Abilities.Dlc.SelectMany(kv => kv.Value)));
     }
 
+    /// <summary>
+    /// The level select's strip reads alphabetically, the DLC mechanic last
+    /// (droha, 2026-09-30), while the item-id order stays as it is.
+    /// </summary>
+    [Fact]
+    public void TheStripIsAlphabeticalWithTheDlcMechanicLast()
+    {
+        Assert.Equal(
+            new[] { "Containers", "Drawer", "Gadgets", "Grids", "Jigsaw", "Ordering",
+                    "Rotating", "Stacking", "Sticking", "Swapping", "Symmetry", "Tidying",
+                    "Distributing" },
+            Abilities.StripOrder);
+        Assert.Equal(Abilities.AllWithDlc.OrderBy(a => a, StringComparer.Ordinal),
+                     Abilities.StripOrder.OrderBy(a => a, StringComparer.Ordinal));
+        Assert.Equal("Swapping", Abilities.All[0]);           // ids untouched
+    }
+
     [Fact]
     public void BaselineAndNonPuzzleSetsAgree()
     {
