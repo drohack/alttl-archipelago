@@ -170,17 +170,24 @@ public sealed class CheckRouter
     /// A FIXED ENDING, NOT THE NTH FOUND (droha, 2026-09-28). The id picks the
     /// location. An id the table does not know - an ending nobody had seen
     /// when it was measured, or a forced or skipped completion ("_-1") -
-    /// files the k-th unseen ending ("Solution: Other k") where it is the
-    /// k-th unknown id found on this slot, and past those the next ending in
-    /// order, so a completion is never lost. A generated puzzle has no table:
-    /// its endings change with the layout, and the Nth distinct id found files
+    /// files the first unseen ending ("Solution: Other k") still free, else
+    /// the first ending still free. A generated puzzle has no table: its
+    /// endings change with the layout, and the Nth distinct id found files
     /// "Solution N" as before.
+    ///
+    /// EVERY DISTINCT ID ITS OWN LOCATION. The ids found before this one each
+    /// took an ending, and this one takes the ending it names only if that is
+    /// still free. A table that guessed an ending wrong then costs a name, not
+    /// a check: Figurines' table had Groupables-(Achievement)_0 for its third
+    /// ending, the game's was SortingItemsDraggables_1, and that filed the
+    /// Draggables check already in (droha, 2026-10-02: 2 stars of 3 for 3
+    /// done). Past the last free ending, the first ending (nothing new).
     ///
     /// BY THE ORDER FOUND, NEVER BY WHAT IS COLLECTED: the answer for an id
     /// must be the same at every launch, or the pass that files what an
-    /// earlier session earned would send a different location each time.
-    /// `foundInOrder` is the slot's distinct ids in the order found
-    /// (SolutionOrdinals), including this one.
+    /// earlier session earned would send a different location each time. It
+    /// depends only on the ids found before it. `foundInOrder` is the slot's
+    /// distinct ids in the order found (SolutionOrdinals), including this one.
     /// </summary>
     public string? ForEnding(int slotIndex, string? solutionId, IReadOnlyList<string> foundInOrder)
     {
@@ -197,30 +204,38 @@ public sealed class CheckRouter
         if (!_slot.Endings.TryGetValue(entry.LevelId, out var endings) || endings.Count == 0)
             return ForSolution(slotIndex, position + 1);
 
-        // An entry may answer to several ids ("Shuffle_1|Draggables_0",
-        // Endings.Alternatives): Books' second solution, by whichever
-        // controller the seed checks it with.
-        var known = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var e in endings)
-        {
-            foreach (var alternative in Endings.Alternatives(e.Id))
-            {
-                known.Add(alternative);
-                if (alternative == id) return Present(LocationNames.Ending(entry.LevelId, entry.Instance, e.Location));
-            }
-        }
-
-        // The k-th unknown id on this slot.
-        var k = 0;
+        var taken = new bool[endings.Count];
+        var pick = -1;
         for (int i = 0; i <= position; i++)
         {
-            if (!known.Contains(foundInOrder[i])) k++;
+            pick = Claim(endings, foundInOrder[i], taken);
+            if (pick >= 0) taken[pick] = true;
         }
-        var unseen = endings.Where(e => e.Id == null).ToList();
-        var pick = k <= unseen.Count ? unseen[k - 1]
-            : k - unseen.Count <= endings.Count ? endings[k - unseen.Count - 1]
-            : null;
-        return pick == null ? null : Present(LocationNames.Ending(entry.LevelId, entry.Instance, pick.Location));
+        if (pick < 0) pick = 0;
+        return Present(LocationNames.Ending(entry.LevelId, entry.Instance, endings[pick].Location));
+    }
+
+    /// <summary>
+    /// The free ending `id` takes: the one it names (an entry may answer to
+    /// several ids, "Shuffle_1|Draggables_0", Endings.Alternatives: Books'
+    /// second solution), else the first free unseen one, else the first free
+    /// one; -1 when every ending is taken.
+    /// </summary>
+    private static int Claim(IReadOnlyList<EndingEntry> endings, string id, bool[] taken)
+    {
+        for (int j = 0; j < endings.Count; j++)
+        {
+            if (!taken[j] && Endings.Alternatives(endings[j].Id).Contains(id)) return j;
+        }
+        for (int j = 0; j < endings.Count; j++)
+        {
+            if (!taken[j] && endings[j].Id == null) return j;
+        }
+        for (int j = 0; j < endings.Count; j++)
+        {
+            if (!taken[j]) return j;
+        }
+        return -1;
     }
 
     private string? Present(string name) => Exists(name) ? name : null;

@@ -326,13 +326,6 @@ internal static class Track
     }
 
     /// <summary>
-    /// Whether any slot other than the one being finished is playable - asked
-    /// at a completion, when that slot's own check may not be filed yet.
-    /// </summary>
-    internal static bool AnyPlayableBesides(int slot)
-        => Picker()?.AnyPlayableBesides(slot) ?? true;
-
-    /// <summary>
     /// Any uncollected location on this slot, reachable or not.
     ///
     /// Delegates to the router rather than keeping its own copy. The same
@@ -1572,13 +1565,27 @@ internal static class Track
     private static void BeforeStartLevel(
         ref int startLevelIndex, ref bool forceReload, ref int randomSeed)
     {
+        var manager = GameManager.Instance?.levelManager;
+        var asked = $"asked index={startLevelIndex} forceReload={forceReload} seed={randomSeed}";
+
+        // THE LEVEL ALREADY RUNNING, asked for with no reload: the game does
+        // nothing with it, and neither does this. Upgraded to the slot's
+        // seeded reload, it relaunched every finished generator (Core
+        // LaunchRequest). Not a launch for the traps either: the finished
+        // puzzle stays finished.
+        if (_state != null && AsksForTheRunningLevel(manager, startLevelIndex, forceReload))
+        {
+            Plugin.Logger.LogInfo(
+                $"track: the game asked for the running level {manager?.ActiveLevelInterface?.LevelId} "
+                + $"again ({asked}), left as asked");
+            return;
+        }
+
         // Whatever launches is a puzzle again, a restart of the one just
         // finished included (Core TrapTiming).
         Traps.LevelStarting();
 
         if (_state == null) return;
-
-        var manager = GameManager.Instance?.levelManager;
 
         // WHICH level is about to start. The arrow route passes the index
         // outright; the click route leaves it at its default 0, so the index
@@ -1613,18 +1620,18 @@ internal static class Track
         // through used to mean no seed and no reload, and the comment below
         // says what that looks like: an EMPTY level with no way out. That soft
         // lock is never the better outcome, so a generator level still gets a
-        // reload and a stable seed derived from its index.
+        // reload and a stable seed derived from its index, above 0 (Core
+        // LaunchRequest.FallbackSeed: a negative one left 6 of the 20 empty).
         if (slot < 0)
         {
             Checks.LeaveSlot($"level {target}");
             if (IsGenerator(manager, target))
             {
-                var stable = unchecked((int)(target * 2654435761u));
-                randomSeed = stable == 0 ? 1 : stable;
+                randomSeed = LaunchRequest.FallbackSeed(target);
                 forceReload = true;
                 Plugin.Logger.LogWarning(
                     $"track: level {target} is not a slot in this run - "
-                    + "launching it seeded rather than empty");
+                    + $"launching it seeded ({randomSeed}) rather than empty");
             }
             return;
         }
@@ -1648,7 +1655,7 @@ internal static class Track
         forceReload = true;
 
         Plugin.Logger.LogInfo(
-            $"track: slot {slot} {entry.LevelId} launching with seed {randomSeed}, forceReload");
+            $"track: slot {slot} {entry.LevelId} launching with seed {randomSeed}, forceReload ({asked})");
     }
 
     /// <summary>
@@ -1665,6 +1672,15 @@ internal static class Track
             if (_order[slot] == levelIndex) return slot;
         }
         return -1;
+    }
+
+    /// <summary>A StartLevel for the level already loaded, with no reload and no click (Core LaunchRequest).</summary>
+    private static bool AsksForTheRunningLevel(LevelManager? manager, int askedIndex, bool askedReload)
+    {
+        var running = manager?.ActiveLevelInterface;
+        var loaded = running != null && running.LevelIsLoaded && running.Level != null;
+        return LaunchRequest.AsksForTheRunningLevel(
+            askedIndex, askedReload, PendingLevelIndex() != null, running?.LevelIndex ?? -1, loaded);
     }
 
     /// <summary>

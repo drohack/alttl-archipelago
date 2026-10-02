@@ -5440,7 +5440,8 @@
           "name": "Cupboard Doors",
           "type": "AnimScrubbables",
           "objects": 22,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         }
       ],
       "hintAvailable": true,
@@ -5714,6 +5715,7 @@
       "dlc": "DLC2",
       "solutionCount": 3,
       "endings": ["Stacked-Groups_0", "Stacked-Groups_1", "Stacked-Groups_2"],
+      "solutionOnlyParts": ["Cracker Positions"],
       "isRandomizable": false,
       "isArchived": false,
       "isDailyTidy": false,
@@ -6473,7 +6475,7 @@
       "source": "generator",
       "dlc": "DLC2",
       "solutionCount": 3,
-      "endings": ["Draggables_0", "Groupables-(Achievement)_0", "SortingItemsDraggables_0"],
+      "endings": ["Draggables_0", "SortingItemsDraggables_0", "SortingItemsDraggables_1"],
       "finishesAlone": ["Draggables", "SortingItemsDraggables"],
       "isRandomizable": true,
       "isArchived": false,
@@ -6495,7 +6497,8 @@
           "name": "Groupables (Achievement)",
           "type": "Groupables",
           "objects": 22,
-          "dependsOn": []
+          "dependsOn": [],
+          "notALocation": true
         }
       ],
       "hintAvailable": true,

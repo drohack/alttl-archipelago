@@ -9,6 +9,303 @@ refuses to connect to a seed a different apworld generated.
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+From a sweep of the backlog (2026-10-01).
+
+- **A finished generator no longer relaunches itself.**
+  - The cause: the game asks for the level already running (`StartLevel`
+    with no index and no reload) just after a puzzle finishes, and again as
+    it goes back to gameplay when a level select closes over the level. The
+    game does nothing with that call.
+  - The mod's launch prefix read the call as a card click, took the running
+    level, and made it that slot's seeded reload. So:
+    - a finished generator came back about a second after "navigation:
+      next": 3 to 5 times in every gate since 2026-09-27, and after DLC1
+      Trophy Cabinet and DLC2 Water Glasses on the DLC route;
+    - a seeded level started over when a player left it through the level
+      select and closed back to it. Breadtags did this mid-solve in the
+      quick gate.
+  - The call is now left as the game asked (Core `LaunchRequest`; the log
+    says `track: the game asked for the running level ... left as asked`).
+  - The quick gate's seed, before the fix: 6 relaunches and 1 mid-solve
+    refund. After it: none of them, 26/26.
+- **The Seeing Stars Boss files each phase as it is solved.**
+  - Its Lock and Compass endings reach the save as those phases are solved,
+    with no completion of their own, so until now they were filed only at
+    the finish.
+  - The mod now reads the save again on the frame after the game records a
+    solution (`SaveData.SaveLevelData`, `SaveSystem.SaveGame`). Once a
+    completion has run on the slot, that completion keeps its own filing.
+  - Checked with DevTools `marksolved:1231:DLC2Boss_Lock` and `..._Compass`
+    on the Boss's run slot: each was filed at once, with no completion.
+  - droha's playthrough (2026-10-01): Compass and Lock were each filed
+    about 30 s after their phase was solved, when the game saved it, and
+    Knife at the finish.
+- **Seed Pods and Clover reload when Symmetry arrives mid-level**
+  (`ObjectLock.ResetOnUnlockLevels`), as Cat Food Cans and the stacked levels
+  do.
+  - The game tints their pieces to 0.9 once, after the intro, and only the
+    ones not locked then. Unlocked in place, every piece came back at 1.0,
+    brighter than it should be.
+  - The reload replays the intro. Every piece in both levels is Symmetry's,
+    so it loses nothing.
+- **Trophy Cabinet is just its Solution** (DLC1 ids after it move).
+  - Its Cupboard Doors were a check of their own, where Clock Cupboard's
+    and Tea Cabinet's are not. The doors are the way in (Gadgets), not a
+    puzzle: droha's play on 2026-10-02 sent Cupboard Doors, Items
+    Placements and Solution within 6 s.
+  - The doors are `notALocation`. The level is then one group, so Items
+    Placements' part check goes too; Gadgets is still required. DLC1
+    locations 107 to 105.
+- **Figurines' second sort is a Solution of its own** (DLC2).
+  - droha did all three solutions on 2026-10-02 and the hover showed 2 of
+    3. The two sorts are one controller's two arrangements
+    (`SortingItemsDraggables_0` and `_1`); the ending table had only `_0`,
+    plus `Groupables-(Achievement)_0`, an id no game has reported. So `_1`
+    fell back to the first ending, Draggables, already in, and filed
+    nothing.
+  - Endings are now Draggables, Sorting Items 1 and Sorting Items 2. The
+    Groupables (Achievement) controller is `notALocation`: never solved in
+    play, so as an ending only a Skip could earn it. DLC2 still 124.
+  - `fixtures/solution-ids-observed.tsv` re-harvested: Figurines is the
+    only row that moved, and Core's every-observed-id test fails on the old
+    table.
+- **Canapes is just its three Solutions** (DLC2). Its Cracker Positions
+  check fired before every solution, for the same three crackers each time;
+  droha: "it's not really a mini solution". `solutionOnlyParts`; DLC2
+  locations 124 to 123.
+- **Every different ending files its own check, even where the ending table
+  is wrong** (Core `CheckRouter.ForEnding`).
+  - An id the table did not know filed the first ending in the list even
+    when that one was already in; that is how Figurines lost its star.
+  - Now each id found on a slot takes the ending it names if free, else the
+    first free unseen one, else the first free one. A wrong guess in the
+    table costs the check's name, never the check. The answer still depends
+    only on the ids found before it, so it is the same at every launch.
+  - Why it matters: a sweep of every level (2026-10-02) found no other
+    wrong id, but 11 levels with several controllers list ids no game has
+    reported yet (Bookshelf credits all three of its solutions to its top
+    left shelf). Those are guesses until played; this makes them safe.
+  - droha then played the ten (the Boss's Lock and Compass were filed from
+    the save on 2026-10-01): all 23 unreported endings came in as the table
+    had them, each its own check, so no name moved.
+    `fixtures/solution-ids-observed.tsv` holds them now (223 of 244 ids name
+    a controller).
+
+- **Robots keeps every robot's state where it is without Ordering.**
+  - Its Indexables group (Ordering) shares Robots 2, 3 and 7 with
+    IndexedDraggables, which needs nothing. The lock frees a piece any free
+    group holds, so those robots could be extended without Ordering.
+  - Robot 9's antennas and Robot 1's arm buttons are locked, but they take
+    clicks through colliders under their free robot (DevTools `objects:`,
+    2026-10-01; droha: "not just the antenna guy").
+  - Now, while Ordering is withheld, the colliders of every button
+    (`IndexIncrementTrigger`) on the level's ten states are off, so no press
+    reaches them. They come back on with Ordering.
+    - A press that gets past anyway is refused and logged as a warning (the
+      new `index hold` patch). There were 0 in the hand test.
+    - Not a refused press, which two earlier builds made. A press refused
+      mid-handling, whether its state change or the whole handler, left
+      Robot 3's hearts container switched off once Ordering came, so no
+      heart would go in. With no press while held they went in (droha's
+      A/B).
+    - Not the game's own `LockIndex`, which the first build set. Robot 2's
+      key clears that when it comes out, and the head then moved.
+  - The big robot's chest-and-arms layer, which carries its heart, is grey
+    while its state is held (Core `ObjectLock.IndexHoldArt`). Its body stays
+    lit.
+  - The robots still drag: their group needs no ability.
+  - droha's hand test, 2026-10-01:
+    - Ordering withheld: every robot dragged, and none changed state,
+      including the key robot with its key in and out.
+    - Containers withheld: nothing went into a robot.
+    - The big robot "looks perfect".
+    - Ordering given back mid-level: every button worked, the hearts went
+      in, and the level finished.
+  - **Math Set too.** Its half circle and compass are shared with its free
+    drag group the same way, and droha extended both without Ordering. Now
+    neither changes; the Inside solution, both closed as they start, can
+    still be finished, and its check waits for Ordering as the logic says.
+  - Robots and Math Set only (Core `ObjectLock.IndexHoldLevels`):
+    - Water Glasses and Music Box share no state piece, so the lock already
+      held theirs (droha's hand test).
+    - Junk Drawer Transforming and Combs have the pairing, but their logic
+      asks only for Drawer. Junk Drawer Transforming was finished with
+      Ordering locked.
+
+- **No run puzzle goes to the Daily Tidy page any more, and every run level
+  ends the same way.** droha: "If we know what levels go there can't we
+  just prevent those levels from doing it? ... a set ending sequence for all
+  levels so we are in control".
+  - Until now every finished generator went to the game's Daily Tidy state,
+    and the daily guard pulled the player out to the next slot: 105 times in
+    the second player's 0.4.2 playtest, 32 in droha's, every generator in the gates.
+  - Where the game decides: `LevelManager.OnLevelCompleteTweenOutComplete`,
+    which every way out of a finished level passes through. It runs
+    `IsDailyTidy`'s body inline (randomized or holiday-dated, and not an
+    archive level), so the daily guard's postfix on the getter never saw
+    it. Found from the interop's xref cache and the game's machine code,
+    then seen with DevTools `trace:` on Stamps (Randomized): the tween-out,
+    `get_IsArchiveLevel`, `StopGame(True)`, the Daily state.
+  - The new `DailyDecision` answers that check's one real call,
+    `get_IsArchiveLevel`, for the level leaving, inside that one call only,
+    and the game takes the branch every other level takes. It logs `daily
+    decision: <level> leaves as a run puzzle, not a daily`.
+  - Generators now leave by the panel's route like every other level (Core
+    `AfterPuzzleRoute`: the panel with solutions left, otherwise on to the
+    next slot, or the track when nothing is playable).
+  - On the quick gate's seed, 18 fresh runs of Stamps, Batteries and Post-It
+    Notes in a row: 54 generator finishes, 0 Daily Tidy states, 0 rescues,
+    the next slot opened each time.
+  - Every generator, the player's way:
+    - a run of only the 16 base generators, each finish moving on by itself:
+      16 of 16 moved on with the decision, no Daily page. That includes
+      Books, Pencils, Buttons and Spice Jars, which left by the panel's
+      Continue with an ending still to find;
+    - the 4 DLC generators, each from its card: 4 of 4.
+  - droha's hand test, 2026-10-01: two generators in a row each opened the
+    next puzzle directly, never a Daily page "not even for a flash"; the
+    pause menu's Exit went to the title; Books showed the panel, and its
+    arrow went on to the next puzzle. droha had never seen the page in recent
+    releases either: it was happening unseen, and only the logs showed it.
+  - The daily guard's rescue stays as a backstop and now warns. The gate has
+    a new check, "the run never went to the Daily Tidy page" (quick 27,
+    full 29).
+  - The `ReactToDailyCompleting` postfix is gone. That getter decides
+    nothing: the game reads the field directly. Its machine code is also
+    shared with 14 other getters (`Level.get_HintUsed` among them), which
+    the postfix risked answering false during a run.
+  - The gate's arrow check may now start on a generator, since generators
+    end the same way.
+- **Post-It Notes (Randomized) no longer logs 15 render-texture errors when
+  it finishes.**
+  - Each note takes a texture from a shared pool about 5 frames after the
+    level is built, and switches its line camera on to draw into it. In
+    about 1 load in 3 the cameras stay on for good. Then, when the level is
+    torn down, Unity logs `Releasing render texture that is set as
+    Camera.targetTexture!` once per note.
+  - That happened only when the level started straight after another level
+    finished, never from a card. Measured with the new DevTools `cameras`,
+    `values:` and `trace:` (7 of 7 runs that logged it had the cameras on at
+    load, none of the others).
+  - The mod now switches any note camera still drawing off as the level is
+    torn down or rebuilt (`PostItCameras`). Six runs: it fired in the 3 with
+    the cameras on, 0 errors in all 6.
+  - Why the cameras stay on: not the notes. In every run with them on, each
+    note had finished its snapshot (DevTools `values:NoteVisualSetter`, 2 of
+    8 runs on the generator seed; the backup fired in both, 0 errors in all
+    8). The game switches the note cameras off in one place,
+    `PostItNote_LevelRandomizer.OnLineGenerationComplete`, after a frame
+    count rather than when every note is done (read from its machine code),
+    and that switch-off sometimes misses them. It is the game's own; a
+    player sees nothing, as each note shows a copy of its picture.
+- **A generator launched outside the run's slots is built, not empty.** The
+  launch prefix gives such a level a stable seed of its own so it is not left
+  empty. That seed was the level index times 2654435761 cast to an int,
+  which wrapped negative for 6 of the 20 generators (Books, Batteries,
+  Post-It Notes, Trim Plant, Microscope, DLC2 Figurines). A negative seed
+  reads as "no seed", and Post-It Notes came up empty 9 of 9. Core
+  `LaunchRequest.FallbackSeed` keeps it above 0 (the seeds that were positive
+  are unchanged); booted outside the run, Books, Microscope and Calendar were
+  each built (13, 5 and 24 objects). The log line now names the seed. Found
+  by a DevTools boot; no player route to it is known.
+- **The run's track is taken down if it is left up over the title** (DlcGuard
+  `TickTrackLeftOver`). droha's screenshot from the DLC gate showed the
+  cards, the strip and the Close X over the main menu. The route behind it
+  was the harness's own (below), but a screen like that should not stay. The
+  DLC gate on player routes (2026-10-01 23:10, 29/29): 161 menu listings,
+  none with the track over the title, and the takedown never had to fire.
+- **The gate moves only the way a player can.** Every visit leaves a level
+  by the retry panel's Menu or the pause menu, then Levels, and opens the
+  next puzzle by clicking its card on the run's track. Where the mod moves
+  on by itself, the gate waits for it.
+  - It used to leave by the post-level Level Select, Close and a forced
+    title, then `boot:` the next level. It also pressed the post-level
+    Level Select on a level the mod had already moved on from, which no
+    player can. That built the track twice and left it over the title
+    (droha: "you shouldn't be hitting it either. it's sloppy").
+  - `test_scheduler.py` pins it: the gate's visit functions use no DevTools
+    shortcut, and its next press is read from the open menus.
+  - DevTools `pause` now enters `Menu_GameState` and pauses the game, as a
+    player's Esc does: the same log lines as droha's Esc (2026-10-01), and
+    a Reset from it closes the menu. It used to raise only the menu-open
+    event. The state then stayed at Gameplay, so a Reset or a Skip from
+    that menu went back to gameplay "already active", nothing took the menu
+    down, and its Levels stopped answering - a pause no player can reach.
+    The old form is `pause:event`.
+
+- **The DLC navigation probe goes to the track the player's way, and its two
+  one-off failures are explained.**
+  - "The second session opened no card": the probe reached the track from
+    the title with a forced `menu:levels`. The title stayed the menu
+    system's active menu under the track (`menu=Title Menu`), and every card
+    click selected its level and launched nothing (48 clicks, 0 launches,
+    2026-10-02). It now presses the title's or the pause menu's own Levels.
+    Three runs since: 30 of 30 checks, every card launched.
+  - "retry panel: moving on failed: NullReferenceException": the probe
+    pressed the hidden panel's post-level Level Select in the frame between
+    the mod hiding the panel and moving on, then the mod's move-on called
+    the panel's `NextLevel` over the track it had opened (seen once in those
+    three runs). No player can press a hidden panel; the probe now presses
+    it only when the panel is on screen. The mod's move-on also stands down
+    when the game is already on the track, the DLC level select or the title
+    ("left the post-level screen another way first"). Forced 8 times on the
+    generator seed, it never threw (7 times the move-on came first; once the
+    press came before the panel was hidden, so there was nothing to stand
+    down).
+
+### Written off
+
+Tried again, in more than one way, and not seen again; gone from the
+backlog.
+
+- **Trim Plant's Grow NRE** (twice, 2026-09-30; `Sprite.get_bounds` in the
+  plant's `Grow` coroutine).
+  - By the player's own routes, 0 of 50: Esc then Levels, and Esc then
+    Reset, 25 each, 0.5 to 3 s after it loaded (2026-10-02).
+  - It does reproduce, 4 of 25 (4 of the 5 exits at 0.5 s), but only with a
+    pause that keeps time running: DevTools' old event-only `pause`, now
+    fixed to enter `Menu_GameState` as Esc does. A player's pause stops
+    time, so the grow cannot run on into a level being torn down.
+  - Both gate sightings also relaunched Trim Plant mid-grow (the relaunch
+    above, now gone).
+- **A boot over an unfinished Junk Drawer 2 breaking the DLC1 Boss's first
+  solve** (harness only).
+  - In game: 0 of 3. One part of Junk Drawer 2 solved, then `boot:1128` and
+    a forced solve.
+  - Gate logs: 0 in the 13 since.
+- **Books (Randomized) finishing on its Draggables rule by itself.**
+  - In game: 0 of 5 symmetric layouts left alone for 60 s. Three were booted
+    and two booted twice, with no run connected so the layout was the
+    seed's.
+  - Also 2026-09-28's 100 layouts.
+  - Every gate Books finish since ended on `Shuffle_0`.
+- **The arrow session's lost Post-It Notes completion** (2026-09-24).
+  - In game: three `--only-arrow` sessions passed both checks, each solve
+    followed by PartSolved and LevelComplete.
+  - Kept arrow logs: 32 of 33 completed. The other sent its solve while the
+    game had paused itself on losing focus (the next item).
+- **A gate run that stops receiving game events** (2026-09-24).
+  - Cause: the game's own `Pause(true)` holds every event. `boot` undoes it,
+    and the gate warns of a solve sent while paused.
+  - No stop in the 67 gate logs since 2026-09-25.
+- **Mirror's candle and Ghost Cat's cats not grey while locked**: correct,
+  and droha left them (2026-09-30).
+- **Held states drawn into a piece's one picture stay lit** (Robots' key
+  robot and Robot 7, Math Set's half circle and compass). Their states do
+  not change while Ordering is withheld; each is a single flipbook, so a
+  tint greys all of it or none, and they still drag. droha: leave them
+  (2026-10-01), no overlays.
+- **Steam Cloud conflicts while testing**: the tip is in
+  `docs/dev/testing.md`.
+- **The DLC gate leaving its paper plan at visit 14** (2026-10-01 14:05).
+  The DLC gate of 23:10, on player routes, followed its plan through all 22
+  visits, 29/29.
+- **A full gate's harness dying after visit 7** (2026-10-01 13:58, its
+  traceback lost). The full gate of 22:46, stderr kept, ran to the end:
+  29/29, nothing on stderr.
+
 ## 0.4.6 - 2026-09-30
 
 - **The gate's lines say setup or gate**: `[setup 2/4 assets]` while it
@@ -28,7 +325,7 @@ The format is loosely [Keep a Changelog](https://keepachangelog.com/).
   (Shape) and Nanopets each have two groups holding the same pieces, and the
   lock frees a piece when any group using it is unlocked, so either mechanic
   lets a player finish either group; the logic and the mod's held-back check
-  asked for the group's own, so Kat's 0.4.5 run had Spoons' Size ending held
+  asked for the group's own, so the second player's 0.4.5 run had Spoons' Size ending held
   back while holding Stacking (2026-09-30). A requirement can now carry
   `orAbilities`, other sets that meet it too, from a hand-authored `freedBy`
   in levels.json (`rules.or_abilities`); the generator, the mod's held-back

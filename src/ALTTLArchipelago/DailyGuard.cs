@@ -42,10 +42,12 @@ namespace ALTTLArchipelago;
 ///    never played, which is the same class of bug the redirect exists to
 ///    prevent.
 ///
-/// The primary fix is the game's own switch: LevelInterface.ReactToDailyCompleting
-/// is what the completion chain reads to decide a level is a daily. Answering
-/// false while a run is active is a read-only change - it mutates no state and
-/// leaves vanilla untouched the moment the run ends.
+/// The first fix answered false to LevelInterface.ReactToDailyCompleting,
+/// believed to be what the completion chain reads to decide a level is a
+/// daily. It is not (machine code, 2026-10-01): the chain reads that field
+/// directly, only to fill DailyTidy_GameStateData, and no native code calls
+/// its getter. The postfix is gone; see DailyDecision for where the game
+/// really decides.
 ///
 /// THE PRIMARY FIX WAS NOT ENOUGH, AND THE REASON IS INSTRUCTIVE. On
 /// 2026-09-08 droha finished SpiderWeb, pressed the next arrow, and landed on
@@ -67,9 +69,12 @@ namespace ALTTLArchipelago;
 /// So the guard moved to the DESTINATION, in two layers.
 ///
 /// The first is prevention: while a run owns the game, no level answers yes to
-/// IsDailyTidy or IsHolidayDaily, so the completion chain never decides to go
-/// there. That covers all 36 daily levels without needing to know which control
-/// the player pressed.
+/// IsDailyTidy or IsHolidayDaily, for the callers that ask them (the next
+/// level's kind, HintMenu, GameManager.LevelComplete). It did NOT stop the
+/// completion itself: LevelManager.OnLevelCompleteTweenOutComplete runs
+/// IsDailyTidy's body inline, so every finished generator still went to the
+/// Daily page and was rescued (105 times in the second player's 0.4.2 playtest).
+/// DailyDecision answers that decision where it is made, since 2026-10-01.
 ///
 /// The second is TickRescue, a watchdog on the game STATE. Refusing named
 /// entry points was tried and does not generalise: GameManager.SetGameState
@@ -96,27 +101,10 @@ namespace ALTTLArchipelago;
 internal static class DailyGuard
 {
     /// <summary>
-    /// Tell the game a level is not a daily while the run owns it.
-    ///
-    /// A postfix on the getter rather than a call to SetReactToDailyCompleting:
-    /// the setter would have to be driven at every launch and unwound at every
-    /// exit, and anything that missed an exit would leave the player's real
-    /// dailies suppressed. Answering the question is stateless.
-    /// </summary>
-    [HarmonyPatch(typeof(LevelInterface),
-                  nameof(LevelInterface.ReactToDailyCompleting),
-                  MethodType.Getter)]
-    [HarmonyPostfix]
-    private static void AfterReactToDailyCompleting(ref bool __result)
-    {
-        if (__result && Track.Active) __result = false;
-    }
-
-    /// <summary>
     /// While the run owns the game, no level is a daily.
     ///
-    /// ReactToDailyCompleting was the wrong switch on its own, and the scale of
-    /// the problem is why. This class was written believing six levels were
+    /// ReactToDailyCompleting was the wrong switch (it decides nothing; see the
+    /// class notes), and the scale of the problem is why this one exists. This class was written believing six levels were
     /// affected - the "(Randomized)" ones. The real number is THIRTY-SIX of the
     /// 111 in the pool: every holiday set (MerryMess, TrickOrTidy, GoodTidings,
     /// SomethingEggstra), plus SpiderWeb, Buttons, Shells, Telescope and the
@@ -352,6 +340,10 @@ internal static class DailyGuard
     /// <summary>
     /// Open the run's next puzzle, or its track if there is no next puzzle.
     ///
+    /// A BACKSTOP THAT SHOULD NEVER RUN, since DailyDecision answers the game's
+    /// own decision (2026-10-01). It logs a warning when it does, and the gate
+    /// fails a run that reached the Daily page at all.
+    ///
     /// THROUGH THE GAME'S OWN STATE TRANSITION, never by calling StartLevel.
     /// StartLevel loads a level under the screen that is already up, which
     /// leaves the menu in place and the state unchanged - the runaway loop
@@ -373,7 +365,8 @@ internal static class DailyGuard
             var slot = Track.NextPlayableSlot();
             if (slot >= 0)
             {
-                Plugin.Logger.LogInfo($"daily guard: opening slot {slot} instead");
+                Plugin.Logger.LogWarning(
+                    $"daily guard: the game reached the Daily page anyway - opening slot {slot}");
                 TitleScreen.QueueSlotForGameplay(slot);
                 gm.SetGameState<Gameplay_GameState>(null, false);
                 return;

@@ -261,7 +261,7 @@ class TestTables(unittest.TestCase):
 
     def test_spoons_endings_are_met_by_either_mechanic(self):
         """Every spoon is in both groups, and the lock frees a piece when any
-        group using it is unlocked (levels.json freedBy). Kat's 0.4.5 run held
+        group using it is unlocked (levels.json freedBy). the second player's 0.4.5 run held
         Stacking only, made the Size arrangement, and had it withheld; droha's
         hand test (2026-09-30) stacked them holding Ordering only."""
         spoons = data.BY_ID["Spoons"]

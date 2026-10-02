@@ -155,7 +155,7 @@ public class EarnedContractTests
     /// <summary>
     /// A SHARED-PIECE ending: Spoons' Size (Elastic) is its Ordering group,
     /// but every spoon is in the Stacking group too, and the lock frees a
-    /// piece when any group using it is unlocked. Kat's 0.4.5 run held
+    /// piece when any group using it is unlocked. the second player's 0.4.5 run held
     /// Stacking only, made the Size arrangement, and had it withheld.
     /// </summary>
     private static (SlotProgress, AbilityState) Spoons(params string[] held)

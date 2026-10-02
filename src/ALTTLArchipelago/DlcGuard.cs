@@ -98,6 +98,8 @@ internal static class DlcGuard
             return;
         }
 
+        TickTrackLeftOver(dt);
+
         var state = StateName();
         if (state != _lastState)
         {
@@ -205,11 +207,67 @@ internal static class DlcGuard
         {
             gm ??= GameManager.Instance;
             gm?.SetGameState<Title_GameState>(null, false);
+            _trackLeftCheck = TrackLeftPatience;
+            _titleQuiet = 0f;
         }
         catch (Exception e)
         {
             Plugin.Logger.LogWarning(
                 $"dlc guard: could not go to the title: {e.Message}");
+        }
+    }
+
+    /// <summary>Seconds left to look for the run's track left up over the title, or 0.</summary>
+    private static float _trackLeftCheck;
+    private static float _titleQuiet;
+    private const float TrackLeftPatience = 6f;
+
+    /// <summary>
+    /// After ToTitle: if the run's track is still up over the title, take it
+    /// down, the way Navigation.TickTitleLeftUnder takes the title down from
+    /// under the track (MenuManager.DeactivateMenu, the menu system's own).
+    ///
+    /// MEASURED 2026-10-01 (droha's screenshot from the DLC gate, then 2 of 2
+    /// by hand): a DLC level left unfinished by its Level Select, the track's
+    /// Close, and the forced title left LevelSelect active with TitleMenu -
+    /// the cards, the strip and the Close X drawn over Play, Levels and Quit.
+    /// The track was built again in the DLC state and again on the title, and
+    /// the switch to the title does not take a menu down.
+    ///
+    /// Only while the title is the menu system's active menu: a player who has
+    /// pressed Levels by then has made the level select the active one, and
+    /// keeps it.
+    /// </summary>
+    private static void TickTrackLeftOver(float dt)
+    {
+        if (_trackLeftCheck <= 0f) return;
+        _trackLeftCheck -= dt;
+        try
+        {
+            var gm = GameManager.Instance;
+            var mm = gm?.menuManager;
+            if (gm == null || mm == null || StateName() != "Title_GameState"
+                || gm.IsTransitioning || mm.IsTransitioning
+                || mm.ActiveMenu?.TryCast<TitleMenu>() == null)
+            {
+                _titleQuiet = 0f;
+                return;
+            }
+
+            // A beat on a still title: the track is built again just after it.
+            _titleQuiet += dt;
+            if (_titleQuiet < 0.5f) return;
+
+            var select = Navigation.FindEvenIfInactive<LevelSelect>();
+            if (select == null || !select.gameObject.activeInHierarchy) return;
+
+            Plugin.Logger.LogInfo("dlc guard: the run's track was left up over the title - taking it down");
+            mm.DeactivateMenu(select);
+        }
+        catch (Exception e)
+        {
+            _trackLeftCheck = 0f;
+            Plugin.Logger.LogWarning($"dlc guard: could not take the track down: {e.Message}");
         }
     }
 

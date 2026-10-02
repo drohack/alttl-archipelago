@@ -24,7 +24,7 @@ missed by it.
 | 15 puzzles played to the credits, goal reported and seen by the server | yes | yes | no |
 | ability locks on: gates met and refused (5 on the 2026-09-27 seed) | yes | no | - |
 | cat traps on: puzzles knocked over mid-solve (2 on that seed) | yes | no | - |
-| checks asserted | 28 | 26 | 2 |
+| checks asserted | 29 | 27 | 2 |
 
 `--quick` exists for iterating on the harness, where locks and traps are
 noise. For a release, or after any change to the locks or traps, run the
@@ -50,11 +50,27 @@ fixed pauses and waits that could not end early:
   registered, so the completion wait now re-lists every 3 s and goes back to
   solving when a phase appears.
 
-What stays: the unwind to the title before each boot after a finished
-level, about 10 s a visit. Booting straight over the finished level failed
-(its win check broke the next level's solves), and a leaner unwind failed at
-the first Skip (the game was still reloading the skipped level). See
-`UNWIND_BEFORE_BOOT` and `to_title` in `tools/release_e2e.py`.
+## It moves only the way a player can
+
+Since 2026-10-01 every visit leaves and enters a level by the player's own
+buttons, never a DevTools shortcut (`boot:`, `menu:title`, `replayselect`):
+
+- a finished level: the retry panel's Menu, then the pause menu's Levels;
+- a running level: the pause menu, then Levels;
+- the title: its Levels;
+- the next puzzle: a click on its card on the run's track (`clicktrack`);
+- where the mod moves on by itself (a generator with nothing left), the
+  gate waits for it, and plays on in the level the mod opened if it is the
+  planned one.
+
+The old route (post-level Level Select, Close, a forced `menu:title`, then
+`boot:`) also pressed the post-level Level Select on a level the mod had
+already moved on from - a button no player can reach. It built the track
+twice and left it drawn over the title (the DLC gate of 2026-10-01). A test
+of a route no player takes is not a test of the mod. `boot_level` and
+`to_title` stay in `tools/release_e2e.py` for the probes, which measure one
+level; the gate's own functions (`play`, `check_arrow`, `to_track`,
+`open_slot`) are pinned by `test_scheduler.py` to use none of them.
 
 On 2026-09-08 it was run roughly twelve times to land one set of playtest
 fixes. In about ten of those the question was only "did this small change break
@@ -84,13 +100,13 @@ says why it passed over any other, for example:
        3 cat-trap reset(s)
 
 With the arrow check in the run (not `--quick`), a seed must also open with a
-slot that ends on the panel's arrow: one the session can finish that is not a
-generator, since a generator with nothing left moves straight on. At the
-default weights most openings are all generators, so this skips several:
+slot that ends on the panel's arrow: one the session can finish. Generators
+count since 2026-10-01: every run level now ends the same way, by the
+panel's route, and the forced finish no longer relaunches a generator. A seed
+whose opening holds only levels forcing cannot finish is skipped:
 
-    seed 20260906: no slot in the opening ends on the arrow (every one is a
-       generator or a level forcing cannot finish), so the arrow check would
-       test nothing
+    seed N: no slot in the opening ends on the arrow (every one is a level
+       forcing cannot finish), so the arrow check would test nothing
 
 `tools/make-seed.py` uses the same walk, so `test_harness_data.py` reads
 exactly the seed the gate will play. No seed in 20 clearing refuses the run.
@@ -112,6 +128,15 @@ own SkipLevel does to it alone, with no run up.
 `--only-arrow` runs steps 1-5 for real (clean install, assets, world, seed,
 the arrow session) and stops with the arrow session's two checks: the gate's
 in-game setup on its own, in about three minutes.
+
+### It never goes to the Daily Tidy page
+
+A check of its own since 2026-10-01: the run's log must hold no
+`SetGameState: DailyTidy_GameState` and no daily-guard rescue. A player
+cannot open that page in a run, and every finished generator used to go
+there and be pulled out (the quick gate of 2026-10-01: 6 of 6). The mod now
+answers the game's own decision (`DailyDecision`), so the rescue is a
+backstop that should never run, and it warns when it does.
 
 ## Reading it while it runs
 
@@ -530,26 +555,36 @@ mod. The ones worth knowing about, all recorded in comments at the site:
   whole transcript rather than the newest chunk.
 - **Menu navigation after finishing a puzzle is the hard part.** The Menu
   button opens the pause menu, `menu:title` does not instantiate a title
-  screen, and `clicktrack` resolves card names correctly while starting
-  nothing. `boot:<levelIndex>` is the route that works from anywhere.
-- **Never press the next-level arrow in the same session as the run.** One
-  press poisons everything after it. Measured as a pair, everything else
-  identical: with a single press, 2 of 8 beaten and 103 exceptions; without
-  one, 8 of 8 and none.
+  screen, and `clicktrack` starts nothing until the track is the live one
+  on screen. The gate reads the open menus, not the state, to decide its
+  next press (`route_step`). DevTools `pause` enters `Menu_GameState` and
+  pauses the game, as a player's Esc does (measured against droha's Esc,
+  2026-10-01). Its old form only raised the menu-open event, which left the
+  state at `Gameplay_GameState`; a Reset or Skip from that menu then
+  switched to gameplay "already active" and nothing took the menu down,
+  a pause no player can reach. The gate no longer boots; the
+  notes below on `boot:` and the unwind apply to the probes that still do.
+- **The next-level arrow once poisoned the session it was pressed in.**
+  Measured as a pair, everything else identical: with a single press, 2 of 8
+  beaten and 103 exceptions; without one, 8 of 8 and none.
 
-  The arrow launches through the mod's `GoToNext`, which starts a level
-  without releasing the previous one; leaving a puzzle through the MENUS then
-  deactivates it without destroying it, and `boot:`'s teardown only sees
-  ACTIVE levels, so it skips it. The skipped level's `CheckWinCondition` stays
-  subscribed to the event bus and the next level's solves die inside it. The
-  log shows it exactly: the boot after a menu exit prints no teardown line.
+  That was measured while the arrow launched through the mod's own
+  `GoToNext` (since deleted), which started a level without releasing the
+  previous one, and while the gate opened levels with `boot:`, whose teardown
+  only sees ACTIVE levels. The left-over level's `CheckWinCondition` stayed
+  subscribed to the event bus and the next level's solves died inside it.
 
-  So `check_arrow()` verifies the arrow in a throwaway game and closes it, and
-  the run gets a clean one. Two launches. Do not merge them back together to
-  save ninety seconds.
+  Both causes are gone. The arrow is now the game's own `RetryMenu.NextLevel`
+  (Navigation lets the game advance), and since 2026-10-01 every run puzzle
+  with nothing left to find moves on through that same call, a dozen times a
+  gate, and the gate never boots. `check_arrow()` still verifies the arrow in
+  a session of its own, which also checks a fresh launch's pause-menu Exit;
+  merging the two would need a gate run to show it is safe.
 
-- **Unwind to the TITLE after every puzzle, not just out of the level.**
-  `replayselect` -> `menu:levels` -> `menu:title`. Shorter exits do not work:
+- **A probe that boots unwinds to the TITLE after every puzzle, not just out
+  of the level.** `replayselect` -> `menu:levels` -> `menu:title`, and only
+  after a FINISHED level (the post-level button exists only then). Shorter
+  exits before a `boot:` do not work:
   nothing at all, or the pause menu's Level Select, both leave the run
   throwing after two puzzles, and `replayselect` alone made a passing level
   start failing. After a BEATEN level the pause menu's Level Select does

@@ -562,6 +562,25 @@ internal static class SaveRedirect
     /// </summary>
     private const string PrefsKey = "playerPrefs";
 
+    /// <summary>
+    /// A solution reached the run's save: Checks reads it on the next frame
+    /// (Checks.NoteSaveWritten). Both the record and the write, as the Seeing
+    /// Stars Boss's phases are recorded during play with no completion.
+    /// </summary>
+    [HarmonyPatch(typeof(SaveData), nameof(SaveData.SaveLevelData))]
+    [HarmonyPostfix]
+    private static void AfterSaveLevelData()
+    {
+        if (_active != null) Checks.NoteSaveWritten();
+    }
+
+    [HarmonyPatch(typeof(SaveSystem), nameof(SaveSystem.SaveGame))]
+    [HarmonyPostfix]
+    private static void AfterSaveGame()
+    {
+        if (_active != null) Checks.NoteSaveWritten();
+    }
+
     [HarmonyPatch(typeof(SaveSystem), nameof(SaveSystem.SaveGame))]
     [HarmonyPostfix]
     private static void MirrorSettingsToCampaign()

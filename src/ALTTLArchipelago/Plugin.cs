@@ -234,8 +234,10 @@ public sealed class Plugin : BasePlugin
                      ("hints", typeof(Hints)),
                      ("navigation", typeof(Navigation)),
                      ("daily guard", typeof(DailyGuard)),
+                     ("daily decision", typeof(DailyDecision)),
                      ("title screen", typeof(TitleScreen)),
                      ("ability locks", typeof(AbilityLocks)),
+                     ("index hold", typeof(IndexHold)),
                      ("card stars", typeof(CardStars)),
                      ("section stars", typeof(SectionStars)),
                      ("overview strip", typeof(Badges)),
@@ -243,6 +245,7 @@ public sealed class Plugin : BasePlugin
                      ("retry panel", typeof(RetryPanel)),
                      ("steam achievements", typeof(SteamAchievements)),
                      ("cursor guard", typeof(CursorGuard)),
+                     ("post-it cameras", typeof(PostItCameras)),
                  })
         {
             try
@@ -736,6 +739,7 @@ public sealed class Plugin : BasePlugin
     internal static void TickChecks(float dt)
     {
         Checks.TickWithheld();
+        Checks.TickSaveWritten();
 
         _sinceFlush += dt;
         if (!_checksDirty && _sinceFlush < FlushInterval) return;

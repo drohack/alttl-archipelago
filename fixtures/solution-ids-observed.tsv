@@ -1,4 +1,4 @@
-# Solution ids the game reported in LevelComplete lines, harvested 2026-09-27 from testserver/logs/*.log and BepInEx/LogOutput.log.
+# Solution ids the game reported in LevelComplete lines, harvested 2026-09-27 from testserver/logs/*.log and BepInEx/LogOutput.log; re-harvested 2026-10-02 (Figurines' second sort, then droha's ending-names hand test of ten levels).
 # observed < solutionCount means some endings were never seen. Regenerate by re-harvesting; do not hand-edit.
 levelIndex	levelId	solutionCount	observed	solutionIds
 1	Cat Frame	1	1	Straighten_0
@@ -114,7 +114,7 @@ levelIndex	levelId	solutionCount	observed	solutionIds
 1022	NeatStreak_Bathroom Drawer	1	1	Draggables_0
 1100	DLC1 Clock Cupboard	1	1	Cupboard_0
 1101	DLC1 Craft Supplies	1	1	Drawers_0
-1102	DLC1 Fountain Pens	4	1	Draggables-Ordered_0
+1102	DLC1 Fountain Pens	4	4	Draggables-Ordered_0|Draggables-Ordered_2|Draggables-Ordered_1|Draggables-Ordered_3
 1103	DLC1 Pressed Flowers	1	1	Flower-Shapes_0
 1104	DLC1 Bathroom Cupboard	1	1	Cupboard_0
 1106	DLC1 Lunch Tray	1	1	TrayOrganizer_0
@@ -137,31 +137,31 @@ levelIndex	levelId	solutionCount	observed	solutionIds
 1126	DLC1 Nesting Boxes	1	1	BoxOrganizer_0
 1127	DLC1 Nested Drawers	1	1	Drawers_0
 1128	DLC1 Boss	1	1	KeysDraggables_0
-1200	DLC2 Canapes	3	2	Stacked-Groups_0|Stacked-Groups_2
+1200	DLC2 Canapes	3	3	Stacked-Groups_0|Stacked-Groups_2|Stacked-Groups_1
 1201	DLC2 Forks	5	1	Shuffle_0
 1202	DLC2 Mugs	4	1	Grid_0
 1203	DLC2 Corn	4	0	
 1204	DLC2 Pressed Leaves	3	1	Leaves-Draggables_0
 1205	DLC2 Broken Vases	1	1	Draggables_0
-1206	DLC2 Nanopets	5	1	Shuffle_0
+1206	DLC2 Nanopets	5	5	Shuffle_0|Shuffle_1|Shuffle_3|Shuffle_4|Shuffle_2
 1207	DLC2 ObsoleteTech	1	1	Organizer_0
 1208	DLC2 Balls	3	1	Shuffle_0
 1209	DLC2 Water Glasses	4	5	Jigsaw_0|Sorting-(Type-&-Size)_0|Sorting-(Type-&-Size)_1|Water-Level-(Indexable)_-1|Water-Level-(Indexable)_0
 1210	DLC2 Pizza	4	5	Distributables_-1|Distributables_0|Distributables_1|Distributables_2|Distributables_3
 1211	DLC2 Leftovers	5	1	StackableGrid_0
 1212	DLC2 Windows	1	1	Draggables_0
-1213	DLC2 Cacti	5	1	Shuffleables-Pots_0
+1213	DLC2 Cacti	5	5	Shuffleables-Pots_0|Shuffleables-Pots_3|Shuffleables-Pots_2|Shuffleables-Pots_4|Shuffleables-Pots_1
 1214	DLC2 Origami	1	1	OrigamiPad_0
-1215	DLC2 Moths	4	3	DraggablesOrdered_0|DraggablesOrdered_1|Draggables_0
-1216	DLC2 Math Set	2	0	
+1215	DLC2 Moths	4	4	DraggablesOrdered_0|DraggablesOrdered_1|Draggables_0|DraggablesOrdered_2
+1216	DLC2 Math Set	2	2	Indexables_0|Indexables_1
 1217	DLC2 Ink Bottles	2	2	Draggables---Drips_0|Draggables---Label_0
 1218	DLC2 Material Drawers	1	1	Drawer-Draggables_0
 1219	DLC2 Curtains	1	1	Draggables_0
 1220	DLC2 Books Stacked	5	1	StackedGroups_0
 1221	DLC2 Sticky Drawer	1	1	Draggables_0
 1222	DLC2 Bells	3	2	OrderedGroups_0|OrderedGroups_1
-1223	DLC2 Figurines	3	2	Draggables_0|SortingItemsDraggables_0
-1224	DLC2 Bookshelf	3	1	Shuffle---Top-Left_0
+1223	DLC2 Figurines	3	3	Draggables_0|SortingItemsDraggables_0|SortingItemsDraggables_1
+1224	DLC2 Bookshelf	3	3	Shuffle---Top-Left_0|Shuffle---Top-Left_1|Shuffle---Top-Left_2
 1225	DLC2 Cat Eyes	1	2	IndexablesController_-1|IndexablesController_0
 1226	DLC2 Junk Drawer Transforming	2	3	IndexedDraggables_-1|IndexedDraggables_0|IndexedDraggables_1
 1227	DLC2 Music Box	1	1	Organizer_0
@@ -170,7 +170,7 @@ levelIndex	levelId	solutionCount	observed	solutionIds
 1230	DLC2 Robots	2	2	IndexedDraggables_0|IndexedDraggables_1
 1231	DLC2 Boss	3	1	DLC2Boss_Knife
 1235	DLC2 Bread Crusts	2	2	BreadLoopDraggables_0|ConcentricCrustDraggables_0
-1236	DLC2 Cupcakes	3	2	Draggables-Colors_0|Shuffleables-Candles_0
-1237	DLC2 Markers	3	2	Markers-Ordered_0|Markers-Ordered_2
-1238	DLC2 Whistles	5	1	DraggablesOrdered_0
-1239	DLC2 Ghost Cat	1	0	
+1236	DLC2 Cupcakes	3	3	Draggables-Colors_0|Shuffleables-Candles_0|Shuffleables-Candles_1
+1237	DLC2 Markers	3	3	Markers-Ordered_0|Markers-Ordered_2|Markers-Ordered_1
+1238	DLC2 Whistles	5	5	DraggablesOrdered_0|DraggablesOrdered_4|DraggablesOrdered_3|DraggablesOrdered_1|DraggablesOrdered_2
+1239	DLC2 Ghost Cat	1	1	Indexables_0

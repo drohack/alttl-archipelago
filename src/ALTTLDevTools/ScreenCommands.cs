@@ -10,6 +10,7 @@ using HarmonyLib;
 using Il2CppInterop.Runtime.Injection;
 using ALTTLModKit;
 using UnityEngine;
+using static ALTTLDevTools.Helpers;
 
 namespace ALTTLDevTools;
 
@@ -21,6 +22,63 @@ namespace ALTTLDevTools;
 /// </summary>
 public partial class DevToolsBehaviour
 {
+    /// <summary>
+    /// Every camera in the scene that draws into a texture, and every
+    /// RenderTextureManager's pool, to compare a Post-It Notes finish that
+    /// logs Unity's "Releasing render texture that is set as
+    /// Camera.targetTexture!" with one that does not. Its notes draw through
+    /// cameras of their own into textures from that pool, and its CleanUp
+    /// releases the whole pool (members:, xrefs:, 2026-10-01).
+    /// `cameras:all` lists every camera in the scene, drawing or not.
+    /// </summary>
+    private static void ReportCameras(string arg)
+    {
+        var every = arg.Trim() == "all";
+        var all = Resources.FindObjectsOfTypeAll(Il2CppInterop.Runtime.Il2CppType.Of<Camera>());
+        int inScene = 0, drawing = 0;
+        foreach (var obj in all)
+        {
+            var cam = obj == null ? null : obj.TryCast<Camera>();
+            if (cam == null || !cam.gameObject.scene.IsValid()) continue;
+            inScene++;
+            var rt = cam.targetTexture;
+            if (rt != null) drawing++;
+            if (rt == null && !every) continue;
+            var parent = cam.transform.parent;
+            DevToolsPlugin.Log.LogInfo(
+                $"cameras:   {Str(() => (parent == null ? "" : parent.name + "/") + cam.name)}"
+                + $" enabled={cam.enabled} active={cam.gameObject.activeInHierarchy}"
+                + (rt == null ? " -> screen"
+                   : $" -> texture #{rt.GetInstanceID()} '{rt.name}' created={rt.IsCreated()}"));
+        }
+        DevToolsPlugin.Log.LogInfo($"cameras: {inScene} in the scene, {drawing} drawing into a texture");
+
+        foreach (var obj in Resources.FindObjectsOfTypeAll(
+                     Il2CppInterop.Runtime.Il2CppType.Of<RenderTextureManager>()))
+        {
+            var rtm = obj == null ? null : obj.TryCast<RenderTextureManager>();
+            if (rtm == null) continue;
+            DevToolsPlugin.Log.LogInfo(
+                $"cameras: pool '{rtm.name}' all={Str(() => rtm.allTextures.Count.ToString())}"
+                + $" available={Str(() => rtm.availableTextures.Count.ToString())}"
+                + $" used={Str(() => rtm.usedTextures.Count.ToString())}");
+            Try("pool textures", () =>
+            {
+                var created = 0;
+                var ids = new List<string>();
+                for (int i = 0; i < rtm.allTextures.Count; i++)
+                {
+                    var t = rtm.allTextures[i]?.TryCast<RenderTexture>();
+                    if (t == null) { ids.Add("null"); continue; }
+                    if (t.IsCreated()) created++;
+                    ids.Add("#" + t.GetInstanceID());
+                }
+                DevToolsPlugin.Log.LogInfo(
+                    $"cameras:   {created} of {rtm.allTextures.Count} created: {string.Join(" ", ids)}");
+            });
+        }
+    }
+
     /// <summary>
     /// What the game's resolution list actually contains, with indices.
     ///

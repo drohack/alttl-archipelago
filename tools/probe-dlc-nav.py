@@ -255,7 +255,15 @@ def to_track(log):
             # post-level Level Select button is the route the game provides.
             e2e.dev("replayselect", 4.0)
         else:
-            e2e.dev("menu:levels", 2.5)
+            # The title or the pause menu: its own Levels button, the
+            # player's route. A forced menu:levels from the title has the
+            # same failure as the one above: the title stays the menu
+            # system's active menu under the track, and every card click
+            # selected its level and launched nothing (2026-10-02: 48
+            # clicks, 0 launches, `menu=Title Menu` throughout).
+            _now, menus, _out = e2e.menu_state(log)
+            if "TitleMenu" in menus or "MainMenu" in menus:
+                e2e.press(log, "Levels Button", 3.0)
         time.sleep(2.0)
     return False
 
@@ -375,8 +383,21 @@ def main():
                 time.sleep(2.0)
             print(f"      post-level screen: {now}", flush=True)
 
+            # ONLY A PANEL ON SCREEN HAS A BUTTON TO PRESS. With nothing left
+            # to find the mod hides the panel and moves on by itself on the
+            # next frame; pressing the hidden panel's Level Select in between
+            # is no player's route, and the move-on then ran over the track it
+            # opened ("retry panel: moving on failed", 2026-10-01 and -02).
+            # Then the player's way to the track is the pause menu.
+            _st, menus, _o = e2e.menu_state(log)
             log.new()
-            e2e.dev("replayselect", 4.0)
+            panel = "RetryMenu" in menus or "ReplayMenu" in menus
+            if panel:
+                e2e.dev("replayselect", 4.0)
+            else:
+                print("      no panel: the mod moved on by itself; to the track by the "
+                      "pause menu", flush=True)
+                to_track(log)
             # POLLED, not asked once. The first version checked the state a
             # moment after pressing the button and photographed the completion
             # screen - cats, vases and the three post-level buttons - then
@@ -391,7 +412,8 @@ def main():
             transcript.append(out)
             print(f"      post-level Level Select: gameState={now}", flush=True)
             shoot("2-post-level-level-select")
-            results.append(("post-level Level Select reaches the run's track",
+            results.append(("post-level Level Select reaches the run's track" if panel
+                            else "with no panel to press, the pause menu reaches the run's track",
                             now == TRACK_STATE))
 
             # The pause route needs a RUNNING level, not a finished one, so

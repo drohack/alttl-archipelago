@@ -27,15 +27,14 @@ namespace ALTTLArchipelago;
 /// two DLC bosses - take the panel's route too: Tupperware Tower left the
 /// next puzzle with no cursor in the 0.4.2 playtest (see CursorGuard).
 ///
-/// A GENERATOR KEEPS THE GAME'S STRAIGHT-ON ROUTE when it has nothing left
-/// and another slot is playable. That route goes by the Daily page, which
-/// DailyGuard turns into the next slot (the 0.4.2 playtest: "daily guard:
-/// opening slot 1 instead"). Through the panel's NextLevel the game first
-/// relaunched the finished generator and only then reached the Daily page
-/// (measured 2026-09-27, Stamps (Randomized)) - the same end by a longer
-/// road. With nothing else playable it takes the panel's route after all:
-/// Navigation turns that press into the level select, where the Daily page
-/// would have gone by the title.
+/// GENERATORS TOO, since 2026-10-01 (Core AfterPuzzleRoute): one ending for
+/// every run level. They kept the game's own straight-on route, which ended
+/// on the Daily page for DailyGuard to turn into the next slot ("daily
+/// guard: opening slot N instead", 105 times in the second player's 0.4.2 playtest). The
+/// game decides that page in LevelManager.OnLevelCompleteTweenOutComplete,
+/// which every way out of a finished level passes through, panel or not;
+/// DailyGuard now answers it there, so the panel's route goes on to the next
+/// slot for a generator as for any level.
 ///
 /// WITH NOTHING LEFT TO FIND, THE PANEL IS NEVER SHOWN. It used to pop up and
 /// be pressed once it settled: the trace (2026-09-27, Parts Organizer) shows
@@ -90,23 +89,13 @@ internal static class RetryPanel
             var own = __result;
             var slot = Checks.CurrentSlot;
 
-            // A generator goes straight on only while another slot is
-            // playable: that route ends on the Daily page, and from there the
-            // track opens whole only by way of the title (DailyGuard.Rescue).
-            // The panel's route reaches the level select directly
-            // (Navigation.ShowTrackFromThePostLevel).
             var generator = !own && IsGenerator(slot);
-            switch (AfterPuzzleRoute.For(offer.Value, generator, () => Track.AnyPlayableBesides(slot)))
+            if (AfterPuzzleRoute.For(offer.Value) == AfterPuzzle.Panel)
             {
-                case AfterPuzzle.Panel:
-                    __result = true;
-                    Log($"retry panel: slot {slot}, {lit} of {total} solution(s) "
-                        + $"in after this completion -> panel (the level's own: {(own ? "panel" : "next")})");
-                    return;
-                case AfterPuzzle.StraightOn:
-                    Log($"retry panel: slot {slot}, {lit} of {total} solution(s) "
-                        + "in after this completion -> next (a generator, straight on)");
-                    return;
+                __result = true;
+                Log($"retry panel: slot {slot}, {lit} of {total} solution(s) "
+                    + $"in after this completion -> panel (the level's own: {(own ? "panel" : "next")})");
+                return;
             }
 
             __result = true;                             // the panel's route, unseen
@@ -114,8 +103,7 @@ internal static class RetryPanel
             if (UnityEngine.Time.unscaledTime < _quietUntil) return;
             Log($"retry panel: slot {slot}, {lit} of {total} solution(s) "
                 + $"in after this completion -> next, without showing the panel "
-                + (generator ? "(a generator, and nothing else is playable)"
-                             : $"(the level's own: {(own ? "panel" : "next")})"));
+                + (generator ? "(a generator)" : $"(the level's own: {(own ? "panel" : "next")})"));
             _continueSlot = slot;
             _waited = 0f;
             _panelUp = -1f;
@@ -176,6 +164,24 @@ internal static class RetryPanel
             _refused = null;
             _continueSlot = -1;
             _quietUntil = UnityEngine.Time.unscaledTime + 5f;
+
+            // NOT AFTER ANOTHER ROUTE HAS LEFT. If something else has already
+            // left it - DevTools replayselect pressing the hidden panel's
+            // Level Select in the frame between, which opened the track - the
+            // panel's NextLevel threw (DLC navigation probe, 2026-10-02:
+            // "moving on failed: NullReferenceException at RetryMenu.NextLevel").
+            // Only for the screens such a route leads to; any other state,
+            // a transient one included, still moves on as before, so a hidden
+            // panel can never be left with nothing to take the player on.
+            var game = GameManager.Instance;
+            var now = game == null || game.GameState == null ? "" : game.GameState.GetIl2CppType().Name;
+            if (now == "Levels_GameState" || now == "DLCLevels_GameState" || now == "Title_GameState")
+            {
+                Plugin.Logger.LogInfo(
+                    $"retry panel: slot {slot} left the post-level screen another way first "
+                    + $"({now}); not moving on");
+                return;
+            }
             Plugin.Logger.LogInfo(
                 $"retry panel: slot {slot} has nothing left to find - moving on without the panel");
             try

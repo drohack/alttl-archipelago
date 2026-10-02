@@ -400,7 +400,12 @@ class TestTheDlcIdsNeverMove(unittest.TestCase):
         # 110 -> 107 on 2026-09-30: Kitchen Hanging Tools 1's Guiding Targets
         # and 2's Draggables For Console never fired in droha's play, so they
         # are notALocation; KHT2 is then one group, with no part check.
-        self.assertEqual(107, per_dlc["DLC1"])
+        # 107 -> 105 on 2026-10-02: Trophy Cabinet's Cupboard Doors fired
+        # alone mid-level in a player's run; droha: "cupboard doors shouldn't
+        # have a check. it's a required ability." notALocation, as on Clock
+        # Cupboard and Tea Cabinet; one group left, so Items Placements' part
+        # check goes too and the level keeps its Solution (Gadgets held).
+        self.assertEqual(105, per_dlc["DLC1"])
         # 267 -> 269 on 2026-09-23: DLC2 Boss lost its Drawer Controller (it
         # never solved, even in a full completion) and gained Locks, Compass
         # and Knives, which droha's play showed register and solve. Ids after
@@ -417,7 +422,10 @@ class TestTheDlcIdsNeverMove(unittest.TestCase):
         # are fixed-layout (data.FIXED_LAYOUT), drawn once, so their later
         # copies' locations are gone.
         # 141 -> 124 on 2026-09-28: fixed endings (see above).
-        self.assertEqual(124, per_dlc["DLC2"])
+        # 124 -> 123 on 2026-10-02: Canapes' Cracker Positions is part of
+        # every Solution, not a check (droha: "it's not really a mini
+        # solution"), so solutionOnlyParts.
+        self.assertEqual(123, per_dlc["DLC2"])
         # 680 -> 708 on 2026-09-28: the achievement checks, appended after
         # everything else - 18 base (Breadtags' repeats one each), 5 DLC1 and
         # 5 DLC2 - so no earlier id moved.
@@ -428,7 +436,7 @@ class TestTheDlcIdsNeverMove(unittest.TestCase):
         awarded = sum(len(locations.achievement_names_for(level, 1)) * level.max_instances
                       for level in data.LEVELS)
         self.assertEqual(17, awarded)
-        self.assertEqual(383 + 1 + 107 + 124 + awarded, len(locations.ALL_NAMES))
+        self.assertEqual(383 + 1 + 105 + 123 + awarded, len(locations.ALL_NAMES))
 
     def test_credits_is_the_last_base_id(self):
         self.assertEqual(383, locations.ALL_NAMES.index(data.CREDITS))

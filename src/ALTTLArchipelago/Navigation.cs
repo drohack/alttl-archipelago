@@ -524,10 +524,11 @@ internal static class Navigation
     ///
     /// GoToNext existed because vanilla routes by the level's KIND and a
     /// daily-pool level (995-1000) went to the Daily Tidy page instead of the
-    /// run. DailyGuard now answers false to
-    /// LevelInterface.ReactToDailyCompleting while a run is active, so that
-    /// reason is gone - the same obsolete workaround that was removed from
-    /// ReplayMenu.LevelSelect for the same reason on the same day.
+    /// run. DailyGuard now answers false to IsDailyTidy for the next level's
+    /// kind, and DailyDecision answers the leaving level's own (the game's
+    /// tween-out, 2026-10-01), so that reason is gone - the same obsolete
+    /// workaround that was removed from ReplayMenu.LevelSelect for the same
+    /// reason on the same day.
     ///
     /// What still has to be ours is WHICH level is next: AfterGetNextLevelIndex
     /// answers the game's own question with the run's next open slot. The game
@@ -865,10 +866,9 @@ internal static class Navigation
     ///
     /// This used to redirect to GoToTrack, because vanilla routes by the
     /// level's KIND and a daily-pool level sent the player to the Daily Tidy
-    /// page instead of the run. DailyGuard now answers false to
-    /// LevelInterface.ReactToDailyCompleting while a run is active, so that
-    /// reason is gone - the game's own routing lands on the campaign track,
-    /// which is what the run has replaced.
+    /// page instead of the run. DailyGuard now answers false to IsDailyTidy
+    /// while a run is active, so that reason is gone - the game's own routing
+    /// lands on the campaign track, which is what the run has replaced.
     ///
     /// Why it matters that the game opens it: GoToLevelSelectForLevel produces
     /// a level select WITHOUT its own Close button - measured, "no active

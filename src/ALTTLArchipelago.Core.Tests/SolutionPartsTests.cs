@@ -31,6 +31,10 @@ public class SolutionPartsTests
         // Pinned: a re-harvest of the fixture, a levels.json change or a
         // change to the matching rule moves this number, and it should be
         // looked at when it does. Measured 2026-09-27: 198 of 219.
+        // 199 of 220 on 2026-10-02: Figurines' second sort,
+        // SortingItemsDraggables_1, from droha's play. 223 of 244 the same
+        // day: droha's hand test of ten levels' ending names, every one as
+        // the table guessed, and Ghost Cat's Indexables_0.
         var table = LevelTable.FromJson(File.ReadAllText(
             Path.Combine(AppContext.BaseDirectory, "levels.json")));
         int total = 0, named = 0;
@@ -50,7 +54,7 @@ public class SolutionPartsTests
                 else unnamed.Add($"{level.LevelId}:{id}");
             }
         }
-        Assert.True(named == 198 && total == 219,
+        Assert.True(named == 223 && total == 244,
             $"{named} of {total} observed ids name a controller; unnamed: {string.Join(", ", unnamed)}");
     }
 

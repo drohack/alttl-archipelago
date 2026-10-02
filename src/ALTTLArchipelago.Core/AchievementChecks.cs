@@ -20,7 +20,8 @@ namespace ALTTLArchipelago.Core;
 ///   Nine Lives - finishing Ghost Cat, which is its Beaten check;
 ///   Dead End Boss Gems - one of the Boss's endings, which is a Solution;
 ///   Whatcha Lookin' At? - Figurines' "Groupables (Achievement)" controller,
-///       already a part check of its own;
+///       never seen solved in play, so notALocation (2026-10-02); the
+///       achievement has not been seen awarded in a run either;
 ///   Sweep Them On The Floor - Sharp Pencils' Shavings Removed and Breadtags'
 ///       Crumbs, both part checks, and awarded only once BOTH puzzles are
 ///       cleared (its checker holds the two levels; droha cleared Breadtags'

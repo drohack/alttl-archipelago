@@ -461,26 +461,27 @@ class TestTheArrowCheckPicksASolvableSlot(unittest.TestCase):
              "Open - S": [], "Open - Beaten": []})
         self.assertEqual(1, e2e.arrow_slot(slots, plan, where))
 
-    def test_it_never_starts_on_a_generator(self):
-        """A generator with nothing left moves straight on: there is no arrow
-        to press. The full gate of 2026-09-28 started on Stamps (Randomized),
-        and the harness's forced finish relaunched it, so both navigation
-        checks failed on a level that has no arrow at all. SnackPack Cereal,
-        where the gate had always started, is not a generator."""
+    def test_a_generator_can_be_the_arrow_slot(self):
+        """Generators were passed over: with nothing left they went straight
+        on, by the Daily page, and showed no arrow, and the forced finish
+        relaunched them (the full gate of 2026-09-28, Stamps (Randomized) in
+        slot 0). Since 2026-10-01 every run level ends the same way (Core
+        AfterPuzzleRoute, DailyDecision) and the relaunch is gone (Core
+        LaunchRequest), so a generator is as good an arrow slot as any."""
         slots, plan, where = world(
             ["Stamps (Randomized)", "Open"],
             {"Stamps (Randomized) - S": [], "Stamps (Randomized) - Beaten": [],
              "Open - S": [], "Open - Beaten": []})
         plan["seeds"] = [495132956, -1]
-        self.assertEqual(1, e2e.arrow_slot(slots, plan, where))
+        self.assertEqual(0, e2e.arrow_slot(slots, plan, where))
 
     def test_a_seed_with_no_arrow_slot_has_no_candidates(self):
         """judge_seed walks past such a seed when the arrow check runs."""
         slots, plan, where = world(
-            ["Stamps (Randomized)", "TupperwareTower"],
-            {"Stamps (Randomized) - S": [], "Stamps (Randomized) - Beaten": [],
+            ["Desktop Computer", "TupperwareTower"],
+            {"Desktop Computer - S": [], "Desktop Computer - Beaten": [],
              "TupperwareTower - Solution 1": [], "TupperwareTower - Beaten": []})
-        plan["seeds"] = [495132956, -1]
+        plan["seeds"] = [-1, -1]
         self.assertEqual([], e2e.arrow_candidates(slots, plan, where))
         self.assertEqual(0, e2e.arrow_slot(slots, plan, where))
 
@@ -1425,7 +1426,7 @@ class TestTheHarnessReadsWhatASkipDid(unittest.TestCase):
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                "release_e2e.py"), encoding="utf-8") as fh:
             text = code_only(fh.read())
-        self.assertIn('more = log.wait(list(SKIP_VERDICTS), 12, 6, "the skip")', text)
+        self.assertIn('more += log.wait(list(SKIP_VERDICTS), 12, 6, "the skip")', text)
         for verdict in e2e.SKIP_VERDICTS:
             self.assertNotIn(verdict, "[Info   :ALTTL Dev Tools] skip: calling "
                                       "MainMenu.SkipLevel")
@@ -1984,7 +1985,7 @@ class TestASurpriseSkipIsRefused(unittest.TestCase):
         refusal - it is a complaint about money already spent."""
         text = self.source()
         refuse = text.index("surprise = (not forced")
-        buy = text.index('dev("skip", 1.5)')
+        buy = text.index('press(log, "Skip Button"')
         self.assertLess(refuse, buy,
                         "the Skip is spent before the surprise is noticed")
 
@@ -2789,6 +2790,102 @@ class TestABootWaitsForTheLevelItBooted(unittest.TestCase):
         self.assertFalse(e2e.level_is_up(self.UP, 1126))
 
 
+class TestARunNeverGoesToTheDailyPage(unittest.TestCase):
+    """Every finished generator in the 15:28 quick gate of 2026-10-01 went to
+    the game's Daily Tidy state and was rescued by the daily guard; a player
+    cannot open that page in a run (droha: "so what's the point"). Lines
+    from that log."""
+
+    VISIT = ("[Message:     Unity] SetGameState: DailyTidy_GameState\n"
+             "[Info   :ALTTL Dev Tools] game: Pause(False) -> Paused=False timeScale=1\n"
+             "[Info   :A Little To The Left Archipelago] daily guard: opening slot 1 instead\n"
+             "[Message:     Unity] SetGameState: Gameplay_GameState\n")
+    CLEAN = ("[Info   :A Little To The Left Archipelago] navigation: next -> slot 4 (level 29)\n"
+             "[Message:     Unity] SetGameState: Gameplay_GameState\n")
+
+    def test_a_visit_and_its_rescue_are_counted(self):
+        self.assertEqual((1, 1), e2e.daily_page_visits(self.VISIT))
+
+    def test_a_run_that_moves_on_by_itself_counts_none(self):
+        self.assertEqual((0, 0), e2e.daily_page_visits(self.CLEAN))
+
+    def test_a_warned_rescue_is_counted_too(self):
+        loud = self.VISIT.replace("daily guard: opening slot 1 instead",
+                                  "daily guard: the game reached the Daily page anyway - opening slot 1")
+        self.assertEqual((1, 1), e2e.daily_page_visits(loud))
+
+
+class TestTheGateTakesOnlyThePlayersRoutes(unittest.TestCase):
+    """The DLC gate of 2026-10-01 left an unfinished level by replayselect
+    (the post-level Level Select, pressed during play), which built the track
+    twice and left it drawn over the title - droha: "you shouldn't be hitting
+    it either. it's sloppy". The gate's own visits now move only the way a
+    player can (release_e2e "the player's own routes")."""
+
+    SHORTCUTS = ("boot_level(", "to_title(", 'dev("menu:', 'dev("replayselect',
+                 'dev("skip"', 'dev("next"', "clickcard:", 'dev(f"boot:')
+
+    def body(self, name):
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "release_e2e.py"), encoding="utf-8") as fh:
+            text = code_only(fh.read())
+        start = text.index(f"def {name}(")
+        return text[start:text.index("\ndef ", start + 1)]
+
+    def test_the_visits_take_no_shortcut(self):
+        for name in ("play", "check_arrow", "to_track", "open_slot"):
+            body = self.body(name)
+            for shortcut in self.SHORTCUTS:
+                self.assertNotIn(shortcut, body, f"{name} uses {shortcut}")
+
+    def test_a_finished_level_waits_for_its_screen_before_leaving(self):
+        body = self.body("to_track")
+        self.assertLess(body.index("settle_post_level(log)"), body.index("press(log, step"))
+
+    # The quick gate of 2026-10-01 after the credits' Skip: the pause menu is
+    # up but the state still reads Gameplay (DevTools' old event-only pause;
+    # a player's Esc enters Menu_GameState), and the gate sent `pause` for
+    # forty seconds instead of pressing Levels. Lines from its log.
+    DEV = "[Info   :ALTTL Dev Tools] "
+    PAUSED = "\n".join([
+        DEV + "state: gameState=Gameplay_GameState activeLevel=Spice Jars index=26 "
+              "seed=1631970993 solutionCount=2 found=0 solved=False unlocked=True "
+              "loaded=True transitioning=False level=present menu=Main Menu",
+        DEV + "menus: in Spice Jars archived=False type=Puzzle state=Gameplay_GameState",
+        DEV + "  [0] TitleMenu object=Title Menu active=False alpha=0.0",
+        DEV + "  [1] MainMenu object=Main Menu active=True alpha=1.0",
+        DEV + "  [2] LevelSelect object=Level Select active=False alpha=0.0",
+    ])
+
+    def test_the_pause_menu_is_left_by_its_levels_button(self):
+        state, menus = e2e.parse_menu_state(self.PAUSED)
+        self.assertEqual("Levels Button", e2e.route_step(state, menus))
+
+    def test_a_running_level_is_paused_first(self):
+        playing = self.PAUSED.replace(" menu=Main Menu", "").replace(
+            "MainMenu object=Main Menu active=True alpha=1.0",
+            "MainMenu object=Main Menu active=False alpha=0.0")
+        state, menus = e2e.parse_menu_state(playing)
+        self.assertEqual("pause", e2e.route_step(state, menus))
+
+    def test_the_retry_panel_is_left_by_its_menu_button(self):
+        self.assertEqual("Menu Button", e2e.route_step("RetryUI_GameState", ["RetryMenu"]))
+        self.assertEqual("wait", e2e.route_step("RetryUI_GameState", []))
+        self.assertEqual("Levels Button", e2e.route_step("Title_GameState", ["TitleMenu"]))
+        self.assertEqual("track", e2e.route_step("Levels_GameState", ["LevelSelect"]))
+
+    def test_a_card_is_found_by_its_level_and_instance(self):
+        slots = [(1209, "DLC2 Water Glasses"), (1216, "DLC2 Math Set"),
+                 (1209, "DLC2 Water Glasses")]
+        # Track items carry the chapter headers too, so a slot is not its position.
+        items = [(0, "DLC2 Water Glasses"), (1, "01__Chapter_HomeSweetHome"),
+                 (2, "DLC2 Math Set"), (3, "DLC2 Water Glasses"), (4, "DLC2 Credits")]
+        self.assertEqual(0, e2e.card_position(items, slots, 0))
+        self.assertEqual(2, e2e.card_position(items, slots, 1))
+        self.assertEqual(3, e2e.card_position(items, slots, 2))
+        self.assertIsNone(e2e.card_position(items[:2], slots, 1))
+
+
 class TestTheUnwindWaitsForTheCompletionScreen(unittest.TestCase):
     """The second DLC gate of 2026-09-27 failed check 10: to_title sent
     replayselect about a second after the completion, while the retry panel
@@ -2846,10 +2943,10 @@ class TestTheUnwindWaitsForTheCompletionScreen(unittest.TestCase):
                                "release_e2e.py"), encoding="utf-8") as fh:
             text = code_only(fh.read())
         start = text.index('say(6, "playing the credits')
-        body = text[start:text.index('dev(f"clickcard:{CREDITS_LEVEL_INDEX}"', start)]
+        body = text[start:text.index('dev(f"clicktrack:{position}"', start)]
         self.assertIn("settle_post_level(log)", body)
         self.assertLess(body.index("settle_post_level(log)"),
-                        body.index('dev("menu:levels"'))
+                        body.index("to_track(log)"))
 
 
 

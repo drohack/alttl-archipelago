@@ -108,10 +108,12 @@ The DevTools dump is the ground truth this table is checked against
 (`tools/check-game-facts.py`), and the mod changes what it reports.
 
 `DailyGuard` answers `LevelInterface.IsDailyTidy` and `IsHolidayDaily` with
-false while a run is active - deliberately, so the game stops routing the player
-to the Daily Tidy page mid-run. A dump taken with the mod loaded therefore says
-no level is a daily, which looks exactly like proof that none are. That result
-was very nearly written into this file.
+false while a run is active, for the callers that ask them (the next level's
+kind, the hint pages). The finish of a level does not ask them: it runs
+`IsDailyTidy`'s body inline, and `DailyDecision` answers that one
+(docs/dev/testing.md, "Navigation after a puzzle"). A dump taken with the mod
+loaded therefore says no level is a daily, which looks exactly like proof that
+none are. That result was very nearly written into this file.
 
 Move `BepInEx/plugins/ALTTLArchipelago` aside, launch, let the dump write, close
 and move it back. DevTools alone produces the dump.

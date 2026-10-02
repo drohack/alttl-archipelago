@@ -122,6 +122,9 @@ NOT_USED_MARK = "harness: STOPPED - a Skip did nothing"
 #: The mod's line when it presses the retry panel's arrow itself: a level built
 #: for the panel with nothing left to find (RetryPanel).
 AUTO_ARROW_MARK = "has nothing left to find - pressing the arrow"
+#: The mod's lines when it moves on by itself (RetryPanel): pressing a shown
+#: panel's arrow, or moving on from one it never showed.
+AUTO_MOVE_MARKS = (AUTO_ARROW_MARK, "has nothing left to find - moving on without the panel")
 
 #: The mod's verdict on a Skip request, one of which it always writes. The
 #: harness waits for these, not for any `skip:` line: DevTools' own
@@ -218,15 +221,6 @@ CREDITS_LEVEL_INDEX = 84
 FINALE_INDEX = {"Credits": 84, "DLC1 Credits": 1129, "DLC2 Credits": 1233}
 MAX_ROUNDS = 60
 
-#: Unwind to the title (to_title) before booting the next puzzle after a
-#: finished one: about 10 s a visit. STILL NEEDED, measured 2026-09-27: with
-#: it off, booting straight over each finished level, the next levels' solves
-#: ran into the finished level's win check ("already solved as far as the
-#: level is concerned"), two threw NullReferenceException, two Skips were
-#: spent where none belong, and the run left its paper plan at visit 9 of 24
-#: (18 of 28 checks). boot:'s teardown of inactive and stray levels does not
-#: cover it. Kept as a switch for trying again after a change to boot:.
-UNWIND_BEFORE_BOOT = True
 QUICK = False
 
 #: --steady: cat traps off, so a run is repeatable. See the flag's help.
@@ -837,6 +831,13 @@ def unexplained(errors):
     """The errors that are NOT on the known list - the ones that fail a run."""
     return [e for e in errors
             if not any(known in e[0] for known in KNOWN_ERRORS)]
+
+
+def daily_page_visits(text):
+    """(times the game went to its Daily Tidy state, daily guard rescues). Pure."""
+    states = text.count("SetGameState: DailyTidy_GameState")
+    rescues = len(re.findall(r"daily guard: .*opening slot \d+", text))
+    return states, rescues
 
 
 #: Levels whose runtime controllers are KNOWN to differ from the shipped
@@ -2016,19 +2017,17 @@ def arrow_candidates(slots, plan, where):
     # sent seed 20260907's check to slot 5, which no pack had opened.
     held = set(plan.get("starting_abilities") or ())
     opening = (plan.get("boundaries") or [len(slots)])[0]
-    seeds = plan.get("seeds") or []
     found = []
     for i in range(min(opening, len(slots))):
         # Nor a level that finishes on one group: the session is modelled as
         # collecting everything reachable there, which such a level does not.
         if slots[i][1] in UNFORCEABLE or slots[i][1] in KNOWN_COMPLETES_ON:
             continue
-        # NOR A GENERATOR (a slot with a baked seed): with nothing left it
-        # moves straight on and shows no arrow (RetryPanel), and the forced
-        # finish relaunches it (the full gate of 2026-09-28, Stamps
-        # (Randomized) in slot 0: both navigation checks failed).
-        if i < len(seeds) and seeds[i] is not None and seeds[i] >= 0:
-            continue
+        # A generator is fine. It was passed over while it went straight on by
+        # the Daily page and its forced finish relaunched it (the full gate of
+        # 2026-09-28); since 2026-10-01 every run level ends the same way
+        # (Core AfterPuzzleRoute, DailyDecision) and the relaunch is gone
+        # (Core LaunchRequest).
         token = next((l for l in where.get(i, ()) if l.endswith(" - Beaten")),
                      None)
         if token is not None and not need_met(plan, token, held):
@@ -4011,6 +4010,174 @@ def to_title(log):
     return text + log.new()
 
 
+# ------------------------------------------------- the player's own routes
+#
+# THE GATE MOVES THROUGH THE GAME ONLY THE WAY A PLAYER CAN. It used to leave
+# every finished level by to_title (the post-level Level Select, Close, then a
+# forced menu:title) and open the next by boot:, and to_title also ran
+# replayselect on a level the mod had already moved on to - the post-level
+# button pressed during play, which no player can do. That route built the
+# track twice and left it drawn over the title (droha's screenshot, the DLC
+# gate of 2026-10-01: "you shouldn't be hitting it either. it's sloppy").
+# A forced state switch never takes an open level select down, so each one
+# risked a screen no player sees. So now:
+#   - a finished level: its retry panel's Menu, then the pause menu's Levels;
+#   - a running level: the pause menu (the game's own MenuOpen), then Levels;
+#   - the title: its Levels;
+#   - the next puzzle: a click on its card on the run's track.
+# boot_level and to_title stay for the probes, which measure one level.
+
+def menu_state(log):
+    """(gameState, names of the active menus, the text read) right now."""
+    log.new()
+    dev("state")
+    dev("menus")
+    out = log.wait(["menus: "], 4, 6, "the menu list")
+    time.sleep(0.3)
+    out += log.new()
+    return (*parse_menu_state(out), out)
+
+
+def parse_menu_state(out):
+    """(gameState, names of the active menus) from DevTools `state` + `menus`."""
+    line = line_with(out, "state: gameState")
+    fields = dict(tok.split("=", 1) for tok in line.split() if "=" in tok)
+    menus = re.findall(r"\] +\[\d+\] (\w+) object=.* active=True", out)
+    return fields.get("gameState", ""), menus
+
+
+def press(log, name, settle=1.5):
+    """A pointer click on a control by name: (handled, text)."""
+    log.new()
+    dev(f"press:{name}", settle)
+    out = log.new()
+    return "pointer click handled" in out, out
+
+
+def track_items(log):
+    """(the track is on screen, [(position, level id)], text) from `sections`."""
+    log.new()
+    dev("sections", 1.0)
+    out = log.wait(["LevelsTrack (", "no LevelSelect"], 6, 6, "the track list")
+    time.sleep(0.3)
+    out += log.new()
+    items = [(int(p), lid) for p, lid in re.findall(r"  track\[(\d+)\] (.+?) unlocked=", out)]
+    return "LevelsTrack (live)" in out, items, out
+
+
+def card_position(items, slots, slot):
+    """The track position of `slot`'s card: the k-th card of its level, k being
+    its instance among the run's slots of that level, or None."""
+    level_id = slots[slot][1]
+    k = sum(1 for i in range(slot) if slots[i][1] == level_id)
+    hits = [p for p, lid in items if lid == level_id]
+    return hits[k] if k < len(hits) else None
+
+
+def route_step(state, menus):
+    """The player's next move towards the run's track from what is on screen:
+    "track" (it may be up already), a button to press, "pause", or "wait".
+
+    The menu decides before the state. A player's Esc enters Menu_GameState
+    with the Main Menu up, and DevTools `pause` now does the same; its old
+    event-only form left the state at Gameplay_GameState with the menu up
+    (the quick gate of 2026-10-01 sent `pause` forty seconds running into an
+    open pause menu). Either way the open Main Menu means press Levels.
+    """
+    if state == "Levels_GameState":
+        return "track"
+    if "MainMenu" in menus or "TitleMenu" in menus:
+        return "Levels Button"
+    if state == "RetryUI_GameState":
+        return "Menu Button" if "RetryMenu" in menus else "wait"
+    if state == "Gameplay_GameState":
+        return "pause"
+    # The DLC's own level select and every transition: the mod or the game
+    # is moving; wait for where it lands.
+    return "wait"
+
+
+def to_track(log, finished=False, most=40.0):
+    """Onto the run's track by the player's buttons. (on the track, text).
+
+    `finished`: the visit just completed its level, so wait for the
+    completion screen first (settle_post_level) - navigating while it was
+    still coming in left a level select with no Close button.
+    """
+    text = settle_post_level(log) if finished else ""
+    end = time.time() + most
+    while time.time() < end:
+        state, menus, out = menu_state(log)
+        text += out
+        step = route_step(state, menus)
+        if step == "track":
+            live, _items, out = track_items(log)
+            text += out
+            if live:
+                return True, text
+        elif step == "pause":
+            log.new()
+            dev("pause", 2.0)
+            text += log.new()
+        elif step != "wait":
+            text += press(log, step, 3.0 if step == "Levels Button" else 2.0)[1]
+        time.sleep(1.0)
+    say(6, "      could not reach the run's track by the player's buttons")
+    return False, text
+
+
+def open_slot(log, slots, slot, index, most=45.0):
+    """Click `slot`'s card on the run's track and wait until its level runs.
+    (opened, text), as boot_level returns."""
+    text = ""
+    end = time.time() + most
+    while time.time() < end:
+        ok, out = to_track(log)
+        text += out
+        if not ok:
+            return False, text
+        _live, items, out = track_items(log)
+        text += out
+        position = card_position(items, slots, slot)
+        if position is None:
+            say(6, f"      slot {slot} {slots[slot][1]} has no card on the track")
+            return False, text
+        log.new()
+        sent = time.time()
+        dev(f"clicktrack:{position}", 1.0)
+        out = log.wait([f"now playing slot {slot}", "not up yet", "not on the track"],
+                       8, 6, f"slot {slot}'s card")
+        text += out
+        if "not up yet" in out:
+            time.sleep(2.0)
+            continue
+        while time.time() - sent < 25:
+            dev("state")
+            out = log.wait(["state: gameState"], 8, 6, "the level")
+            text += out
+            if any(level_is_up(line, index) for line in out.splitlines()
+                   if "state: gameState" in line):
+                return True, text + settle_level(log, sent)
+            time.sleep(0.5)
+    return False, text
+
+
+def running_index(log):
+    """The index of the level running and unfinished right now, or None."""
+    log.new()
+    dev("state")
+    out = log.wait(["state: gameState"], 6, 6, "the state")
+    line = line_with(out, "state: gameState")
+    fields = dict(tok.split("=", 1) for tok in line.split() if "=" in tok)
+    if (fields.get("gameState") == "Gameplay_GameState" and fields.get("loaded") == "True"
+            and fields.get("level") == "present" and fields.get("solved") == "False"):
+        try:
+            return int(fields.get("index", "")), out
+        except ValueError:
+            return None, out
+    return None, out
+
+
 def check_arrow(log, plan):
     """Verify the next-level arrow in a session of its own, then throw it away.
 
@@ -4060,7 +4227,8 @@ def check_arrow(log, plan):
                f"slot 0 {slots[0][1]} needs abilities this session lacks")
 
     index, level_id = slots[first]
-    opened, out = boot_level(log, index)
+    # The title's Levels, then the card: the player's way in.
+    opened, out = open_slot(log, slots, first, index)
     text += out
     if not opened:
         close_game()
@@ -4074,22 +4242,29 @@ def check_arrow(log, plan):
         close_game()
         return None, None, text
 
-    # THE MOD MAY PRESS THE ARROW ITSELF, on a level built for the panel with
-    # nothing left to find. Pressing it again starts a second advance over the
-    # first: the 0.4.1 DLC gate's arrow session did that, and the pause menu's
-    # Exit then did nothing. So `next` is pressed only when the mod did not.
-    # Its "retry panel: ... ->" line at the completion says whether it will
-    # ("through the panel's arrow"), so the twelve-second wait for its press
-    # is only sat out when it will make one.
+    # THE MOD MAY MOVE ON ITSELF, on a level with nothing left to find.
+    # Pressing again starts a second advance over the first: the 0.4.1 DLC
+    # gate's arrow session did that, and the pause menu's Exit then did
+    # nothing. Its "retry panel: ... ->" line at the completion says which:
+    # "-> panel" shows the panel, whose Continue is pressed; "without showing
+    # the panel" or "straight on" moves on alone, and is waited for.
     text += log.new()
     if "retry panel: slot" not in text:
         text += log.wait(["retry panel: slot"], 6, 6, "the mod's panel decision")
     decision = line_with(text, "retry panel: slot")
-    if "through the panel's arrow" in decision or not decision:
-        auto = log.wait([AUTO_ARROW_MARK], 12, 6, "the mod's own arrow press")
-        text += auto
-    if AUTO_ARROW_MARK not in text:
-        dev("next", 1.0)
+    if "without showing the panel" in decision or "straight on" in decision:
+        # The mod (or the game's straight-on route) moves on by itself, as a
+        # player sees it do: there is no panel and no Continue to press.
+        text += log.wait(list(AUTO_MOVE_MARKS), 12, 6, "the mod's own move on")
+    elif AUTO_ARROW_MARK not in text:
+        # The panel shows: its own Continue, the arrow a player presses,
+        # once the panel has come in.
+        for _ in range(5):
+            pressed, out = press(log, "Continue Button", 1.0)
+            text += out
+            if pressed or any(mark in text for mark in AUTO_MOVE_MARKS):
+                break
+            time.sleep(1.5)
     # Capture the mod's own line BEFORE loaded_level runs: its first log.new()
     # discards whatever has arrived, which swallowed "navigation: replay Next"
     # and had the summary print "arrow presses: 0" beside a passing arrow
@@ -4178,25 +4353,16 @@ def check_pause_exit(log):
 
 
 def play(log, plan, earlier=""):
-    """Play the run the way a player does: finish a puzzle, press the arrow.
+    """Play the run the way a player does, by the player's own routes only.
 
-    THE ARROW IS THE PRIMARY ROUTE, and that is the point. It is
-    ReplayMenu.NextLevel / RetryMenu.NextLevel, which the mod patches to launch
-    the next UNFINISHED slot itself rather than let the game route by level
-    kind - routing by kind is what sends a daily-pool level to the Daily Tidy
-    page and drops the player out of their run. Verified separately: pressing
-    it after slot 0 gave "navigation: replay Next -> slot 1 (level 79)" and
-    eight controllers registered on Mirror, a real interactive level.
+    Each visit opens the puzzle the scheduler chose. When the game has already
+    moved on to it, the visit plays it in place. Otherwise the visit leaves
+    whatever is up by the player's buttons (the retry panel's Menu, the pause
+    menu, the title's Levels) and clicks the puzzle's card on the run's track.
+    See "the player's own routes" above: no boot:, no forced menu state.
 
-    Driving the run this way means the harness exercises the navigation a
-    player actually uses, instead of proving only that a synthetic boot: works.
-
-    boot: is still the FALLBACK, for the two cases the arrow cannot cover: the
-    first puzzle of a session, when there is no completion screen to press an
-    arrow on; and a puzzle that cannot be finished yet because a controller
-    sits behind an ability that has not arrived. The arrow would keep offering
-    that same unfinished slot forever, so the harness unwinds to the title and
-    opens a different one.
+    The next-level arrow, the other way a player goes on, is asserted in its
+    own session (check_arrow).
     """
     global CREDITS_LEVEL_INDEX
     CREDITS_LEVEL_INDEX = FINALE_INDEX.get(plan.get("credits"), 84)
@@ -4404,25 +4570,18 @@ def play(log, plan, earlier=""):
                 transcript += "\n" + OFF_PLAN_MARK + "\n"
                 break
 
-            # Only unwind through the menus after a level was FINISHED.
-            #
-            # to_title exists to get off the completion screen, and it does
-            # that by navigating - which DEACTIVATES the level it leaves.
-            # boot:'s teardown destroys active levels only, so a deactivated
-            # one survives with its CheckWinCondition still subscribed, and
-            # every later synthetic solve dies inside the old level's handler.
-            #
-            # That hole was harmless while every round ended in a completion.
-            # Once ability locks started gating the early slots, "boot a level,
-            # fail to finish it, try another" became the common path and the
-            # leak compounded: one run threw 144 times and beat 1 of 8, all of
-            # them NullReferenceException in LevelInterface.CheckWinCondition.
-            #
-            # An unfinished level is still ACTIVE, so booting straight over it
-            # lets the teardown do its job. Nothing to unwind, nothing to leak.
-            if last_done and UNWIND_BEFORE_BOOT:
-                transcript += to_title(log)
-            opened, out = boot_level(log, index)
+            # IN BY THE PLAYER'S ROUTE (see "the player's own routes"): the
+            # puzzle the game already moved on to, when it is this one - a
+            # player plays what is in front of them - and otherwise its card
+            # on the run's track. Never boot:, which is no player's route.
+            if last_done:
+                transcript += settle_post_level(log)
+            running, out = running_index(log)
+            transcript += out
+            if running == index:
+                opened, out = True, settle_level(log, time.time())
+            else:
+                opened, out = open_slot(log, slots, current, index)
             transcript += out
             if not opened:
                 if not game_is_running():
@@ -4706,9 +4865,16 @@ def play(log, plan, earlier=""):
                            f"Stopping the run - unit test this, then fix it.")
                     transcript += "\n" + WRONG_SKIP_MARK + "\n"
                     break
+                # The pause menu's own Skip button, as a player spends one
+                # (it reaches the same MainMenu.SkipLevel DevTools skip calls).
                 log.new()
-                dev("skip", 1.5)
-                more = log.wait(list(SKIP_VERDICTS), 12, 6, "the skip")
+                dev("pause", 2.0)
+                pressed, more = press(log, "Skip Button", 1.5)
+                if not pressed:
+                    dev("pause", 2.0)
+                    pressed, again = press(log, "Skip Button", 1.5)
+                    more += again
+                more += log.wait(list(SKIP_VERDICTS), 12, 6, "the skip")
                 if skip_outcome(more) == "waiting":
                     # The game may still skip late; the mod charges when it
                     # does (Skips.cs).
@@ -4846,25 +5012,28 @@ def play(log, plan, earlier=""):
             # landed on top of the credits click, and neither the credits nor
             # the goal followed (checks 22 and 23).
             transcript += settle_post_level(log)
-            # RETRIED, because a fixed settle is a guess about how long the
-            # level select takes to build and the guess has been wrong. A DLC
-            # run lost the goal report on 2026-09-17 to exactly this: three
-            # seconds after menu:levels, clickcard answered "open menu:levels
-            # first" and the credits were never played, so the run finished
-            # 21/23 with two failures that had nothing to do with the mod.
-            #
-            # The click reports its own refusal, so retry on that rather than
-            # on a longer sleep - which would only move the guess.
+            # By the player's buttons onto the track, then a click on the
+            # finale's card. RETRIED on the click's own refusal ("not up yet"):
+            # a fixed settle is a guess about how long the level select takes
+            # to build, and a DLC run lost its goal report on 2026-09-17 to
+            # that guess being wrong.
+            finale = plan.get("credits") or "Credits"
             for attempt in range(3):
-                dev("menu:levels", 3.0 + 2.0 * attempt)
+                _ok, out = to_track(log)
+                transcript += out
+                _live, items, out = track_items(log)
+                transcript += out
+                position = next((p for p, lid in items if lid == finale), None)
                 log.new()
-                dev(f"clickcard:{CREDITS_LEVEL_INDEX}", 2.0)
+                if position is not None:
+                    dev(f"clicktrack:{position}", 2.0)
                 clicked = log.new()
                 transcript += clicked
-                if "open menu:levels first" not in clicked:
+                if position is not None and "not up yet" not in clicked:
                     break
                 say(6, f"the level select was not ready for the credits card; "
                        f"retrying ({attempt + 1}/3)")
+                time.sleep(2.0 + 2.0 * attempt)
 
         say(6, "staying connected for the goal report")
         # The mod reports the goal as the credits start, so the click above
@@ -5185,6 +5354,16 @@ def main():
                     for prior in before:
                         print(f"               after: {prior[:120]}", flush=True)
         results.append(("the game logged no unexplained errors", not new_errors))
+
+        # A run never goes to the Daily Tidy page: a player cannot open it in
+        # a run, and the daily guard's rescue out of it is a backstop, not a
+        # route (droha, 2026-10-01: "the user can't get there. so what's the
+        # point").
+        states, rescues = daily_page_visits(whole)
+        if states or rescues:
+            print(f"      the game went to the Daily Tidy page {states} time(s), "
+                  f"the daily guard rescued {rescues}", flush=True)
+        results.append(("the run never went to the Daily Tidy page", not states and not rescues))
 
         # The location table against the running game, asserted rather than
         # logged. See table_audit.

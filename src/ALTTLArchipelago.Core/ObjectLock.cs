@@ -77,6 +77,12 @@ public sealed class ObjectLock
     /// reload loses nothing. The probe (tools/probe-lock-roundtrip.py) finds
     /// this "can be picked up where the game did not allow it" on these
     /// three and on Wilting Flowers' Dirt, which cannot be dragged anyway.
+    ///
+    /// Seed Pods and Clover for their colour: the game tints their pieces to
+    /// 0.9 once, after the intro, and only the ones not locked then, so a
+    /// piece unlocked in place came back at 1.0, brighter than the rest
+    /// (probe-lock-roundtrip.py, 2026-09-30). The reload replays the intro.
+    /// Their one group is Symmetry's, so it too loses nothing.
     /// </summary>
     public static readonly IReadOnlySet<string> ResetOnUnlockLevels =
         new HashSet<string>(StringComparer.Ordinal)
@@ -84,7 +90,59 @@ public sealed class ObjectLock
             "Cat Food Cans",
             "Boxes (Stacked)",
             "GoodTidings_Presents (Stacked)",
+            "Seed Pods",
+            "Clover",
         };
+
+    /// <summary>
+    /// Levels whose Indexables states are held while their group is locked,
+    /// even on a piece another, free group holds: the buttons that change them
+    /// (the game's IndexIncrementTrigger) have their colliders off.
+    ///
+    /// Robots: its Indexables group (Ordering) shares Robots 2, 3 and 7 with
+    /// IndexedDraggables, which needs nothing, so the lock freed them and
+    /// their states changed without Ordering. Robot 9's antennas and Robot
+    /// 1's arm buttons are locked but take clicks through colliders under
+    /// their free robot (DevTools objects:, 2026-10-01). droha: what an
+    /// ability is withheld for must not move, "not just the antenna guy".
+    /// The robots still drag: IndexedDraggables needs no ability.
+    ///
+    /// Math Set the same: its CirclePart and Compass are Indexables pieces its
+    /// Items Placements Draggables also holds, and droha extended and
+    /// retracted both with Ordering withheld (2026-10-01). Both its Solutions
+    /// ask for Ordering.
+    ///
+    /// NOT every level with that pairing. Junk Drawer Transforming was
+    /// finished with Ordering locked (proven-requirements.json), and its logic
+    /// asks only for Drawer, as Combs' does, so holding their states would
+    /// leave a seed that cannot be won. Water Glasses and Music Box share no
+    /// state piece, so the lock already holds theirs (droha's hand test,
+    /// 2026-10-01).
+    /// </summary>
+    public static readonly IReadOnlySet<string> IndexHoldLevels =
+        new HashSet<string>(StringComparer.Ordinal)
+        {
+            "DLC2 Robots",
+            "DLC2 Math Set",
+        };
+
+    /// <summary>
+    /// Art that is grey while an indexed state of a level in
+    /// <see cref="IndexHoldLevels"/> is held: a child of the state's owner, by
+    /// name. Robot 3's heart is its chest door, drawn on the chest-and-arms
+    /// layer over its body, so with Ordering withheld that layer is grey and
+    /// the body stays lit, as it still drags (droha, 2026-10-01). Robots 2
+    /// and 7 draw their buttons into their one body layer, so none of theirs.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> IndexHoldArt =
+        new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
+        {
+            ["DLC2 Robots"] = new[] { "Robot3 Chest and Arms" },
+        };
+
+    /// <summary>Hold this level's indexed states: it is listed and its Indexables group is locked.</summary>
+    public static bool HoldsIndexes(string levelId, bool indexablesLocked) =>
+        indexablesLocked && IndexHoldLevels.Contains(levelId ?? "");
 
     /// <summary>
     /// Reload the level: it is one of <see cref="ResetOnUnlockLevels"/> and the

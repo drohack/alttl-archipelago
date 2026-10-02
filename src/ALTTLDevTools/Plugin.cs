@@ -570,7 +570,7 @@ public partial class DevToolsBehaviour : MonoBehaviour
 
             Cmd("menu", Areas.Menus, new[] { "menu:<name>" }, GoToMenu),
             Cmd("play", Areas.Menus, new[] { "play" }, PressPlay),
-            Cmd("pause", Areas.Menus, new[] { "pause" }, OpenPauseMenu),
+            Cmd("pause", Areas.Menus, new[] { "pause", "pause:event" }, OpenPauseMenu),
             Cmd("pausebuttons", Areas.Menus, new[] { "pausebuttons" }, ListPauseButtons),
             Cmd("leave", Areas.Menus, new[] { "leave" }, LeavePuzzle),
             Cmd("next", Areas.Menus, new[] { "next" }, PressNext),
@@ -623,6 +623,7 @@ public partial class DevToolsBehaviour : MonoBehaviour
             Cmd("shot", Areas.Screen, new[] { "shot:<abs path>[|<n>]" }, Screenshot),
             Cmd("setres", Areas.Screen, new[] { "setres:<w>x<h>" }, SetResolution),
             Cmd("resolutions", Areas.Screen, new[] { "resolutions" }, DumpResolutions),
+            Cmd("cameras", Areas.Screen, new[] { "cameras", "cameras:all" }, ReportCameras),
             Cmd("mute", Areas.Screen, new[] { "mute", "mute:off" }, a => SetMute(!IsOff(a))),
             Cmd("unmute", Areas.Screen, new[] { "unmute" }, () => SetMute(false)),
             Cmd("bgset", Areas.Screen, new[] { "bgset:<colour>" }, SetLevelBackground),
@@ -653,6 +654,7 @@ public partial class DevToolsBehaviour : MonoBehaviour
             Cmd("regstop", Areas.Sweeps, new[] { "regstop" }, RegistrationLog.Stop),
 
             Cmd("members", Areas.Reflection, new[] { "members:<Type>[:<filter>]" }, ListMembers),
+            Cmd("values", Areas.Reflection, new[] { "values:<Type>[:<filter>]" }, ListValues),
             Cmd("xrefs", Areas.Reflection, new[] { "xrefs:<Type>.<Method>", "xrefs:<Type>.<Method>|<Type>.<Candidate>,..." }, ListXrefs),
             Cmd("trace", Areas.Reflection, new[] { "trace:<Type>.<Method>[,...]", "trace:off" }, MethodTrace.Start),
             Cmd("findtext", Areas.Reflection, new[] { "findtext:<text>" }, FindText),

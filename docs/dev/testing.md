@@ -33,7 +33,9 @@ back what changed and deletes what the run created - on a normal exit, an
 exception or Ctrl-C. A file whose bytes did not change is not rewritten: a
 `save1.json` rewritten outside a Steam launch is what Steam Cloud reports as
 "not synced". `env.configure()` takes effect at the next launch, so configure
-before launching.
+before launching. A run that does change `save1.json` outside a Steam launch
+still makes Steam report a conflict; unticking "Keep game saves in the Steam
+Cloud" in the game's Steam properties while testing stops it.
 
 A killed process unwinds nothing. Every snapshot stays on disk:
 
@@ -172,10 +174,10 @@ below was seen to fail the probe when undone (17 of 17 that it can see).
 
 The whole sweep on 2026-09-30 (0.4.4 plus the audit's fixes): 115 configs
 passed, 12 to review, 9 failed, 1 skipped (TrickOrTidy_Bones' control).
-- Known, and the same as before the 0.4.2 fixes: Seed Pods and Clover's
-  intro tint, Mirror's candle, Ghost Cat's cats, Tupperware Tower's
-  colliders (hand tests say its flags hold), Robots' two containers inside
-  robots.
+- Known, and the same as before the 0.4.2 fixes: Mirror's candle, Ghost
+  Cat's cats, Tupperware Tower's colliders (hand tests say its flags hold),
+  Robots' two containers inside robots. Seed Pods and Clover's intro tint
+  passes since fix 22 (2026-10-01).
 - Trim Plant's leaves and DLC2 Bells' three compartment bells, first seen
   on this sweep, were settled by droha's hand test (2026-09-30), as was
   DLC2 Pizza, the only Distributing level. Each was grey and would not
@@ -208,6 +210,8 @@ passed, 12 to review, 9 failed, 1 skipped (TrickOrTidy_Bones' control).
 | 19 | A lock pass when the intro ends, on a level with a rag | PawPrints | should be frozen |
 | 20 | A match locks with the level's candles | Candles | handles in EXPECT |
 | 21 | Cat Food Cans, Boxes and Presents (Stacked) reload when their pieces unlock mid-level | Cat Food Cans | Core `ObjectLockTests` |
+| 22 | Seed Pods and Clover reload too, so the game tints their pieces again (after the reload their tint is the new load's: `TINT_PER_LOAD`) | Seed Pods, Clover | colour not back |
+| 23 | Robots' indexed states do not change while Ordering is withheld: their buttons' colliders are off (`AbilityLocks.HoldButtons`; Core `ObjectLock.IndexHoldLevels`, its art `IndexHoldArt`), and a press that gets past is refused (`IndexHold`) | Robots | hand-tested; the warning `a press reached held` must not appear |
 
 The hand checks behind these (collider-back-on levels, second colliders,
 pieces the game keeps fixed, Radial Dance Party, Fruit Stickers) were all
@@ -287,7 +291,7 @@ a player takes, not a shortcut that skips it.
   level select when nothing is playable, with the toast `Nothing to play yet -
   waiting on items`. After a puzzle it is the game's own post-level Level
   Select (`navigation: the level select is up`); Play is already on the title
-  and presses its Levels, and the Daily page goes by the title. Checked
+  and presses its Levels. Checked
   2026-09-28 on seeds of 10 puzzles in one pack, every location but the
   targets' sent from the server (`/send_location`) and the later targets held
   back with DevTools `revoke:`: two hand-made puzzles in a row, a generator
@@ -308,12 +312,33 @@ a player takes, not a shortcut that skips it.
   tears it down. Sending only some slots' locations also delivers the packs
   placed there, so a "nothing playable" setup sends every location in the
   run.
+- The game asks for the level already running, with no index and no reload,
+  just after a puzzle finishes and as it goes back to gameplay under a
+  closing level select. The mod leaves that call alone (`track: the game
+  asked for the running level ... left as asked`; Core `LaunchRequest`).
+  Every launch line says what the caller asked (`asked index=.. forceReload=..
+  seed=..`). A reload the game means passes forceReload and keeps the slot's
+  seed, as measured 2026-10-01 on DLC2 Water Glasses, slot 5, seed 1975104794:
+  - a Cat Trap's reset asks index 1209 with forceReload;
+  - Retry sends the empty call first, then index 1209 with forceReload;
+  - the panel's Next goes on to the next slot, one live level, no relaunch.
 - The retry panel's Retry Button (DevTools `press:Retry Button`) relaunches
   the same slot with its own seed: Pencils (Randomized) with one of two
   solutions found, slot 0, seed 1165097864 both times (2026-09-30).
 - A finished run puzzle with nothing left to find moves on without showing the
-  retry panel (a generator takes the game's own straight-on route); one with
-  solutions left shows it. DevTools `trace:RetryMenu.ShowMenu,RetryMenu.NextLevel`
-  shows the route.
+  retry panel; one with solutions left shows it. Generators too, since
+  2026-10-01: one ending for every run level (Core `AfterPuzzleRoute`).
+  DevTools `trace:RetryMenu.ShowMenu,RetryMenu.NextLevel` shows the route.
+- No run puzzle goes to the Daily Tidy page. The game decides that page in
+  `LevelManager.OnLevelCompleteTweenOutComplete`, which every way out of a
+  finished level passes through, from `IsDailyTidy`'s body compiled inline
+  (so a postfix on the getter never sees it): randomized or holiday-dated,
+  and not an archive level. `DailyDecision` answers that check's one real
+  call, `get_IsArchiveLevel`, for the level leaving, and logs `daily
+  decision: <level> leaves as a run puzzle, not a daily`. Seen with
+  `trace:LevelManager.OnLevelCompleteTweenOutComplete,LevelManager.StopGame,LevelInterface.get_IsArchiveLevel`:
+  on a generator before the fix, the tween-out, the getter, `StopGame(True)`,
+  then the Daily state. A daily-guard rescue now logs a warning, and the
+  gate fails a run that reached the page at all.
 - DevTools `cursor` reads the game's own cursor state; a scripted test has no
   pointer over the window, so a screenshot cannot show it.

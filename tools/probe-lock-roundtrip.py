@@ -87,6 +87,12 @@ DOOR_LEVELS = {"DLC1 Clock Cupboard", "DLC1 Tea Cabinet", "DLC1 Trophy Cabinet"}
 # (Randomized)'s symmetric seeds add Draggables over Shuffle's books.
 LOCKED_AS = {("Books (Randomized)", "Draggables"): "Shuffleables"}
 
+# Levels whose pieces the game tints 0.9 or 1.0 afresh on every load: over six
+# plain loads, 9 of Seed Pods' 24 and 10 of Clover's 19 changed by themselves
+# (2026-10-01). They reload on unlock (ObjectLock.ResetOnUnlockLevels), so
+# after the round trip their renderer colour is the new load's, not ours.
+TINT_PER_LOAD = {"Seed Pods", "Clover"}
+
 # Hand-tested answers: (level, pick, ability withheld, locked, solid, source).
 # pick is an object name, "class:<holder class>" for every object it holds, or
 # "handles" for every peel handle and rag (DevTools state: `handleOf`).
@@ -492,8 +498,8 @@ def check_log(text):
         elif re.search(r"\] check: ", line):
             out.append(finding("REVIEW", "a check was sent", None, line.strip()[:200]))
         elif re.search(r"\] reset: .*unlocked mid-level", line):
-            # ObjectLock.ResetOnUnlockLevels: the three stacked levels reload
-            # when their pieces unlock, by design.
+            # ObjectLock.ResetOnUnlockLevels: the stacked levels, Seed Pods and
+            # Clover reload when their pieces unlock, by design.
             out.append(finding("INFO", "the level reloaded when its pieces unlocked", None, line.strip()[:200]))
         elif re.search(r"\] trap: stopped animations", line):
             # Part of any reset; a cat trap also logs "cat(s) reset the puzzle".
@@ -674,10 +680,16 @@ class Level:
                 if key in (self.opens if want_open else self.closes) and d is not None and d.get("open") != want_open:
                     found.append(finding("FAIL", "a refused drawer move was not made on unlock", back[key]))
             r, o = self.put_back(ctl0, cfg)
+            # A level that reloaded on unlock is a fresh load, and these two
+            # tint their pieces per load (TINT_PER_LOAD); without the reload
+            # the old FAIL stands.
+            after = noise
+            if self.id in TINT_PER_LOAD and re.search(r"\] reset: .*unlocked mid-level", g.buf):
+                after = noise | {(key, "paint:renderer") for key in ctl0}
             if r is not None and ctl_r is not None:
-                found += compare(r, ctl_r, noise, "drawers as they started")
+                found += compare(r, ctl_r, after, "drawers as they started")
             if o is not None and ctl_o is not None:
-                found += compare(o, ctl_o, noise, "every drawer open")
+                found += compare(o, ctl_o, after, "every drawer open")
             found += check_log(g.buf)
             nlocked = sum(1 for x in locked.values() if x.get("locked"))
             status = "FAIL" if any(f["sev"] == "FAIL" for f in found) else (

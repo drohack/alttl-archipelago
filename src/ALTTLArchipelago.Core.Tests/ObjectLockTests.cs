@@ -159,8 +159,42 @@ public class ObjectLockTests
         Assert.True(ObjectLock.ResetOnUnlock(level, 6, 2));
     }
 
+    [Theory]
+    [InlineData("Seed Pods")]
+    [InlineData("Clover")]
+    public void ASymmetryLevelWhoseIntroTintsReloadsWhenItsPiecesUnlock(string level)
+    {
+        // Unlocked in place, its pieces came back at 1.0 against the game's
+        // 0.9 (probe-lock-roundtrip.py, 2026-09-30). Shells and Wreath have
+        // no intro tint and unlock in place.
+        Assert.True(ObjectLock.ResetOnUnlock(level, 24, 0));
+        Assert.False(ObjectLock.ResetOnUnlock("Shells", 20, 0));
+        Assert.False(ObjectLock.ResetOnUnlock("GoodTidings_Wreath", 14, 0));
+    }
+
     [Fact]
-    public void OnlyAnUnlockReloadsAndOnlyOnTheThreeLevels()
+    public void RobotsHoldsItsIndexedStatesWhileOrderingIsWithheld()
+    {
+        Assert.True(ObjectLock.HoldsIndexes("DLC2 Robots", indexablesLocked: true));
+        Assert.False(ObjectLock.HoldsIndexes("DLC2 Robots", indexablesLocked: false));
+        // Math Set's compass and half circle extended without Ordering
+        // (droha, 2026-10-01); both its Solutions ask for Ordering.
+        Assert.True(ObjectLock.HoldsIndexes("DLC2 Math Set", true));
+        // Junk Drawer Transforming was finished with Ordering locked, and its
+        // logic asks only for Drawer, as Combs' does: holding either would
+        // make a seed unwinnable.
+        Assert.False(ObjectLock.HoldsIndexes("DLC2 Junk Drawer Transforming", true));
+        Assert.False(ObjectLock.HoldsIndexes("DLC2 Combs", true));
+        Assert.False(ObjectLock.HoldsIndexes(null!, true));
+        Assert.Equal(2, ObjectLock.IndexHoldLevels.Count);
+        // Robot 3's heart is on its chest-and-arms layer; Robots 2 and 7 draw
+        // their buttons into their one body layer (droha, 2026-10-01).
+        Assert.Equal(new[] { "Robot3 Chest and Arms" }, ObjectLock.IndexHoldArt["DLC2 Robots"]);
+        Assert.All(ObjectLock.IndexHoldArt.Keys, level => Assert.Contains(level, ObjectLock.IndexHoldLevels));
+    }
+
+    [Fact]
+    public void OnlyAnUnlockReloadsAndOnlyOnTheFiveLevels()
     {
         Assert.False(ObjectLock.ResetOnUnlock("Cat Food Cans", 0, 0));   // nothing was locked
         Assert.False(ObjectLock.ResetOnUnlock("Cat Food Cans", 6, 6));   // nothing unlocked
@@ -168,7 +202,7 @@ public class ObjectLockTests
         Assert.False(ObjectLock.ResetOnUnlock("Wilting Flowers", 5, 0)); // the Dirt: harmless
         Assert.False(ObjectLock.ResetOnUnlock("DLC1 Sewing Box", 36, 0));
         Assert.False(ObjectLock.ResetOnUnlock(null!, 6, 0));
-        Assert.Equal(3, ObjectLock.ResetOnUnlockLevels.Count);
+        Assert.Equal(5, ObjectLock.ResetOnUnlockLevels.Count);
     }
 
     /// <summary>

@@ -275,9 +275,31 @@ public partial class DevToolsBehaviour
     ///
     /// This is what unblocks testing anything WITH the pause menu open, which
     /// until now could only be described rather than checked.
+    ///
+    /// THE EVENT ALONE IS NOT ESC. droha's Esc enters Menu_GameState and
+    /// pauses the game (`SetGameState: Menu_GameState`, `Pause(True)`,
+    /// 2026-10-01). The MenuOpen event shows the menu but leaves the state at
+    /// Gameplay, so a Reset or a Skip from that menu switches back to
+    /// Gameplay "already active", nothing takes the menu down, and its Levels
+    /// stops answering - a pause no player can reach. So `pause` enters
+    /// Menu_GameState the way Esc does; `pause:event` keeps the event-only
+    /// form.
     /// </summary>
-    private static void OpenPauseMenu()
+    private static void OpenPauseMenu(string arg)
     {
+        if (arg.Trim() != "event")
+        {
+            var game = GameManager.Instance;
+            if (game == null || game.levelManager?.ActiveLevelInterface == null)
+            {
+                DevToolsPlugin.Log.LogWarning("pause: no level running");
+                return;
+            }
+            DevToolsPlugin.Log.LogInfo("pause: entering Menu_GameState, as Esc does");
+            game.SetGameState<Menu_GameState>(null, false);
+            return;
+        }
+
         var gm = GameManager.Instance;
         var mm = gm == null ? null : gm.menuManager;
         if (mm == null)

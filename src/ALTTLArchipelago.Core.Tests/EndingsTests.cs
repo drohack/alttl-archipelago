@@ -288,7 +288,7 @@ public class EndingsTests
         Assert.Equal("Bookshelf (Seeing Stars) - Solution: Shuffle - Top Left", router.ForEnding(1, found[0], found));
         Assert.Equal("Bookshelf (Seeing Stars) - Solution: Other 1", router.ForEnding(1, found[1], found));
         Assert.Equal("Bookshelf (Seeing Stars) - Solution: Other 2", router.ForEnding(1, found[2], found));
-        // More unknown ids than unseen endings: the next ending in order.
+        // More distinct ids than endings: every ending is taken, so the first.
         Assert.Equal("Bookshelf (Seeing Stars) - Solution: Shuffle - Top Left", router.ForEnding(1, found[3], found));
     }
 
@@ -302,6 +302,43 @@ public class EndingsTests
         Assert.Equal("Spoons - Solution: Size (Elastic)", router.ForEnding(0, "Stacked_-1", found));
         Assert.Equal("Spoons - Solution: Size (Elastic)", router.ForEnding(0, "Stacked_-1", found));
         Assert.Null(router.ForEnding(0, "not-found-yet", found));
+    }
+
+    [Fact]
+    public void EveryDistinctEndingFilesItsOwnLocationEvenWhenTheTableIsWrong()
+    {
+        // droha, 2026-10-02: Figurines' old table had Groupables-(Achievement)_0
+        // for its third ending; the game's was SortingItemsDraggables_1, which
+        // filed the Draggables check already in - 2 stars of 3 for 3 done.
+        var data = new SlotData();
+        data.Slots.Add(new SlotEntry { LevelId = "DLC2 Figurines", LevelIndex = 1223, Instance = 1 });
+        data.Endings["DLC2 Figurines"] = new List<EndingEntry>
+        {
+            new() { Id = "Draggables_0", Location = "Solution: Draggables" },
+            new() { Id = "Groupables-(Achievement)_0", Location = "Solution: Groupables (Achievement)" },
+            new() { Id = "SortingItemsDraggables_0", Location = "Solution: Sorting Items" },
+        };
+        foreach (var e in data.Endings["DLC2 Figurines"])
+            data.Requirements["Figurines (Seeing Stars) - " + e.Location] = new Requirement();
+        var router = new CheckRouter(data);
+
+        var played = new[] { "SortingItemsDraggables_0", "Draggables_0", "SortingItemsDraggables_1" };
+        var filed = played.Select(id => router.ForEnding(0, id, played)).ToList();
+        Assert.Equal(new[]
+        {
+            "Figurines (Seeing Stars) - Solution: Sorting Items",
+            "Figurines (Seeing Stars) - Solution: Draggables",
+            "Figurines (Seeing Stars) - Solution: Groupables (Achievement)",
+        }, filed);
+
+        // An unknown id found first takes the first free ending; the id that
+        // ending names, found later, takes the next free one, not the same.
+        var other = new[] { "Odd_0", "Draggables_0" };
+        Assert.Equal("Figurines (Seeing Stars) - Solution: Draggables", router.ForEnding(0, "Odd_0", other));
+        Assert.Equal("Figurines (Seeing Stars) - Solution: Groupables (Achievement)",
+            router.ForEnding(0, "Draggables_0", other));
+        // What an id files never depends on what is found after it.
+        Assert.Equal(router.ForEnding(0, "Odd_0", new[] { "Odd_0" }), router.ForEnding(0, "Odd_0", other));
     }
 
     [Fact]

@@ -7,7 +7,9 @@ order they are found in. A puzzle with one ending is just "- Solution".
 
 - **Game id**: the solution id the game reports for that ending. *unseen*: nobody
   has seen it yet; until then an id the table does not know fills the next
-  "Other" check, so nothing is lost.
+  "Other" check, so nothing is lost. Every different id a puzzle reports
+  fills a check no earlier one did, so a wrong guess in the table costs a
+  name, not a check (2026-10-02).
 - **Other checks on the puzzle**: its part checks, shown once per puzzle. A group
   that is itself an ending (Spoons' stack) is that ending's check, not a part.
 
@@ -333,8 +335,8 @@ finishes (`Endings.Canonical`) and files it as that rule's Shuffle entry; the
 |  | Solution: Ordered Groups 2 | `OrderedGroups_1` |  |
 |  | Solution: Ordered Groups 3 | `OrderedGroups_2` |  |
 | Figurines (Seeing Stars) | Solution: Draggables | `Draggables_0` | - |
-|  | Solution: Groupables (Achievement) | `Groupables-(Achievement)_0` |  |
-|  | Solution: Sorting Items | `SortingItemsDraggables_0` |  |
+|  | Solution: Sorting Items 1 | `SortingItemsDraggables_0` |  |
+|  | Solution: Sorting Items 2 | `SortingItemsDraggables_1` |  |
 | Bookshelf (Seeing Stars) | Solution: Shuffle - Top Left 1 | `Shuffle---Top-Left_0` | - |
 |  | Solution: Shuffle - Top Left 2 | `Shuffle---Top-Left_1` |  |
 |  | Solution: Shuffle - Top Left 3 | `Shuffle---Top-Left_2` |  |

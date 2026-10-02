@@ -94,7 +94,7 @@ ladder in the repo's `CLAUDE.md`.
 | `probe-offline-goal.py` | Does a run finished offline report its goal on reconnect? |
 | `probe-skip-beaten.py` / `probe-skip-path.py` | What a Skip does on a beaten puzzle; can the harness get past an unforceable one |
 | `probe-star.py` | What the save records when a level is finished |
-| `probe-trap-window.py` / `repro-trap-freeze.py` | When a cat trap goes off: a settled puzzle, a load, a real straight-on finish, the retry panel, a level's own cat (the four `CatGrab` levels), the credits (own seed, muted, PASS/FAIL per case); the 0.3.1 trap freeze and its guard |
+| `probe-trap-window.py` / `repro-trap-freeze.py` | When a cat trap goes off: a settled puzzle, a load, a real finish that moves on without the panel, the retry panel, a level's own cat (the four `CatGrab` levels), the credits (own seed, muted, PASS/FAIL per case); the 0.3.1 trap freeze and its guard |
 | `probe-unblock.py` / `probe-unlock.py` | Which solve stops the game blocking others; lock, grant, solve |
 | `emptysoak.py` | Hammer level loads looking for the blank-level bug |
 | `offline_test.py` / `offline-reconnect-test.py` | A run survives the server going away; Connect during an offline run |

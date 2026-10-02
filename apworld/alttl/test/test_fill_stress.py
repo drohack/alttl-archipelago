@@ -938,7 +938,11 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # Guiding Targets and 2's Draggables For Console never fired in
         # droha's play (2026-09-30), and KHT2 is then one group, so its
         # Hanging Objects part goes too.
-        self.assertEqual((26, 130), split(base + dlc1))
+        # (26, 128) on 2026-10-02: Trophy Cabinet's Cupboard Doors are the
+        # way in, not a check (droha), so notALocation as on Clock Cupboard
+        # and Tea Cabinet; the level is then one group, so Items Placements'
+        # part check goes too.
+        self.assertEqual((26, 128), split(base + dlc1))
         # Seeing Stars leans on multiple solutions rather than on containers,
         # so proportionally more of its groups are free. (38, 125) -> (37, 126):
         # one group, DLC2 Combs' Draggables, behind that DLC's one real drawer.
@@ -966,7 +970,8 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # (13, 96): Mirror's little things folded into its Solution (droha, 2026-09-28).
         # (13, 94): Breadtags' two groups left.
         # (11, 94): Bowls' two parts (base, above).
-        self.assertEqual((11, 94), split(base + dlc2))
+        # (10, 94): Canapes' Cracker Positions, part of every Solution (2026-10-02).
+        self.assertEqual((10, 94), split(base + dlc2))
         # Every level: (47, 186) since Daggers' loose daggers, Lunch Tray's
         # Tray Organizer and Sewing Box's Top Drawer gained Drawer; (47, 184)
         # once Daggers' two parts left; (46, 185) with Material Drawers'
@@ -979,7 +984,9 @@ class TestPartRequirementsStayNarrow(unittest.TestCase):
         # (33, 152): and the Boss's Drawer part (hand test, 2026-09-29).
         # (29, 151): Bowls' two parts and the two Kitchen Hanging Tools parts
         # that never fire, with KHT2's Hanging Objects (2026-09-30).
-        self.assertEqual((29, 151), split(data.LEVELS))
+        # (29, 149): Trophy Cabinet's two parts (DLC1, above; 2026-10-02).
+        # (28, 149): Canapes' Cracker Positions (DLC2, above; 2026-10-02).
+        self.assertEqual((28, 149), split(data.LEVELS))
 
     def test_a_part_never_asks_for_more_than_its_level(self):
         """The sanity direction: narrowing must not invent a requirement."""

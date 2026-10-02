@@ -138,7 +138,7 @@ Files it writes, all in `<game>/BepInEx/`:
 |---|---|
 | `menu:<name>` | Go to a menu: `title`, `levels`, `archive` or `daily`. Does nothing if the game is already there (forcing a state it is in leaves no menu open) |
 | `play` | Press Play on the TITLE menu. There is no live TitleMenu anywhere else, so it needs `menu:title` first |
-| `pause` | Open the in-level pause menu by raising the game's own `MenuOpen` event. `PostOpenMenuEvent` is accepted and opens nothing, and calling `ShowHideMenuItems` directly throws, because the game dereferences a GameEventData a caller cannot construct |
+| `pause` / `pause:event` | Open the in-level pause menu as a player's Esc does: enter `Menu_GameState`, which pauses the game and shows the menu (the same log lines as droha's Esc, 2026-10-01). `pause:event` only raises the game's own `MenuOpen` event: the menu shows but the state stays at Gameplay, so a Reset or Skip from it never takes the menu down. `PostOpenMenuEvent` is accepted and opens nothing, and calling `ShowHideMenuItems` directly throws, because the game dereferences a GameEventData a caller cannot construct |
 | `pausebuttons` | The pause menu's buttons and which are shown. Found with `FindObjectsOfTypeAll`, because the pause menu is inactive while closed |
 | `leave` | Press the pause menu's own Level Select button - the route a player takes out of a puzzle |
 | `next` | The post-level Continue arrow: a pointer click on the retry panel's Continue Button when that panel is on screen, else the ReplayMenu's arrow |
@@ -207,6 +207,7 @@ Files it writes, all in `<game>/BepInEx/`:
 | `shot:<abs path>[\|<n>]` | Screenshot to that file; a pipe and a number renders it at that many times the window size (at most 8) without changing the window |
 | `setres:<w>x<h>` | Set the window to that size, windowed, through the game's own settings menu, and WRITE the choice to the save as the game does. Resolution INDEXES are not stable - the list changes with the display - so it takes a size |
 | `resolutions` | The game's current resolution list and the saved choice. Never use the indexes as information |
+| `cameras` / `cameras:all` | Every camera in the scene that draws into a texture (enabled, active, which texture, whether it is created; `all`: every camera, drawing or not), and every `RenderTextureManager` pool's counts (all, available, used) and texture ids. Built to compare a Post-It Notes (Randomized) finish that logs `Releasing render texture that is set as Camera.targetTexture!` with one that does not: its notes draw through cameras of their own into that pool, and its `CleanUp` releases the whole pool |
 | `mute` / `mute:off` / `unmute` | Hold `AudioListener.volume` at zero, or let it go. The same switch as the `MuteAudio` setting |
 | `bgset:<colour>` | Force the running level's background to an HTML colour (`bgset:#8899AA`), for checking the background trap. Take a screenshot after it: the fields always accept the write, whether or not the screen changes |
 | `bgcatalogue` | The game's own palette of level background colours |
@@ -247,6 +248,7 @@ These three write the campaign save. `unlocks` only reads it.
 | Command | Effect |
 |---|---|
 | `members:<Type>[:<filter>]` | List a game type's properties, fields and methods by reflection, e.g. `members:HintManager`. Built after guessing member names one compile at a time; the interop assemblies rename things unpredictably |
+| `values:<Type>[:<filter>]` | The live values of a game type's own properties on every instance in the scene (prefabs and assets left out, at most six): numbers, flags, text, enums, vectors, an object's name, a list's count. Built to compare a Post-It Notes load whose note cameras stay on with one where the level puts them away |
 | `xrefs:<Type>.<Method>` | What a game method calls, from Il2CppInterop's cross-reference scan of its native code, e.g. `xrefs:ReplayMenu.LevelSelect`. The interop assemblies have no method bodies, so this is how to learn which routine a button runs instead of patching a guess. **It can freeze the game**: resolving ReplayMenu.LevelSelect's eighth call never returned; each call logs `resolving 0x...` first, so the last such line names the one that hung |
 | `xrefs:<Type>.<Method>\|<Type>.<Candidate>,...` | The same scan with nothing resolved: each call's target is compared with the named candidates' native entry points and marked `= Type.Method` on a match |
 | `trace:<Type>.<Method>[,...]` / `trace:off` | Patch the named game methods at runtime and log every call: the frame, the object it ran on and its arguments (every overload of a name; at most 300 lines per start). For "which routine does this", where `xrefs:` can kill the game and a guess costs a rebuild |

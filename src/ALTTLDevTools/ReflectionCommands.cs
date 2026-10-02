@@ -74,6 +74,85 @@ public partial class DevToolsBehaviour
     }
 
     /// <summary>
+    /// The live values of a game type's own properties, on every instance in
+    /// the scene (prefabs and assets left out, at most six):
+    /// "values:PostItNote_LevelRandomizer" or "values:Type:filter". Numbers,
+    /// flags, text, enums, vectors, an object's name, a list's count. Built to
+    /// compare a Post-It Notes load whose note cameras stay on with one where
+    /// the level puts them away (2026-10-01).
+    /// </summary>
+    private static void ListValues(string arg)
+    {
+        var parts = arg.Split(':');
+        var wanted = parts[0].Trim();
+        var filter = parts.Length > 1 ? parts[1].Trim() : "";
+
+        var found = FindType(wanted);
+        if (found == null)
+        {
+            DevToolsPlugin.Log.LogWarning($"values: no type named {wanted}");
+            return;
+        }
+
+        Il2CppSystem.Type il2cpp;
+        try
+        {
+            il2cpp = Il2CppInterop.Runtime.Il2CppType.From(found);
+        }
+        catch (Exception e)
+        {
+            DevToolsPlugin.Log.LogWarning($"values: {wanted} is not a game type: {e.Message}");
+            return;
+        }
+
+        const BindingFlags Own = BindingFlags.Public | BindingFlags.NonPublic
+                                 | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+        var shown = 0;
+        foreach (var obj in Resources.FindObjectsOfTypeAll(il2cpp))
+        {
+            if (obj == null) continue;
+            var comp = obj.TryCast<Component>();
+            if (comp != null && !comp.gameObject.scene.IsValid()) continue;
+            object instance;
+            try
+            {
+                instance = Activator.CreateInstance(found, obj.Pointer)!;
+            }
+            catch (Exception e)
+            {
+                DevToolsPlugin.Log.LogWarning($"values: could not wrap {obj.name}: {e.Message}");
+                continue;
+            }
+            DevToolsPlugin.Log.LogInfo(
+                $"values: {found.Name} on '{obj.name}'"
+                + (comp != null ? $" active={comp.gameObject.activeInHierarchy}" : ""));
+            foreach (var pr in found.GetProperties(Own))
+            {
+                if (!pr.CanRead || pr.GetIndexParameters().Length > 0) continue;
+                if (filter.Length > 0 && pr.Name.IndexOf(filter, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                DevToolsPlugin.Log.LogInfo($"values:   {pr.Name} = {Str(() => ShowValue(pr.GetValue(instance)))}");
+            }
+            if (++shown >= 6) break;
+        }
+        DevToolsPlugin.Log.LogInfo($"values: {shown} instance(s) of {found.Name}");
+    }
+
+    private static string ShowValue(object? v)
+    {
+        switch (v)
+        {
+            case null: return "null";
+            case bool or int or long or float or double or string or Enum: return v.ToString() ?? "";
+            case Vector2 v2: return $"({v2.x:0.###}, {v2.y:0.###})";
+            case Vector3 v3: return $"({v3.x:0.###}, {v3.y:0.###}, {v3.z:0.###})";
+            case UnityEngine.Object u: return $"'{u.name}'";
+        }
+        var count = v.GetType().GetProperty("Count")?.GetValue(v)
+                    ?? v.GetType().GetProperty("Length")?.GetValue(v);
+        return count != null ? $"{v.GetType().Name} count={count}" : v.GetType().Name;
+    }
+
+    /// <summary>
     /// What a game method calls: "xrefs:ReplayMenu.LevelSelect".
     ///
     /// Il2CppInterop's cross-reference scan of the method's native code, each

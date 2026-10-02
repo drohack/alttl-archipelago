@@ -1860,17 +1860,6 @@
     "DLC1 Trophy Cabinet": {
       "display": "Trophy Cabinet (Cupboards and Drawers)",
       "parts": {
-        "Cupboard Doors": {
-          "display": "Cupboard Doors",
-          "abilities": [
-            "Gadgets"
-          ],
-          "members": [
-            "Cupboard Doors"
-          ],
-          "ending": false,
-          "solutionOnly": false
-        },
         "Items Placements Draggables": {
           "display": "Items Placements",
           "abilities": [
@@ -2221,7 +2210,7 @@
             "Cracker Positions"
           ],
           "ending": false,
-          "solutionOnly": false
+          "solutionOnly": true
         },
         "Stacked Groups": {
           "display": "Stacked Groups",
@@ -2421,17 +2410,6 @@
           "ending": true,
           "solutionOnly": false
         },
-        "Groupables (Achievement)": {
-          "display": "Groupables (Achievement)",
-          "abilities": [
-            "Gadgets"
-          ],
-          "members": [
-            "Groupables (Achievement)"
-          ],
-          "ending": true,
-          "solutionOnly": false
-        },
         "SortingItemsDraggables": {
           "display": "Sorting Items",
           "abilities": [
@@ -2451,13 +2429,13 @@
           "group": "Draggables"
         },
         {
-          "id": "Groupables-(Achievement)_0",
-          "location": "Solution: Groupables (Achievement)",
-          "group": "Groupables (Achievement)"
+          "id": "SortingItemsDraggables_0",
+          "location": "Solution: Sorting Items 1",
+          "group": "SortingItemsDraggables"
         },
         {
-          "id": "SortingItemsDraggables_0",
-          "location": "Solution: Sorting Items",
+          "id": "SortingItemsDraggables_1",
+          "location": "Solution: Sorting Items 2",
           "group": "SortingItemsDraggables"
         }
       ]

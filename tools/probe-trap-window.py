@@ -13,7 +13,8 @@ and the Credits item held from the start, levels_to_beat 1 and no traps in
 the pool, so the probe decides when each trap lands: a straight-on
 generator's finish makes the goal, and the credits are then playable. The
 generation seed is searched until the opening holds a one-solution generator
-(it goes straight on) and a two-solution one (it stops on the retry panel).
+(it moves on without showing the retry panel; "straight-on" below) and a
+two-solution one (it stops on the retry panel).
 
 THE CASES
 - A: a trap in a settled puzzle springs.
@@ -73,7 +74,8 @@ TRAP = "Cat Trap"
 BACKGROUND = "Background Change Trap"
 CREDITS_INDEX = 84
 
-#: One solution, the game sends them straight on (docs/reference/level-endings.tsv).
+#: One solution: they move on without the panel, by the panel's route since
+#: 2026-10-01 (Core AfterPuzzleRoute; the game's own straight-on before).
 ONE_SOLUTION_GENERATORS = {997, 998, 996, 12, 70, 58, 73, 69, 62, 75, 1000, 28}
 #: Two solutions: the retry panel after the first. Not Books (Randomized),
 #: whose controllers change with the seed.

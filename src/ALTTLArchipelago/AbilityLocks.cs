@@ -102,6 +102,9 @@ internal static class AbilityLocks
         _flagged.Clear();
         _savedWhileLocked.Clear();
         _gameInteractable.Clear();
+        HeldIndexes.Clear();
+        _heldArt.Clear();
+        _heldButtons.Clear();
         _clearers = null;
         _matches = null;
         _handlesSaid = "";
@@ -315,7 +318,9 @@ internal static class AbilityLocks
     /// now, and reload the level instead of unlocking it in place when it is
     /// one of ObjectLock.ResetOnUnlockLevels - there the game marked covered
     /// pieces fixed while the lock held them, and the unlock gave them back
-    /// pickable but impossible to put down (droha, Cat Food Cans, 2026-09-27).
+    /// pickable but impossible to put down (droha, Cat Food Cans, 2026-09-27),
+    /// or tinted only the pieces that were free after the intro (Seed Pods,
+    /// Clover).
     /// </summary>
     internal static void AbilitiesChanged()
     {
@@ -327,7 +332,7 @@ internal static class AbilityLocks
             if (ObjectLock.ResetOnUnlock(levelId, before, _flagged.Count))
             {
                 Traps.ResetQuietly($"{levelId}: {before - _flagged.Count} piece(s) unlocked mid-level, "
-                    + "reloaded so the game marks its covered pieces again");
+                    + "reloaded so the game sets its pieces up again");
             }
         }
         catch (Exception e)
@@ -469,6 +474,7 @@ internal static class AbilityLocks
             NoteHandles(level!, levelId, votes, byId);
 
             var objects = ApplyWanted(votes, byId);
+            HoldIndexes(active, controllers, levelId, state);
 
             var summary = $"{locked} locked, {unlocked} open, {objects} objects"
                 + (missing.Count > 0 ? $", waiting on {string.Join(", ", missing)}" : "");
@@ -482,6 +488,140 @@ internal static class AbilityLocks
             Plugin.Logger.LogWarning($"abilities: pass failed, leaving everything movable: {e.Message}");
         }
     }
+
+    /// <summary>
+    /// Which indexed states of a level in ObjectLock.IndexHoldLevels stay
+    /// where they are while its Indexables group is locked: IndexHold refuses
+    /// the buttons on them. A piece another, free group holds keeps moving;
+    /// only its state stays.
+    ///
+    /// NOT THE GAME'S LockIndex, which the first build set: the game writes it
+    /// too, and Robot 2's key clears it when it comes out (RobotKeyLockIndex),
+    /// so the head moved without Ordering (droha's hand test, 2026-10-01).
+    ///
+    /// Keyed on the level's copy, not its id: a reload of the same level
+    /// kept the old copy's ten ids beside the new ten.
+    /// </summary>
+    private static void HoldIndexes(LevelInterface? active,
+                                    Il2CppSystem.Collections.Generic.List<ObjectController> controllers,
+                                    string levelId, AbilityState state)
+    {
+        var copy = active?.Level == null ? 0 : active.Level.GetInstanceID();
+        if (copy != _indexLevelCopy)
+        {
+            _indexLevelCopy = copy;
+            HeldIndexes.Clear();           // ids of a level that is gone
+            _heldArt.Clear();
+            _heldButtons.Clear();
+        }
+        if (!ObjectLock.IndexHoldLevels.Contains(levelId))
+        {
+            HeldIndexes.Clear();
+            _heldArt.Clear();
+            _heldButtons.Clear();
+            return;
+        }
+        var settled = active != null && active.LevelIsLoaded && !active.IsTransitioning;
+        ObjectLock.IndexHoldArt.TryGetValue(levelId, out var artNames);
+
+        var before = HeldIndexes.Count;
+        for (int i = 0; i < controllers.Count; i++)
+        {
+            var controller = controllers[i];
+            var ix = controller == null ? null : controller.TryCast<Indexables>();
+            var all = ix?.AllIndexes;
+            if (all == null) continue;
+
+            var cls = ObjectLock.LockClass(levelId, controller!.gameObject?.name ?? "", ClassOf(controller));
+            var hold = ObjectLock.HoldsIndexes(levelId, state.IsClassLocked(cls));
+            for (int a = 0; a < all.Count; a++)
+            {
+                var attr = all[a];
+                if (attr == null) continue;
+                if (hold && settled) HeldIndexes.Add(attr.GetInstanceID());
+                else if (!hold) HeldIndexes.Remove(attr.GetInstanceID());
+                if (artNames != null && (settled || !hold)) HoldArt(attr, artNames, hold);
+            }
+        }
+        HoldButtons(active);
+
+        if (HeldIndexes.Count == before) return;
+        Plugin.Logger.LogInfo(HeldIndexes.Count > 0
+            ? $"abilities: holding {HeldIndexes.Count} indexed state(s) on {levelId} where they are"
+            : $"abilities: indexed states on {levelId} given back");
+    }
+
+    /// <summary>
+    /// The colliders of every button (IndexIncrementTrigger) on a held state:
+    /// off while it is held, on again when it is given back. A press never
+    /// reaches the button, so none of the game's press handling runs half-way.
+    ///
+    /// NOT A REFUSED PRESS, which the two builds before this made: a press
+    /// refused mid-handling - its state change refused, or the whole handler -
+    /// left Robot 3's hearts container switched off once Ordering came, so no
+    /// heart would go in; with no press while held they went in (droha's A/B,
+    /// 2026-10-01). It also covers Robot 9's antennas, whose clicks come
+    /// through their buttons' colliders.
+    /// </summary>
+    private static void HoldButtons(LevelInterface? active)
+    {
+        var level = active?.Level;
+        if (level == null) return;
+        var triggers = level.GetComponentsInChildren<IndexIncrementTrigger>(true);
+        for (int i = 0; i < triggers.Length; i++)
+        {
+            var trigger = triggers[i];
+            var attr = trigger == null ? null : trigger.IndexedAttribute;
+            if (attr == null) continue;
+            var held = HeldIndexes.Contains(attr.GetInstanceID());
+            var colliders = trigger.GetComponents<Collider2D>();
+            for (int c = 0; c < colliders.Length; c++)
+            {
+                var collider = colliders[c];
+                if (collider == null) continue;
+                var id = collider.GetInstanceID();
+                if (held)
+                {
+                    if (!collider.enabled) continue;
+                    collider.enabled = false;
+                    _heldButtons[id] = collider;
+                }
+                else if (_heldButtons.Remove(id))
+                {
+                    collider.enabled = true;
+                }
+            }
+        }
+    }
+
+    /// <summary>Button colliders HoldButtons turned off, to turn back on.</summary>
+    private static readonly Dictionary<int, Collider2D> _heldButtons = new();
+
+    /// <summary>
+    /// Grey, or give back, the art ObjectLock.IndexHoldArt names on a held
+    /// state's owner. PaintArtUnder leaves it alone while it is held: the
+    /// owner is a free piece, and its pass would hand the colour back.
+    /// </summary>
+    private static void HoldArt(IndexedAttribute attr, IReadOnlyList<string> names, bool hold)
+    {
+        var owner = attr.attachedObject != null ? attr.attachedObject.transform : attr.transform;
+        foreach (var name in names)
+        {
+            var child = owner.Find(name);
+            var renderer = child == null ? null : child.GetComponent<SpriteRenderer>();
+            if (renderer == null) continue;
+            var id = renderer.GetInstanceID();
+            if (hold) _heldArt.Add(id);
+            else if (!_heldArt.Remove(id)) continue;
+            Paint(renderer, hold);
+        }
+    }
+
+    /// <summary>Instance ids of the IndexedAttributes held where they are (HoldIndexes, IndexHold).</summary>
+    internal static readonly HashSet<int> HeldIndexes = new();
+    /// <summary>SpriteRenderers greyed with a held state (HoldArt).</summary>
+    private static readonly HashSet<int> _heldArt = new();
+    private static int _indexLevelCopy;
 
     /// <summary>
     /// Note one controller's vote on each object it manages.
@@ -1606,7 +1746,8 @@ internal static class AbilityLocks
             if (child.GetComponent<LevelObject>() != null) continue;
             if (child.gameObject.name.Contains("Shadow")) continue;
             var renderer = child.GetComponent<SpriteRenderer>();
-            if (renderer != null && (!isLocked || renderer.enabled)) Paint(renderer, isLocked);
+            if (renderer != null && (!isLocked || renderer.enabled)
+                && !(!isLocked && _heldArt.Contains(renderer.GetInstanceID()))) Paint(renderer, isLocked);
             PaintArtUnder(child, isLocked);
         }
     }

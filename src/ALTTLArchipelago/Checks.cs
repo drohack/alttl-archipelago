@@ -307,7 +307,8 @@ internal static class Checks
     /// DLC2Boss_Knife comes with the completion, so one playthrough found all
     /// three and filed one until the next visit (droha's hand test,
     /// 2026-09-28). Read here, they are filed before the retry panel is
-    /// decided.
+    /// decided. AND AFTER EVERY SAVE WRITE during play (TickSaveWritten), so
+    /// each phase is filed as it is solved.
     /// </summary>
     private static void SeedSolutionsFromSave(int slotIndex, string? completing = null)
     {
@@ -988,6 +989,31 @@ internal static class Checks
         // panel counts the slot's stars. This completion is left to
         // OnLevelComplete, so its filing and withholding are as they were.
         SeedSolutionsFromSave(_currentSlot, data?.SolutionId ?? "");
+        _saveWrittenFrame = -1;
+    }
+
+    /// <summary>
+    /// The game recorded a solution in the save (SaveRedirect's postfixes on
+    /// SaveData.SaveLevelData and SaveSystem.SaveGame). The Seeing Stars
+    /// Boss's phases arrive this way, each as it is solved, with no completion
+    /// of their own.
+    ///
+    /// Read on the next frame, not here: a completion records its own ending
+    /// too, and that one is OnLevelComplete's to file or withhold. Its
+    /// LevelCompleteEarly clears the note, and once a completion has run on
+    /// the slot (_pendingSlot) the save is not read again until the next entry.
+    /// </summary>
+    internal static void NoteSaveWritten() => _saveWrittenFrame = UnityEngine.Time.frameCount;
+
+    private static int _saveWrittenFrame = -1;
+
+    /// <summary>Called every check tick; files what the save recorded during play.</summary>
+    internal static void TickSaveWritten()
+    {
+        if (_saveWrittenFrame < 0 || UnityEngine.Time.frameCount <= _saveWrittenFrame) return;
+        _saveWrittenFrame = -1;
+        if (_currentSlot < 0 || _pendingSlot == _currentSlot) return;
+        SeedSolutionsFromSave(_currentSlot, "");
     }
 
     /// <summary>
