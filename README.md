@@ -6,11 +6,88 @@ An [Archipelago](https://archipelago.gg) multiworld randomizer for
 [A Little To The Left](https://store.steampowered.com/app/1629520/), the
 tidying puzzle game.
 
+Your run is a track of puzzles, most of them procedurally generated. Their
+solutions, the groups you tidy and the credits are checks; Puzzle Packs, the
+game's mechanics (Stacking, Rotating, Drawer and the rest), Skips and Hint
+Pages are items, and any player in the multiworld can be the one holding
+yours. [What gets randomized](#what-gets-randomized) has the detail.
+
 **Status: playable.** A seed generates, the game connects to it, and the run
 plays through to the credits.
 
 **Vibe coded with AI.** The mod, the apworld, the tools and these docs were
 written with an AI coding assistant (Claude Code).
+
+## Required software
+
+- [A Little To The Left](https://store.steampowered.com/app/1629520/) on Steam
+  (Windows). Both DLCs are supported and both are off by default.
+- For the easy setup (recommended):
+  [r2modman](https://thunderstore.io/package/ebkr/r2modman/) or
+  [Thunderstore Mod Manager](https://www.overwolf.com/app/Thunderstore-Thunderstore_Mod_Manager).
+- For the manual setup:
+  [BepInEx 6 IL2CPP x64, build be.755](https://builds.bepinex.dev/projects/bepinex_be/755/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.755%2B3fab71a.zip)
+  and `ALTTLArchipelago-X.Y.Z.zip` from the [releases page](../../releases).
+- For whoever generates the multiworld:
+  [Archipelago](https://github.com/ArchipelagoMW/Archipelago/releases/latest)
+  0.6.7 or newer, and `alttl.apworld` from the [releases page](../../releases).
+
+## Installation
+
+### Easy setup (mod manager)
+
+1. Install [r2modman](https://thunderstore.io/package/ebkr/r2modman/) (its
+   **Manual Download** button, then the installer inside) or
+   [Thunderstore Mod Manager](https://www.overwolf.com/app/Thunderstore-Thunderstore_Mod_Manager).
+2. Open it, choose **A Little to the Left**, and select or create a profile.
+3. Open the **Online** tab, search for **A Little to the Left Archipelago**,
+   and press **Download**. BepInEx comes with it as a dependency.
+4. Press **Start modded**. The first launch is slow while BepInEx generates its
+   files. The main menu gains an **Archipelago** entry.
+
+The mod is also on
+[Thunderstore's A Little to the Left page](https://thunderstore.io/c/a-little-to-the-left/),
+where **Install with Mod Manager** does steps 2 and 3 for you.
+
+### Manual setup
+
+1. **BepInEx 6 (IL2CPP)**: unzip
+   [BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.755](https://builds.bepinex.dev/projects/bepinex_be/755/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.755%2B3fab71a.zip), the build the mod
+   is tested with (be.697 also works), into the game folder - the one containing
+   `A Little To The Left.exe`.
+2. **First launch**: start the game, wait for the main menu, quit. This launch
+   is slow because BepInEx is generating interop assemblies.
+3. **Mod**: unzip `ALTTLArchipelago-X.Y.Z.zip` from the
+   [releases page](../../releases) into the same game folder.
+
+### The apworld and the yaml
+
+Every player needs `A Little to the Left.yaml`, and whoever generates the
+multiworld needs `alttl.apworld`. Both are on the [releases page](../../releases):
+take the release with the same version as your mod (a mod manager shows the
+version it installed). The host puts `alttl.apworld` into Archipelago's
+`custom_worlds/` folder and the yaml into `Players/`.
+
+The three release files ship together and carry the same version number. A mod
+and an apworld that disagree about the version disagree about the item table,
+so the mod refuses such a pair when it connects rather than playing a subtly
+wrong run.
+
+Details, the yaml options and troubleshooting:
+[docs/installation.md](docs/installation.md).
+
+## Joining a MultiWorld game
+
+Launch the game and use the **Archipelago** button on the main menu. Three
+fields: **Server** (`host:port`, as the room page gives it), **Slot name**, and
+**Password**. The run appears on the level select once you are connected. With
+**Auto-connect** on, the game rejoins your multiworld every launch.
+
+A randomized run keeps its own save: your campaign save is never written to.
+
+A run also survives the server going away. If nothing answers at launch, the
+mod resumes the last run from a cache of the slot data and the received items,
+queues anything you earn, and sends it on the next connection.
 
 ## What gets randomized
 
@@ -188,39 +265,6 @@ that cannot open.
 
 Full detail, including every option and what each item does:
 [the world's game page](apworld/alttl/docs/en_A_Little_to_the_Left.md).
-
-## Install
-
-1. **BepInEx 6 (IL2CPP)**: unzip
-   [BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.755](https://builds.bepinex.dev/projects/bepinex_be/755/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.755%2B3fab71a.zip), the build the mod
-   is tested with (be.697 also works), into the game folder - the one containing
-   `A Little To The Left.exe`.
-2. **First launch**: start the game, wait for the main menu, quit. This launch
-   is slow because BepInEx is generating interop assemblies.
-3. **Mod**: unzip `ALTTLArchipelago-X.Y.Z.zip` from the
-   [releases page](../../releases) into the same game folder.
-4. **Archipelago host**, only if you are generating the multiworld: install
-   [Archipelago](https://github.com/ArchipelagoMW/Archipelago/releases/latest)
-   0.6.7 or newer, put `alttl.apworld` (same release) into its
-   `custom_worlds/` folder, and `A Little to the Left.yaml` into `Players/`.
-
-The three release files ship together and carry the same version number. A mod
-and an apworld that disagree about the version disagree about the item table,
-so the mod refuses such a pair when it connects rather than playing a subtly
-wrong run.
-
-Details, the yaml options and troubleshooting:
-[docs/installation.md](docs/installation.md).
-
-## Connect
-
-Launch the game and use the **Archipelago** button on the main menu. Three
-fields: **Server** (`host:port`, as the room page gives it), **Slot name**, and
-**Password**. The run appears on the level select once you are connected.
-
-A run also survives the server going away. If nothing answers at launch, the
-mod resumes the last run from a cache of the slot data and the received items,
-queues anything you earn, and sends it on the next connection.
 
 ## Developing
 

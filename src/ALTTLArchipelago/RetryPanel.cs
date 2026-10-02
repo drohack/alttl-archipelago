@@ -90,7 +90,16 @@ internal static class RetryPanel
             var slot = Checks.CurrentSlot;
 
             var generator = !own && IsGenerator(slot);
-            if (AfterPuzzleRoute.For(offer.Value) == AfterPuzzle.Panel)
+            var route = AfterPuzzleRoute.For(offer.Value, Skips.FinishingTheLevel, own);
+            if (route == AfterPuzzle.TheGames)
+            {
+                // The game's skip moves this level out by itself; a panel on
+                // top of it came up over the next puzzle (Core AfterPuzzleRoute).
+                Log($"retry panel: slot {slot} is being skipped and the game sends it straight on "
+                    + "- its own route, no panel");
+                return;
+            }
+            if (route == AfterPuzzle.Panel)
             {
                 __result = true;
                 Log($"retry panel: slot {slot}, {lit} of {total} solution(s) "

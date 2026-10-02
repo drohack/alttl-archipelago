@@ -2815,6 +2815,41 @@ class TestARunNeverGoesToTheDailyPage(unittest.TestCase):
         self.assertEqual((1, 1), e2e.daily_page_visits(loud))
 
 
+class TestNoPuzzleOpensUnderThePostLevelScreen(unittest.TestCase):
+    """The 1.0.0 DLC gate of 2026-10-02 stopped after a Skip on Cupcakes: the
+    next puzzle loaded while the game was still in RetryUI_GameState, the
+    panel up over it. The 13:33 DLC gate the same day had it too and passed,
+    because the harness happened to recover. Lines from those logs."""
+
+    UNDER = ("[Info   :ALTTL Dev Tools] 14:19:29  LevelSkipped  id=DLC2 Cupcakes  index=1236  "
+             "solutionCount=3  found=1  seed=-1\n"
+             "[Message:     Unity] SetGameState: RetryUI_GameState\n"
+             "[Info   :A Little To The Left Archipelago] daily decision: DLC2 Cupcakes leaves as "
+             "a run puzzle, not a daily\n"
+             "[Info   :A Little To The Left Archipelago] checks: now playing slot 7\n"
+             "[Message:     Unity] Initialized Level: DLC2 Water Glasses\n")
+    MOVED_ON = ("[Message:     Unity] SetGameState: RetryUI_GameState\n"
+                "[Info   :A Little To The Left Archipelago] retry panel: slot 4 has nothing left "
+                "to find - moving on without the panel\n"
+                "[Info   :A Little To The Left Archipelago] navigation: post-level Continue, "
+                "letting the game advance\n"
+                "[Message:     Unity] SetGameState: Gameplay_GameState\n"
+                "[Message:     Unity] Initialized Level: Seed Pods\n")
+
+    def test_a_puzzle_loaded_under_the_panel_is_named(self):
+        self.assertEqual(["DLC2 Water Glasses"], e2e.opened_under_the_panel(self.UNDER))
+
+    def test_a_panel_left_first_is_fine(self):
+        self.assertEqual([], e2e.opened_under_the_panel(self.MOVED_ON))
+
+    def test_the_straight_on_route_never_enters_the_panel(self):
+        straight = ("[Info   :ALTTL Dev Tools] 14:38:52  LevelSkipped  id=DLC2 Cupcakes\n"
+                    "[Info   :A Little To The Left Archipelago] daily decision: DLC2 Cupcakes "
+                    "leaves as a run puzzle, not a daily\n"
+                    "[Message:     Unity] Initialized Level: DLC2 Canapes\n")
+        self.assertEqual([], e2e.opened_under_the_panel(straight))
+
+
 class TestTheGateTakesOnlyThePlayersRoutes(unittest.TestCase):
     """The DLC gate of 2026-10-01 left an unfinished level by replayselect
     (the post-level Level Select, pressed during play), which built the track

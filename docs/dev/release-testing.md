@@ -24,7 +24,7 @@ missed by it.
 | 15 puzzles played to the credits, goal reported and seen by the server | yes | yes | no |
 | ability locks on: gates met and refused (5 on the 2026-09-27 seed) | yes | no | - |
 | cat traps on: puzzles knocked over mid-solve (2 on that seed) | yes | no | - |
-| checks asserted | 29 | 27 | 2 |
+| checks asserted | 30 | 28 | 2 |
 
 `--quick` exists for iterating on the harness, where locks and traps are
 noise. For a release, or after any change to the locks or traps, run the
@@ -137,6 +137,16 @@ cannot open that page in a run, and every finished generator used to go
 there and be pulled out (the quick gate of 2026-10-01: 6 of 6). The mod now
 answers the game's own decision (`DailyDecision`), so the rescue is a
 backstop that should never run, and it warns when it does.
+
+### No puzzle opens under the post-level panel
+
+A check of its own since 2026-10-02: no `Initialized Level:` while the game
+is still in `RetryUI_GameState`. Every route off the panel leaves that state
+first; a Skip on a level the game sends straight on (Cupcakes, Water
+Glasses) did not, and the next puzzle opened with the panel over it. The
+13:33 DLC gate that day passed with two of them because the harness
+recovered; the next stopped on one. Core `AfterPuzzleRoute` now keeps the
+game's own route for such a Skip.
 
 ## Reading it while it runs
 

@@ -20,9 +20,16 @@ yours.
 
 ## Install
 
-Install with r2modman or Thunderstore Mod Manager; BepInEx comes with it.
-Launch the game from the mod manager. The first launch is slow while BepInEx
-generates its files.
+1. In r2modman or Thunderstore Mod Manager, choose **A Little to the Left** and
+   select or create a profile.
+2. Install this mod (**Install with Mod Manager** above, or search the
+   **Online** tab for **A Little to the Left Archipelago** and press
+   **Download**). BepInEx comes with it as a dependency.
+3. Press **Start modded**. The first launch is slow while BepInEx generates its
+   files. The main menu gains an **Archipelago** entry.
+
+The mod manager shows the version it installed: take the `alttl.apworld` and
+yaml from the GitHub release with that same version.
 
 ## Connect
 

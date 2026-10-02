@@ -9,7 +9,33 @@ refuses to connect to a seed a different apworld generated.
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
-## Unreleased
+## 1.0.0 - 2026-10-02
+
+The first release on Thunderstore.
+
+**New seeds only.** Location ids moved: DLC1 107 -> 105, DLC2 124 -> 123.
+0.4.6 seeds: finish them on 0.4.6, or regenerate.
+
+- **A Skip no longer leaves the post-level panel over the next puzzle.**
+  - On a level the game sends straight on with solutions left (Cupcakes,
+    Water Glasses, Fountain Pens), the game's skip moves the level out by
+    itself, and the panel the mod asks every run puzzle for came up on top:
+    the next puzzle opened under it, in `RetryUI_GameState`. DevTools trace:
+    SkipLevel, TransitionLevelOut, RetryUI, ShowMenu, the tween-out.
+  - Found by the 1.0.0 DLC gate, which stopped on it. It was in every DLC
+    gate since 2026-09-30 and in droha's morning log; the harness used to
+    get out by a route no player has.
+  - A Skip on such a level now keeps the game's own route (Core
+    `AfterPuzzleRoute`, `Skips.FinishingTheLevel`): the next puzzle opens
+    once, in play. A level built for the panel moves on through it as before.
+  - The gate checks it: "no puzzle opened under the post-level panel" (full
+    30, quick 28).
+
+- **On Thunderstore.** The mod installs with r2modman or Thunderstore Mod
+  Manager, BepInEx with it. The README now opens with how to install, in the
+  order of Archipelago's own setup guides (required software, a mod manager
+  first, then by hand, then joining), and the setup guide, installation page
+  and package README carry the mod-manager steps.
 
 From a sweep of the backlog (2026-10-01).
 

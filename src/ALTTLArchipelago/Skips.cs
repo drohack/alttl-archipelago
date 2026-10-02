@@ -34,6 +34,13 @@ internal static class Skips
     private static int _fallbackSlot = -1;
 
     /// <summary>
+    /// A paid Skip is inside the game's SkipLevel, which finishes the level in
+    /// the call: the post-level route is chosen then (RetryPanel, Core
+    /// AfterPuzzleRoute).
+    /// </summary>
+    internal static bool FinishingTheLevel { get; private set; }
+
+    /// <summary>
     /// Refuse a skip nobody has paid for, and arm the one that is.
     ///
     /// A prefix on the game's own SkipLevel, so every route to it is covered
@@ -75,6 +82,7 @@ internal static class Skips
             // Armed, not charged: the charge comes when the game's
             // LevelSkipped arrives (OnLevelSkipped) or, on a level the game
             // will not skip, from the fallback (AfterSkipLevel).
+            FinishingTheLevel = true;
             return true;
         }
         catch (Exception e)
@@ -117,6 +125,15 @@ internal static class Skips
         {
             Plugin.Logger.LogWarning($"skip: after-skip check failed: {e.Message}");
         }
+    }
+
+    /// <summary>Cleared however the game's SkipLevel ends, a throw included.</summary>
+    [HarmonyPatch(typeof(MainMenu), nameof(MainMenu.SkipLevel))]
+    [HarmonyFinalizer]
+    private static Exception? SkipLevelFinally(Exception? __exception)
+    {
+        FinishingTheLevel = false;
+        return __exception;
     }
 
     /// <summary>The game's LevelSkipped: release the rest of the slot, charge once.</summary>

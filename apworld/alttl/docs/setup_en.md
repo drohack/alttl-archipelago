@@ -5,15 +5,42 @@
 - [A Little to the Left](https://store.steampowered.com/app/1629520/) on PC.
   The base game is enough. Both DLCs are supported and both are **off by
   default** - see DLC below.
-- The A Little to the Left Archipelago mod, from the
-  [releases page](https://github.com/drohack/alttl-archipelago/releases).
-- [BepInEx 6 for Unity IL2CPP, x64, build be.755](https://builds.bepinex.dev/projects/bepinex_be/755/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.755%2B3fab71a.zip), the build the
-  mod is tested with (be.697 also works).
-  **This is a separate download - the mod release does not include it.** It
-  must be BepInEx 6, not BepInEx 5: the game is Unity 2020.3.26f1 / IL2CPP and
-  BepInEx 5 will not load it.
+- For easy setup (recommended):
+  [r2modman](https://thunderstore.io/package/ebkr/r2modman/) OR
+  [Thunderstore Mod Manager](https://www.overwolf.com/app/Thunderstore-Thunderstore_Mod_Manager).
+- For manual setup:
+  - The A Little to the Left Archipelago mod, from the
+    [releases page](https://github.com/drohack/alttl-archipelago/releases).
+  - [BepInEx 6 for Unity IL2CPP, x64, build be.755](https://builds.bepinex.dev/projects/bepinex_be/755/BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.755%2B3fab71a.zip),
+    the build the mod is tested with (be.697 also works).
+    **This is a separate download - the mod release does not include it.** It
+    must be BepInEx 6, not BepInEx 5: the game is Unity 2020.3.26f1 / IL2CPP
+    and BepInEx 5 will not load it.
 
 ## Installing
+
+### Easy setup (mod manager)
+
+1. Download [r2modman](https://thunderstore.io/package/ebkr/r2modman/) with its
+   **Manual Download** button and run the installer inside the zip (or install
+   [Thunderstore Mod Manager](https://www.overwolf.com/app/Thunderstore-Thunderstore_Mod_Manager),
+   which works the same).
+2. Open the mod manager and select **A Little to the Left** in the game
+   selection screen.
+3. Select the default profile or create a new one.
+4. Open the **Online** tab on the left, then search for
+   **A Little to the Left Archipelago**.
+5. Expand it and press **Download** to install the latest version and its
+   dependency, BepInEx.
+6. Press **Start modded**. The first launch takes noticeably longer than usual
+   while BepInEx generates its files. The main menu gains an **Archipelago**
+   entry.
+
+The mod is also on
+[Thunderstore's A Little to the Left page](https://thunderstore.io/c/a-little-to-the-left/),
+whose **Install with Mod Manager** button does steps 2 to 5.
+
+### Manual setup
 
 1. Close the game.
 2. Extract **BepInEx** into the game's install folder - the one containing
@@ -47,7 +74,9 @@ or from the copy shipped beside the mod in the same release.
 
 Only whoever generates the seed needs this. Put `alttl.apworld`, from the same
 release as the mod, into the Archipelago installation's `custom_worlds/`
-folder. Archipelago 0.6.7 or newer is required.
+folder. Archipelago 0.6.7 or newer is required. A mod manager shows the version
+of the mod it installed; take the apworld and yaml from the release with that
+version.
 
 The mod and the apworld carry the same version number and are meant to be used
 together, because a version change can move location ids. The mod checks this
@@ -118,9 +147,12 @@ multiworld will not disturb a campaign already in progress.
 
 ## Troubleshooting
 
-**The Archipelago option is not on the main menu.** The mod did not load. Check
-that `BepInEx/plugins/ALTTLArchipelago/` exists inside the game folder, and
-look at `BepInEx/LogOutput.log` for lines from `ALTTLArchipelago`.
+**The Archipelago option is not on the main menu.** The mod did not load. With
+a mod manager, check you pressed **Start modded** rather than starting the game
+from Steam. With the manual setup, check that
+`BepInEx/plugins/ALTTLArchipelago/` exists inside the game folder. Either way,
+look at `BepInEx/LogOutput.log` (in r2modman: Settings, Data and profile
+folders, Browse beside Profile folder) for lines from `ALTTLArchipelago`.
 
 **The game hangs on a Steam dialog at startup.** Custom launch options are set.
 Clear them and start the game normally.

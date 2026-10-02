@@ -840,6 +840,23 @@ def daily_page_visits(text):
     return states, rescues
 
 
+def opened_under_the_panel(text):
+    """The puzzles that loaded while the game was still in RetryUI_GameState,
+    the post-level panel up over them, in order. Every route off the panel
+    leaves that state first (Continue enters Gameplay); a Skip on a level the
+    game sends straight on once did not (Cupcakes, the 1.0.0 DLC gate). Pure."""
+    found, under = [], False
+    for line in text.splitlines():
+        state = re.search(r"SetGameState: (\w+)", line)
+        if state:
+            under = state.group(1) == "RetryUI_GameState"
+            continue
+        loaded = re.search(r"Initialized Level: (.+)", line)
+        if loaded and under:
+            found.append(loaded.group(1).strip())
+    return found
+
+
 #: Levels whose runtime controllers are KNOWN to differ from the shipped
 #: table, so the mod's audit is expected to complain about them.
 #:
@@ -5364,6 +5381,13 @@ def main():
             print(f"      the game went to the Daily Tidy page {states} time(s), "
                   f"the daily guard rescued {rescues}", flush=True)
         results.append(("the run never went to the Daily Tidy page", not states and not rescues))
+
+        # No puzzle opens under the post-level panel: the 13:33 DLC gate of
+        # 2026-10-02 passed with one, because the harness recovered.
+        under = opened_under_the_panel(whole)
+        if under:
+            print(f"      opened under the post-level panel: {', '.join(under)}", flush=True)
+        results.append(("no puzzle opened under the post-level panel", not under))
 
         # The location table against the running game, asserted rather than
         # logged. See table_audit.
