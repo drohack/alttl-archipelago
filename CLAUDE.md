@@ -135,6 +135,9 @@ Keep it short: add a rule here as one line, never as a story.
 - DevTools commands go in `<game>/BepInEx/alttl-devtools-commands.txt`; see
   `docs/dev/devtools.md`. Log: `<game>/BepInEx/LogOutput.log`. It can hold more
   than one launch: read state from the last one, never the first match.
+- A game started from r2modman (the Thunderstore package) runs from
+  `%APPDATA%/r2modmanPlus-local/ALittleToTheLeft/profiles/Default`: its log and
+  config are there, it has no DevTools, and the tools here do not see it.
 - A command still queued when the game froze runs at the next launch (a stale
   `xrefs` killed one): empty the command file after any freeze.
 - Say before you launch or close the game, and close it when your testing is

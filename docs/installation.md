@@ -139,10 +139,17 @@ Steam Cloud syncs, so runs never crowd out the campaign save there.
 
 ## Troubleshooting
 
-**The Archipelago entry is not on the menu.** The plugin did not load. Check
-`BepInEx/LogOutput.log` for `A Little To The Left Archipelago loaded`. If
-BepInEx itself is not logging, it is BepInEx 5, or the 32-bit build, or it was
-extracted into the wrong folder.
+**The Archipelago entry is not on the menu.** The plugin did not load. With a
+mod manager, start the game with **Start modded**: started from Steam it runs
+unmodded. Check `BepInEx/LogOutput.log` for
+`A Little To The Left Archipelago loaded`; with r2modman it is in the
+profile's folder (Settings, Data and profile folders, Browse beside Profile
+folder), not the game's. If BepInEx itself is not logging, it is BepInEx 5,
+or the 32-bit build, or it was extracted into the wrong folder.
+
+**The main menu still shows Archive, Daily Tidy and Shuffle.** Expected until
+you connect: the run's trimmed menu comes with a slot name, so a fresh
+install shows the game's full menu with the Archipelago entry added.
 
 **A feature silently does nothing.** The log lists `features live:` and, if any
 failed, `FEATURES DISABLED:`. A game update that renames a method disables one

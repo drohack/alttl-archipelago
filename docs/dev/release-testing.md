@@ -441,13 +441,29 @@ CRLF. The parsed content is identical and both load fine. It does mean
 `package-release.py` also writes `<out>/thunderstore/A_Little_to_the_Left_Archipelago-<version>.zip`:
 the same five DLLs at the zip root with a generated `manifest.json`
 (dependency `BepInEx-BepInExPack_IL2CPP-6.0.755`), `thunderstore/icon.png`,
-`thunderstore/README.md` and the changelog. It is not a GitHub asset. Upload
-it by hand at thunderstore.io (Upload, under your Thunderstore team), to the
-"A Little to the Left" community, with the **AI Generated** category
-(Thunderstore's Global Rules), then install and launch it once through
-r2modman. The community was requested in #game-requests on 2026-09-30. The
-game starts with r2modman's doorstop arguments (checked 2026-09-30: title
-screen, no dialog), unlike the Unity arguments in testing.md.
+`thunderstore/README.md` and this version's CHANGELOG section with a link to
+the whole file (Thunderstore refuses a text file over 100000 characters; the
+whole changelog is over 200000). It is not a GitHub asset.
+
+- **Upload the zip from the same run as the GitHub assets.** A rebuild from
+  the same source does not give byte-identical DLLs (1.0.0, 2026-10-02:
+  three of five differed), so a later rebuild would not be what GitHub
+  players run.
+- Upload by hand at thunderstore.io (Upload), under the **drohack** team, to
+  the "A Little to the Left" community, categories **Mods** and
+  **AI Generated** (Thunderstore's Global Rules). The package:
+  [drohack/A_Little_to_the_Left_Archipelago](https://thunderstore.io/c/a-little-to-the-left/p/drohack/A_Little_to_the_Left_Archipelago/);
+  1.0.0 was the first upload (2026-10-02). The package name cannot change.
+- r2modman lists a new version once Thunderstore rebuilds the community's
+  listing index (`/c/a-little-to-the-left/api/v1/package-listing-index/`;
+  about 30 minutes for 1.0.0) and the manager's own copy is refreshed
+  (Settings, Refresh online mod list).
+- Then install and launch it once through r2modman. The game starts with
+  r2modman's doorstop arguments (checked 2026-09-30: title screen, no
+  dialog), unlike the Unity arguments in testing.md. An r2modman install
+  runs from its profile, not the game folder: its log is
+  `%APPDATA%/r2modmanPlus-local/ALittleToTheLeft/profiles/<profile>/BepInEx/LogOutput.log`,
+  its config beside it, and it has no DevTools.
 
 ## The manual route
 

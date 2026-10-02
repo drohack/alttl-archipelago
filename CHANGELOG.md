@@ -18,6 +18,10 @@ The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 - **The docs link the mod's Thunderstore page**
   (thunderstore.io/c/a-little-to-the-left/p/drohack/A_Little_to_the_Left_Archipelago/):
   the README, the setup guide and the installation page.
+- **Release and install docs caught up with Thunderstore**: the release page's
+  Thunderstore section (the drohack team, upload from the same build as the
+  GitHub assets, the index delay, where an r2modman install logs), and two
+  troubleshooting entries (Start modded; the full menu before connecting).
 
 ## 1.0.0 - 2026-10-02
 
