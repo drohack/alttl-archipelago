@@ -158,6 +158,23 @@ TS_WEBSITE = "https://github.com/drohack/alttl-archipelago"
 #: The build every test ran on (CHANGELOG, "Tested on BepInEx be.755").
 TS_DEPENDENCIES = ["BepInEx-BepInExPack_IL2CPP-6.0.755"]
 TS_REQUIRED = ("manifest.json", "icon.png", "README.md")
+#: Thunderstore refuses a README.md or CHANGELOG.md longer than this (its
+#: upload form, 2026-10-02: "CHANGELOG.md is too long, max: 100000").
+TS_TEXT_LIMIT = 100_000
+
+
+def thunderstore_changelog(full: str, version: str) -> str:
+    """The package's CHANGELOG.md: this version's section and a link to the
+    whole history, which is far over TS_TEXT_LIMIT. ValueError when the
+    changelog has no section for `version`. Pure."""
+    head = f"\n## {version} - "
+    start = full.find(head)
+    if start < 0:
+        raise ValueError(f"CHANGELOG.md has no '## {version} - ' section")
+    end = full.find("\n## ", start + len(head))
+    section = full[start + 1:end if end >= 0 else len(full)].rstrip() + "\n"
+    return ("# Changelog\n\nThis release's changes. Every release, with how each change was "
+            f"checked: [CHANGELOG.md]({TS_WEBSITE}/blob/v{version}/CHANGELOG.md).\n\n" + section)
 
 
 def thunderstore_manifest(version: str) -> dict:
@@ -165,10 +182,15 @@ def thunderstore_manifest(version: str) -> dict:
             "description": TS_DESCRIPTION, "dependencies": list(TS_DEPENDENCIES)}
 
 
-def thunderstore_problems(manifest: dict, icon: bytes, names: list[str]) -> list[str]:
-    """What Thunderstore would refuse (wiki: creating a package), as messages.
-    Pure, so tools/test_package_release.py holds it to each rule."""
+def thunderstore_problems(manifest: dict, icon: bytes, names: list[str],
+                          texts: dict[str, str] | None = None) -> list[str]:
+    """What Thunderstore would refuse (wiki: creating a package; the upload
+    form's length limit), as messages. `texts` is the README and changelog
+    as text. Pure, so tools/test_package_release.py holds it to each rule."""
     problems = []
+    for name, text in (texts or {}).items():
+        if len(text) > TS_TEXT_LIMIT:
+            problems.append(f"{name} is {len(text)} characters, over {TS_TEXT_LIMIT}")
     if not re.fullmatch(r"[A-Za-z0-9_]{1,128}", manifest.get("name", "")):
         problems.append("name must be 1-128 of a-z A-Z 0-9 _")
     if len(manifest.get("description", "")) > 250:
@@ -205,16 +227,23 @@ def write_thunderstore_zip(out: pathlib.Path, version: str,
 
     manifest = thunderstore_manifest(version)
     icon = (THUNDERSTORE / "icon.png").read_bytes()
+    readme = (THUNDERSTORE / "README.md").read_text(encoding="utf-8")
+    try:
+        changelog = thunderstore_changelog(
+            (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), version)
+    except ValueError as e:
+        sys.exit(f"REFUSING TO PACKAGE the Thunderstore zip:\n  {e}")
     entries = {
         "manifest.json": (json.dumps(manifest, indent=4) + "\n").encode("ascii"),
         "icon.png": icon,
-        "README.md": (THUNDERSTORE / "README.md").read_bytes(),
-        "CHANGELOG.md": (ROOT / "CHANGELOG.md").read_bytes(),
+        "README.md": readme.encode("utf-8"),
+        "CHANGELOG.md": changelog.encode("utf-8"),
     }
     for path in files:                      # the same allowlist as the plugin zip
         entries[path.name] = path.read_bytes()
 
-    problems = thunderstore_problems(manifest, icon, list(entries))
+    problems = thunderstore_problems(manifest, icon, list(entries),
+                                     texts={"README.md": readme, "CHANGELOG.md": changelog})
     if problems:
         sys.exit("REFUSING TO PACKAGE the Thunderstore zip:\n  " + "\n  ".join(problems))
 

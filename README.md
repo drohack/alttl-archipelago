@@ -45,8 +45,8 @@ written with an AI coding assistant (Claude Code).
 4. Press **Start modded**. The first launch is slow while BepInEx generates its
    files. The main menu gains an **Archipelago** entry.
 
-The mod is also on
-[Thunderstore's A Little to the Left page](https://thunderstore.io/c/a-little-to-the-left/),
+Or start from
+[the mod's Thunderstore page](https://thunderstore.io/c/a-little-to-the-left/p/drohack/A_Little_to_the_Left_Archipelago/),
 where **Install with Mod Manager** does steps 2 and 3 for you.
 
 ### Manual setup

@@ -47,6 +47,25 @@ class TestTheThunderstorePackage(unittest.TestCase):
         self.assertIn("README.md is missing from the zip root",
                       pr.thunderstore_problems(manifest, png_header(256, 256), without))
 
+    def test_a_text_file_over_the_limit_is_refused(self):
+        # Thunderstore's upload, 2026-10-02: "CHANGELOG.md is too long, max: 100000".
+        manifest = pr.thunderstore_manifest("1.0.0")
+        problems = pr.thunderstore_problems(
+            manifest, png_header(256, 256), ROOT_FILES,
+            texts={"README.md": "x" * 10, "CHANGELOG.md": "x" * 100_001})
+        self.assertEqual(["CHANGELOG.md is 100001 characters, over 100000"], problems)
+
+    def test_the_package_changelog_is_this_versions_section(self):
+        full = (pr.ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        short = pr.thunderstore_changelog(full, "1.0.0")
+        self.assertIn("\n## 1.0.0 - ", short)
+        self.assertNotIn("\n## 0.4.6", short)
+        self.assertIn("blob/v1.0.0/CHANGELOG.md", short)
+        self.assertLess(len(short), pr.TS_TEXT_LIMIT)
+        # A version the changelog has no section for is a packaging mistake.
+        with self.assertRaises(ValueError):
+            pr.thunderstore_changelog(full, "9.9.9")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

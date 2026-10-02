@@ -26,8 +26,8 @@ ladder in the repo's `CLAUDE.md`.
 | `deploy.sh` | writes | Build both plugins and copy them into the game (closes it first). `--no-kill`: compile only, never deploys |
 | `ap-sync.ps1` | no | Copy `apworld/alttl` into the local `Archipelago/` clone for tests |
 | `build_apworld.py` | no | Package the world as `alttl.apworld` |
-| `package-release.py` | no | Build all three release assets and refuse if their versions disagree; also the Thunderstore zip (`<out>/thunderstore/`, from `thunderstore/`), refused if Thunderstore would refuse it |
-| `test_package_release.py` | no | The Thunderstore package's rules (name, description, version, 256x256 icon, root files) |
+| `package-release.py` | no | Build all three release assets and refuse if their versions disagree; also the Thunderstore zip (`<out>/thunderstore/`, from `thunderstore/`, with only this version's CHANGELOG section: Thunderstore takes at most 100000 characters), refused if Thunderstore would refuse it |
+| `test_package_release.py` | no | The Thunderstore package's rules (name, description, version, 256x256 icon, root files, text length, the changelog section) |
 
 ## The release gate and its paper tests
 

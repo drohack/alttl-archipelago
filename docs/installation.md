@@ -22,7 +22,7 @@ that are probably fine.
 ## With a mod manager (recommended)
 
 The mod is on
-[Thunderstore](https://thunderstore.io/c/a-little-to-the-left/), so
+[Thunderstore](https://thunderstore.io/c/a-little-to-the-left/p/drohack/A_Little_to_the_Left_Archipelago/), so
 [r2modman](https://thunderstore.io/package/ebkr/r2modman/) or
 [Thunderstore Mod Manager](https://www.overwolf.com/app/Thunderstore-Thunderstore_Mod_Manager)
 installs it and BepInEx together:

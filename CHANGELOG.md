@@ -9,6 +9,16 @@ refuses to connect to a seed a different apworld generated.
 
 The format is loosely [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+- **The Thunderstore package carries only this release's changelog section**, with a link to
+  this file. Thunderstore refused the whole file ("CHANGELOG.md is too long, max: 100000";
+  it is over 200000). `package-release.py` builds it that way and refuses a README or
+  changelog over the limit. The 1.0.0 package was rebuilt so, from the published 1.0.0 DLLs.
+- **The docs link the mod's Thunderstore page**
+  (thunderstore.io/c/a-little-to-the-left/p/drohack/A_Little_to_the_Left_Archipelago/):
+  the README, the setup guide and the installation page.
+
 ## 1.0.0 - 2026-10-02
 
 The first release on Thunderstore.
